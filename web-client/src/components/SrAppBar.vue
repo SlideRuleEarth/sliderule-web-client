@@ -10,7 +10,6 @@ import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
 const build_env = import.meta.env.VITE_BUILD_ENV;
 const sysConfigStore = useSysConfigStore();
 const deviceStore = useDeviceStore();
-const serverVersion = ref<string>('v?.?.?');
 const route = useRoute();
 const tooltipRef = ref();
 
@@ -147,6 +146,21 @@ const emit = defineEmits([
     'long-tour-button-click' 
 ]);
 
+const nodeBadgeSeverity = computed(() => {
+    const canGetVersion = sysConfigStore.getCanConnectVersion();
+    const canGetNodes = sysConfigStore.getCanConnectNodes();
+
+    //console.log('nodeBadgeSeverity canGetNodes:', canGetNodes, 'canGetVersion:', canGetVersion, 'current_nodes:', sysConfigStore.current_nodes);
+    if (sysConfigStore.current_nodes <= 0) return 'warning'; // no nodes available
+    if (canGetNodes !== 'yes' && canGetVersion !== 'yes') return 'danger';     // both failed
+    if (canGetNodes === 'no' || canGetVersion === 'no') return 'danger';       // one failed
+    if (canGetNodes === 'unknown' || canGetVersion === 'unknown') return 'warning'; // one or both unknown
+    return 'info'; // both yes and >0
+});
+
+const badgeLabel = computed(() => {
+    return sysConfigStore.current_nodes >= 0 ? `server ${sysConfigStore.current_nodes}` : 'server ?';
+});
 
 const handleRequestButtonClick = () => {
     emit('request-button-click');
@@ -218,6 +232,10 @@ const testVersionWarning = computed(() => {
     return tvw;
 });
 
+const computedServerVersionLabel = computed(() => {
+    return sysConfigStore.version || 'v?.?.?';
+});
+
 const mobileMenu = ref<InstanceType<typeof Menu> | null>(null);
 
 const mobileMenuItems = [
@@ -276,7 +294,8 @@ function dumpRouteInfo() {
 
 onMounted(async () => {
     setDarkMode();
-    serverVersion.value = await sysConfigStore.fetchServerVersion();
+    await sysConfigStore.fetchServerVersionInfo();
+    await sysConfigStore.fetchCurrentNodes();
     dumpRouteInfo();
 });
 
@@ -284,6 +303,27 @@ const openMailClient = () => {
     window.location.href = 'mailto:support@mail.slideruleearth.io';
 };
 
+const showServerTooltip = async (event: MouseEvent) => {
+    //console.log(`showServerTooltip using ${computedStatusUrl.value} called with event:`, event);
+    if (!tooltipRef.value) {
+        console.error('Tooltip reference is not defined');
+        return;
+    }
+
+    try {
+        const nodesStr = await sysConfigStore.fetchCurrentNodes();
+        tooltipRef.value.showTooltip(
+            event,
+            `Server Version: ${sysConfigStore.getVersion()}<br>Nodes: ${nodesStr}<br>Click to see server details`
+        );
+    } catch (error) {
+        console.error('Failed to fetch server status:', error);
+        tooltipRef.value.showTooltip(
+            event,
+            `Server Version: ${sysConfigStore.getVersion()}<br>Nodes: unknown<br>Click to see server details`
+        );
+    }
+};
 
 </script>
 
@@ -298,24 +338,29 @@ const openMailClient = () => {
             <Menu :model="mobileMenuItems" popup ref="mobileMenu" />
             <img src="/IceSat-2_SlideRule_logo.png" alt="SlideRule logo" class="logo" />
             <span class = "sr-title">SlideRule</span>
-            <Button
-                type="button"
-                :label=serverVersion
-                class=" p-button-text desktop-only version "
-                id="sr-server-version-button"
-                badge="server"
-                badgeSeverity="danger"
-                @click="handleServerVersionButtonClick">
-            </Button>
+            <div class="sr-show-server-version"
+                @mouseover="showServerTooltip($event)"
+                @mouseleave="tooltipRef.hideTooltip()"
+            >
+                <Button
+                    type="button"
+                    :label=computedServerVersionLabel
+                    :class="['p-button-text', 'desktop-only', 'sr-server-version', nodeBadgeSeverity]"
+                    id="sr-server-version-button"
+                    :badge="badgeLabel"
+                    @click="handleServerVersionButtonClick">
+                </Button>
+            </div>
             <Button
                 type="button"
                 :label=formattedClientVersion
-                class="p-button-text desktop-only version"
+                class="p-button-text desktop-only sr-client-version"
                 id="sr-client-version-button"
                 badge="web_client"
-                badgeSeverity="danger"
                 @click="handleClientVersionButtonClick"> 
             </Button>
+            
+
             <span class="sr-tvw">{{ testVersionWarning }}</span>
         </div>
         <div class="middle-content">
@@ -518,7 +563,7 @@ const openMailClient = () => {
     transition: box-shadow 0.3s ease;
 }
 
-:deep(.p-button.version) {
+:deep(.p-button.sr-server-version) {
     position: relative;
     padding-top: 0.5rem;
     padding-bottom: 0.0625rem;
@@ -528,7 +573,17 @@ const openMailClient = () => {
     border-radius: 0;
 }
 
-:deep(.p-button.version .p-badge) {
+:deep(.p-button.sr-client-version) {
+    position: relative;
+    padding-top: 0.5rem;
+    padding-bottom: 0.0625rem;
+    padding-left: 0.25rem;
+    padding-right: 0.5rem;
+    font-size: 0.9rem;
+    border-radius: 0;
+}
+
+:deep(.p-button.sr-server-version .p-badge) {
     position: absolute;
     top: -0.2rem;                   /* Adjust vertical placement */
     left: 50%;                     /* Center horizontally */
@@ -537,6 +592,29 @@ const openMailClient = () => {
     padding: 0.25rem 0.4rem;
     color: var(--p-primary-300);
     background-color: transparent;
+}
+
+:deep(.p-button.sr-client-version .p-badge) {
+    position: absolute;
+    top: -0.2rem;                   /* Adjust vertical placement */
+    left: 50%;                     /* Center horizontally */
+    transform: translateX(-50%);   /* Perfect centering */
+    font-size: 0.6rem;
+    padding: 0.25rem 0.4rem;
+    color: var(--p-primary-300);
+    background-color: transparent;
+}
+:deep(.p-button.sr-server-version.info .p-badge) {
+    color: var(--p-primary-300);
+    white-space: nowrap; 
+}
+:deep(.p-button.sr-server-version.warning .p-badge) {
+    color: var(--p-yellow-300);
+    white-space: nowrap; 
+}
+:deep(.p-button.sr-server-version.danger .p-badge) {
+    white-space: nowrap; 
+    color: var(--p-red-300);
 }
 
 </style>

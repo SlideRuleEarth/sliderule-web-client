@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
-export const useSysConfigStore = defineStore('sysConfig', {
 
+type CanConnectStatus = 'unknown' | 'yes' | 'no'
+
+export const useSysConfigStore = defineStore('sysConfig', {
     state: () => ({
         domain: "slideruleearth.io",
         organization: "sliderule",
@@ -8,9 +10,11 @@ export const useSysConfigStore = defineStore('sysConfig', {
         time_to_live: 720, // minutes
         min_nodes: 0,
         max_nodes: 0,
-        current_nodes: 0,
-        version: "0.0.0",
-       }),
+        current_nodes: -1,
+        version: "v?.?.?",
+        canConnectVersion: 'unknown' as CanConnectStatus,
+        canConnectNodes: 'unknown' as CanConnectStatus
+    }),
     actions: {
         setDomain(value: string) {
             this.domain = value
@@ -21,10 +25,10 @@ export const useSysConfigStore = defineStore('sysConfig', {
         setOrganization(value: string) {
             this.organization = value
         },
-        getOrganization() : string {
+        getOrganization(): string {
             return this.organization
         },
-        getTimeToLive() : number {
+        getTimeToLive(): number {
             return this.time_to_live
         },
         setTimeToLive(value: number) {
@@ -60,33 +64,58 @@ export const useSysConfigStore = defineStore('sysConfig', {
         getVersion(): string {
             return this.version
         },
-        async fetchServerVersion(): Promise<string> {
-            const url = `https://${this.organization}.${this.domain}/source/version`;
-        
-            try {
-                const response = await fetch(url);
-                if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
-        
-                const data = await response.json();
-                return data.server?.version ?? 'Unknown';
-            } catch (error) {
-                return 'Unknown';
-            }
-        },
         async fetchServerVersionInfo(): Promise<string> {
             const url = `https://${this.organization}.${this.domain}/source/version`;
-        
             try {
                 const response = await fetch(url);
                 if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
-        
+
                 const data = await response.json();
-                return data ?? 'Unknown';
+                if(data === null || typeof data?.server.version !== 'string') {
+                    console.error('Invalid response format:', data);
+                    throw new Error('Invalid response format');
+                }
+                this.setCanConnectVersion('yes');
+                this.setVersion(data.server.version);
+                return data.version;
             } catch (error) {
+                console.error('Error fetching server version:', error);
+                this.setCanConnectVersion('no');
                 return 'Unknown';
             }
         },
-    },
-})
+        async fetchCurrentNodes(): Promise<string> {
+            const url = `https://${this.organization}.${this.domain}.io/discovery/status`;
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
 
-
+                const data = await response.json();
+                if (typeof data?.nodes === 'number') {
+                    this.current_nodes = data.nodes;
+                } else {
+                    console.error('Invalid response format:', data);
+                    throw new Error('Invalid response format');
+                }
+                this.setCanConnectNodes('yes');
+                return this.current_nodes >= 0 ? this.current_nodes.toString() : 'Unknown';
+            } catch (error) {
+                console.error('Error fetching current nodes:', error);
+                this.setCanConnectNodes('no');
+                return 'Unknown';
+            }
+        },
+        setCanConnectVersion(value: CanConnectStatus) {
+            this.canConnectVersion = value;
+        },
+        getCanConnectVersion(): CanConnectStatus {
+            return this.canConnectVersion;
+        },
+        setCanConnectNodes(value: CanConnectStatus) {
+            this.canConnectNodes = value;
+        },
+        getCanConnectNodes(): CanConnectStatus {
+            return this.canConnectNodes;
+        }
+    }
+});
