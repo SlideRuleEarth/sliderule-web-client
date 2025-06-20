@@ -77,7 +77,7 @@ export const useSysConfigStore = defineStore('sysConfig', {
                 }
                 this.setCanConnectVersion('yes');
                 this.setVersion(data.server.version);
-                return data.version;
+                return data
             } catch (error) {
                 console.error('Error fetching server version:', error);
                 this.setCanConnectVersion('no');
