@@ -85,7 +85,7 @@ export const useSysConfigStore = defineStore('sysConfig', {
             }
         },
         async fetchCurrentNodes(): Promise<string> {
-            const url = `https://${this.organization}.${this.domain}.io/discovery/status`;
+            const url = `https://${this.organization}.${this.domain}/discovery/status`;
             try {
                 const response = await fetch(url);
                 if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
