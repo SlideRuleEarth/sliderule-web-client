@@ -271,9 +271,19 @@ const slideruleBuzzButtonClick = () => {
 
 // Function to handle the server version button click and show the dialog
 const handleServerVersionButtonClick = async () => {
-  const info = await useSysConfigStore().fetchServerVersionInfo(); 
-  serverVersionInfo.value = JSON.stringify(info, null, 2);
-  showServerVersionDialog.value = true; // Show the dialog
+    try{
+        // Fetch server version info from the store
+        const info = await useSysConfigStore().fetchServerVersionInfo();
+        if(info){ 
+            serverVersionInfo.value = JSON.stringify(info, null, 2);
+            console.log('Server version info:', serverVersionInfo.value);
+        }
+    } catch (error) {
+        console.error('Error fetching server version info:', error);
+        toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to fetch server version info', life: srToastStore.getLife() });
+    }
+    showServerVersionDialog.value = true; // Show the dialog
+
 };
 
 // Function to handle the client version button click and show the dialog
