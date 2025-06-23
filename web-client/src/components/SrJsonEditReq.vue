@@ -1,6 +1,6 @@
 <template>
     <div class="sr-req-display-panel">
-        <SrCustomTooltip ref="tooltipRef" id="recDisplayTooltip"/>
+        <SrCustomTooltip ref="tooltipRef" id="recEditTooltip"/>
         <Button 
             icon="pi pi-eye" 
             :label="props.label"
@@ -12,7 +12,7 @@
             variant="text"
             rounded
         ></Button>
-        <SrJsonDisplayDialog
+        <SrJsonEditDialog
             v-model:visible="showParmsDialog"
             :json-data="reqParms"
             :readonly-store-value="() => reqParamsStore.getAtlxxReqParams(0)"
@@ -28,7 +28,7 @@
     import { computed, ref, onMounted } from "vue";
     import { useReqParamsStore } from "@/stores/reqParamsStore";
     import { useAutoReqParamsStore } from "@/stores/reqParamsStore";
-    import SrJsonDisplayDialog from "./SrJsonDisplayDialog.vue";
+    import SrJsonEditDialog from "./SrJsonEditDialog.vue";
     import SrCustomTooltip from "./SrCustomTooltip.vue";
     import Button from "primevue/button";
   
@@ -36,7 +36,7 @@
     const props = defineProps({
         label: {
             type: String,
-            default: "Show Request Parameters",
+            default: "Show/Edit Request Parameters",
         },
         isForPhotonCloud: {
             type: Boolean,

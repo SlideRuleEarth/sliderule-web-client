@@ -4,7 +4,7 @@
     import SrAdvOptAccordion from "@/components/SrAdvOptAccordion.vue";
     import { computed, onMounted } from 'vue';
     import { useReqParamsStore } from "@/stores/reqParamsStore";
-    import SrReqDisplay from '@/components/SrReqDisplay.vue';
+    import SrJsonEditReq from '@/components/SrJsonEditReq.vue';
     import { useServerStateStore } from '@/stores/serverStateStore';
     
     onMounted(async () => {
@@ -57,7 +57,7 @@
         </div>
         <div class="sr-adv-option-sidebar-container">
             <div class="sr-req-display-row">
-                <SrReqDisplay />
+                <SrJsonEditReq />
             </div>
             <SrAdvOptAccordion
                 title="Options"

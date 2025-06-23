@@ -11,7 +11,7 @@
             rounded
             :disabled="props.insensitive"
         ></Button>
-        <SrCustomTooltip ref="tooltipRef"/>
+        <SrCustomTooltip ref="tooltipRef" id="recIdDisplayTooltip"/>
         <SrJsonDisplayDialog
             v-model:visible="showParmsDialog"
             :json-data="reqParms"
