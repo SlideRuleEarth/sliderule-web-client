@@ -1,9 +1,9 @@
 import Dexie from 'dexie';
 import type { Table, DBCore, DBCoreTable, DBCoreMutateRequest, DBCoreMutateResponse, DBCoreGetManyRequest } from 'dexie';
-import { type ReqParams, type NullReqParams, type AtlReqParams } from '@/sliderule/icesat2';
+import { type ReqParams, type NullReqParams, type AtlReqParams } from '@/types/SrTypes';
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
 import type { SrSvrParmsUsed, SrSvrParmsPolyOnly } from '@/types/SrTypes';
-import type { SrRegion } from '@/sliderule/icesat2';
+import type { SrRegion } from '@/types/SrTypes';
 
 export const DEFAULT_DESCRIPTION = '';
 export interface SrTimeDelta{

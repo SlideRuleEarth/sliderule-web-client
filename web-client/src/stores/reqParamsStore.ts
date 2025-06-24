@@ -1,17 +1,14 @@
 import { defineStore } from 'pinia'
+import { type ReqParamsState } from '@/types/ReqParamsState';
 import type { SrMultiSelectTextItem } from '@/components/SrMultiSelectText.vue';
-import type { SrMultiSelectNumberItem } from '@/components/SrMultiSelectNumber.vue';
-import type { SrMenuMultiCheckInputOption } from '@/components/SrMenuMultiCheckInput.vue';
-import type { AtlReqParams, AtlxxReqParams, SrRegion, OutputFormat } from '@/sliderule/icesat2';
-import { getGtsAndTracksWithGts } from '@/utils/parmUtils';
+import type { AtlReqParams, AtlxxReqParams, SrRegion, OutputFormat } from '@/types/SrTypes';
 import { type SrListNumberItem, type Atl13, type Atl13Coord } from '@/types/SrTypes';
-import { useMapStore } from '@/stores/mapStore';
 import { calculatePolygonArea } from "@/composables/SrTurfUtils";
 import { convertTimeFormat } from '@/utils/parmUtils';
 import { db } from '@/db/SlideRuleDb';
 import { convexHull } from "@/composables/SrTurfUtils";
 import { useGlobalChartStore } from './globalChartStore';
-import { type ApiName, isValidAPI } from '@/types/SrTypes'
+import { type ApiName, isValidAPI,type SrMultiSelectNumberItem } from '@/types/SrTypes'
 import { type Icesat2ConfigYapc } from '@/types/slideruleDefaultsInterfaces'
 import { useSlideruleDefaults } from './defaultsStore';
 import { useRasterParamsStore } from './rasterParamsStore';
@@ -24,7 +21,7 @@ interface YapcConfig {
   win_x?: number; // Optional property
 }
 
-export function getDefaultReqParamsState() {
+export function getDefaultReqParamsState(): ReqParamsState {
   return {
       missionValue: 'ICESat-2' as string,
       missionItems:['ICESat-2','GEDI'] as string[],
@@ -101,7 +98,7 @@ export function getDefaultReqParamsState() {
           { name: 'Possible Impulse Response Effect', value: 2 },
           { name: 'Possible TEP', value: 3 },
       ] as SrMultiSelectNumberItem[],
-      qualityPHNumber: [],
+      qualityPHNumber: [] as number[],
       enableAtl08Classification: false,
       atl08LandTypeOptions: [
           { name: 'Noise', value: 'atl08_noise' },
@@ -115,7 +112,7 @@ export function getDefaultReqParamsState() {
           { name: 'meters', value: 'meters' },
           { name: 'segments', value: 'segments' },
       ] as SrMultiSelectTextItem[],
-      distanceIn: { name: 'meters', value: 'meters' },
+      distanceIn: { label: 'meters', value: 'meters' },
       passInvalid: false,
       useAlongTrackSpread: false,
       alongTrackSpread: -1.0,
@@ -125,7 +122,7 @@ export function getDefaultReqParamsState() {
       minWindowHeight: -1.0,
       maxRobustDispersion: -1,
       binSize: 0.0,
-      geoLocation: { name: 'mean', value: 'mean' },
+      geoLocation: { label: 'mean', value: 'mean' },
       geoLocationOptions: [
           { name: 'mean', value: 'mean' },
           { name: 'median', value: 'median' },
@@ -151,20 +148,20 @@ export function getDefaultReqParamsState() {
       surfaceFlag: false,
       fileOutput: true,
       staged: false,
-      outputFormat: { name: 'parquet', value: 'parquet' },
+      outputFormat: { label: 'parquet', value: 'parquet' },
       outputFormatOptions: [
-          { name: 'feather', value: 'feather' },
-          { name: 'geoparquet', value: 'geoparquet' },
-          { name: 'parquet', value: 'parquet' },
-          { name: 'csv', value: 'csv' },
+          { label: 'feather', value: 'feather' },
+          { label: 'geoparquet', value: 'geoparquet' },
+          { label: 'parquet', value: 'parquet' },
+          { label: 'csv', value: 'csv' },
       ],
-      outputLocation: { name: 'local', value: 'local' },
+      outputLocation: { label: 'local', value: 'local' },
       outputLocationOptions: [
-          { name: 'local', value: 'local' },
-          { name: 'S3', value: 'S3' },
+          { label: 'local', value: 'local' },
+          { label: 'S3', value: 'S3' },
       ],
       outputLocationPath: '',
-      awsRegion: { name: 'us-west-2', value: 'us-west-2' },
+      awsRegion: { label: 'us-west-2', value: 'us-west-2' },
       awsRegionOptions: [
           { name: 'us-west-2', value: 'us-west-2' },
           { name: 'us-west-1', value: 'us-west-1' },
@@ -320,6 +317,7 @@ const createReqParamsStore = (id: string) =>
           }
           return func;
         },
+        /////////////////////////////////////////////
         getAtlReqParams(req_id: number): AtlReqParams { 
           //console.log('getAtlReqParams req_id:', req_id);
           const getOutputPath = (): string => {
@@ -609,7 +607,7 @@ const createReqParamsStore = (id: string) =>
           }
           //console.log('getAtlReqParams req_id:', req_id, 'req:', req);
           return req;
-        },        
+        }, ///////////////////////////       
         getSrt(): number[] {
           return this.surfaceReferenceType.map(item => item.value);
         },

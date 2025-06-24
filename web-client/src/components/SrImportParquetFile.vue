@@ -11,7 +11,7 @@ import { useRequestsStore } from '@/stores/requestsStore';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { db as indexedDb } from '@/db/SlideRuleDb';
 import { createDuckDbClient } from '@/utils/SrDuckDb';
-import type { SrRegion } from '@/sliderule/icesat2';
+import type { SrRegion } from '@/types/SrTypes';
 import type { ImportWorkerRequest, ImportWorkerResponse } from '@/types/SrImportWorkerTypes';
 import SrImportWorker from '@/workers/SrImportWorker?worker'; 
 

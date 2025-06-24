@@ -165,7 +165,7 @@ import Checkbox from 'primevue/checkbox';
 import SrSpotCheckbox from '@/components/SrSpotCheckbox.vue';
 import { computed,watch,nextTick } from 'vue';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
-import { SC_BACKWARD,SC_FORWARD } from '@/sliderule/icesat2';
+import { SC_BACKWARD,SC_FORWARD } from '@/types/SrTypes';
 import { getGtsForSpotsAndScOrients,getDetailsFromSpotNumber } from '@/utils/spotUtils';
 import { GT1L,GT1R,GT2L,GT2R,GT3L,GT3R } from '@/utils/spotUtils';
 import { updatePlotAndSelectedTrackMapLayer } from "@/utils/plotUtils";

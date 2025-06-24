@@ -94,24 +94,33 @@ export interface Region {
   export interface SrSvrParmsPolyOnly {
   }
   
-  export interface SrMenuNumberItem {
+export interface SrMenuNumberItem {
     label: string;
     value: number;
     parentReqId?: number;
     api?: string;
-  }
-  export interface SrPrimeTreeNode {
+}
+export interface SrPrimeTreeNode {
     key: string;
     label: string;
     data: number;
     children?: SrPrimeTreeNode[];
     api?: string;
     [key: string]: any; // For additional properties
-  }
-  export interface SrListNumberItem {
+}
+export interface SrListNumberItem {
     label: string;
     value: number;
 }
+export interface SrListStringItem {
+    label: string;
+    value: string;
+}
+export interface SrMultiSelectNumberItem {
+    name: string;
+    value: number;
+}
+
 export type AppendToType =  HTMLElement | "body" | "self" | undefined; 
 
 export interface SrRadioItem {
@@ -142,3 +151,42 @@ export interface Atl13 {
   coord: { lon: number; lat: number } | null;
 }
 export type Atl13Coord = { lon: number; lat: number };
+
+export interface SrLatLon {
+    lat: number;
+    lon: number;
+}
+  
+export type SrRegion = SrLatLon[];
+export type OutputFormat = {
+    format: 'parquet';
+    as_geo: boolean;
+    path: string;
+    with_checksum: boolean;
+};
+// Define the parameter type for the atl06p function
+export interface AtlReqParams {
+    phoreal?: {};
+    asset?: string;
+    cnf?: number[];
+    ats?: number;
+    cnt?: number;
+    len?: number;
+    res?: number;
+    maxi?: number;
+    poly?: SrRegion | null;
+    cmr?: { polygon: SrRegion };
+    output?:OutputFormat;
+    [key: string]: any; // Other dynamic keys
+}
+
+export interface AtlxxReqParams {
+    parms: AtlReqParams;
+    resources?: string[];
+}
+export interface NullReqParams {
+    null: null;
+}
+  
+  
+export type ReqParams = AtlReqParams | AtlxxReqParams | NullReqParams;

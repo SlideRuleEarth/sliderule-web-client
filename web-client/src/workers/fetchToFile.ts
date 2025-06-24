@@ -1,6 +1,6 @@
 import { db } from "@/db/SlideRuleDb";
 import { atlxx } from '@/sliderule/icesat2';
-import { type AtlxxReqParams,type AtlReqParams } from '@/sliderule/icesat2';
+import { type AtlxxReqParams,type AtlReqParams } from '@/types/SrTypes';
 import { type WebWorkerCmd, opfsReadyMsg } from '@/workers/workerUtils';
 import { get_num_defs_fetched, get_num_defs_rd_from_cache, type Sr_Results_type} from '@/sliderule/core';
 import { init } from '@/sliderule/core';
