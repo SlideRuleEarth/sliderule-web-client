@@ -87,7 +87,14 @@ export const useSysConfigStore = defineStore('sysConfig', {
         async fetchCurrentNodes(): Promise<string> {
             const url = `https://${this.organization}.${this.domain}/discovery/status`;
             try {
-                const response = await fetch(url);
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ service: 'sliderule' })
+                });
+
                 if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
 
                 const data = await response.json();
