@@ -1,4 +1,3 @@
-// @/types/ReqParamsState.ts
 import type {
     SrRegion,
     OutputFormat,
@@ -8,15 +7,14 @@ import type {
     SrListNumberItem,
     SrListStringItem,
     SrMultiSelectNumberItem,
+    SrMultiSelectTextItem,
+    SrMenuItem,
 } from '@/types/SrTypes';
 
-export interface ReqParamsState {
+export interface SrReqParamsState {
     missionValue: string;
-    missionItems: string[];
     iceSat2SelectedAPI: string;
-    iceSat2APIsItems: string[];
     gediSelectedAPI: string;
-    gediAPIsItems: string[];
     using_worker: boolean;
     asset: string;
     isArrowStream: boolean;
@@ -59,16 +57,14 @@ export interface ReqParamsState {
     iterationsValue: number;
     spreadValue: number;
     PE_CountValue: number;
-    PE_SpreadValue: number;
     windowValue: number;    
     enableAtl03Confidence: boolean;
     surfaceReferenceType: SrMultiSelectNumberItem[];
-    surfaceReferenceTypeOptions: SrMultiSelectNumberItem[];
     signalConfidenceNumber: number[];
     qualityPHNumber: number[];
     enableAtl08Classification: boolean;
     atl08LandType: string[];
-    distanceIn: SrListStringItem;
+    distanceIn: SrMenuItem;
     passInvalid: boolean;
     useAlongTrackSpread: boolean;
     alongTrackSpread: number;
@@ -80,6 +76,7 @@ export interface ReqParamsState {
     binSize: number;
     geoLocation: SrListStringItem;
     useAbsoluteHeights: boolean;
+    gediBeams: number[];
     sendWaveforms: boolean;
     useABoVEClassifier: boolean;
     degradeFlag: boolean;
@@ -88,7 +85,7 @@ export interface ReqParamsState {
     surfaceFlag: boolean;
     fileOutput: boolean;
     staged: boolean;
-    outputFormat: SrListStringItem;
+    fileOutputFormat: SrMenuItem;
     outputLocation: SrListStringItem;
     outputLocationPath: string;
     awsRegion: SrListStringItem;
@@ -108,7 +105,6 @@ export interface ReqParamsState {
     enableSurfaceElevation: boolean;
     enableAtl24Classification: boolean;
     atl24_class_ph: string[];
-    atl24_class_ph_Options: string[];
     defaultsFetched: boolean;
     useDatum: boolean;
     useAtl24Compact: boolean;
@@ -128,6 +124,8 @@ export interface ReqParamsState {
     useAtl24SensorDepthExceeded: boolean;
     atl24SensorDepthExceeded: boolean;
     atl24AncillaryFields: string[];
+    atl03AncillaryFields: string[];
+    atl08AncillaryFields: string[];
     atl03_geo_fields: string[];
     atl03_corr_fields: string[];
     atl03_ph_fields: string[];

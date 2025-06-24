@@ -7,7 +7,7 @@ import hljs from 'highlight.js/lib/core'
 import json from 'highlight.js/lib/languages/json'
 import 'highlight.js/styles/atom-one-dark.css'
 import type { ZodTypeAny } from 'zod'
-import SrJsonReqImporter from './SrJsonReqImporter.vue'
+import { useJsonImporter } from '@/composables/SrJsonImporter'
 
 hljs.registerLanguage('json', json)
 
@@ -64,6 +64,44 @@ const prettyJson = computed(() => {
 const highlightedJson = computed(() => {
   return hljs.highlight(prettyJson.value, { language: 'json' }).value
 })
+
+
+const fileInputRef = ref<HTMLInputElement | null>(null);
+
+const { data: importedData, error: importError, importJson } = useJsonImporter(props.zodSchema!);
+
+const importFromFile = async () => {
+    fileInputRef.value?.click();
+};
+
+const handleFileChange = async (event: Event) => {
+    const input = event.target as HTMLInputElement;
+    if (!input.files?.length) return;
+
+    const file = input.files[0];
+    const reader = new FileReader();
+
+    reader.onload = () => {
+        const content = reader.result as string;
+        importJson(content);
+
+        if (importError.value) {
+            isValidJson.value = false;
+            validationError.value = importError.value;
+        } else if (importedData.value) {
+            rawJson.value = JSON.stringify(importedData.value, null, 2);
+            validateJson(); // ensure reactive update
+        }
+    };
+
+    reader.onerror = () => {
+        console.error("File reading error:", reader.error);
+        validationError.value = "Failed to read file.";
+    };
+
+    reader.readAsText(file);
+};
+
 
 function updateRawJson() {
   rawJson.value = prettyJson.value
@@ -152,11 +190,25 @@ onMounted(() => {
             </div>
             <div class="copy-btn-container">
                 <Button 
+                    label="Import from File" 
+                    size="small" 
+                    icon="pi pi-file-import" 
+                    @click="importFromFile" 
+                    class="copy-btn"
+                />
+                <Button 
                     label="Copy to clipboard" 
                     size="small" 
                     icon="pi pi-copy" 
                     @click="copyRawToClipboard" 
                     class="copy-btn" 
+                />
+                <input 
+                    type="file" 
+                    ref="fileInputRef" 
+                    accept=".json" 
+                    style="display: none;" 
+                    @change="handleFileChange" 
                 />
             </div>
         </div>
@@ -237,6 +289,8 @@ pre {
   display: flex;
   justify-content: center;
   margin-top: 0.5rem;
+  margin: 0.5rem 0.25rem;
+  gap: 0.5rem;
 }
 
 .copy-btn {

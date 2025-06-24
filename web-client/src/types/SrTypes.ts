@@ -93,6 +93,10 @@ export interface Region {
   
   export interface SrSvrParmsPolyOnly {
   }
+export interface SrMenuItem {
+    name: string;
+    value: string;
+}
   
 export interface SrMenuNumberItem {
     label: string;
@@ -120,7 +124,10 @@ export interface SrMultiSelectNumberItem {
     name: string;
     value: number;
 }
-
+export interface SrMultiSelectTextItem {
+    name: string;
+    value: string; 
+}
 export type AppendToType =  HTMLElement | "body" | "self" | undefined; 
 
 export interface SrRadioItem {

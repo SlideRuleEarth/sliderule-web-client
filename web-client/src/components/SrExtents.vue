@@ -6,6 +6,7 @@ import SrCheckbox from './SrCheckbox.vue';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
 import { useSlideruleDefaults } from '@/stores/defaultsStore';
 import { onMounted } from 'vue';
+import { distanceInOptions } from '@/types/SrStaticOptions';
 
 const reqParamsStore = useReqParamsStore();
 
@@ -42,7 +43,7 @@ onMounted(async () => {
                         labelFontSize="large"
                         :justify_center='false'
                         aria-label="Select Distance in"
-                        :menuOptions="reqParamsStore.distanceInOptions"
+                        :menuOptions="distanceInOptions"
                         tooltipText="Distance in meters or segments"
                         tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/icesat2.html#photon-extent-parameters"
                 />

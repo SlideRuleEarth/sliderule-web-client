@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia'
-import { type ReqParamsState } from '@/types/ReqParamsState';
-import type { SrMultiSelectTextItem } from '@/components/SrMultiSelectText.vue';
+import { type SrReqParamsState } from '@/types/SrReqParamsState';
 import type { AtlReqParams, AtlxxReqParams, SrRegion, OutputFormat } from '@/types/SrTypes';
 import { type SrListNumberItem, type Atl13, type Atl13Coord } from '@/types/SrTypes';
 import { calculatePolygonArea } from "@/composables/SrTurfUtils";
@@ -12,6 +11,15 @@ import { type ApiName, isValidAPI,type SrMultiSelectNumberItem } from '@/types/S
 import { type Icesat2ConfigYapc } from '@/types/slideruleDefaultsInterfaces'
 import { useSlideruleDefaults } from './defaultsStore';
 import { useRasterParamsStore } from './rasterParamsStore';
+import { 
+  distanceInOptions,
+  surfaceReferenceTypeOptions,
+  awsRegionOptions,
+  iceSat2APIsItems,
+  gediAPIsItems,
+  missionItems,
+  atl24_class_ph_Options,
+} from '@/types/SrStaticOptions';
 
 interface YapcConfig {
   version: number;
@@ -21,14 +29,11 @@ interface YapcConfig {
   win_x?: number; // Optional property
 }
 
-export function getDefaultReqParamsState(): ReqParamsState {
+export function getDefaultReqParamsState(): SrReqParamsState {
   return {
       missionValue: 'ICESat-2' as string,
-      missionItems:['ICESat-2','GEDI'] as string[],
       iceSat2SelectedAPI: 'atl06p' as string,
-      iceSat2APIsItems: ['atl06p','atl06sp','atl03x','atl03vp','atl08p','atl24x','atl13x'] as string[],
       gediSelectedAPI: 'gedi01bp' as string,
-      gediAPIsItems: ['gedi01bp','gedi02ap','gedi04ap'] as string[],
       using_worker: false,
       asset: 'icesat2',
       isArrowStream: false,
@@ -73,46 +78,12 @@ export function getDefaultReqParamsState(): ReqParamsState {
       PE_CountValue: 10,
       windowValue: 3.0,
       enableAtl03Confidence: false,
-      surfaceReferenceTypeOptions: [
-          { name: 'Dynamic', value: -1 },
-          { name: 'Land', value: 0 },
-          { name: 'Ocean', value: 1 },
-          { name: 'Sea Ice', value: 2 },
-          { name: 'Land Ice', value: 3 },
-          { name: 'Inland Water', value: 4 },
-      ] as SrMultiSelectNumberItem[],
-      surfaceReferenceType: [{ name: 'Dynamic', value: -1 }] as SrMultiSelectNumberItem[],
-      signalConfidenceNumberOptions: [
-          { name: 'TEP', value: -2 },
-          { name: 'Not Considered', value: -1 },
-          { name: 'Background', value: 0 },
-          { name: 'Within 10m', value: 1 },
-          { name: 'Low', value: 2 },
-          { name: 'Medium', value: 3 },
-          { name: 'High', value: 4 },
-      ] as SrMultiSelectNumberItem[],
+      surfaceReferenceType: [surfaceReferenceTypeOptions[0]] as SrMultiSelectNumberItem[],
       signalConfidenceNumber: [] as number[],
-      qualityPHOptions: [
-          { name: 'Nominal', value: 0 },
-          { name: 'Possible Afterpulse', value: 1 },
-          { name: 'Possible Impulse Response Effect', value: 2 },
-          { name: 'Possible TEP', value: 3 },
-      ] as SrMultiSelectNumberItem[],
       qualityPHNumber: [] as number[],
       enableAtl08Classification: false,
-      atl08LandTypeOptions: [
-          { name: 'Noise', value: 'atl08_noise' },
-          { name: 'Ground', value: 'atl08_ground' },
-          { name: 'Canopy', value: 'atl08_canopy' },
-          { name: 'Top of Canopy', value: 'atl08_top_of_canopy' },
-          { name: 'Unclassified', value: 'atl08_unclassified' },
-      ] as SrMultiSelectTextItem[],
       atl08LandType: [] as string[],
-      distanceInOptions: [
-          { name: 'meters', value: 'meters' },
-          { name: 'segments', value: 'segments' },
-      ] as SrMultiSelectTextItem[],
-      distanceIn: { label: 'meters', value: 'meters' },
+      distanceIn: distanceInOptions[0], // { label: 'meters', value: 'meters' },
       passInvalid: false,
       useAlongTrackSpread: false,
       alongTrackSpread: -1.0,
@@ -123,60 +94,20 @@ export function getDefaultReqParamsState(): ReqParamsState {
       maxRobustDispersion: -1,
       binSize: 0.0,
       geoLocation: { label: 'mean', value: 'mean' },
-      geoLocationOptions: [
-          { name: 'mean', value: 'mean' },
-          { name: 'median', value: 'median' },
-          { name: 'center', value: 'center' },
-      ] as SrMultiSelectTextItem[],
       useAbsoluteHeights: false,
       sendWaveforms: false,
       useABoVEClassifier: false,
       gediBeams: [0, 1, 2, 3, 5, 6, 8, 11] as number[],
-      gediBeamsOptions: [
-          { name: '0', value: 0 },
-          { name: '1', value: 1 },
-          { name: '2', value: 2 },
-          { name: '3', value: 3 },
-          { name: '5', value: 5 },
-          { name: '6', value: 6 },
-          { name: '8', value: 8 },
-          { name: '11', value: 11 },
-      ] as SrMultiSelectNumberItem[],
       degradeFlag: true,
       l2QualityFlag: true,
       l4QualityFlag: false,
       surfaceFlag: false,
       fileOutput: true,
       staged: false,
-      outputFormat: { label: 'parquet', value: 'parquet' },
-      outputFormatOptions: [
-          { label: 'feather', value: 'feather' },
-          { label: 'geoparquet', value: 'geoparquet' },
-          { label: 'parquet', value: 'parquet' },
-          { label: 'csv', value: 'csv' },
-      ],
+      fileOutputFormat: { name: 'parquet', value: 'parquet' },
       outputLocation: { label: 'local', value: 'local' },
-      outputLocationOptions: [
-          { label: 'local', value: 'local' },
-          { label: 'S3', value: 'S3' },
-      ],
       outputLocationPath: '',
-      awsRegion: { label: 'us-west-2', value: 'us-west-2' },
-      awsRegionOptions: [
-          { name: 'us-west-2', value: 'us-west-2' },
-          { name: 'us-west-1', value: 'us-west-1' },
-          { name: 'us-east-2', value: 'us-east-2' },
-          { name: 'us-east-1', value: 'us-east-1' },
-          { name: 'eu-west-1', value: 'eu-west-1' },
-          { name: 'eu-west-2', value: 'eu-west-2' },
-          { name: 'eu-central-1', value: 'eu-central-1' },
-          { name: 'ap-southeast-1', value: 'ap-southeast-1' },
-          { name: 'ap-southeast-2', value: 'ap-southeast-2' },
-          { name: 'ap-northeast-1', value: 'ap-northeast-1' },
-          { name: 'ap-northeast-2', value: 'ap-northeast-2' },
-          { name: 'ap-south-1', value: 'ap-south-1' },
-          { name: 'sa-east-1', value: 'sa-east-1' },
-      ],
+      awsRegion: awsRegionOptions[0], // { label: 'us-west-2', value: 'us-west-2' },
       enableYAPC: false,
       useYAPCScore: false,
       YAPCScore: 0.0,
@@ -188,26 +119,17 @@ export function getDefaultReqParamsState(): ReqParamsState {
       YAPCWindowWidth: 0.0,
       usesYAPCVersion: false,
       YAPCVersion: 0 as number,
-      YAPCVersionOptions: ['0', '1', '2', '3'],
       resources: [] as string[],
-      target_numAtl06Recs: 0,
-      target_numAtl06pRecs: 0,
       useChecksum: false,
       enableSurfaceElevation: false,
       enableAtl24Classification: false,
       atl24_class_ph: ['unclassified', 'bathymetry', 'sea_surface'] as string[],
-      atl24_class_ph_Options: ['unclassified', 'bathymetry', 'sea_surface'] as string[],
       defaultsFetched: false,
       useDatum: false,
       useAtl24Compact: false,
       atl24Compact: false,
       useAtl24Classification: false,
       atl24Classification: [40],
-      atl24ClassOptions: [
-          { name: 'unclassified', value: 0 },
-          { name: 'bathymetry', value: 40 },
-          { name: 'sea_surface', value: 41 },
-      ] as SrMultiSelectNumberItem[],
       useAtl24ConfidenceThreshold: false,
       atl24ConfidenceThreshold: 0.6,
       useAtl24InvalidKD: false,
@@ -272,7 +194,7 @@ const createReqParamsStore = (id: string) =>
             if(parentApi === 'atl24x'){
               this.enableAtl24Classification = true;
               this.enableAtl08Classification = false;
-              this.atl24_class_ph = this.atl24_class_ph_Options;
+              this.atl24_class_ph = atl24_class_ph_Options;
               this.useDatum = true;
             } else {
               this.enableAtl24Classification = false;
@@ -342,16 +264,16 @@ const createReqParamsStore = (id: string) =>
           };
         
           const getOutputFormat = (path: string): OutputFormat | undefined => {
-            if (this.outputFormat.value === 'geoparquet' || this.outputFormat.value === 'parquet') {
+            if (this.fileOutputFormat.value === 'geoparquet' || this.fileOutputFormat.value === 'parquet') {
               path += '.parquet';
               return {
                 format: 'parquet',
-                as_geo: this.outputFormat.value === 'geoparquet',
+                as_geo: this.fileOutputFormat.value === 'geoparquet',
                 path: path,
                 with_checksum: this.useChecksum,
               };
             }
-            console.error('getAtlReqParams: outputFormat not recognized:', this.outputFormat.value);
+            console.error('getAtlReqParams: outputFormat not recognized:', this.fileOutputFormat.value);
             return undefined;
           };
           const req: AtlReqParams = {}
@@ -612,7 +534,7 @@ const createReqParamsStore = (id: string) =>
           return this.surfaceReferenceType.map(item => item.value);
         },
         getSurfaceReferenceType(name: string): number {
-          const option = this.surfaceReferenceTypeOptions.find(option => option.name === name);
+          const option = surfaceReferenceTypeOptions.find(option => option.name === name);
           return option ? option.value : -1;
         },
         getWorkerThreadTimeout(): number {
@@ -801,7 +723,7 @@ const createReqParamsStore = (id: string) =>
           return this.useAlongTrackSpread;
         },
         setUseAlongTrackSpread(ats:boolean){
-          this.useAlongTrackSpread;
+          this.useAlongTrackSpread = ats;
         },
         getAlongTrackSpread():number {
           return this.alongTrackSpread;
@@ -977,14 +899,14 @@ const createReqParamsStore = (id: string) =>
         },
         setMissionValue(value:string) {
           if (value === 'ICESat-2') {
-              this.iceSat2SelectedAPI = this.iceSat2APIsItems[0]; // Reset to default when mission changes
+              this.iceSat2SelectedAPI = iceSat2APIsItems[0]; // Reset to default when mission changes
           } else if (value === 'GEDI') {
-              this.gediSelectedAPI = this.gediAPIsItems[0]; // Reset to default when mission changes
+              this.gediSelectedAPI = gediAPIsItems[0]; // Reset to default when mission changes
           }
           this.missionValue = value;
         },
         getMissionItems(): string[] {
-          return this.missionItems;
+          return missionItems;
         },
         getIceSat2API() : string {
           //console.log('getIceSat2API:', this.iceSat2SelectedAPI);

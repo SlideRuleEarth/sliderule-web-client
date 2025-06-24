@@ -2,6 +2,9 @@
 import { useReqParamsStore } from '@/stores/reqParamsStore';
 import SrMultiSelectNumber from './SrMultiSelectNumber.vue'
 import SrCheckbox from './SrCheckbox.vue';
+import { gediBeamsOptions } from '@/types/SrStaticOptions';
+
+
 const reqParamsStore = useReqParamsStore();
 </script>
 <template>
@@ -9,8 +12,8 @@ const reqParamsStore = useReqParamsStore();
         v-model="reqParamsStore.gediBeams"
         label = "Select Beam(s)"
         aria-label="Select Beams"
-        :menuOptions="reqParamsStore.gediBeamsOptions"
-        :default="reqParamsStore.gediBeamsOptions"
+        :menuOptions="gediBeamsOptions"
+        :default="gediBeamsOptions"
     />
     <SrCheckbox
         label="Degrade Flag"

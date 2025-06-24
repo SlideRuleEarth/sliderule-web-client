@@ -36,7 +36,7 @@
     const props = defineProps({
         label: {
             type: String,
-            default: "Show/Edit Request Parameters",
+            default: "Edit JSON Request",
         },
         isForPhotonCloud: {
             type: Boolean,
@@ -44,7 +44,7 @@
         },
         tooltipText: {
             type: String,
-            default: "Show or hide the request parameters",
+            default: "Import JSON request parameter from a file or clipboard",
         },
     });
     const tooltipRef = ref();

@@ -5,6 +5,8 @@ import SrMenu from './SrMenu.vue';
 import SrCheckBox from './SrCheckbox.vue';
 import { useReqParamsStore } from '../stores/reqParamsStore';
 import { onMounted } from 'vue';
+import { YAPCVersionOptions } from '@/types/SrStaticOptions';
+
 const reqParamsStore = useReqParamsStore();
 
 onMounted(async () => {
@@ -36,7 +38,7 @@ async function initYapc(){
           :selected="reqParamsStore.usesYAPCVersion"
           label = "Version"
           aria-label="Select Version"
-          :menuOptions="reqParamsStore.YAPCVersionOptions"
+          :menuOptions="YAPCVersionOptions"
           :getSelectedMenuItem="reqParamsStore.getYAPCVersion"
           :setSelectedMenuItem="reqParamsStore.setYAPCVersion"
           :insensitive="!reqParamsStore.enableYAPC"

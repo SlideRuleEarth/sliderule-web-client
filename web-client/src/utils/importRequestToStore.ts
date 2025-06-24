@@ -94,7 +94,12 @@ export function importRequestJsonToStore(json: unknown): { success: boolean; err
     if (data.quality_ph) coerceAndTrack('quality_ph', data.quality_ph, (v) => store.qualityPHNumber = v);
     if (data.cnt !== undefined) coerceAndTrack('cnt', data.cnt, (v) => store.setMinimumPhotonCount(v[0]));
     if (data.ats !== undefined) coerceAndTrack('ats', data.ats, (v) => store.setAlongTrackSpread(v[0]));
-    if (data.srt !== undefined) store.surfaceReferenceType = [{ name: 'Custom', value: data.srt }];
+    const srtValue = Number(data.srt);
+    if (!isNaN(srtValue)) {
+        store.surfaceReferenceType = [{ name: 'Custom', value: srtValue }];
+    } else {
+        addError('srt', `invalid value: ${data.srt}`);
+    }
     if (data.len !== undefined) store.setUseLength(true), store.setLengthValue(data.len);
     if (data.res !== undefined) store.setUseStep(true), store.setStepValue(data.res);
     if (data.pass_invalid) store.setPassInvalid(true);
@@ -104,7 +109,17 @@ export function importRequestJsonToStore(json: unknown): { success: boolean; err
     if (data["read-timeout"] !== undefined) store.setUseReadTimeout(true), store.setReadTimeout(data["read-timeout"]);
     if (data.datum === 'EGM08') store.useDatum = true;
     if (data.dist_in_seg) store.distanceIn = { name: 'segments', value: 'segments' };
-    if (data.cmr?.polygon) store.setConvexHull(data.cmr.polygon);
+    if (data.cmr?.polygon?.type === 'Polygon' && Array.isArray(data.cmr.polygon.coordinates)) {
+        const convex = geojsonPolygonToSrRegion(data.cmr.polygon);
+        if (convex) {
+            store.setConvexHull(convex);
+        } else {
+            addError('cmr.polygon', 'Could not convert polygon to region');
+        }
+    } else if (data.cmr?.polygon) {
+        addError('cmr.polygon', 'Invalid GeoJSON Polygon format');
+    }
+
 
     // --- Field arrays ---
     if (data.atl03_geo_fields) store.atl03_geo_fields = data.atl03_geo_fields;
@@ -152,7 +167,11 @@ export function importRequestJsonToStore(json: unknown): { success: boolean; err
         if ('knn' in data.yapc) store.setUseYAPCKnn(true), store.setYAPCKnn(data.yapc.knn!);
         if ('win_h' in data.yapc) store.setUsesYAPCWindowHeight(true), store.setYAPCWindowHeight(data.yapc.win_h!);
         if ('win_x' in data.yapc) store.setUsesYAPCWindowWidth(true), store.setYAPCWindowWidth(data.yapc.win_x!);
-        if ('version' in data.yapc) store.setYAPCVersion(data.yapc.version);
+        if ('version' in data.yapc) {
+            if (data.yapc.version !== undefined) {
+                store.setYAPCVersion(data.yapc.version);
+            }
+        }
     }
     if (Object.keys(userFacingErrors).length > 0) {
         showGroupedErrors(userFacingErrors, 'Some fields were ignored or invalid');

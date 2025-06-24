@@ -3,6 +3,7 @@ import SrMultiSelectNumber from '@/components/SrMultiSelectNumber.vue';
 import SrCheckbox from '@/components/SrCheckbox.vue';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
 import SrSurfaceRefType from '@/components/SrSurfaceRefType.vue';
+import { signalConfidenceNumberOptions, qualityPHOptions } from '@/types/SrStaticOptions'
 const reqParamsStore = useReqParamsStore();
 
 </script>
@@ -26,14 +27,14 @@ const reqParamsStore = useReqParamsStore();
                 :insensitive="!reqParamsStore.enableAtl03Confidence"
                 label="Signal Confidence"
                 ariaLabel="Signal Confidence"
-                :menuOptions="reqParamsStore.signalConfidenceNumberOptions"
+                :menuOptions="signalConfidenceNumberOptions"
                 :default="[
-                    reqParamsStore.signalConfidenceNumberOptions[2],
-                    reqParamsStore.signalConfidenceNumberOptions[3],
-                    reqParamsStore.signalConfidenceNumberOptions[4],
-                    reqParamsStore.signalConfidenceNumberOptions[5],
-                    reqParamsStore.signalConfidenceNumberOptions[6],
-                    ]"
+                    signalConfidenceNumberOptions[2],
+                    signalConfidenceNumberOptions[3],
+                    signalConfidenceNumberOptions[4],
+                    signalConfidenceNumberOptions[5],
+                    signalConfidenceNumberOptions[6],
+                ]"
                 @update:value="reqParamsStore.signalConfidenceNumber = $event"
             />            
             <SrMultiSelectNumber
@@ -41,8 +42,7 @@ const reqParamsStore = useReqParamsStore();
                 label="Quality PH"
                 placeholder="Select Quality PH"
                 ariaLabel="Quality PH"
-                :menuOptions="reqParamsStore.qualityPHOptions"
-                :default="reqParamsStore.qualityPHNumber"
+                :menuOptions="qualityPHOptions"
                 @update:value="reqParamsStore.qualityPHNumber = $event"
             />  
         </div>

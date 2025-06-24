@@ -5,7 +5,9 @@
     import { computed, onMounted } from 'vue';
     import { useReqParamsStore } from "@/stores/reqParamsStore";
     import SrJsonEditReq from '@/components/SrJsonEditReq.vue';
+    import SrReqDisplay from '@/components/SrReqDisplay.vue';
     import { useServerStateStore } from '@/stores/serverStateStore';
+    import { missionItems,gediAPIsItems,iceSat2APIsItems } from "@/types/SrStaticOptions";
     
     onMounted(async () => {
        useServerStateStore().isAborting = false;
@@ -26,7 +28,7 @@
             <SrMenu
                 label="Mission:"
                 v-model="useReqParamsStore().missionValue"
-                :menuOptions="useReqParamsStore().missionItems"
+                :menuOptions="missionItems"
                 :getSelectedMenuItem="useReqParamsStore().getMissionValue"
                 :setSelectedMenuItem="useReqParamsStore().setMissionValue"
                 tooltipText="Select a mission to determine which APIs are available."
@@ -36,7 +38,7 @@
                 label="ICESat-2 API:"
                 v-model="useReqParamsStore().iceSat2SelectedAPI"
                 v-if="useReqParamsStore().getMissionValue() === 'ICESat-2'"
-                :menuOptions="useReqParamsStore().iceSat2APIsItems"
+                :menuOptions="iceSat2APIsItems"
                 :getSelectedMenuItem="useReqParamsStore().getIceSat2API"
                 :setSelectedMenuItem="useReqParamsStore().setIceSat2API"
                 :defaultOptionIndex=0
@@ -47,7 +49,7 @@
                 label="GEDI API:"
                 v-model="useReqParamsStore().gediSelectedAPI"
                 v-if="useReqParamsStore().getMissionValue() === 'GEDI'"
-                :menuOptions="useReqParamsStore().gediAPIsItems"
+                :menuOptions="gediAPIsItems"
                 :getSelectedMenuItem="useReqParamsStore().getGediAPI"
                 :setSelectedMenuItem="useReqParamsStore().setGediAPI"
                 :defaultOptionIndex=0
@@ -57,7 +59,7 @@
         </div>
         <div class="sr-adv-option-sidebar-container">
             <div class="sr-req-display-row">
-                <SrJsonEditReq />
+                <SrReqDisplay />
             </div>
             <SrAdvOptAccordion
                 title="Options"
@@ -66,6 +68,7 @@
                 :iceSat2SelectedAPI="useReqParamsStore().getIceSat2API()"
                 :gediSelectedAPI="useReqParamsStore().getGediAPI()"
             />
+            <SrJsonEditReq />
         </div>
     </div>
 </template>
