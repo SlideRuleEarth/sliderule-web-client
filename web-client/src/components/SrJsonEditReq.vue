@@ -19,6 +19,7 @@
             :editable="true"
             :title="`endpoint = ${curAPI}`"
             width="80vw"
+            :zodSchema="IceSat2ParamsSchema"
         />
        
     </div>
@@ -31,7 +32,8 @@
     import SrJsonEditDialog from "./SrJsonEditDialog.vue";
     import SrCustomTooltip from "./SrCustomTooltip.vue";
     import Button from "primevue/button";
-  
+    import { IceSat2ParamsSchema } from '@/zod/IceSat2ParamsSchema';
+
     // Props
     const props = defineProps({
         label: {

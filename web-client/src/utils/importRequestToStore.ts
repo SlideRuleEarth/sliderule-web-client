@@ -7,7 +7,6 @@ import { mapGtStringsToSrListNumberItems } from '@/utils/parmUtils';
 import { coerceToNumberArray } from '@/utils/coerceUtils';
 import { useToast } from 'primevue/usetoast';
 
-const toast = useToast();
 const userFacingErrors: Record<string, string[]> = {};
 
 function addError(section: string, message: string) {
@@ -28,6 +27,7 @@ function showGroupedErrors(
     summary: string,
     fallbackDetail?: string
 ) {
+    const toast = useToast();
     const formatted = Object.entries(errors)
         .map(
             ([section, msgs]) =>

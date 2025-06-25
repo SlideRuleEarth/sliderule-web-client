@@ -8,6 +8,7 @@ import json from 'highlight.js/lib/languages/json'
 import 'highlight.js/styles/atom-one-dark.css'
 import type { ZodTypeAny } from 'zod'
 import { useJsonImporter } from '@/composables/SrJsonImporter'
+import { importRequestJsonToStore } from '@/utils/importRequestToStore';
 
 hljs.registerLanguage('json', json)
 
@@ -61,11 +62,6 @@ const prettyJson = computed(() => {
   }
 })
 
-const highlightedJson = computed(() => {
-  return hljs.highlight(prettyJson.value, { language: 'json' }).value
-})
-
-
 const fileInputRef = ref<HTMLInputElement | null>(null);
 
 const { data: importedData, error: importError, importJson } = useJsonImporter(props.zodSchema!);
@@ -73,7 +69,6 @@ const { data: importedData, error: importError, importJson } = useJsonImporter(p
 const importFromFile = async () => {
     fileInputRef.value?.click();
 };
-
 const handleFileChange = async (event: Event) => {
     const input = event.target as HTMLInputElement;
     if (!input.files?.length) return;
@@ -82,7 +77,22 @@ const handleFileChange = async (event: Event) => {
     const reader = new FileReader();
 
     reader.onload = () => {
-        const content = reader.result as string;
+        let content = reader.result as string;
+
+        // RTF files usually start with "{\rtf" or "{\\rtf"
+        const isRTF = content.trimStart().startsWith('{\\rtf') || content.trimStart().startsWith('{\rtf');
+        if (isRTF) {
+            isValidJson.value = false;
+            validationError.value = 'This file appears to be an RTF (Rich Text Format) file. Please save it as plain JSON (UTF-8) and try again.';
+            return;
+        }
+
+        // Remove BOM if present
+        if (content.charCodeAt(0) === 0xFEFF) {
+            content = content.slice(1);
+        }
+
+        content = content.trim();
         importJson(content);
 
         if (importError.value) {
@@ -90,13 +100,14 @@ const handleFileChange = async (event: Event) => {
             validationError.value = importError.value;
         } else if (importedData.value) {
             rawJson.value = JSON.stringify(importedData.value, null, 2);
-            validateJson(); // ensure reactive update
+            validateJson(); // re-validate after import
         }
     };
 
     reader.onerror = () => {
         console.error("File reading error:", reader.error);
         validationError.value = "Failed to read file.";
+        isValidJson.value = false;
     };
 
     reader.readAsText(file);
@@ -111,21 +122,24 @@ function updateRawJson() {
 function validateJson() {
   try {
     const parsed = JSON.parse(rawJson.value)
+    console.log("Validating rawJson:", rawJson.value, ' parsed:', parsed);
     if (props.zodSchema) {
       const result = props.zodSchema.safeParse(parsed)
       if (!result.success) {
         isValidJson.value = false
         validationError.value = result.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join('\n')
+        console.warn('Validation failed:', validationError.value)
         return
       } else {
         emit('json-valid', result.data)
+        console.log('Validation successful:', result.data);
       }
     }
     isValidJson.value = true
     validationError.value = null
   } catch (err) {
     isValidJson.value = false
-    validationError.value = 'Invalid JSON format'
+    validationError.value = `Invalid JSON format: ${err}`
   }
 }
 const copyRawToClipboard = async () => {
@@ -162,6 +176,19 @@ onMounted(() => {
   if (modelValue.value) highlightJson()
   console.log('Mounted SrJsonEditDialog editable:', props.editable);
 })
+
+const importToStore = () => {
+    try {
+        const parsed = JSON.parse(rawJson.value);
+        importRequestJsonToStore(parsed); // assumes parsed object fits expected input
+        console.log('Request imported to store.');
+    } catch (err) {
+        console.error('Import failed. Invalid JSON.', err);
+        validationError.value = 'Import failed: Invalid JSON';
+        isValidJson.value = false;
+    }
+};
+
 </script>
 
 <template>
@@ -212,10 +239,19 @@ onMounted(() => {
                 />
             </div>
         </div>
+        <div class="import-btn-wrapper">
+            <Button 
+                label="⇨ Import ⇨" 
+                icon="pi pi-arrow-right-arrow-left"
+                class="import-btn" 
+                @click="importToStore" 
+            />
+        </div>
 
         <!-- Readonly panel -->
         <div class="json-pane">
             <h3 class="pane-title">Current Request to use</h3>
+            <!-- eslint-disable-next-line vue/no-v-html -->
             <pre ref="jsonBlock" v-html="readonlyHighlightedJson"></pre>
             <div class="copy-btn-container">
                 <Button 
@@ -301,6 +337,18 @@ pre {
     color: #ef4444;
     margin-top: 0.5rem;
     white-space: pre-line;
+}
+.import-btn-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.5rem;
+}
+
+.import-btn {
+  white-space: nowrap;
+  font-weight: bold;
+  padding: 0.5rem 1rem;
 }
 
 </style>
