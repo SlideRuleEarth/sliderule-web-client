@@ -5,7 +5,6 @@ import { useRasterParamsStore } from '@/stores/rasterParamsStore';
 import { geojsonPolygonToSrRegion } from '@/utils/geojsonToSrRegion';
 import { mapGtStringsToSrListNumberItems } from '@/utils/parmUtils';
 import { coerceToNumberArray } from '@/utils/coerceUtils';
-import { useToast } from 'primevue/usetoast';
 
 const userFacingErrors: Record<string, string[]> = {};
 
@@ -22,26 +21,33 @@ function coerceAndTrack(fieldName: string, input: unknown, assign: (values: numb
     }
 }
 
+type ToastFn = (summary: string, detail: string, severity?: string) => void;
+
 function showGroupedErrors(
     errors: Record<string, string[]>,
     summary: string,
-    fallbackDetail?: string
+    fallbackDetail?: string,
+    toastFn?: ToastFn
 ) {
-    const toast = useToast();
-    const formatted = Object.entries(errors)
-        .map(
-            ([section, msgs]) =>
-                `${section}:\n` + msgs.map(msg => `  - ${msg}`).join('\n')
-        )
-        .join('\n\n');
+    let detail: string;
 
-    toast.add({
-        severity: 'warn',
-        summary,
-        detail: `<pre>${formatted}</pre>`,
-        life: 12000,
-    });
+    if (Object.keys(errors).length > 0) {
+        detail = Object.entries(errors)
+            .map(([section, msgs]) =>
+                `${section}:\n` + msgs.map(msg => `  - ${msg}`).join('\n')
+            )
+            .join('\n\n');
+    } else {
+        detail = fallbackDetail ?? 'An unknown error occurred.';
+    }
+
+    if (toastFn) {
+        toastFn(summary, detail, 'warn');
+    } else {
+        console.warn(`[toast missing] ${summary}: ${detail}`);
+    }
 }
+
 
 function flattenErrorObject(obj: Record<string, string[]>): string[] {
     return Object.entries(obj).flatMap(([section, msgs]) =>
@@ -50,7 +56,10 @@ function flattenErrorObject(obj: Record<string, string[]>): string[] {
 }
 
 
-export function importRequestJsonToStore(json: unknown): { success: boolean; errors?: string[] } {
+export function importRequestJsonToStore(
+    json: unknown,
+    toastFn?: ToastFn
+): { success: boolean; errors?: string[] } {
     const store = useReqParamsStore();
     const rasterStore = useRasterParamsStore();
 
@@ -60,7 +69,7 @@ export function importRequestJsonToStore(json: unknown): { success: boolean; err
             const key = e.path.join('.') || 'unknown';
             addError(key, e.message);
         });
-        showGroupedErrors(userFacingErrors, 'Import Failed', 'Please correct these issues in your JSON.');
+        showGroupedErrors(userFacingErrors, 'Import Failed', 'Please correct these issues in your JSON.', toastFn);
         return { success: false, errors: flattenErrorObject(userFacingErrors) };
     }
 
@@ -174,7 +183,7 @@ export function importRequestJsonToStore(json: unknown): { success: boolean; err
         }
     }
     if (Object.keys(userFacingErrors).length > 0) {
-        showGroupedErrors(userFacingErrors, 'Some fields were ignored or invalid');
+        showGroupedErrors(userFacingErrors, 'Some fields were ignored or invalid', undefined, toastFn);
     }
 
     return {

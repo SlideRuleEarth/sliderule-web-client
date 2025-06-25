@@ -9,8 +9,20 @@ import 'highlight.js/styles/atom-one-dark.css'
 import type { ZodTypeAny } from 'zod'
 import { useJsonImporter } from '@/composables/SrJsonImporter'
 import { importRequestJsonToStore } from '@/utils/importRequestToStore';
+import { useToast } from 'primevue/usetoast';
+
+const toast = useToast();
 
 hljs.registerLanguage('json', json)
+
+
+function showToast(summary: string, detail: string, severity = 'warn') {
+    toast.add({
+        severity,
+        summary,
+        detail,
+    });
+}
 
 const props = withDefaults(defineProps<{
   jsonData: object | string | null,
@@ -180,7 +192,7 @@ onMounted(() => {
 const importToStore = () => {
     try {
         const parsed = JSON.parse(rawJson.value);
-        importRequestJsonToStore(parsed); // assumes parsed object fits expected input
+        importRequestJsonToStore(parsed, showToast); // assumes parsed object fits expected input
         console.log('Request imported to store.');
     } catch (err) {
         console.error('Import failed. Invalid JSON.', err);
@@ -241,8 +253,7 @@ const importToStore = () => {
         </div>
         <div class="import-btn-wrapper">
             <Button 
-                label="⇨ Import ⇨" 
-                icon="pi pi-arrow-right-arrow-left"
+                label="Push ⇨" 
                 class="import-btn" 
                 @click="importToStore" 
             />
