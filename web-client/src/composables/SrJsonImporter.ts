@@ -14,7 +14,7 @@ export function useJsonImporter<T>(schema: z.ZodType<T>) {
         const parsedJson = JSON.parse(jsonString);
         console.log('Raw JSON input:', jsonString, 'Parsed JSON:', parsedJson);
         const validationResult = schema.safeParse(parsedJson);
-        console.log('Parsed JSON:', parsedJson, 'Validation result:', validationResult);
+        console.log('Parsed JSON:', parsedJson,'schema:', schema, 'Validation result:', validationResult);
         if (validationResult.success) {
             data.value = validationResult.data;
         } else {

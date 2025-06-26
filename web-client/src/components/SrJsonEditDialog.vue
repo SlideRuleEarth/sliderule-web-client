@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watchEffect, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import Dialog from 'primevue/dialog'
 import Button from 'primevue/button'
 import Textarea from 'primevue/textarea'
@@ -10,6 +10,8 @@ import type { ZodTypeAny } from 'zod'
 import { useJsonImporter } from '@/composables/SrJsonImporter'
 import { importRequestJsonToStore } from '@/utils/importRequestToStore';
 import { useToast } from 'primevue/usetoast';
+import { useReqParamsStore } from '@/stores/reqParamsStore';
+const reqParamsStore = useReqParamsStore();
 
 const toast = useToast();
 
@@ -25,12 +27,10 @@ function showToast(summary: string, detail: string, severity = 'warn') {
 }
 
 const props = withDefaults(defineProps<{
-  jsonData: object | string | null,
-  readonlyStoreValue?: () => object | string | null,
+  zodSchema: ZodTypeAny
   editable?: boolean,
   width?: string,
   title?: string,
-  zodSchema?: ZodTypeAny
 }>(), {
   editable: false,
   width: '60vw',
@@ -43,40 +43,34 @@ const emit = defineEmits<{
 
 const modelValue = defineModel<boolean>({ default: false })
 const jsonBlock = ref<HTMLElement | null>(null)
-const rawJson = ref('')
+const editableReqJson = ref('')
 const isValidJson = ref(true)
 const validationError = ref<string | null>(null)
-const readonlyPrettyJson = computed(() => {
-  try {
-    const obj = typeof props.readonlyStoreValue === 'function'
-      ? props.readonlyStoreValue()
-      : null;
-    if (!obj) return 'No data';
-    const parsed = typeof obj === 'string' ? JSON.parse(obj) : obj;
-    return JSON.stringify(parsed, null, 2);
-  } catch {
-    return 'Invalid JSON';
-  }
-});
 
-const readonlyHighlightedJson = computed(() => {
-  return hljs.highlight(readonlyPrettyJson.value, { language: 'json' }).value;
-});
-
-const prettyJson = computed(() => {
+const initialReqJson = computed(() => {
   try {
-    const jsonObj = typeof props.jsonData === 'string'
-      ? JSON.parse(props.jsonData)
-      : props.jsonData
-    return JSON.stringify(jsonObj, null, 2)
+    const jsonObj = reqParamsStore.getAtlxxReqParams(0);
+    return JSON.stringify(jsonObj, null, 2);
   } catch {
     return 'Invalid JSON'
   }
 })
+const currentReqObj = ref({});
+const currentReqJson = computed(() => {
+  try {
+    return JSON.stringify(currentReqObj.value, null, 2);
+  } catch {
+    return 'Invalid JSON'
+  }
+});
+
+const readonlyHighlightedJson = computed(() => {
+  return hljs.highlight(currentReqJson.value, { language: 'json' }).value;
+});
 
 const fileInputRef = ref<HTMLInputElement | null>(null);
 
-const { data: importedData, error: importError, importJson } = useJsonImporter(props.zodSchema!);
+const { data: importedData, error: importError, importJson } = useJsonImporter(props.zodSchema);
 
 const importFromFile = async () => {
     fileInputRef.value?.click();
@@ -111,7 +105,7 @@ const handleFileChange = async (event: Event) => {
             isValidJson.value = false;
             validationError.value = importError.value;
         } else if (importedData.value) {
-            rawJson.value = JSON.stringify(importedData.value, null, 2);
+            editableReqJson.value = JSON.stringify(importedData.value, null, 2);
             validateJson(); // re-validate after import
         }
     };
@@ -126,15 +120,15 @@ const handleFileChange = async (event: Event) => {
 };
 
 
-function updateRawJson() {
-  rawJson.value = prettyJson.value
-  console.log('Updated rawJson:', rawJson.value)
+function updateEditableReqJsonFromInitalReqJson() {
+  editableReqJson.value = initialReqJson.value
+  console.log('Updated editableReqJson:', editableReqJson.value)
 }
 
 function validateJson() {
   try {
-    const parsed = JSON.parse(rawJson.value)
-    console.log("Validating rawJson:", rawJson.value, ' parsed:', parsed);
+    const parsed = JSON.parse(editableReqJson.value)
+    console.log("Validating editableReqJson:", editableReqJson.value, ' parsed:', parsed);
     if (props.zodSchema) {
       const result = props.zodSchema.safeParse(parsed)
       if (!result.success) {
@@ -144,7 +138,7 @@ function validateJson() {
         return
       } else {
         emit('json-valid', result.data)
-        console.log('Validation successful:', result.data);
+        console.log('Validation successful for:', parsed);
       }
     }
     isValidJson.value = true
@@ -154,9 +148,9 @@ function validateJson() {
     validationError.value = `Invalid JSON format: ${err}`
   }
 }
-const copyRawToClipboard = async () => {
+const copyEditableReqJsonToClipboard = async () => {
   try {
-    await navigator.clipboard.writeText(rawJson.value);
+    await navigator.clipboard.writeText(editableReqJson.value);
     console.log('Raw JSON Copied to clipboard');
   } catch (err) {
     console.error('Failed to copy:', err);
@@ -164,36 +158,45 @@ const copyRawToClipboard = async () => {
 };
 const copyCleanToClipboard = async () => {
   try {
-    await navigator.clipboard.writeText(prettyJson.value);
+    await navigator.clipboard.writeText(currentReqJson.value);
     console.log('Copied to clipboard');
   } catch (err) {
     console.error('Failed to copy:', err);
   }
 };
 
-watchEffect(() => {
-  if (modelValue.value || prettyJson.value !== rawJson.value) {
-    updateRawJson()
-    nextTick(() => highlightJson())
+watch(modelValue, (newVal) => {
+  if (newVal && editableReqJson.value !== initialReqJson.value) {
+    updateEditableReqJsonFromInitalReqJson();
+    nextTick(() => highlightJson());
   }
-})
+});
+
 
 const highlightJson = () => {
-  if (jsonBlock.value) {
-    hljs.highlightElement(jsonBlock.value);
-  }
+    if (jsonBlock.value) {
+        jsonBlock.value.removeAttribute('data-highlighted'); // allow re-highlighting
+        jsonBlock.value.innerHTML = readonlyHighlightedJson.value; // replace with fresh content
+        hljs.highlightElement(jsonBlock.value);
+    }
 }
 
 onMounted(() => {
-  if (modelValue.value) highlightJson()
-  console.log('Mounted SrJsonEditDialog editable:', props.editable);
+    console.log('Schema in SrJsonEditDialog:', props.zodSchema);
+    currentReqObj.value = reqParamsStore.getAtlxxReqParams(0);
+    updateEditableReqJsonFromInitalReqJson();
+    if (modelValue.value) highlightJson()
+    console.log('Mounted SrJsonEditDialog editable:', props.editable);
 })
 
 const importToStore = () => {
     try {
-        const parsed = JSON.parse(rawJson.value);
+        console.log('Importing JSON from editableReqJson:', editableReqJson.value);
+        const parsed = JSON.parse(editableReqJson.value);
+        console.log('Importing JSON to store:', parsed);
         importRequestJsonToStore(parsed, showToast); // assumes parsed object fits expected input
-        console.log('Request imported to store.');
+        currentReqObj.value = reqParamsStore.getAtlxxReqParams(0);
+        console.log('Request imported to store.', currentReqObj.value);
     } catch (err) {
         console.error('Import failed. Invalid JSON.', err);
         validationError.value = 'Import failed: Invalid JSON';
@@ -217,7 +220,7 @@ const importToStore = () => {
         <div class="json-pane">
             <h3 class="pane-title">Editable Request</h3>
             <Textarea
-                v-model="rawJson"
+                v-model="editableReqJson"
                 autoResize
                 rows="20"
                 class="w-full"
@@ -239,7 +242,7 @@ const importToStore = () => {
                     label="Copy to clipboard" 
                     size="small" 
                     icon="pi pi-copy" 
-                    @click="copyRawToClipboard" 
+                    @click="copyEditableReqJsonToClipboard" 
                     class="copy-btn" 
                 />
                 <input 

@@ -1,18 +1,12 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { z } from 'zod';
 import { useJsonImporter } from '@/composables/SrJsonImporter';
+import { ICESat2RequestSchema } from '@/zod/ICESat2Schemas';
+
 import { useToast } from 'primevue/usetoast';
 import Button from 'primevue/button';
 
-// Define ICESat-2 request schema
-const ICESat2RequestSchema = z.object({
-    time_start: z.string().datetime(),
-    time_end: z.string().datetime(),
-    polygon: z.array(z.array(z.number())), // [[lon, lat], ...]
-    asset: z.string(),
-    parms: z.record(z.any()).optional()
-});
+
 
 // Use composable to import and validate JSON
 const { data, error, importJson } = useJsonImporter(ICESat2RequestSchema);

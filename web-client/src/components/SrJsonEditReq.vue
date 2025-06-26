@@ -14,12 +14,11 @@
         ></Button>
         <SrJsonEditDialog
             v-model:visible="showParmsDialog"
-            :json-data="reqParms"
+            :zodSchema="ICESat2RequestSchema"
             :readonly-store-value="() => reqParamsStore.getAtlxxReqParams(0)"
             :editable="true"
             :title="`endpoint = ${curAPI}`"
             width="80vw"
-            :zodSchema="IceSat2ParamsSchema"
         />
        
     </div>
@@ -32,7 +31,7 @@
     import SrJsonEditDialog from "./SrJsonEditDialog.vue";
     import SrCustomTooltip from "./SrCustomTooltip.vue";
     import Button from "primevue/button";
-    import { IceSat2ParamsSchema } from '@/zod/IceSat2ParamsSchema';
+    import { ICESat2RequestSchema } from '@/zod/ICESat2Schemas';
 
     // Props
     const props = defineProps({
@@ -60,9 +59,6 @@
         reqParamsStore = useReqParamsStore();
     }
       
-    // const reqParms = computed(() => {
-    //     return JSON.stringify(reqParamsStore.getAtlxxReqParams(0), null, 2);
-    // });
     const reqParms = ref(reqParamsStore.getAtlxxReqParams(0));
     // Open the Parms dialog
     function openParmsDialog() {

@@ -1,4 +1,4 @@
-// src/zod/IceSat2ParamsSchema.ts
+// src/zod/ICESat2ParamsSchema.ts
 import { z } from 'zod';
 
 const GeoJSONPolygon = z.object({
@@ -40,7 +40,7 @@ const Atl13Schema = z.object({
     coord: z.object({ lon: z.number(), lat: z.number() }).optional(),
 }).optional();
 
-export const IceSat2ParamsSchema = z.object({
+export const ICESat2ParamsSchema = z.object({
     asset: z.string().optional(),
     poly: GeoJSONPolygon.optional(),
     rgt: z.number().optional(),
@@ -51,7 +51,11 @@ export const IceSat2ParamsSchema = z.object({
     beams: z.array(z.string()).optional(),
     cnf: z.union([z.number(), z.array(z.number()), z.array(z.string())]).optional(),
     quality_ph: z.array(z.number()).optional(),
-    srt: z.union([z.number(), z.string()]).optional(),
+    srt: z.union([
+            z.literal(-1),
+            z.array(z.number()),
+            z.array(z.string()),
+    ]).optional(),
     len: z.number().optional(),
     res: z.number().optional(),
     pass_invalid: z.boolean().optional(),
@@ -78,4 +82,10 @@ export const IceSat2ParamsSchema = z.object({
     dist_in_seg: z.boolean().optional(),
 });
 
-export type IceSat2Params = z.infer<typeof IceSat2ParamsSchema>;
+
+// Define ICESat-2 request schema
+export const ICESat2RequestSchema = z.object({
+    parms: ICESat2ParamsSchema,
+    resources: z.array(z.string()).optional(),
+});
+export type ICESat2Params = z.infer<typeof ICESat2ParamsSchema>;
