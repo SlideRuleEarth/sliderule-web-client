@@ -3,6 +3,7 @@ import { geojsonPolygonToSrRegion } from '@/utils/geojsonToSrRegion';
 import { mapGtStringsToSrListNumberItems } from '@/utils/parmUtils';
 import { coerceToNumberArray } from '@/utils/coerceUtils';
 import { surfaceReferenceTypeOptions } from '@/types/SrStaticOptions';
+import { convexHull,calculatePolygonArea } from "@/composables/SrTurfUtils";
 
 export function applyParsedJsonToStores(
     data: any,
@@ -13,9 +14,13 @@ export function applyParsedJsonToStores(
     console.log('Applying parsed JSON data to stores:', data);
     if (data.asset) store.setAsset(data.asset);
 
-    const region = geojsonPolygonToSrRegion(data.poly);
-    if (region) store.setPoly(region);
-
+    if (data.poly !== undefined ) {
+        store.setPoly(data.poly);
+        if(data.poly && data.poly.length > 0) {
+            store.setConvexHull(convexHull(data.poly));
+            store.setAreaOfConvexHull(calculatePolygonArea(data.poly));
+        }
+    }
     if (data.rgt !== undefined) store.setUseRgt(true), store.setRgt(data.rgt);
     if (data.cycle !== undefined) store.setUseCycle(true), store.setCycle(data.cycle);
     if (data.region !== undefined) store.setUseRegion(true), store.setRegion(data.region);
@@ -64,22 +69,6 @@ export function applyParsedJsonToStores(
     if (data['read-timeout'] !== undefined) store.setUseReadTimeout(true), store.setReadTimeout(data['read-timeout']);
     if (data.datum === 'EGM08') store.useDatum = true;
     if (data.dist_in_seg) store.distanceIn = { name: 'segments', value: 'segments' };
-
-    if (data.cmr?.polygon?.type === 'Polygon' && Array.isArray(data.cmr.polygon.coordinates)) {
-        const convex = geojsonPolygonToSrRegion(data.cmr.polygon);
-        if (convex) store.setConvexHull(convex);
-        else addError('cmr.polygon', 'Could not convert polygon to region');
-    } else if (data.cmr?.polygon) {
-        addError('cmr.polygon', 'Invalid GeoJSON Polygon format');
-    }
-
-    if (data.atl03_geo_fields) store.atl03_geo_fields = data.atl03_geo_fields;
-    if (data.atl03_corr_fields) store.atl03_corr_fields = data.atl03_corr_fields;
-    if (data.atl03_ph_fields) store.atl03_ph_fields = data.atl03_ph_fields;
-    if (data.atl06_fields) store.atl06_fields = data.atl06_fields;
-    if (data.atl08_fields) store.atl08_fields = data.atl08_fields;
-    if (data.atl13_fields) store.atl13_fields = data.atl13_fields;
-    if (data.samples) rasterStore.setParmsFromJson(data.samples);
 
     if (data.atl08_class) {
         store.enableAtl08Classification = true;

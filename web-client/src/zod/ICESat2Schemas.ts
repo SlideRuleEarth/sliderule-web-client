@@ -1,5 +1,9 @@
 // src/zod/ICESat2ParamsSchema.ts
 import { z } from 'zod';
+const Coordinate = z.object({
+    lon: z.number(),
+    lat: z.number(),
+});
 
 const GeoJSONPolygon = z.object({
     type: z.literal('Polygon'),
@@ -42,7 +46,7 @@ const Atl13Schema = z.object({
 
 export const ICESat2ParamsSchema = z.object({
     asset: z.string().optional(),
-    poly: GeoJSONPolygon.optional(),
+    poly: z.array(Coordinate).optional(),
     rgt: z.number().optional(),
     cycle: z.number().optional(),
     region: z.number().optional(),
@@ -78,7 +82,9 @@ export const ICESat2ParamsSchema = z.object({
     datum: z.string().optional(),
     samples: z.record(z.unknown()).optional(),
     yapc: YapcSchema.optional(),
-    cmr: z.object({ polygon: GeoJSONPolygon }).optional(),
+    cmr: z.object({
+        polygon: z.array(Coordinate),
+    }).optional(),
     dist_in_seg: z.boolean().optional(),
 });
 
