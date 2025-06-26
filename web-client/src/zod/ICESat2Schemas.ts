@@ -17,7 +17,13 @@ const YapcSchema = z.object({
     win_h: z.number().optional(),
     win_x: z.number().optional(),
 });
-
+export const PhoRealSchema = z.object({
+    above_classifier: z.number(),
+    binsize: z.number(),
+    geoloc: z.number(),
+    send_waveform: z.number(),
+    use_abs_h: z.number()
+});
 const Atl24Schema = z.object({
     compact: z.boolean().optional(),
     class_ph: z.array(z.string()).optional(),
@@ -82,10 +88,12 @@ export const ICESat2ParamsSchema = z.object({
     datum: z.string().optional(),
     samples: z.record(z.unknown()).optional(),
     yapc: YapcSchema.optional(),
+    phoreal: PhoRealSchema.optional(),
     cmr: z.object({
         polygon: z.array(Coordinate),
     }).optional(),
     dist_in_seg: z.boolean().optional(),
+    track: z.array(z.number()).optional(),
 });
 
 
