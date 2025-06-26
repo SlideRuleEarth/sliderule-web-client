@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, nextTick, Ref } from 'vue'
 import Dialog from 'primevue/dialog'
 import Button from 'primevue/button'
 import Textarea from 'primevue/textarea'
@@ -218,6 +218,24 @@ const importToStore = () => {
         isValidJson.value = false;
     }
 };
+function exportToFile(json: string | Ref<string>) {
+    const jsonString = typeof json === 'string' ? json : json.value;
+
+    const defaultName = `sliderule-request-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+    const filename = prompt('Enter file name to save:', defaultName);
+
+    if (!filename) return; // user cancelled
+
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename.endsWith('.json') ? filename : `${filename}.json`;
+    a.click();
+
+    URL.revokeObjectURL(url);
+}
 
 </script>
 
@@ -288,6 +306,13 @@ const importToStore = () => {
                         size="small" 
                         icon="pi pi-copy" 
                         @click="copyCleanToClipboard" 
+                        class="copy-btn" 
+                    />
+                    <Button 
+                        label="Output to File" 
+                        size="small" 
+                        icon="pi pi-file-export" 
+                        @click="exportToFile(currentReqJson)" 
                         class="copy-btn" 
                     />
                 </div>
