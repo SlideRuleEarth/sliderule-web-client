@@ -3,6 +3,7 @@ import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import Dialog from 'primevue/dialog'
 import Button from 'primevue/button'
 import Textarea from 'primevue/textarea'
+import SrJsonDiffViewer from './SrJsonDiffViewer.vue'
 import hljs from 'highlight.js/lib/core'
 import json from 'highlight.js/lib/languages/json'
 import 'highlight.js/styles/atom-one-dark.css'
@@ -28,11 +29,9 @@ function showToast(summary: string, detail: string, severity = 'warn') {
 
 const props = withDefaults(defineProps<{
   zodSchema: ZodTypeAny
-  editable?: boolean,
   width?: string,
   title?: string,
 }>(), {
-  editable: false,
   width: '60vw',
   title: 'JSON Viewer'
 })
@@ -44,6 +43,13 @@ const emit = defineEmits<{
 const modelValue = defineModel<boolean>({ default: false })
 const jsonBlock = ref<HTMLElement | null>(null)
 const editableReqJson = ref('')
+const parsedEditableReqJson = computed(() => {
+  try {
+    return JSON.parse(editableReqJson.value)
+  } catch {
+    return null
+  }
+}); 
 const isValidJson = ref(true)
 const validationError = ref<string | null>(null)
 
@@ -54,13 +60,22 @@ const initialReqJson = computed(() => {
   } catch {
     return 'Invalid JSON'
   }
-})
+});
+
 const currentReqObj = ref({});
 const currentReqJson = computed(() => {
   try {
     return JSON.stringify(currentReqObj.value, null, 2);
   } catch {
     return 'Invalid JSON'
+  }
+});
+
+const parsedCurrentReqJson = computed(() => {
+  try {
+    return JSON.parse(currentReqJson.value)
+  } catch {
+    return null
   }
 });
 
@@ -127,10 +142,10 @@ function updateEditableReqJsonFromInitalReqJson() {
 
 function validateJson() {
   try {
-    const parsed = JSON.parse(editableReqJson.value)
-    console.log("Validating editableReqJson:", editableReqJson.value, ' parsed:', parsed);
+    //const parsed = JSON.parse(editableReqJson.value)
+    console.log("Validating editableReqJson:", editableReqJson.value, ' parsed:', parsedEditableReqJson);
     if (props.zodSchema) {
-      const result = props.zodSchema.safeParse(parsed)
+      const result = props.zodSchema.safeParse(parsedEditableReqJson.value);
       if (!result.success) {
         isValidJson.value = false
         validationError.value = result.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join('\n')
@@ -138,7 +153,7 @@ function validateJson() {
         return
       } else {
         emit('json-valid', result.data)
-        console.log('Validation successful for:', parsed);
+        console.log('Validation successful for:', parsedEditableReqJson.value);
       }
     }
     isValidJson.value = true
@@ -186,15 +201,15 @@ onMounted(() => {
     currentReqObj.value = reqParamsStore.getAtlxxReqParams(0);
     updateEditableReqJsonFromInitalReqJson();
     if (modelValue.value) highlightJson()
-    console.log('Mounted SrJsonEditDialog editable:', props.editable);
+    console.log('Mounted SrJsonEditDialog ');
 })
 
 const importToStore = () => {
     try {
         console.log('Importing JSON from editableReqJson:', editableReqJson.value);
-        const parsed = JSON.parse(editableReqJson.value);
-        console.log('Importing JSON to store:', parsed);
-        importRequestJsonToStore(parsed, showToast); // assumes parsed object fits expected input
+        //const parsed = JSON.parse(editableReqJson.value);
+        console.log('Importing JSON to store:', parsedEditableReqJson.value);
+        importRequestJsonToStore(parsedEditableReqJson.value, showToast); // assumes parsed object fits expected input
         currentReqObj.value = reqParamsStore.getAtlxxReqParams(0);
         console.log('Request imported to store.', currentReqObj.value);
     } catch (err) {
@@ -214,75 +229,89 @@ const importToStore = () => {
     :style="{ width: props.width }"
     :header=props.title
   >
-    <!-- Editable JSON -->
-    <div v-if="props.editable" class="json-dual-panel">
-        <!-- Editable panel -->
-        <div class="json-pane">
-            <h3 class="pane-title">Editable Request</h3>
-            <Textarea
-                v-model="editableReqJson"
-                autoResize
-                rows="20"
-                class="w-full"
-                @input="validateJson"
-                :class="{ 'p-invalid': !isValidJson }"
-            />
-            <div v-if="!isValidJson" class="error-text">
-                {{ validationError }}
+    <div class = "sr-dialog-container">
+        <div class="json-dual-panel">
+            <!-- Editable panel -->
+            <div class="json-pane">
+                <h3 class="pane-title">Editable Request</h3>
+                <Textarea
+                    v-model="editableReqJson"
+                    autoResize
+                    rows="20"
+                    class="w-full"
+                    @input="validateJson"
+                    :class="{ 'p-invalid': !isValidJson }"
+                />
+                <div v-if="!isValidJson" class="error-text">
+                    {{ validationError }}
+                </div>
+                <div class="copy-btn-container">
+                    <Button 
+                        label="Import from File" 
+                        size="small" 
+                        icon="pi pi-file-import" 
+                        @click="importFromFile" 
+                        class="copy-btn"
+                    />
+                    <Button 
+                        label="Copy to clipboard" 
+                        size="small" 
+                        icon="pi pi-copy" 
+                        @click="copyEditableReqJsonToClipboard" 
+                        class="copy-btn" 
+                    />
+                    <input 
+                        type="file" 
+                        ref="fileInputRef" 
+                        accept=".json" 
+                        style="display: none;" 
+                        @change="handleFileChange" 
+                    />
+                </div>
             </div>
-            <div class="copy-btn-container">
+            <div class="import-btn-wrapper">
                 <Button 
-                    label="Import from File" 
-                    size="small" 
-                    icon="pi pi-file-import" 
-                    @click="importFromFile" 
-                    class="copy-btn"
-                />
-                <Button 
-                    label="Copy to clipboard" 
-                    size="small" 
-                    icon="pi pi-copy" 
-                    @click="copyEditableReqJsonToClipboard" 
-                    class="copy-btn" 
-                />
-                <input 
-                    type="file" 
-                    ref="fileInputRef" 
-                    accept=".json" 
-                    style="display: none;" 
-                    @change="handleFileChange" 
+                    label="Push ⇨" 
+                    class="import-btn" 
+                    @click="importToStore" 
                 />
             </div>
-        </div>
-        <div class="import-btn-wrapper">
-            <Button 
-                label="Push ⇨" 
-                class="import-btn" 
-                @click="importToStore" 
-            />
-        </div>
 
-        <!-- Readonly panel -->
-        <div class="json-pane">
-            <h3 class="pane-title">Current Request to use</h3>
-            <!-- eslint-disable-next-line vue/no-v-html -->
-            <pre ref="jsonBlock" v-html="readonlyHighlightedJson"></pre>
-            <div class="copy-btn-container">
-                <Button 
-                label="Copy to clipboard" 
-                size="small" 
-                icon="pi pi-copy" 
-                @click="copyCleanToClipboard" 
-                class="copy-btn" 
-                />
+            <!-- Readonly panel -->
+            <div class="json-pane">
+                <h3 class="pane-title">Current Request to use</h3>
+                <!-- eslint-disable-next-line vue/no-v-html -->
+                <pre ref="jsonBlock" v-html="readonlyHighlightedJson"></pre>
+                <div class="copy-btn-container">
+                    <Button 
+                        label="Copy to clipboard" 
+                        size="small" 
+                        icon="pi pi-copy" 
+                        @click="copyCleanToClipboard" 
+                        class="copy-btn" 
+                    />
+                </div>
             </div>
+        </div>
+        <div class = "sr-diff-footer">
+            <SrJsonDiffViewer :before="parsedEditableReqJson" :after="parsedCurrentReqJson" />
         </div>
     </div>
-
   </Dialog>
 </template>
 
 <style scoped>
+.sr-dialog-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.sr-diff-footer {
+  text-align: center;
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-top: 1rem;
+}
 pre {
   background-color: #1e1e1e;
   padding: 1rem;

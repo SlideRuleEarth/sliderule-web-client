@@ -16,7 +16,6 @@
             v-model:visible="showParmsDialog"
             :zodSchema="ICESat2RequestSchema"
             :readonly-store-value="() => reqParamsStore.getAtlxxReqParams(0)"
-            :editable="true"
             :title="`endpoint = ${curAPI}`"
             width="80vw"
         />
