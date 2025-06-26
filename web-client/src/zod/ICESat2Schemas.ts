@@ -47,9 +47,9 @@ const Atl13Schema = z.object({
 export const ICESat2ParamsSchema = z.object({
     asset: z.string().optional(),
     poly: z.array(Coordinate).optional(),
-    rgt: z.number().optional(),
-    cycle: z.number().optional(),
-    region: z.number().optional(),
+    rgt: z.array(z.number()).optional(),
+    cycle: z.array(z.number()).optional(),
+    region: z.array(z.number()).optional(),
     t0: z.string().datetime().optional(),
     t1: z.string().datetime().optional(),
     beams: z.array(z.string()).optional(),
