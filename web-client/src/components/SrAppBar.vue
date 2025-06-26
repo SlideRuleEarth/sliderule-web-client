@@ -302,28 +302,48 @@ onMounted(async () => {
 const openMailClient = () => {
     window.location.href = 'mailto:support@mail.slideruleearth.io';
 };
+const isHovering = ref(false);
+let showTooltipTimeout: number | null = null;
 
 const showServerTooltip = async (event: MouseEvent) => {
-    //console.log(`showServerTooltip using ${computedStatusUrl.value} called with event:`, event);
-    if (!tooltipRef.value) {
-        console.error('Tooltip reference is not defined');
-        return;
-    }
+    isHovering.value = true;
 
-    try {
-        const nodesStr = await sysConfigStore.fetchCurrentNodes();
-        tooltipRef.value.showTooltip(
-            event,
-            `Server Version: ${sysConfigStore.getVersion()}<br>Nodes: ${nodesStr}<br>Click to see server details`
-        );
-    } catch (error) {
-        console.error('Failed to fetch server status:', error);
-        tooltipRef.value.showTooltip(
-            event,
-            `Server Version: ${sysConfigStore.getVersion()}<br>Nodes: unknown<br>Click to see server details`
-        );
-    }
+    if (!tooltipRef.value) return;
+
+    // Slight delay to avoid flicker if mouse quickly moves out
+    if (showTooltipTimeout) clearTimeout(showTooltipTimeout);
+    showTooltipTimeout = window.setTimeout(async () => {
+        if (!isHovering.value) return;
+
+        try {
+            const nodesStr = await sysConfigStore.fetchCurrentNodes();
+            if (isHovering.value) {
+                tooltipRef.value.showTooltip(
+                    event,
+                    `Server Version: ${sysConfigStore.getVersion()}<br>Nodes: ${nodesStr}<br>Click to see server details`
+                );
+            }
+        } catch (error) {
+            console.error('Failed to fetch server status:', error);
+            if (isHovering.value) {
+                tooltipRef.value.showTooltip(
+                    event,
+                    `Server Version: ${sysConfigStore.getVersion()}<br>Nodes: unknown<br>Click to see server details`
+                );
+            }
+        }
+    }, 200); // Delay to avoid fast re-triggers
 };
+
+function hideTooltip() {
+    isHovering.value = false;
+    if (showTooltipTimeout) {
+        clearTimeout(showTooltipTimeout);
+        showTooltipTimeout = null;
+    }
+    tooltipRef.value?.hideTooltip();
+}
+
 
 </script>
 
@@ -340,7 +360,7 @@ const showServerTooltip = async (event: MouseEvent) => {
             <span class = "sr-title">SlideRule</span>
             <div class="sr-show-server-version"
                 @mouseover="showServerTooltip($event)"
-                @mouseleave="tooltipRef.hideTooltip()"
+                @mouseleave="hideTooltip()"
             >
                 <Button
                     type="button"
@@ -374,7 +394,7 @@ const showServerTooltip = async (event: MouseEvent) => {
             <Menu :model="tourMenuItems" popup ref="tourMenu" />
             <div class="sr-megaphone"
                 @mouseover="tooltipRef.showTooltip($event,'Got a question about SlideRule?<br>Something not working?<br>Want a new feature?<br>Click here to send us an email.<br>We want to hear from you!<br><br>Remember: The squeaky wheel gets the oil!')"
-                @mouseleave="tooltipRef.hideTooltip()"
+                @mouseleave="hideTooltip()"
             >
                 <Button icon="pi pi-megaphone"
                     label="Feedback"
@@ -435,6 +455,9 @@ const showServerTooltip = async (event: MouseEvent) => {
 </template>
 
 <style scoped>
+.sr-show-server-version {
+
+}
 .sr-nav-container {
     height: 4rem;
     display: flex;
