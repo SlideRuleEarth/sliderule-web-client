@@ -279,7 +279,7 @@ const importToStore = () => {
 
             <!-- Readonly panel -->
             <div class="json-pane">
-                <h3 class="pane-title">Current Request to use</h3>
+                <h3 class="pane-title">Current Request State</h3>
                 <!-- eslint-disable-next-line vue/no-v-html -->
                 <pre ref="jsonBlock" v-html="readonlyHighlightedJson"></pre>
                 <div class="copy-btn-container">
