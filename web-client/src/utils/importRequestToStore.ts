@@ -37,8 +37,19 @@ function showGroupedErrors(
                 `${section}:` + msgs.map(msg => `  - ${msg}`).join('\n')
             )
             .join('\n\n');
+
+        // Log detailed error structure for debugging
+        console.log('[showGroupedErrors] Grouped error details:', {
+            summary,
+            errors,
+            formattedDetail: detail
+        });
     } else {
         detail = fallbackDetail ?? 'An unknown error occurred.';
+        console.log('[showGroupedErrors] No specific errors. Using fallback:', {
+            summary,
+            fallbackDetail: detail
+        });
     }
 
     if (toastFn) {

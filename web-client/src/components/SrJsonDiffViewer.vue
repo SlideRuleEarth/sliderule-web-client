@@ -4,8 +4,8 @@
       <thead>
         <tr>
           <th>Field</th>
-          <th>Before</th>
-          <th>After</th>
+          <th>{{ props.beforeLabel }}</th>
+          <th>{{ props.afterLabel }}</th>
         </tr>
       </thead>
       <tbody>
@@ -30,12 +30,15 @@ hljs.registerLanguage('json', json)
 const props = defineProps<{
   before: object
   after: object
+  beforeLabel?: string
+  afterLabel?: string
 }>()
 
 interface DiffRow {
   path: string
   before: string
   after: string
+  
 }
 
 function highlight(value: unknown): string {
@@ -55,13 +58,24 @@ function generateDiff(before: any, after: any, path: string[] = []): DiffRow[] {
     const bVal = before?.[key]
     const aVal = after?.[key]
 
-    if (bVal && aVal && typeof bVal === 'object' && typeof aVal === 'object' && !Array.isArray(bVal) && !Array.isArray(aVal)) {
+    if (
+      bVal && aVal &&
+      typeof bVal === 'object' &&
+      typeof aVal === 'object' &&
+      !Array.isArray(bVal) &&
+      !Array.isArray(aVal)
+    ) {
       rows.push(...generateDiff(bVal, aVal, [...path, key]))
     } else if (JSON.stringify(bVal) !== JSON.stringify(aVal)) {
       rows.push({
         path: fullPath,
         before: bVal !== undefined ? highlight(bVal) : '<i class="missing">(missing)</i>',
-        after: aVal !== undefined ? highlight(aVal) : '<i class="missing">(missing)</i>'
+        after:
+          aVal !== undefined
+            ? highlight(aVal)
+            : typeof bVal === 'boolean'
+              ? '<i class="missing">(implied)</i>'
+              : '<i class="missing">(missing)</i>'
       })
     }
   }

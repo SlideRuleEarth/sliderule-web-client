@@ -21,10 +21,28 @@ export function applyParsedJsonToStores(
             store.setAreaOfConvexHull(calculatePolygonArea(data.poly));
         }
     }
-    if (data.rgt !== undefined) store.setUseRgt(true), store.setRgt(data.rgt);
-    if (data.cycle !== undefined) store.setUseCycle(true), store.setCycle(data.cycle);
-    if (data.region !== undefined) store.setUseRegion(true), store.setRegion(data.region);
-    if (data.t0) store.setUseTime(true), store.setT0(new Date(data.t0));
+    if (data.rgt !== undefined){
+        console.log('RGT data found:', data.rgt);
+        store.setEnableGranuleSelection(true);
+        store.setUseRgt(true);
+        store.setRgt(data.rgt);
+    }
+    if (data.cycle !== undefined) {
+        console.log('Cycle data found:', data.cycle);
+        store.setEnableGranuleSelection(true);
+        store.setUseCycle(true);
+        store.setCycle(data.cycle);
+    }
+    if (data.region !== undefined) {
+        console.log('Region data found:', data.region);
+        store.setEnableGranuleSelection(true);
+        store.setUseRegion(true);
+        store.setRegion(data.region);
+    }
+    if (data.t0) {
+        store.setUseTime(true);
+        store.setT0(new Date(data.t0));
+    }
     if (data.t1) store.setT1(new Date(data.t1));
 
     if (data.beams) {
@@ -36,11 +54,21 @@ export function applyParsedJsonToStores(
         }
     }
 
-    if (data.cnf) coerce('cnf', data.cnf, v => store.signalConfidenceNumber = v);
-    if (data.quality_ph) coerce('quality_ph', data.quality_ph, v => store.qualityPHNumber = v);
-    if (data.cnt !== undefined) coerce('cnt', data.cnt, v => store.setMinimumPhotonCount(v[0]));
-    if (data.ats !== undefined) coerce('ats', data.ats, v => store.setAlongTrackSpread(v[0]));
-    console.log('Parsing srt values:', data.srt);
+    if (data.cnf) {
+        coerce('cnf', data.cnf, v => store.signalConfidenceNumber = v);
+    }
+    if (data.quality_ph) {
+        coerce('quality_ph', data.quality_ph, v => store.qualityPHNumber = v);
+    }
+    if (data.cnt !== undefined) {
+        store.setUseMinimumPhotonCount(true);
+        coerce('cnt', data.cnt, v => store.setMinimumPhotonCount(v[0]));
+    }
+    if (data.ats !== undefined) {
+        store.setUseAlongTrackSpread(true);
+        coerce('ats', data.ats, v => store.setAlongTrackSpread(v[0]));
+        console.log('Parsing srt values:', data.srt);
+    }
     if (data.srt !== undefined) {
         let values: number[] = [];
         if (Array.isArray(data.srt)) {
@@ -60,13 +88,33 @@ export function applyParsedJsonToStores(
         }
     }
 
-    if (data.len !== undefined) store.setUseLength(true), store.setLengthValue(data.len);
-    if (data.res !== undefined) store.setUseStep(true), store.setStepValue(data.res);
-    if (data.pass_invalid) store.setPassInvalid(true);
-    if (data.timeout !== undefined) store.setUseServerTimeout(true), store.setServerTimeout(data.timeout);
-    if (data['rqst-timeout'] !== undefined) store.setUseReqTimeout(true), store.setReqTimeout(data['rqst-timeout']);
-    if (data['node-timeout'] !== undefined) store.setUseNodeTimeout(true), store.setNodeTimeout(data['node-timeout']);
-    if (data['read-timeout'] !== undefined) store.setUseReadTimeout(true), store.setReadTimeout(data['read-timeout']);
+    if (data.len !== undefined) {
+        store.setUseLength(true);
+        store.setLengthValue(data.len);
+    }
+    if (data.res !== undefined) {
+        store.setUseStep(true);
+        store.setStepValue(data.res);
+    }
+    if (data.pass_invalid !== undefined) {
+        store.setPassInvalid(data.pass_invalid);
+    }
+    if (data.timeout !== undefined) {
+        store.setUseServerTimeout(true);
+        store.setServerTimeout(data.timeout);
+    }
+    if (data['rqst-timeout'] !== undefined) {
+        store.setUseReqTimeout(true);
+        store.setReqTimeout(data['rqst-timeout']);
+    }
+    if (data['node-timeout'] !== undefined) {
+        store.setUseNodeTimeout(true);
+        store.setNodeTimeout(data['node-timeout']);
+    }
+    if (data['read-timeout'] !== undefined) {
+        store.setUseReadTimeout(true);
+        store.setReadTimeout(data['read-timeout']);
+    }
     if (data.datum === 'EGM08') store.useDatum = true;
     if (data.dist_in_seg) store.distanceIn = { name: 'segments', value: 'segments' };
 

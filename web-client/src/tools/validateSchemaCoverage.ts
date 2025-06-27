@@ -4,14 +4,14 @@
 
 import { setActivePinia, createPinia } from 'pinia';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
-import { ICESat2ParamsSchema } from '@/zod/ICESat2Schemas';
+import { ICESat2RequestSchema } from '@/zod/ICESat2Schemas';
 
 export function validateSchemaCoverage(reqId: number): string[] {
     setActivePinia(createPinia());
     const store = useReqParamsStore();
 
-    const req = store.getAtlReqParams(reqId);
-    const schemaKeys = Object.keys(ICESat2ParamsSchema.shape);
+    const req = store.getAtlxxReqParams(reqId);
+    const schemaKeys = Object.keys(ICESat2RequestSchema.shape);
     const requestKeys = Object.keys(req);
 
     const missing = requestKeys.filter(k => !schemaKeys.includes(k));

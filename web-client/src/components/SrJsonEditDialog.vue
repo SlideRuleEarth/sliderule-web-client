@@ -319,7 +319,7 @@ function exportToFile(json: string | Ref<string>) {
             </div>
         </div>
         <div class = "sr-diff-footer">
-            <SrJsonDiffViewer :before="parsedEditableReqJson" :after="parsedCurrentReqJson" />
+            <SrJsonDiffViewer :before="parsedEditableReqJson" :after="parsedCurrentReqJson" beforeLabel="Editable Request" afterLabel="Current Request State" />
         </div>
     </div>
   </Dialog>
