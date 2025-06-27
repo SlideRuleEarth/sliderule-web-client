@@ -137,4 +137,6 @@ export interface SrReqParamsState {
     atl13: Atl13;
     useAtl13Polygon: boolean;
     useAtl13Point: boolean;
+    forcedAddedParams: Record<string, unknown>,
+    forcedRemovedParams: string[],
 }

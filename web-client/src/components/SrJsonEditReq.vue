@@ -2,7 +2,7 @@
     <div class="sr-req-display-panel">
         <SrCustomTooltip ref="tooltipRef" id="recEditTooltip"/>
         <Button 
-            icon="pi pi-eye" 
+            icon="pi pi-user-edit" 
             :label="props.label"
             class="sr-glow-button"
             id="sr-req-display-btn"

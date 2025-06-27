@@ -237,6 +237,14 @@ function exportToFile(json: string | Ref<string>) {
     URL.revokeObjectURL(url);
 }
 
+function handleParamsAccessed(index: number) {
+    console.log('Params accessed at index (pre-flush):', index)
+    nextTick(() => {
+        console.log('Params accessed at index (post-flush):', index)
+        currentReqObj.value = reqParamsStore.getAtlxxReqParams(index);
+    });
+}
+
 </script>
 
 <template>
@@ -325,6 +333,7 @@ function exportToFile(json: string | Ref<string>) {
                 :automaticFields="new Set(['asset','output','cmr'])"
                 beforeLabel="Editable Request"
                 afterLabel="Current Request State"
+                @forced-req_params="handleParamsAccessed"
             />
         </div>
     </div>

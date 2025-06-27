@@ -6,13 +6,30 @@
           <th>Field</th>
           <th>{{ props.beforeLabel }}</th>
           <th>{{ props.afterLabel }}</th>
+          <th>Force</th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="(row, index) in diffRows" :key="index">
-        <td :class="row.fieldClass">{{ row.path }}</td>
-        <td :class="['before', row.beforeClass]" v-html="row.before"></td>
-        <td :class="['after', row.afterClass]" v-html="row.after"></td>
+            <td :class="row.fieldClass">{{ row.path }}</td>
+            <td :class="['before', row.beforeClass]" v-html="row.before"></td>
+            <td :class="['after', row.afterClass]" v-html="row.after"></td>
+            <td class="force-cell">
+                <div
+                    v-if="row.aVal === undefined"
+                    class="force-checkbox"
+                >
+                    <Checkbox v-model="row.forceAdd" :inputId="`force-add-${index}`" binary class="p-checkbox-sm" />
+                    <label :for="`force-add-${index}`">add</label>
+                </div>
+                <div
+                    v-if="(row.aVal !== undefined) && (row.bVal === undefined)"
+                    class="force-checkbox"
+                >
+                    <Checkbox v-model="row.forceRemove" :inputId="`force-remove-${index}`" binary class="p-checkbox-sm" />
+                    <label :for="`force-remove-${index}`">remove</label>
+                </div>
+            </td>
         </tr>
       </tbody>
     </table>
@@ -24,25 +41,38 @@ import { computed } from 'vue'
 import hljs from 'highlight.js/lib/core'
 import json from 'highlight.js/lib/languages/json'
 import 'highlight.js/styles/atom-one-dark.css'
+import Checkbox from 'primevue/checkbox'
+import { useReqParamsStore } from '@/stores/reqParamsStore'
+import { ref, watchEffect, nextTick } from 'vue'
+
+const reqParamsStore = useReqParamsStore()
 
 hljs.registerLanguage('json', json)
 
+const internalDiff = computed(() => generateDiff(props.before, props.after, [], props.automaticFields))
+const diffRows = ref<DiffRow[]>([])
+
 const props = defineProps<{
-  before: object
-  after: object
-  automaticFields: Set<string>
-  beforeLabel?: string
-  afterLabel?: string
+    before: object
+    after: object
+    automaticFields: Set<string>
+    beforeLabel?: string
+    afterLabel?: string
 }>()
 
 interface DiffRow {
-  path: string
-  before: string
-  after: string
-  fieldClass: string
-  beforeClass: string
-  afterClass: string
+    path: string
+    before: string
+    after: string
+    fieldClass: string
+    beforeClass: string
+    afterClass: string
+    forceAdd?: boolean
+    forceRemove?: boolean
+    aVal?: unknown // Add this field to allow template logic
+    bVal?: unknown
 }
+
 
 function highlight(value: unknown): string {
   try {
@@ -100,8 +130,13 @@ function generateDiff(
                     afterDisplay = '<i class="sw-error">(automatic)</i>';
                     afterClass = 'after-automatic';
                 } else if (typeof bVal === 'boolean') {
-                    afterDisplay = '<i class="missing">(implied)</i>';
-                    afterClass = 'after-implied';
+                    if(bVal === true){
+                        afterDisplay = '<i class="sw-error">(s/w-error?)</i>';
+                        afterClass = 'sw-error';
+                    } else {
+                        afterDisplay = '<i class="missing">(implied)</i>';
+                        afterClass = 'after-implied';
+                    }
                 } else {
                     afterDisplay = '<i class="missing">(missing)</i>';
                 }
@@ -113,10 +148,13 @@ function generateDiff(
                 path: fullPath,
                 before: beforeDisplay,
                 after: afterDisplay,
-                fieldClass: fieldClass,
-                beforeClass: beforeClass,
-                afterClass: afterClass
+                fieldClass,
+                beforeClass,
+                afterClass,
+                aVal, // include raw value for template logic
+                bVal 
             });
+
         } else {
             // OPTIONAL: show unchanged rows (up to you)
             /*
@@ -136,7 +174,39 @@ function generateDiff(
     return rows
 }
 
-const diffRows = computed(() => generateDiff(props.before, props.after, [], props.automaticFields))
+watchEffect(() => {
+    diffRows.value = internalDiff.value
+})
+
+const emit = defineEmits<{
+  (e: 'forced-req_params', index: number): void
+}>()
+
+watchEffect(() => {
+    const added: Record<string, unknown> = {}
+    const removed: string[] = []
+    let updated = false;
+    for (const row of diffRows.value) {
+        if (row.forceAdd) {
+            added[row.path] = row.bVal
+            updated = true;
+        }
+        if (row.forceRemove) {
+            removed.push(row.path)
+            updated = true;
+        }
+    }
+
+    reqParamsStore.forcedAddedParams = added
+    reqParamsStore.forcedRemovedParams = removed
+    if (updated) {
+        console.log('Forced Request parameters')
+        nextTick(() => {
+            emit('forced-req_params', 0)
+        })
+    }
+})
+
 </script>
 
 <style scoped>
@@ -241,6 +311,19 @@ const diffRows = computed(() => generateDiff(props.before, props.after, [], prop
 .before-unchanged,
 .after-unchanged {
   background-color: #222; /* neutral gray */
+}
+.force-cell {
+  background-color: #1e1e1e;
+  color: #ccc;
+  padding: 0.5rem;
+  text-align: left;
+}
+
+.force-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-bottom: 0.25rem;
 }
 
 </style>

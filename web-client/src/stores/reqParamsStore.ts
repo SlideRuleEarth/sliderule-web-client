@@ -160,7 +160,47 @@ export function getDefaultReqParamsState(): SrReqParamsState {
       } as {refid: number, name: string, coord: Atl13Coord | null},
       useAtl13Polygon: false,
       useAtl13Point: false,
+      forcedAddedParams: {} as Record<string, unknown>,
+      forcedRemovedParams: [] as string[],
     };
+}
+function setNestedValue(obj: any, path: string, value: unknown) {
+  console.log('setNestedValue obj:', obj, 'path:', path, 'value:', value);
+  const keys = path.split('.');
+  let current = obj;
+  keys.slice(0, -1).forEach(key => {
+    if (!(key in current) || typeof current[key] !== 'object' || current[key] === null) {
+      current[key] = {};
+    }
+    current = current[key];
+  });
+  current[keys[keys.length - 1]] = value;
+  console.log('setNestedValue result obj:', obj);
+}
+
+function deleteNestedKey(obj: any, path: string) {
+    if (!path) return;
+
+    const keys = path.split('.');
+    let current = obj;
+
+    for (let i = 0; i < keys.length - 1; i++) {
+        const key = keys[i];
+        const nextKey = /^\d+$/.test(key) ? Number(key) : key;
+
+        if (current && typeof current === 'object' && nextKey in current) {
+            current = current[nextKey];
+        } else {
+            return; // exit early if path is invalid
+        }
+    }
+
+    const lastKey = keys[keys.length - 1];
+    const finalKey = /^\d+$/.test(lastKey) ? Number(lastKey) : lastKey;
+
+    if (current && typeof current === 'object' && finalKey in current) {
+        delete current[finalKey];
+    }
 }
 
 
@@ -527,7 +567,6 @@ const createReqParamsStore = (id: string) =>
           if((useRasterParamsStore().dataTable.length > 0) && (this.iceSat2SelectedAPI.includes('x'))) {
             req.samples = useRasterParamsStore().getFormattedParms();
           }
-          //console.log('getAtlReqParams req_id:', req_id, 'req:', req);
           return req;
         }, ///////////////////////////       
         getSrt(): number[] {
@@ -560,6 +599,7 @@ const createReqParamsStore = (id: string) =>
           return timeout;      
         },
         getAtlxxReqParams(req_id: number): AtlxxReqParams {
+          console.log('getAtlxxReqParams this:', this, 'req_id:', req_id);
           const baseParams:AtlxxReqParams = {
             parms: this.getAtlReqParams(req_id),
           };
@@ -567,6 +607,20 @@ const createReqParamsStore = (id: string) =>
           if (this.resources.length > 0) {
             baseParams['resources'] = this.resources;
           }
+          
+          // Apply forced additions
+          for (const [path, value] of Object.entries(this.forcedAddedParams)) {
+            const adjustedPath = path.startsWith('parms.') ? path.slice(6) : path;
+            setNestedValue(baseParams.parms, adjustedPath, value); // note: target is baseParams.parms
+          }
+          // Apply forced removals
+          for (const path of this.forcedRemovedParams) {
+            const actualPath = path.startsWith('parms.') ? path.slice('parms.'.length) : path;
+            deleteNestedKey(baseParams, actualPath);
+          }
+
+          console.trace('getAtlReqParams this:', this, 'req_id:', req_id, 'req:', baseParams);
+
           return baseParams;
         },
         getEnableGranuleSelection(): boolean {
