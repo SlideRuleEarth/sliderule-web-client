@@ -30,6 +30,7 @@ hljs.registerLanguage('json', json)
 const props = defineProps<{
   before: object
   after: object
+  automaticFields: Set<string>
   beforeLabel?: string
   afterLabel?: string
 }>()
@@ -49,40 +50,66 @@ function highlight(value: unknown): string {
   }
 }
 
-function generateDiff(before: any, after: any, path: string[] = []): DiffRow[] {
-  const keys = new Set([...Object.keys(before || {}), ...Object.keys(after || {})])
-  const rows: DiffRow[] = []
+function generateDiff(
+    before: any,
+    after: any,
+    path: string[] = [],
+    automaticFields: Set<string> = new Set()
+): DiffRow[] {
+    const keys = new Set([...Object.keys(before || {}), ...Object.keys(after || {})])
+    const rows: DiffRow[] = []
 
-  for (const key of keys) {
-    const fullPath = [...path, key].join('.')
-    const bVal = before?.[key]
-    const aVal = after?.[key]
+    for (const key of keys) {
+        const fullPath = [...path, key].join('.')
+        const bVal = before?.[key]
+        const aVal = after?.[key]
 
-    if (
-      bVal && aVal &&
-      typeof bVal === 'object' &&
-      typeof aVal === 'object' &&
-      !Array.isArray(bVal) &&
-      !Array.isArray(aVal)
-    ) {
-      rows.push(...generateDiff(bVal, aVal, [...path, key]))
-    } else if (JSON.stringify(bVal) !== JSON.stringify(aVal)) {
-      rows.push({
-        path: fullPath,
-        before: bVal !== undefined ? highlight(bVal) : '<i class="missing">(missing)</i>',
-        after:
-          aVal !== undefined
-            ? highlight(aVal)
-            : typeof bVal === 'boolean'
-              ? '<i class="missing">(implied)</i>'
-              : '<i class="missing">(missing)</i>'
-      })
+        if (
+            bVal && aVal &&
+            typeof bVal === 'object' &&
+            typeof aVal === 'object' &&
+            !Array.isArray(bVal) &&
+            !Array.isArray(aVal)
+        ) {
+            rows.push(...generateDiff(bVal, aVal, [...path, key], automaticFields))
+        } else if (JSON.stringify(bVal) !== JSON.stringify(aVal)) {
+            let beforeDisplay: string
+
+            if (bVal !== undefined) {
+                beforeDisplay = highlight(bVal)
+            } else if (automaticFields.has(key)) {
+                beforeDisplay = '<i class="missing">(automatic)</i>'
+            } else if (typeof bVal === 'boolean') {
+                beforeDisplay = '<i class="missing">(implied)</i>'
+            } else {
+                beforeDisplay = '<i class="missing">(missing)</i>'
+            }
+            let afterDisplay: string
+
+            if (aVal === undefined){
+                if(automaticFields.has(key)) {
+                    afterDisplay = '<i class="sw-error">(automatic)</i>'
+                } else if (typeof bVal === 'boolean') { // check the before value type
+                    afterDisplay = '<i class="missing">(implied)</i>'
+                } else {
+                    afterDisplay = '<i class="missing">(missing)</i>'
+                }
+            } else {
+                afterDisplay = highlight(aVal)
+            }
+
+            rows.push({
+                path: fullPath,
+                before: beforeDisplay,
+                after: afterDisplay
+            })
+        }
     }
-  }
-  return rows
+
+    return rows
 }
 
-const diffRows = computed(() => generateDiff(props.before, props.after))
+const diffRows = computed(() => generateDiff(props.before, props.after, [], props.automaticFields))
 </script>
 
 <style scoped>
@@ -128,7 +155,11 @@ const diffRows = computed(() => generateDiff(props.before, props.after))
 }
 
 .missing {
-  color: #888;
+  color: #f3d008;
+  font-style: italic;
+}
+.sw-error {
+  color: #ff6c6b;
   font-style: italic;
 }
 </style>
