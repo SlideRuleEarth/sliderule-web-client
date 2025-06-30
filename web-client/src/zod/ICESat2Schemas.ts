@@ -7,7 +7,7 @@ const Coordinate = z.object({
 
 const GeoJSONPolygon = z.object({
     type: z.literal('Polygon'),
-    coordinates: z.array(z.array(z.number())),
+    coordinates: z.array(z.array(z.array(z.number()))),
 });
 
 const YapcSchema = z.object({
