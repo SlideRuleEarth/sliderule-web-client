@@ -12,7 +12,7 @@
                     icon="pi pi-check"
                     size="small"
                     @click="forceChanges"
-                    class="p-button-sm p-button-secondary"
+                    class="sr-glow-button"
                 />
             </th>
         </tr>
