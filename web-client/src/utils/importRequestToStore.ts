@@ -2,16 +2,6 @@
 import { ICESat2RequestSchema } from '@/zod/ICESat2Schemas';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
 import { useRasterParamsStore } from '@/stores/rasterParamsStore';
-import { coerceToNumberArray } from '@/utils/coerceUtils';
-import{
-    distanceInOptions,
-    surfaceReferenceTypeOptions,
-    awsRegionOptions,
-    iceSat2APIsItems,
-    gediAPIsItems,
-    missionItems,
-    atl24_class_ph_Options,
-} from '@/types/SrStaticOptions';
 import { applyParsedJsonToStores } from '@/utils/applyParsedJsonToStores';
 
 const userFacingErrors: Record<string, string[]> = {};

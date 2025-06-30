@@ -17,7 +17,6 @@ import {
   awsRegionOptions,
   iceSat2APIsItems,
   gediAPIsItems,
-  missionItems,
   atl24_class_ph_Options,
 } from '@/types/SrStaticOptions';
 
@@ -958,9 +957,6 @@ const createReqParamsStore = (id: string) =>
               this.gediSelectedAPI = gediAPIsItems[0]; // Reset to default when mission changes
           }
           this.missionValue = value;
-        },
-        getMissionItems(): string[] {
-          return missionItems;
         },
         getIceSat2API() : string {
           //console.log('getIceSat2API:', this.iceSat2SelectedAPI);

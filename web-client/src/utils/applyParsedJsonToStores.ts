@@ -11,7 +11,7 @@ export function applyParsedJsonToStores(
     rasterStore: ReturnType<typeof import('@/stores/rasterParamsStore').useRasterParamsStore>,
     addError: (section: string, message: string) => void
 ) {
-    console.log('Applying parsed JSON data to stores:', data);
+    //console.log('Applying parsed JSON data to stores:', data);
     if (data.asset) store.setAsset(data.asset);
 
     if (data.poly !== undefined ) {
@@ -22,7 +22,7 @@ export function applyParsedJsonToStores(
         }
     }
     if (data.rgt !== undefined){
-        console.log('RGT data found:', data.rgt);
+        //console.log('RGT data found:', data.rgt);
         store.setEnableGranuleSelection(true);
         store.setUseRgt(true);
         store.setRgt(data.rgt);
@@ -34,7 +34,7 @@ export function applyParsedJsonToStores(
         store.setCycle(data.cycle);
     }
     if (data.region !== undefined) {
-        console.log('Region data found:', data.region);
+        //console.log('Region data found:', data.region);
         store.setEnableGranuleSelection(true);
         store.setUseRegion(true);
         store.setRegion(data.region);
