@@ -131,8 +131,8 @@ function generateDiff(
                     afterClass = 'after-automatic';
                 } else if (typeof bVal === 'boolean') {
                     if(bVal === true){
-                        afterDisplay = '<i class="sw-error">(s/w-error?)</i>';
-                        afterClass = 'sw-error';
+                        afterDisplay = '<i class="missing">(missing)</i>';
+                        afterClass = 'sw-warning';
                     } else {
                         afterDisplay = '<i class="missing">(implied)</i>';
                         afterClass = 'after-implied';
@@ -200,7 +200,7 @@ watchEffect(() => {
     reqParamsStore.forcedAddedParams = added
     reqParamsStore.forcedRemovedParams = removed
     if (updated) {
-        console.log('Forced Request parameters')
+        console.log('Forced Request parameters:',  reqParamsStore.forcedAddedParams)
         nextTick(() => {
             emit('forced-req_params', 0)
         })
