@@ -122,6 +122,7 @@ const handleFileChange = async (event: Event) => {
         } else if (importedData.value) {
             editableReqJson.value = JSON.stringify(importedData.value, null, 2);
             validateJson(); // re-validate after import
+            importToStore();
         }
     };
 
