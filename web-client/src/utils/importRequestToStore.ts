@@ -61,7 +61,12 @@ export function importRequestJsonToStore(
 ): { success: boolean; errors?: string[] } {
     const store = useReqParamsStore();
     const rasterStore = useRasterParamsStore();
-
+    // Reset errors before processing
+    for (const key in userFacingErrors) {
+        if (Object.prototype.hasOwnProperty.call(userFacingErrors, key)) {
+            delete userFacingErrors[key];
+        }
+    }
     const result = ICESat2RequestSchema.safeParse(json);
     console.log('Zod validation for', json, ' result:', result);
     if (!result.success) {
