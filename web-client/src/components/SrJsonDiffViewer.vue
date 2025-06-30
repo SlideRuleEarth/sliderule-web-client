@@ -3,10 +3,18 @@
     <table>
       <thead>
         <tr>
-          <th>Field</th>
-          <th>{{ props.beforeLabel }}</th>
-          <th>{{ props.afterLabel }}</th>
-          <th>Force</th>
+            <th>Field</th>
+            <th>{{ props.beforeLabel }}</th>
+            <th>{{ props.afterLabel }}</th>
+            <th>
+                <Button
+                    label="Apply"
+                    icon="pi pi-check"
+                    size="small"
+                    @click="forceChanges"
+                    class="p-button-sm p-button-secondary"
+                />
+            </th>
         </tr>
       </thead>
       <tbody>
@@ -15,20 +23,22 @@
             <td :class="['before', row.beforeClass]" v-html="row.before"></td>
             <td :class="['after', row.afterClass]" v-html="row.after"></td>
             <td class="force-cell">
-                <div
-                    v-if="row.aVal === undefined"
-                    class="force-checkbox"
-                >
-                    <Checkbox v-model="row.forceAdd" :inputId="`force-add-${index}`" binary class="p-checkbox-sm" />
-                    <label :for="`force-add-${index}`">add</label>
-                </div>
-                <div
-                    v-if="(row.aVal !== undefined) && (row.bVal === undefined)"
-                    class="force-checkbox"
-                >
-                    <Checkbox v-model="row.forceRemove" :inputId="`force-remove-${index}`" binary class="p-checkbox-sm" />
-                    <label :for="`force-remove-${index}`">remove</label>
-                </div>
+                <template v-if="!props.automaticFields.has(row.path.split('.').at(-1)!)">
+                    <div
+                        v-if="row.aVal === undefined"
+                        class="force-checkbox"
+                    >
+                        <Checkbox v-model="row.forceAdd" :inputId="`force-add-${index}`" binary class="p-checkbox-sm" />
+                        <label :for="`force-add-${index}`">add</label>
+                    </div>
+                    <div
+                        v-if="(row.aVal !== undefined) && (row.bVal === undefined)"
+                        class="force-checkbox"
+                    >
+                        <Checkbox v-model="row.forceRemove" :inputId="`force-remove-${index}`" binary class="p-checkbox-sm" />
+                        <label :for="`force-remove-${index}`">remove</label>
+                    </div>
+                </template>
             </td>
         </tr>
       </tbody>
@@ -42,6 +52,7 @@ import hljs from 'highlight.js/lib/core'
 import json from 'highlight.js/lib/languages/json'
 import 'highlight.js/styles/atom-one-dark.css'
 import Checkbox from 'primevue/checkbox'
+import Button from 'primevue/button'
 import { useReqParamsStore } from '@/stores/reqParamsStore'
 import { ref, watchEffect, nextTick } from 'vue'
 
@@ -182,10 +193,11 @@ const emit = defineEmits<{
   (e: 'forced-req_params', index: number): void
 }>()
 
-watchEffect(() => {
+function forceChanges() {
     const added: Record<string, unknown> = {}
     const removed: string[] = []
     let updated = false;
+
     for (const row of diffRows.value) {
         if (row.forceAdd) {
             added[row.path] = row.bVal
@@ -199,13 +211,14 @@ watchEffect(() => {
 
     reqParamsStore.forcedAddedParams = added
     reqParamsStore.forcedRemovedParams = removed
+
     if (updated) {
-        console.log('Forced Request parameters:',  reqParamsStore.forcedAddedParams)
+        console.log('Forced Request parameters:', reqParamsStore.forcedAddedParams)
         nextTick(() => {
             emit('forced-req_params', 0)
         })
     }
-})
+}
 
 </script>
 
