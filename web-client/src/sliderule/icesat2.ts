@@ -29,6 +29,7 @@
 
 //import { mitt } from 'mitt';
 import {core} from '../sliderule/index';
+import type { AtlxxReqParams } from '@/types/SrTypes';
 //import {Callbacks} from '../sliderule/index';
 //import { error } from 'console';
 //------------------------------------
@@ -77,46 +78,7 @@ const P = { '5':   0, '10':  1, '15':  2, '20':  3, '25':  4, '30':  5, '35':  6
 //------------------------------------
 // Exported Functions
 //------------------------------------
-type Resource = string; 
 
-export interface SrLatLon {
-    lat: number;
-    lon: number;
-  }
-  
-export type SrRegion = SrLatLon[];
-export type OutputFormat = {
-    format: 'parquet';
-    as_geo: boolean;
-    path: string;
-    with_checksum: boolean;
-};
-// Define the parameter type for the atl06p function
-export interface AtlReqParams {
-    phoreal?: {};
-    asset?: string;
-    cnf?: number[];
-    ats?: number;
-    cnt?: number;
-    len?: number;
-    res?: number;
-    maxi?: number;
-    poly?: SrRegion | null;
-    cmr?: { polygon: SrRegion };
-    output?:OutputFormat;
-    [key: string]: any; // Other dynamic keys
-}
-
-export interface AtlxxReqParams {
-    parms: AtlReqParams;
-    resources?: Resource[];
-}
-export interface NullReqParams {
-    null: null;
-  }
-  
-  
-export type ReqParams = AtlReqParams | AtlxxReqParams | NullReqParams;
 
 export async function atlxx(func:string,atlxxReqParams: AtlxxReqParams, callbacks: core.Callbacks ) : Promise<core.Sr_Results_type> 
 {

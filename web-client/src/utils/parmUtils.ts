@@ -165,3 +165,6 @@ export function convertTimeFormat(timeObj: Date, fmt: string): string {
   // Replace the placeholders in the format string with actual values
   return fmt.replace(/%[YmdHMS]|Z/g, match => replacements[match]);
 }
+export function mapGtStringsToSrListNumberItems(gtNames: string[]): SrListNumberItem[] {
+    return gtsOptions.filter(gt => gtNames.includes(gt.label));
+}

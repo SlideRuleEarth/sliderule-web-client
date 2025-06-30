@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import SrMultiSelectText from './SrMultiSelectText.vue';
 import SrCheckbox from './SrCheckbox.vue';
-import { useReqParamsStore } from '../stores/reqParamsStore';
+import { useReqParamsStore } from '@/stores/reqParamsStore';
+import { atl08LandTypeOptions } from '@/types/SrStaticOptions';
 const reqParamsStore = useReqParamsStore();
 
 </script>
@@ -21,7 +22,7 @@ const reqParamsStore = useReqParamsStore();
             v-model="reqParamsStore.atl08LandType"
             label = "Land Type(s)"
             aria-label="Select Land Type"
-            :menuOptions="reqParamsStore.atl08LandTypeOptions"
+            :menuOptions="atl08LandTypeOptions"
             :insensitive="!reqParamsStore.enableAtl08Classification"
             :default="[
                 {name:'Ground', value: 'atl08_ground'},

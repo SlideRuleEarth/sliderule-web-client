@@ -1,5 +1,5 @@
 import { featureCollection, point, convex, area } from '@turf/turf';
-import type { SrLatLon, SrRegion } from '@/sliderule/icesat2';
+import type { SrLatLon, SrRegion } from '@/types/SrTypes';
 import { type Polygon } from 'geojson';  // Import the correct GeoJSON type
 
 export function isClockwise(coords: SrRegion): boolean {

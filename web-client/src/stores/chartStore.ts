@@ -1,10 +1,6 @@
 import { defineStore } from 'pinia';
 import { type MinMax, type MinMaxLowHigh } from '@/types/SrTypes';
-import { set } from 'lodash';
-export interface SrMenuItem {
-    name: string;
-    value: string;
-}
+import type { SrMenuItem } from '@/types/SrTypes';
 
 interface ChartState {
     currentFile: string;

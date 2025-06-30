@@ -16,7 +16,7 @@
 <script setup lang="ts">
     import { onMounted,ref,watch } from 'vue';
     import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
-    import { type SrMenuItem } from '@/stores/chartStore';
+    import { type SrMenuItem } from '@/types/SrTypes';
 
     const props = defineProps({
         label: String,

@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { useReqParamsStore } from '@/stores/reqParamsStore';
+import { geoLocationOptions } from '@/types/SrStaticOptions';
+
 const reqParamsStore = useReqParamsStore();
 </script>
 <template>
@@ -14,7 +16,7 @@ const reqParamsStore = useReqParamsStore();
         v-model="reqParamsStore.geoLocation"
         label = "Geo Location"
         aria-label="Select Geo Location"
-        :menuOptions="reqParamsStore.geoLocationOptions"
+        :menuOptions="geoLocationOptions"
     />
     <SrCheckbox
         label="Use Absolute Heights"

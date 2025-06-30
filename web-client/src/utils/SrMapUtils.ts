@@ -36,7 +36,7 @@ import { Polygon as OlPolygon } from 'ol/geom';
 import { db } from '@/db/SlideRuleDb';
 import type { Coordinate } from 'ol/coordinate';
 import { Text as TextStyle } from 'ol/style';
-import type { SrRegion } from '@/sliderule/icesat2';
+import type { SrRegion } from '@/types/SrTypes';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { useActiveTabStore } from '@/stores/activeTabStore';
@@ -50,7 +50,7 @@ import { createUnifiedColorMapperRGBA } from '@/utils/colorUtils';
 import { boundingExtent } from 'ol/extent';
 import type { Geometry } from 'ol/geom';
 import type { Extent } from 'ol/extent';
-import type { SrLatLon } from '@/sliderule/icesat2';
+import type { SrLatLon } from '@/types/SrTypes';
 import Point from 'ol/geom/Point';
 import { Circle as CircleStyle } from 'ol/style';
 

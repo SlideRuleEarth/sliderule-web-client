@@ -14,7 +14,7 @@
                 :sliderMin="sliderMin"
                 :sliderMax="sliderMax" 
                 :decimalPlaces="decimalPlaces" 
-                :insensitive="!computedCheckboxValue || insensitive" 
+                :insensitive="!computedCheckboxValue || props.insensitive" 
                 :tooltipText="tooltipText"  
             />
         </div>

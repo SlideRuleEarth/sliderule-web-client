@@ -1,3 +1,6 @@
+import type { SrMenuItem,SrMultiSelectTextItem } from '@/types/SrTypes';
+import { defineStore } from 'pinia';
+
 export type RasterParams = {
     key: string; 
     asset: string;
@@ -30,11 +33,6 @@ export const RasterParamsCols = [
   { field: 'use_poi_time', header: 'use_poi_time' },
   { field: 'bands', header: 'bands' }
 ];
-
-import type { SrMultiSelectTextItem } from '@/components/SrMultiSelectText.vue';
-import type { SrMenuItem } from '@/stores/chartStore';
-// Define the store
-import { defineStore } from 'pinia';
 
 export const useRasterParamsStore = defineStore('rasterParams', {
     state: () => ({
@@ -148,6 +146,24 @@ export const useRasterParamsStore = defineStore('rasterParams', {
                 samples[row.key] = entry;
             });
             return samples;
+        },
+        setParmsFromJson(samples: Record<string, any>) {
+            this.dataTable = Object.entries(samples).map(([key, entry]) => ({
+                key,
+                asset: entry.asset ?? '',
+                algorithm: entry.algorithm ?? '',
+                force_single_sample: entry.force_single_sample ?? true,
+                radius: entry.radius ?? 0,
+                zonalStats: entry.zonal_stats ?? false,
+                withFlags: entry.with_flags ?? false,
+                t0: entry.t0 ? new Date(entry.t0) : null,
+                t1: entry.t1 ? new Date(entry.t1) : null,
+                substring: entry.substring ?? '',
+                closestTime: entry.closest_time ? new Date(entry.closest_time) : null,
+                use_poi_time: entry.use_poi_time ?? false,
+                catalog: entry.catalog ?? '',
+                bands: Array.isArray(entry.bands) ? entry.bands : [],
+            }));
         },
     }
 });

@@ -48,15 +48,19 @@ const SrPreset = definePreset(Lara, {
         dark: {
           info: {
             //background: 'var(--p-toast-info-background)',
+            color: 'black',
             background: 'color-mix(in srgb, {blue.800}, transparent 10%)',
           },
           success: {
+            color: 'black',
             background: 'color-mix(in srgb, {green.900}, transparent 10%)',
           },
           warn: {
+            color: 'black',
             background: 'color-mix(in srgb, {amber.300}, transparent 10%)',
           },
           error: {
+            color: 'black',
             background: 'color-mix(in srgb, {red.900}, transparent 10%)',
           }
         },

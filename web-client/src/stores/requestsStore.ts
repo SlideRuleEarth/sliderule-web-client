@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { db, DEFAULT_DESCRIPTION, type SrRequestRecord } from '@/db/SlideRuleDb';
-import {type  NullReqParams } from '@/sliderule/icesat2';
+import {type  NullReqParams } from '@/types/SrTypes';
 import { liveQuery } from 'dexie';
 import type { SrMenuNumberItem } from "@/types/SrTypes";
 import { findParam } from '@/utils/parmUtils';

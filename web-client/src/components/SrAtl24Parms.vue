@@ -37,7 +37,7 @@
                     label="Atl24 Classification"
                     placeholder="Select Atl24 Classification"
                     ariaLabel="Atl24 Classification"
-                    :menuOptions="reqParamsStore.atl24ClassOptions"
+                    :menuOptions="atl24ClassOptions"
                     :insensitive="!reqParamsStore.useAtl24Classification"
                     @update:value="reqParamsStore.atl24Classification = $event"
                 />

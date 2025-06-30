@@ -18,11 +18,9 @@
     import { ref, onMounted, watch } from 'vue';
     import MultiSelect from 'primevue/multiselect';
     import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
+    import { SrMultiSelectNumberItem } from '@/types/SrTypes';
 
-    export interface SrMultiSelectNumberItem {
-        name: string;
-        value: number;
-    }
+
 
     const props = defineProps({
         label: {

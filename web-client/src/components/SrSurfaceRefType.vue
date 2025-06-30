@@ -6,7 +6,7 @@
         />
         <MultiSelect  
             v-model="localSurfaceRefType"
-            :options="reqParamsStore.surfaceReferenceTypeOptions"
+            :options="surfaceReferenceTypeOptions"
             optionLabel="name"
             optionsValue="value"
             :placeholder="label"
@@ -21,6 +21,7 @@ import { computed, onMounted } from 'vue';
 import MultiSelect from 'primevue/multiselect';
 import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
 import { useReqParamsStore } from '../stores/reqParamsStore';
+import { surfaceReferenceTypeOptions } from '@/types/SrStaticOptions';
 
 export interface SrMultiSelectNumberItem {
     name: string;
@@ -75,7 +76,7 @@ const localSurfaceRefType = computed<SrMultiSelectNumberItem[]>({
 });
 
 onMounted(async () => {
-    reqParamsStore.surfaceReferenceType = [reqParamsStore.surfaceReferenceTypeOptions[0]];
+    reqParamsStore.surfaceReferenceType = [surfaceReferenceTypeOptions[0]];
 });
 </script>
 
