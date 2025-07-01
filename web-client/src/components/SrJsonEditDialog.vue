@@ -160,7 +160,7 @@ const copyEditableReqJsonToClipboard = async () => {
     await navigator.clipboard.writeText(editableReqJson.value);
     console.log('SrJsonEditDialog Raw JSON Copied to clipboard');
   } catch (err) {
-    console.error('SrJsonEditDialogFailed to copy:', err);
+    console.error('SrJsonEditDialog Failed to copy:', err);
   }
 };
 
