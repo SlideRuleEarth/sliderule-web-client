@@ -304,7 +304,7 @@ function handleParamsAccessed(index: number) {
                         label="Output to File" 
                         size="small" 
                         icon="pi pi-file-export" 
-                        @click="exportToFile(editableReqJson)" 
+                        @click="exportToFile(editableReqJson.value)" 
                         class="copy-btn" 
                     />
                 </div>
