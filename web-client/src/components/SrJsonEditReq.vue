@@ -13,7 +13,7 @@
             rounded
         ></Button>
         <SrJsonEditDialog
-            v-model:visible="showParmsDialog"
+            v-model="reqParamsStore.showParamsDialog"
             :zodSchema="ICESat2RequestSchema"
             :readonly-store-value="() => reqParamsStore.getAtlxxReqParams(0)"
             :title="`endpoint = ${curAPI}`"
@@ -24,9 +24,8 @@
   </template>
   
 <script setup lang="ts">
-    import { computed, ref, onMounted } from "vue";
+    import { computed, ref } from "vue";
     import { useReqParamsStore } from "@/stores/reqParamsStore";
-    import { useAutoReqParamsStore } from "@/stores/reqParamsStore";
     import SrJsonEditDialog from "./SrJsonEditDialog.vue";
     import SrCustomTooltip from "./SrCustomTooltip.vue";
     import Button from "primevue/button";
@@ -38,37 +37,22 @@
             type: String,
             default: "Edit JSON Request",
         },
-        isForPhotonCloud: {
-            type: Boolean,
-            default: false,
-        },
         tooltipText: {
             type: String,
             default: "Import JSON request parameter from a file or clipboard",
         },
     });
     const tooltipRef = ref();
-    const showParmsDialog = ref(false);
     const curAPI = computed(() => reqParamsStore.getCurAPIStr());
   
-    let reqParamsStore;
-    if(props.isForPhotonCloud) {
-        reqParamsStore = useAutoReqParamsStore();
-    } else {
-        reqParamsStore = useReqParamsStore();
-    }
+    const reqParamsStore = useReqParamsStore();
+    
       
-    const reqParms = ref(reqParamsStore.getAtlxxReqParams(0));
     // Open the Parms dialog
     function openParmsDialog() {
-        reqParms.value = reqParamsStore.getAtlxxReqParams(0);
-        console.log("Opening parms dialog with reqParms:", reqParms.value);
-        showParmsDialog.value = true;
+        reqParamsStore.showParamsDialog = true;
     }
-    onMounted(() => {
-        // Initialize the request parameters when the component is mounted
-        reqParms.value = reqParamsStore.getAtlxxReqParams(0); // ✅ Keep it as an object
-    });
+
 </script>
   
   

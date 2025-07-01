@@ -139,4 +139,5 @@ export interface SrReqParamsState {
     useAtl13Point: boolean;
     forcedAddedParams: Record<string, unknown>,
     forcedRemovedParams: string[],
+    showParamsDialog: boolean;
 }
