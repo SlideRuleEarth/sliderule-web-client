@@ -161,6 +161,7 @@ export function getDefaultReqParamsState(): SrReqParamsState {
       useAtl13Point: false,
       forcedAddedParams: {} as Record<string, unknown>,
       forcedRemovedParams: [] as string[],
+      showParamsDialog: false,
     };
 }
 function setNestedValue(obj: any, path: string, value: unknown) {

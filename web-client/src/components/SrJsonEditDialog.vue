@@ -40,31 +40,28 @@ const emit = defineEmits<{
   (e: 'json-valid', value: any): void
 }>()
 
-const modelValue = defineModel<boolean>({ default: false })
 const jsonBlock = ref<HTMLElement | null>(null)
 const editableReqJson = ref('')
 const parsedEditableReqJson = computed(() => {
   try {
     return JSON.parse(editableReqJson.value)
   } catch {
-    return null
+    return {}
   }
+}); 
+const computedShowParamsDialog = computed({
+    get: () => reqParamsStore.showParamsDialog,
+    set: (val: boolean) => { reqParamsStore.showParamsDialog = val; }
 }); 
 const isValidJson = ref(true)
 const validationError = ref<string | null>(null)
 
-const initialReqJson = computed(() => {
-  try {
-    const jsonObj = reqParamsStore.getAtlxxReqParams(0);
-    return JSON.stringify(jsonObj, null, 2);
-  } catch {
-    return 'Invalid JSON'
-  }
-});
+
 
 const currentReqObj = ref({});
 const currentReqJson = computed(() => {
   try {
+    console.log("SrJsonEditDialog computed currentReqObj:", currentReqObj.value);
     return JSON.stringify(currentReqObj.value, null, 2);
   } catch {
     return 'Invalid JSON'
@@ -127,7 +124,7 @@ const handleFileChange = async (event: Event) => {
     };
 
     reader.onerror = () => {
-        console.error("File reading error:", reader.error);
+        console.error("SrJsonEditDialog File reading error:", reader.error);
         validationError.value = "Failed to read file.";
         isValidJson.value = false;
     };
@@ -135,26 +132,20 @@ const handleFileChange = async (event: Event) => {
     reader.readAsText(file);
 };
 
-
-function updateEditableReqJsonFromInitalReqJson() {
-  editableReqJson.value = initialReqJson.value
-  console.log('Updated editableReqJson:', editableReqJson.value)
-}
-
 function validateJson() {
   try {
     //const parsed = JSON.parse(editableReqJson.value)
-    console.log("Validating editableReqJson:", editableReqJson.value, ' parsed:', parsedEditableReqJson);
+    console.log("SrJsonEditDialog Validating editableReqJson:", editableReqJson.value, ' parsed:', parsedEditableReqJson);
     if (props.zodSchema) {
       const result = props.zodSchema.safeParse(parsedEditableReqJson.value);
       if (!result.success) {
         isValidJson.value = false
         validationError.value = result.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join('\n')
-        console.warn('Validation failed:', validationError.value)
+        console.warn('SrJsonEditDialog Validation failed:', validationError.value)
         return
       } else {
         emit('json-valid', result.data)
-        console.log('Validation successful for:', parsedEditableReqJson.value);
+        console.log('SrJsonEditDialog Validation successful for:', parsedEditableReqJson.value);
       }
     }
     isValidJson.value = true
@@ -167,29 +158,25 @@ function validateJson() {
 const copyEditableReqJsonToClipboard = async () => {
   try {
     await navigator.clipboard.writeText(editableReqJson.value);
-    console.log('Raw JSON Copied to clipboard');
+    console.log('SrJsonEditDialog Raw JSON Copied to clipboard');
   } catch (err) {
-    console.error('Failed to copy:', err);
-  }
-};
-const copyCleanToClipboard = async () => {
-  try {
-    await navigator.clipboard.writeText(currentReqJson.value);
-    console.log('Copied to clipboard');
-  } catch (err) {
-    console.error('Failed to copy:', err);
+    console.error('SrJsonEditDialog Failed to copy:', err);
   }
 };
 
-watch(modelValue, (newVal) => {
-  if (newVal && editableReqJson.value !== initialReqJson.value) {
-    updateEditableReqJsonFromInitalReqJson();
-    nextTick(() => highlightJson());
-  }
+
+watch(computedShowParamsDialog, (newVal) => {
+    console.log('SrJsonEditDialog showParamsDialog changed:', newVal);
+    if (newVal) {
+        console.log('SrJsonEditDialog Dialog opened, highlighting JSON.');
+        updateEditableJsonFromStore();
+        nextTick(() => highlightJson());
+    }
 });
 
 
 const highlightJson = () => {
+    console.log('Highlighting JSON in readonly panel.');
     if (jsonBlock.value) {
         jsonBlock.value.removeAttribute('data-highlighted'); // allow re-highlighting
         jsonBlock.value.innerHTML = readonlyHighlightedJson.value; // replace with fresh content
@@ -197,11 +184,15 @@ const highlightJson = () => {
     }
 }
 
+function updateEditableJsonFromStore() {
+    currentReqObj.value = reqParamsStore.getAtlxxReqParams(0);
+    editableReqJson.value = JSON.stringify(currentReqObj.value, null, 2);
+    validateJson();
+}
+
 onMounted(() => {
     console.log('Schema in SrJsonEditDialog:', props.zodSchema);
-    currentReqObj.value = reqParamsStore.getAtlxxReqParams(0);
-    updateEditableReqJsonFromInitalReqJson();
-    if (modelValue.value) highlightJson()
+    updateEditableJsonFromStore();
     console.log('Mounted SrJsonEditDialog ');
 })
 
@@ -250,7 +241,7 @@ function handleParamsAccessed(index: number) {
 
 <template>
   <Dialog 
-    v-model:visible="modelValue"
+    v-model:visible="computedShowParamsDialog"
     :modal="true"
     :closable="true"
     :style="{ width: props.width }"
@@ -296,14 +287,6 @@ function handleParamsAccessed(index: number) {
                     />
                 </div>
             </div>
-            <div class="import-btn-wrapper">
-                <Button 
-                    label="Push ⇨" 
-                    class="import-btn" 
-                    @click="importToStore" 
-                />
-            </div>
-
             <!-- Readonly panel -->
             <div class="json-pane">
                 <h3 class="pane-title">Current Request State</h3>
@@ -314,14 +297,14 @@ function handleParamsAccessed(index: number) {
                         label="Copy to clipboard" 
                         size="small" 
                         icon="pi pi-copy" 
-                        @click="copyCleanToClipboard" 
+                        @click="copyEditableReqJsonToClipboard" 
                         class="copy-btn" 
                     />
                     <Button 
                         label="Output to File" 
                         size="small" 
                         icon="pi pi-file-export" 
-                        @click="exportToFile(currentReqJson)" 
+                        @click="exportToFile(editableReqJson.value)" 
                         class="copy-btn" 
                     />
                 </div>
