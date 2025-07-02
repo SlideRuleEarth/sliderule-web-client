@@ -165,5 +165,20 @@ export const useRasterParamsStore = defineStore('rasterParams', {
                 bands: Array.isArray(entry.bands) ? entry.bands : [],
             }));
         },
+        async setAssetOptions() {
+            try {
+                const response = await fetch('https://sliderule.slideruleearth.io/source/assets');
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch assets: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                const rasters: string[] = result.rasters || [];
+
+                this.assetOptions = rasters.map(r => ({ name: r, value: r }));
+            } catch (error) {
+                console.error('Error loading asset options:', error);
+            }
+        },
     }
 });
