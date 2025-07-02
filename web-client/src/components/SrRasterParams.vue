@@ -138,8 +138,14 @@
     import SrCatalogFileUpload from './SrCatalogFileUpload.vue';
     import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
     import Sr32BitFlag from './Sr32BitFlag.vue';
+    import { onMounted } from 'vue';
 
     const rasterParamsStore = useRasterParamsStore();
+
+    onMounted(() => {
+        rasterParamsStore.setAssetOptions();
+    });
+
     const addRasterParams = () => {
 
         if(rasterParamsStore.key === '' || rasterParamsStore.asset === '') {
