@@ -53,6 +53,9 @@ import type { Extent } from 'ol/extent';
 import type { SrLatLon } from '@/types/SrTypes';
 import Point from 'ol/geom/Point';
 import { Circle as CircleStyle } from 'ol/style';
+import type { FeatureLike } from 'ol/Feature';
+import getZoom  from 'ol/View'; // Utility function, or use map.getView().getZoom()
+import VectorLayer from 'ol/layer/Vector';
 
 // This grabs the constructor’s first parameter type
 type ScatterplotLayerProps = ConstructorParameters<typeof ScatterplotLayer>[0];
@@ -867,15 +870,60 @@ async function getAtl13CoordFromSvrParms(reqId:number): Promise<SrLatLon | null>
     return null;
 }
 
+export function makePinStyleFunction(
+    map: OLMap,
+    minZoomToShowPin: number = 8
+): (feature: FeatureLike, _resolution: number) => Style {
+    return (feature: FeatureLike, _resolution: number): Style => {
+        const zoom = map.getView().getZoom();
+        const reqId = feature.get('req_id');
+        // Conditionally show/hide image (the circle)
+        const showPin = zoom && zoom >= minZoomToShowPin;
+        return new Style({
+            image: showPin
+                ? new CircleStyle({
+                      radius: 6,
+                      fill: new Fill({ color: 'red' }),
+                      stroke: new Stroke({ color: 'white', width: 2 })
+                  })
+                : undefined,
+            text: new TextStyle({
+                text: reqId > 0 ? reqId.toString() : '',
+                font: '14px Calibri,sans-serif',
+                fill: new Fill({ color: '#000' }),
+                stroke: new Stroke({ color: '#fff', width: 3 }),
+                offsetY: -15
+            })
+        });
+    };
+}
+
+
+export function assignStyleFunctionToPinLayer(
+    map: OLMap,
+    layerName: string = 'Pin Layer',
+    minZoomToShowPin: number = 8
+): void {
+    const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === layerName);
+    if (!vectorLayer || !(vectorLayer instanceof VectorLayer)) {
+        console.error(`assignStyleFunctionToPinLayer: ${layerName} not found or not a VectorLayer`);
+        return;
+    }
+
+    const pinStyleFunction = makePinStyleFunction(map, minZoomToShowPin);
+    vectorLayer.setStyle(pinStyleFunction);
+}
+
 export function renderReqPin(
     map: OLMap,
     coord: Atl13Coord,
     featureId: string = 'Dropped Pin',
-    layerName: string = 'Records Layer',
+    layerName: string = 'Pin Layer',
     forceZoom: boolean = false,
     reqId: number = 0 // <--- add this to associate metadata
 ): void {
     if (!map || !coord) return;
+    const zoom = map.getView().getZoom();
 
     const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === layerName);
     if (!vectorLayer || !(vectorLayer instanceof OLlayer)) {
@@ -903,21 +951,6 @@ export function renderReqPin(
 
     pointFeature.setId(featureId);
 
-    pointFeature.setStyle(new Style({
-        image: new CircleStyle({
-            radius: 6,
-            fill: new Fill({ color: 'red' }),
-            stroke: new Stroke({ color: 'white', width: 2 })
-        }),
-        text: new TextStyle({
-            text: reqId > 0 ? reqId.toString() : '',
-            font: '14px Calibri,sans-serif',
-            fill: new Fill({ color: '#000' }),
-            stroke: new Stroke({ color: '#fff', width: 3 }),
-            offsetY: -15
-        })
-    }));
-
     vectorSource.addFeature(pointFeature);
 
     if (forceZoom) {
@@ -935,7 +968,7 @@ export function renderReqPin(
 export async function renderSvrReqPin(
     map: OLMap,
     reqId: number,
-    layerName: string = 'Records Layer',
+    layerName: string = 'Pin Layer',
     forceZoom: boolean = false
 ): Promise<SrLatLon | null> {
     const startTime = performance.now();

@@ -9,7 +9,7 @@ import { useToast } from "primevue/usetoast";
 import { useGeoJsonStore } from '@/stores/geoJsonStore';
 import { convexHull, isClockwise } from "@/composables/SrTurfUtils";
 import { useReqParamsStore } from '@/stores/reqParamsStore';
-import type { SrRegion } from "@/sliderule/icesat2"
+import type { SrRegion } from '@/types/SrTypes'
 import { Map as OLMapType} from "ol";
 import { Layer as OLlayer } from 'ol/layer';
 import { useMapStore } from '@/stores/mapStore';
