@@ -312,8 +312,8 @@ export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
         // ... your axes creation logic ...
         layers.push(...createAxesAndLabels(
                     100, 
-                    'Lon',
-                    'Lat',
+                    'East',
+                    'North',
                     'Elev (m)',
                     [255, 255, 255], // text color
                     [200, 200, 200], // line color
