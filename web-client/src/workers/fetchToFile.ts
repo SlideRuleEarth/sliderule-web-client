@@ -397,6 +397,7 @@ onmessage = async (event) => {
                             } 
                             if(!got_all_cbs){
                                 console.error('Failed to get all arrowrec.data CBs. num_retries_left:', num_retries_left, 'target_numArrowDataRecs:', target_numArrowDataRecs, 'num_arrow_dataFile_data_recs_processed:', num_arrow_dataFile_data_recs_processed, 'num_arrow_metaFile_data_recs_processed:', num_arrow_metaFile_data_recs_processed);
+                                //if(num_retries_left === 0) throw new Error('SlideRuleError:The server quit unexpectedly.');
                             }
                             console.log('FINAL target_numArrowDataRecs:', target_numArrowDataRecs, 'num_arrow_dataFile_data_recs_processed:', num_arrow_dataFile_data_recs_processed, 'num_arrow_metaFile_data_recs_processed:', num_arrow_metaFile_data_recs_processed);
                             // Log the result to the console

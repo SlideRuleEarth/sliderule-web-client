@@ -23,7 +23,7 @@
     import { Vector as VectorSource } from 'ol/source';
     import { fromExtent }  from 'ol/geom/Polygon';
     import { Stroke, Style, Fill } from 'ol/style';
-    import { clearPolyCoords, drawGeoJson, enableTagDisplay, disableTagDisplay, saveMapZoomState, renderRequestPolygon, canRestoreZoomCenter } from "@/utils/SrMapUtils";
+    import { clearPolyCoords, drawGeoJson, enableTagDisplay, disableTagDisplay, saveMapZoomState, renderRequestPolygon, canRestoreZoomCenter, assignStyleFunctionToPinLayer } from "@/utils/SrMapUtils";
     import { onActivated } from "vue";
     import { onDeactivated } from "vue";
     import { checkAreaOfConvexHullWarning,updateSrViewName,renderReqPin } from "@/utils/SrMapUtils";
@@ -31,7 +31,7 @@
     import { useReqParamsStore } from "@/stores/reqParamsStore";
     import { convexHull, isClockwise } from "@/composables/SrTurfUtils";
     import { type Coordinate } from "ol/coordinate";
-    import type { SrRegion } from "@/sliderule/icesat2"
+    import type { SrRegion } from '@/types/SrTypes'
     import { format } from 'ol/coordinate';
     import SrViewControl from "./SrViewControl.vue";
     import SrBaseLayerControl from "./SrBaseLayerControl.vue";
@@ -596,6 +596,11 @@
                 //   map.addControl(plink);
                 // }
                 await updateReqMapView("SrMap onMounted",canRestoreZoomCenter(map));
+                map.getView().on('change:resolution', () => {
+                    //const zoom = map.getView().getZoom();
+                    //console.log('Current zoom level:', zoom);  // logs the zoom level
+                    pinVectorLayer.changed(); // forces pin features to re-evaluate their styles
+                });
                 map?.on('click', (evt) => {
                     if (isDrawing.value) {
                         featureMenuOverlayRef.value?.hideMenu();
@@ -709,6 +714,7 @@
         const reqIds = recTreeStore.allReqIds;
         const map = mapRef.value?.map;
         if(map){
+            assignStyleFunctionToPinLayer(map);
             reqIds.forEach(async reqId => {    
                 const api = recTreeStore.findApiForReqId(reqId);
                 if(api.includes('atl13')){
@@ -858,8 +864,6 @@
             reqParamsStore.removePin();
             reqParamsStore.useAtl13RefId = false;
             console.log("Dropped pin removed due to api change");
-        // } else {
-        //      mapStore.dropPinEnabled = true;
         }
     });
 
@@ -883,28 +887,20 @@
                 // Clear previous pin(s)
                 pinVectorSource.clear();
 
-                // Create and style new pin
+                // Create new pin feature
                 const pointFeature = new Feature({
                     geometry: new Point(coordinate),
                     name: "Dropped Pin",
                 });
 
-                pointFeature.setStyle(new Style({
-                    image: new CircleStyle({
-                        radius: 6,
-                        fill: new Fill({ color: 'red' }),
-                        stroke: new Stroke({ color: 'white', width: 2 })
-                    })
-                }));
-
                 pinVectorSource.addFeature(pointFeature);
 
-                // Reset cursor and state
                 map.getTargetElement().style.cursor = '';
                 map.un('click', dropPinClickListener!);
                 dropPinClickListener = null;
                 mapStore.dropPinEnabled = false;
             };
+
             map.on('click', dropPinClickListener);
         } else {
             recordsLayer.setVisible(true); // Show records layer when not dropping pin
