@@ -1,6 +1,6 @@
 import type { SysConfig } from "@/sliderule/core"
 import type { SrRunContext } from "@/db/SlideRuleDb";
-import type { ReqParams } from "@/sliderule/icesat2";
+import type { ReqParams } from "@/types/SrTypes";
 import { db } from "@/db/SlideRuleDb";
 // No Pinia store can be used in this file because it is called from a web worker   
 
