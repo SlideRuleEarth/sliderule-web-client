@@ -50,7 +50,6 @@
     import SrCustomTooltip from "@/components//SrCustomTooltip.vue";
     import SrDropPinControl from "@/components//SrDropPinControl.vue";
     import Point from 'ol/geom/Point';
-    import { Circle as CircleStyle } from 'ol/style';
 
     const featureMenuOverlayRef = ref();
     const tooltipRef = ref();
@@ -616,7 +615,7 @@
                             }
                         },
                         {
-                            layerFilter: (layer) => layer.get('name') === 'Records Layer'
+                            layerFilter: (layer) => ['Records Layer', 'Pin Layer'].includes(layer.get('name'))
                         }
                     );
 
@@ -627,9 +626,6 @@
                         featureMenuOverlayRef.value?.hideMenu();
                     }
                 });
-
-
-
             } else {
                 console.error("SrMap Error:map is null");
             } 
