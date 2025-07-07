@@ -283,14 +283,14 @@ export class DuckDBClient {
     async queryForColNames(fileName:string): Promise<string[]> {
       const startTime = performance.now(); // Start time
       const conn = await this._db!.connect();
-      let tbl: Table<any>;
+      let tbl: Table<any> | undefined;
       const query = `SELECT * FROM "${fileName}" LIMIT 1`;
       try {
         tbl = await conn.query(query);
         const rows = tbl.toArray().map((r) => Object.fromEntries(r));
         return Object.keys(rows[0]);
       } catch (error) {
-        console.error(`Query SELECT * FROM ${fileName} execution error:`, error);
+        console.error(`Query SELECT * FROM ${fileName} execution error with tbl:${tbl} error:`, error);
         throw error;
       } finally {
         await conn.close();

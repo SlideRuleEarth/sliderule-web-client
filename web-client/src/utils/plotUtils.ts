@@ -882,10 +882,10 @@ export async function getScatterOptionsFor(reqId:number) {
 
     if (Object.keys(newScatterOptions).length > 0) {
         if(plotRef?.chart){
-            plotRef.chart.setOption(newScatterOptions);
-            //console.log(`initScatterPlotWith Options applied to chart:`, newScatterOptions);
+            plotRef.chart.setOption(newScatterOptions,{notMerge: true });
+            //console.log(`getScatterOptionsFor Options applied to chart:`, newScatterOptions);
             const options = plotRef.chart.getOption();
-            //console.log(`initScatterPlotWith ${reqId} Options from chart:`, options);
+            //console.log(`getScatterOptionsFor ${reqId} Options from chart:`, options);
         } else {
             console.error(`getScatterOptionsFor ${reqId} plotRef.chart is undefined`);
         }
@@ -1179,13 +1179,12 @@ async function appendSeries(reqId: number): Promise<void> {
         //     APPLY UPDATED OPTIONS
         // -----------------------------
         chart.setOption({
-            ...filteredOptions,
-            legend: updatedLegend,
-            series: updatedSeries,
-            yAxis: updatedYAxis,
-            // If you want to ensure a merge, you can pass a second param:
-            // }, { notMerge: false }
-        });
+                ...filteredOptions,
+                legend: updatedLegend,
+                series: updatedSeries,
+                yAxis: updatedYAxis,
+            }, { notMerge: true }
+        );
         const options = chart.getOption() as EChartsOption;
         //console.log(`initScatterPlotWith ${reqId} AFTER options:`, options);
 
@@ -1219,7 +1218,7 @@ export const addOverlaysToScatterPlot = async (msg:string) => {
 }
 
 export const refreshScatterPlot = async (msg:string) => {
-    //console.log(`refreshScatterPlot ${msg}`);
+    console.log(`refreshScatterPlot ${msg}`);
     const recTreeStore = useRecTreeStore();
     const atlChartFilterStore = useAtlChartFilterStore();
     const plotRef = atlChartFilterStore.getPlotRef();

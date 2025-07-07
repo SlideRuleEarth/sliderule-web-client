@@ -16,7 +16,9 @@ function updatePosition(lat: number, lon: number) {
     if (!props.map || !highlightEl) return;
 
     const view = props.map.getView();
-    const projection = view.getProjection();
+    if (!view) return; 
+
+    const projection = view?.getProjection();
     const coord = fromLonLat([lon, lat], projection);
 
     // ✅ Check if coordinate is within the current extent
