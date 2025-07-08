@@ -73,7 +73,9 @@ async function getCommonSteps(type: string): Promise<ReturnType<typeof introJs>[
     await waitForElement('.sr-run-abort-button');
     await waitForElement('#sr-analysis-button');
 
-
+    if (!document.querySelector('.ol-zoom-in')) {
+        alert('Tour cannot start: Zoom In button not found!');
+    }
     const steps =  [
         {
             intro: type === 'quick' ? 
