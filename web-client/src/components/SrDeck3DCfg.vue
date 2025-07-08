@@ -109,6 +109,19 @@
               />
             </div>
           </div>
+          <div class="config-item">
+              <label class="sr-vert-scl-label" for="vertSclId">Vertical Scale Ratio</label>
+              <InputNumber
+                  v-model="deck3DConfigStore.verticalScaleRatio"
+                  :disabled="true"
+                  inputId="vertSclId"
+                  size="small"                
+                  :defaultValue="deck3DConfigStore.verticalScaleRatio"
+                  :decimalPlaces="4"
+                  @mouseover="tooltipRef.showTooltip($event, 'Vertical Scale Ratio: The ratio of vertical scale to horizontal scale in the 3D view. This affects how elevation data is visualized. Use this value for Vertical Exaggeration to fill the cube in the 3D view.')"
+                  @mouseleave="tooltipRef.hideTooltip()"
+              />
+          </div>
         </section>
       </div>
     </div>
@@ -128,7 +141,7 @@
 
   const deckContainerStored = computed(() => deck3DConfigStore.deckContainer);
   const reqId = computed(() => recTreeStore.selectedReqId);
-  const tooltipRef = ref(null);
+  const tooltipRef = ref();
   const store = useDeck3DConfigStore()
 
 

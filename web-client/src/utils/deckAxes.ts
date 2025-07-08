@@ -1,7 +1,9 @@
 import { LineLayer, TextLayer } from '@deck.gl/layers';
 import { COORDINATE_SYSTEM, type Layer } from '@deck.gl/core';
 import proj4 from 'proj4';
+import { useDeck3DConfigStore } from '@/stores/deck3DConfigStore';
 
+const deck3DConfigStore = useDeck3DConfigStore();
 type TickLine = {
     source: [number, number, number];
     target: [number, number, number];
@@ -21,6 +23,35 @@ function getUtmProjString(lat: number, lon: number): string {
     return `+proj=utm +zone=${zone} +${hemisphere} +datum=WGS84 +units=m +no_defs`;
 }
 
+export function getVerticalScaleRatio(
+    elevMin: number,
+    elevMax: number,
+    latMin: number,
+    latMax: number,
+    lonMin: number,
+    lonMax: number
+): number {
+    const projFrom = 'EPSG:4326';
+    const projTo = getUtmProjString(latMin, lonMin);
+
+    const [xOrigin, yOrigin] = proj4(projFrom, projTo, [lonMin, latMin]);
+    const [xMax, _yIgnore] = proj4(projFrom, projTo, [lonMax, latMin]);
+    const [_xIgnore, yMax] = proj4(projFrom, projTo, [lonMin, latMax]);
+    const xRange = xMax - xOrigin;
+    const yRange = yMax - yOrigin;
+    const zRange = elevMax - elevMin;
+
+    if (zRange === 0) {
+        return Infinity; // or throw an error if you prefer
+    }
+
+    // Common convention: use average horizontal range
+    const horizontalRange = (xRange + yRange) / 2;
+    const verticalScaleRatio = horizontalRange / zRange;
+
+    return verticalScaleRatio;
+}
+
 export function createAxesAndLabels(
     scale: number,
     xLabel: string = 'X',
@@ -36,8 +67,15 @@ export function createAxesAndLabels(
     latMax: number,
     lonMin: number,
     lonMax: number,
-    verticalExaggeration: number = 1
 ): Layer<any>[] {
+    const vsr = getVerticalScaleRatio(
+        elevMin,
+        elevMax,
+        latMin,
+        latMax,
+        lonMin,
+        lonMax
+    );
     const origin: [number, number, number] = [0, 0, 0];
     const projFrom = 'EPSG:4326';
     const projTo = getUtmProjString(latMin, lonMin);
@@ -76,13 +114,13 @@ export function createAxesAndLabels(
             color: labelTextColor
         });
     });
-
+    const scaleFactor = deck3DConfigStore.verticalExaggeration / deck3DConfigStore.verticalScaleRatio;
     for (let i = tickInterval; i < scale; i += tickInterval) {
         ticks.push({ source: [0, -tickLength, i], target: [0, tickLength, i], color: axisLineColor });
 
         let zTickLabel = i.toFixed(1);
         if (elevMin !== undefined && elevMax !== undefined) {
-            const realZ = elevMin + (i / scale) * (elevMax - elevMin);
+            const realZ = elevMin + (i / (scale * scaleFactor)) * (elevMax - elevMin);
             zTickLabel = realZ.toFixed(0);
         }
         tickLabels.push({ position: [0, -2 * tickLength, i], text: zTickLabel, color: labelTextColor });

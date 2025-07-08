@@ -26,7 +26,7 @@ export const useDeck3DConfigStore = defineStore('deckConfig', () => {
   const elDataRange      = ref<[number,number]>([0, 100]);
   const elScaleRange      = ref<[number,number]>([1, 99]);
   const verticalExaggeration = ref(1.0);  // default no exaggeration
-
+  const verticalScaleRatio = ref(1.0); // default scale ratio
   // — LIVE VIEW STATE —
   // these will be updated in onViewStateChange
   const viewState = reactive<OrbitViewState>({
@@ -60,6 +60,7 @@ export const useDeck3DConfigStore = defineStore('deckConfig', () => {
     elScaleRange,
     elDataRange,
     verticalExaggeration,
+    verticalScaleRatio,
     // methods
     updateViewState,
   }
