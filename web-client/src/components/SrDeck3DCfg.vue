@@ -109,6 +109,17 @@
               />
             </div>
           </div>
+          <div class="config-item">
+              <label class="sr-vert-scl-label" for="vertSclId">Vertical Scale Ratio</label>
+              <InputNumber
+                  v-model="deck3DConfigStore.verticalScaleRatio"
+                  :disabled="true"
+                  inputId="vertSclId"
+                  size="small"                
+                  :defaultValue="deck3DConfigStore.verticalScaleRatio"
+                  :decimalPlaces="4"
+              />
+          </div>
         </section>
       </div>
     </div>

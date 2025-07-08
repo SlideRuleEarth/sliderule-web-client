@@ -8,6 +8,7 @@ import { useFieldNameStore } from '@/stores/fieldNameStore';
 import { useSrToastStore } from '@/stores/srToastStore';
 import { useDeck3DConfigStore } from '@/stores/deck3DConfigStore';
 import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
+import { getVerticalScaleRatio } from '@/utils/deckAxes';
 import { OrbitView, OrbitController } from '@deck.gl/core';
 import { ref,type Ref } from 'vue';
 import { Deck } from '@deck.gl/core';
@@ -200,6 +201,55 @@ export async function loadAndCachePointCloudData(reqId: number) {
             });
             lastLoadedReqId = reqId;
             console.log(`Cached ${cachedRawData.length} valid data points.`);
+
+            if (cachedRawData.length > 0) {
+                // (your current code)
+                latField = fieldStore.getLatFieldName(reqId);
+                lonField = fieldStore.getLonFieldName(reqId);
+                heightField = fieldStore.getHFieldName(reqId);
+
+                // Compute min/max
+                let elevMin = Infinity, elevMax = -Infinity;
+                let latMin = Infinity, latMax = -Infinity;
+                let lonMin = Infinity, lonMax = -Infinity;
+
+                for (const row of cachedRawData) {
+                    const lat = row[latField];
+                    const lon = row[lonField];
+                    const elev = row[heightField];
+                    if (typeof lat === 'number' && isFinite(lat)) {
+                        latMin = Math.min(latMin, lat);
+                        latMax = Math.max(latMax, lat);
+                    }
+                    if (typeof lon === 'number' && isFinite(lon)) {
+                        lonMin = Math.min(lonMin, lon);
+                        lonMax = Math.max(lonMax, lon);
+                    }
+                    if (typeof elev === 'number' && isFinite(elev)) {
+                        elevMin = Math.min(elevMin, elev);
+                        elevMax = Math.max(elevMax, elev);
+                    }
+                }
+
+                // Only call if we have valid ranges
+                if (
+                    elevMin !== Infinity && elevMax !== -Infinity &&
+                    latMin !== Infinity && latMax !== -Infinity &&
+                    lonMin !== Infinity && lonMax !== -Infinity
+                ) {
+                    const vsr = getVerticalScaleRatio(
+                        elevMin, elevMax, latMin, latMax, lonMin, lonMax
+                    );
+                    console.log(
+                        `Vertical scale ratio for reqId ${reqId}: ${vsr.toFixed(2)}x`
+                    );
+                    deck3DConfigStore.verticalScaleRatio = vsr;
+                } else {
+                    console.warn('Unable to compute vertical scale ratio: invalid bounds');
+                }
+            }
+
+
         } else {
             cachedRawData = [];
             lastLoadedReqId = null;
@@ -275,7 +325,7 @@ export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
         const x = deck3DConfigStore.scale * (d[lonField] - lonMin) / lonRange;
         const y = deck3DConfigStore.scale * (d[latField] - latMin) / latRange;
 
-        const z = deck3DConfigStore.verticalExaggeration *
+        const z = (deck3DConfigStore.verticalExaggeration/deck3DConfigStore.verticalScaleRatio) *
                 deck3DConfigStore.scale *
                 (d[heightField] - elevMinScale) / elevRangeScale;
 
@@ -325,7 +375,6 @@ export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
                     latMax,
                     lonMin,
                     lonMax,
-                    deck3DConfigStore.verticalExaggeration,                
         ));
     }
     

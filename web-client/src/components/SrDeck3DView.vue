@@ -39,15 +39,16 @@
                 v-model="deck3DConfigStore.verticalExaggeration"
                 inputId="vertExagId"
                 size="small"
-                :step="0.1"
-                :min="0.01"
-                :max="100"
+                :step="1"
+                :min="1"
+                :max="deck3DConfigStore.verticalScaleRatio+1"
                 showButtons
                 :defaultValue="deck3DConfigStore.verticalExaggeration"
                 :decimalPlaces="1"
                 @value-change="handleVerticalExaggerationChange"
             />
         </div>
+
     </div>
     <SrDeck3DCfg/>
 </template>
@@ -168,25 +169,32 @@ watch(() => deck3DConfigStore.fovy, (newFov) => {
     will-change: transform; /* Hint for performance */
 }
   /* Override PrimeVue component widths */
-  :deep(.p-inputnumber-input) {
+:deep(.p-inputnumber-input) {
     width: 7rem;
-  }
+}
 
-  .sr-3d-cntrl {
+.sr-3d-cntrl {
     display: flex;
     flex-direction: row;
-  }
-  .sr-pnt-sz-label{
+}
+.sr-pnt-sz-label{
     font-size: small;
     margin-right: 0.2rem;
     align-items: center;
     justify-content: center;
-  }
-  .sr-vert-exag-label{
+}
+.sr-vert-exag-label{
     font-size: small;
     margin-left: 0.5rem;
     margin-right: 0.2rem;
     align-items: center;
     justify-content: center;
-  }
+}
+.sr-vert-scl-label{
+    font-size: small;
+    margin-left: 0.5rem;
+    margin-right: 0.2rem;
+    align-items: center;
+    justify-content: center;
+}
 </style>
