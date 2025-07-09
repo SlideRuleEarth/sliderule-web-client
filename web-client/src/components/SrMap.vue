@@ -710,7 +710,7 @@
         const reqIds = recTreeStore.allReqIds;
         const map = mapRef.value?.map;
         if(map){
-            assignStyleFunctionToPinLayer(map);
+            assignStyleFunctionToPinLayer(map, useMapStore().getMinZoomToShowPin());
             reqIds.forEach(async reqId => {    
                 const api = recTreeStore.findApiForReqId(reqId);
                 if(api.includes('atl13')){
@@ -854,7 +854,11 @@
 
     watch(() => reqParamsStore.iceSat2SelectedAPI, (newValue, oldValue) => {
         console.log(`SrMap watch reqParamsStore.iceSat2SelectedAPI changed from ${oldValue} to ${newValue}`);
-        if(newValue !== 'atl13x'){
+        if(newValue === 'atl13x'){
+          //console.log("ICESat-2 Inland Bodies of Water selected.");
+          clearDrawingLayer();
+          clearPolyCoords();
+        } else {
             mapStore.dropPinEnabled = false;
             // 🔴 Remove dropped pin
             reqParamsStore.removePin();
@@ -864,7 +868,7 @@
     });
 
     watch(() => mapStore.dropPinEnabled, (newValue, oldValue) => {
-        console.log(`SrMap watch reqParamsStore.iceSat2SelectedAPI changed from ${oldValue} to ${newValue}`);
+        //console.log(`SrMap watch reqParamsStore.dropPinEnabled changed from ${oldValue} to ${newValue}`);
         const map = mapRef.value?.map;
         if (!map) {
             console.error("Map is not available in dropPinEnabled watcher");
@@ -890,6 +894,21 @@
                 });
 
                 pinVectorSource.addFeature(pointFeature);
+
+                // --- Zoom logic here ---
+                const minZoom = mapStore.getMinZoomToShowPin();
+                const view = map.getView();
+                const currentZoom = view.getZoom();
+                if (currentZoom) {
+                    if (currentZoom < minZoom) {
+                        view.animate({ center: coordinate,zoom: minZoom, duration: 250 });
+                    } else {
+                        // If already at or above minZoom, just center the view
+                        view.animate({ center: coordinate, duration: 250 });
+                    }
+                } else {
+                    console.error("Current zoom level is null, cannot animate view");
+                }
 
                 map.getTargetElement().style.cursor = '';
                 map.un('click', dropPinClickListener!);
