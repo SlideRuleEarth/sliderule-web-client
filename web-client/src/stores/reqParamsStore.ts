@@ -211,7 +211,7 @@ const createReqParamsStore = (id: string) =>
     actions: {
         reset() {
           console.log('resetting reqParamsStore');
-          Object.assign(this.$state, getDefaultReqParamsState());
+          this.$patch(getDefaultReqParamsState() as any);
         },
         async presetForScatterPlotOverlay(parentReqId: number) { //TBD HACK when svr params is fixed it will include rgt. so use that instead of this
             // set things the user may have changed in this routine

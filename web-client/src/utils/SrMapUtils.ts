@@ -878,7 +878,8 @@ export function makePinStyleFunction(
         const zoom = map.getView().getZoom();
         const reqId = feature.get('req_id');
         // Conditionally show/hide image (the circle)
-        const showPin = zoom && zoom >= minZoomToShowPin;
+        const showPin = useReqParamsStore().useAtl13Point || (zoom && zoom >= minZoomToShowPin);
+        //console.log(`makePinStyleFunction:isDropPinEnabled():${useMapStore().isDropPinEnabled()} zoom: ${zoom}, minZoomToShowPin: ${minZoomToShowPin}, showPin: ${showPin}, reqId: ${reqId}`);
         return new Style({
             image: showPin
                 ? new CircleStyle({
@@ -901,8 +902,8 @@ export function makePinStyleFunction(
 
 export function assignStyleFunctionToPinLayer(
     map: OLMap,
-    layerName: string = 'Pin Layer',
-    minZoomToShowPin: number = 8
+    minZoomToShowPin: number,
+    layerName: string = 'Pin Layer'
 ): void {
     const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === layerName);
     if (!vectorLayer || !(vectorLayer instanceof VectorLayer)) {

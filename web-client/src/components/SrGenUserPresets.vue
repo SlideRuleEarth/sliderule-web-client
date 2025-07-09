@@ -60,6 +60,8 @@ const selectBox = (boxId: number) => {
         reqParameterStore.setAsset('icesat2');
         break;
       case 'ICESat-2 Inland Bodies of Water':
+        //console.log("ICESat-2 Inland Bodies of Water selected.");
+        // This is a special case, it uses the atl13x API
         reqParameterStore.reset();
         reqParameterStore.setMissionValue('ICESat-2');
         reqParameterStore.setIceSat2API('atl13x');
@@ -87,9 +89,19 @@ const selectBox = (boxId: number) => {
         console.error("GenUserOptions Unknown selection.");
         break;
     }
-    reqParameterStore.poly = savedPoly;
-    reqParameterStore.convexHull = savedConvexHull;
+    // console.log("GenUserOptions selection complete. BEFORE reqParameterStore.poly:", reqParameterStore.poly);
+    // console.log("GenUserOptions selection complete. BEFORE reqParameterStore.missionValue:", reqParameterStore.missionValue);
+    // console.log("GenUserOptions selection complete. BEFORE reqParameterStore.iceSat2SelectedAPI:", reqParameterStore.iceSat2SelectedAPI);
+    if(reqParameterStore.getMissionValue() != 'ICESat-2' || reqParameterStore.getIceSat2API() != 'atl13x'){
+      reqParameterStore.poly = savedPoly;
+      reqParameterStore.convexHull = savedConvexHull;
+    } else {
+      // If the user selected the atl13x API, we need to reset the polygon and convex hull
+      reqParameterStore.poly = [];
+      reqParameterStore.convexHull = [];
+    }
   }
+  //console.log("GenUserOptions selection complete. AFTER reqParameterStore.poly:", reqParameterStore.poly);
 };
 </script>
 

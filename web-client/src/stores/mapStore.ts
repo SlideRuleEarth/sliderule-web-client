@@ -44,11 +44,8 @@ export const useMapStore = defineStore('map', {
     polygonSource:'Draw on Map' as string,
     polygonSourceItems: ['Draw on Map','GeoJSON File'] as string[],
     polyCoords: <Coordinate[][]>([]),
-    //isLoading: false as boolean,
     currentReqId: 0 as number,
     reDrawElevationsTimeoutHandle: null as TimeoutHandle | null, // Handle for the timeout to clear it when necessary
-    // totalRows: 0 as number, 
-    // currentRows: 0 as number,
     pointerMoveListenerKey: null as EventsKey | null,
     selectedView: 'Global Mercator' as string,
     selectedBaseLayer: 'Esri World Topo' as string,
@@ -60,6 +57,7 @@ export const useMapStore = defineStore('map', {
     zoomToRestore: null as number | null,
     tooltipRef: ref(null) as Ref<InstanceType<any> | null>,
     dropPinEnabled: false as boolean,
+    minZoomToShowPin: 5 as number, // Minimum zoom level to show the pin
 }),
   actions: {
     setMap(mapInstance: OLMap) {
@@ -266,6 +264,15 @@ export const useMapStore = defineStore('map', {
     },
     setDropPinEnabled(enabled: boolean) {
       this.dropPinEnabled = enabled;
+    },
+    isDropPinEnabled() {
+      return this.dropPinEnabled;
+    },
+    getMinZoomToShowPin() {
+      return this.minZoomToShowPin;
+    },
+    setMinZoomToShowPin(minZoom: number) {
+      this.minZoomToShowPin = minZoom;
     }
   },
 });
