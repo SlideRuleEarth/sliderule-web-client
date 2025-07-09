@@ -458,7 +458,7 @@ const createReqParamsStore = (id: string) =>
               req.surface = true;
             }
           }
-          if(this.poly && !this.ignorePolygon) {
+          if(this.poly?.length && !this.ignorePolygon) {
             req.poly = this.poly;
           }
           if(this.passInvalid) {
@@ -542,7 +542,7 @@ const createReqParamsStore = (id: string) =>
             req.yapc = yapc;
             //console.log('using req.yapc:',req.yapc)
           }
-          if (this.poly && this.convexHull) {
+          if (this.poly?.length && this.convexHull?.length) {
             req.cmr = { polygon: this.convexHull };
           }
 
