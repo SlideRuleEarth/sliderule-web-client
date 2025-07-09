@@ -429,6 +429,8 @@
                     //console.log("Clearing VectorSource features");
                     vectorSource.clear();
                     cleared = true;
+                    reqParamsStore.poly = [];
+                    reqParamsStore.convexHull = [];
                 } else {
                     //console.log("clearDrawingLayer vectorSource has no features:",vectorSource);
                 }
