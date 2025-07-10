@@ -20,7 +20,7 @@ export const useDeck3DConfigStore = defineStore('deckConfig', () => {
   const debug       = ref(false)
   const fitZoom     = ref<number>(0.0)
   const showAxes    = ref(false);
-  const pointSize   = ref(0.5);
+  const pointSize   = ref(1.0);
   const minColorPercent = ref(2);
   const maxColorPercent = ref(98);
   const elDataRange      = ref<[number,number]>([0, 100]);
