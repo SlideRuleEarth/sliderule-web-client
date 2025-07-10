@@ -39,7 +39,7 @@
                 v-model="deck3DConfigStore.verticalExaggeration"
                 inputId="vertExagId"
                 size="small"
-                :step="1"
+                :step="computedStepSize"
                 :min="1"
                 :max="deck3DConfigStore.verticalScaleRatio+1"
                 showButtons
@@ -63,7 +63,7 @@ import { useDeck3DConfigStore } from '@/stores/deck3DConfigStore';
 import SrDeck3DCfg from '@/components/SrDeck3DCfg.vue';
 import Button from 'primevue/button';
 import { InputNumber } from 'primevue';
-import { finalizeDeck,loadAndCachePointCloudData, renderCachedData, updateFovy } from '@/utils/deck3DPlotUtils';
+import { finalizeDeck,loadAndCachePointCloudData, updateFovy } from '@/utils/deck3DPlotUtils';
 import { debouncedRender } from '@/utils/SrDebounce';
 
 const recTreeStore = useRecTreeStore();
@@ -73,8 +73,21 @@ const reqId = computed(() => recTreeStore.selectedReqId);
 const elevationStore = useElevationColorMapStore();
 
 const localDeckContainer = ref<HTMLDivElement | null>(null);
-const deckContainerStored = computed(() => deck3DConfigStore.deckContainer);
-
+const computedStepSize = computed(() => {
+    if (deck3DConfigStore.verticalScaleRatio > 1000) {
+        // If the vertical scale ratio is very large, increase the step size for better control
+        return 100;
+    } else if (deck3DConfigStore.verticalScaleRatio > 100) {
+        // For moderate vertical scale ratios, use a smaller step size
+        return 10;
+    } else if (deck3DConfigStore.verticalScaleRatio > 10) {
+        // For smaller vertical scale ratios, use an even smaller step size
+        return 5;       
+    } else {
+        // For very small vertical scale ratios, use a minimal step size
+        return 1;
+    }
+});
 
 
 async function handleUpdateClick() {
@@ -126,6 +139,7 @@ onMounted(async () => {
     if (elevationStore.elevationColorMap.length > 0) {
         //console.log('onMounted calling loadAndCachePointCloudData');
         await loadAndCachePointCloudData(reqId.value);
+        deck3DConfigStore.verticalExaggeration = Math.round(deck3DConfigStore.verticalScaleRatio / 2 * 2) / 2;
         debouncedRender(localDeckContainer); // Use the fast, debounced renderer
     } else {
         console.error('No color Gradient');

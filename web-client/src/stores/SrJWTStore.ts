@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia';
 import { useSysConfigStore } from '@/stores/sysConfigStore';
-import type { get, set } from 'lodash';
 
 const sysConfigStore = useSysConfigStore();
 
