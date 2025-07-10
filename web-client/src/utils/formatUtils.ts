@@ -44,25 +44,26 @@ function gpsToUnixTimestamp(gpsSeconds: number): number {
     return gpsSeconds + gpsToUnixOffset - leapSeconds;
 }
 
-
+export function formatTime(value: number): string {
+  const gpsToATLASOffset = 1198800018; // Offset in seconds from GPS to ATLAS SDP time
+  const gpsToUnixOffset = 315964800;   // Offset in seconds from GPS epoch to Unix epoch
+  const gpsToUTCOffset = useReqParamsStore().getGpsToUTCOffset(); 
+  // 1) Convert GPS to ATLAS SDP by subtracting the ATLAS offset
+  let adjustedTime = value - gpsToATLASOffset;
+  // 2) Align ATLAS SDP with Unix epoch by adding the GPS-to-Unix offset
+  adjustedTime += gpsToUnixOffset;
+  // 3) Adjust for UTC by subtracting the GPS-UTC offset
+  adjustedTime -= gpsToUTCOffset; 
+  const date = new Date(adjustedTime); 
+  return date.toISOString(); // Format as ISO string in UTC
+}
 
 export function formatKeyValuePair(key: string, value: any): string {
   const srcIdStore = useSrcIdTblStore();
-  const gpsToATLASOffset = 1198800018; // Offset in seconds from GPS to ATLAS SDP time
-  const gpsToUnixOffset = 315964800;   // Offset in seconds from GPS epoch to Unix epoch
-  const gpsToUTCOffset = useReqParamsStore().getGpsToUTCOffset();
 
   let formattedValue: string | number;
   if (((key === 'time')||(key.includes('time_ns'))) && typeof value === 'number') {
-    // 1) Convert GPS to ATLAS SDP by subtracting the ATLAS offset
-    let adjustedTime = value - gpsToATLASOffset;
-    // 2) Align ATLAS SDP with Unix epoch by adding the GPS-to-Unix offset
-    adjustedTime += gpsToUnixOffset;
-    // 3) Adjust for UTC by subtracting the GPS-UTC offset
-    adjustedTime -= gpsToUTCOffset;
-
-    const date = new Date(adjustedTime); // Convert seconds to ms
-    formattedValue = date.toISOString(); // Format as ISO string in UTC
+      formattedValue = formatTime(value); // Use the formatTime function for time values
   } else if(key.includes('.time')){
       //console.log('formatKeyValuePair: key:',key,' value:',value, 'typeof value:',typeof value);
       const gpsdate = new Date(gpsToUnixTimestamp(value)*1000); // Convert seconds to ms

@@ -17,6 +17,8 @@ import { Deck } from '@deck.gl/core';
 // log.level = 1;  // 0 = silent, 1 = minimal, 2 = verbose
 
 import { toRaw, isProxy } from 'vue';
+import { formatTime } from '@/utils/formatUtils';
+
 const toast = useSrToastStore();
 const deck3DConfigStore = useDeck3DConfigStore();
 const elevationStore = useElevationColorMapStore();
@@ -26,6 +28,7 @@ const viewId = 'main';
 let latField = '';
 let lonField = '';
 let heightField = '';
+let timeField = '';
 
 const deckInstance: Ref<Deck<OrbitView[]> | null> = ref(null);
 // Module-level state for caching and Deck.gl instance
@@ -135,6 +138,29 @@ function createDeck(container: HTMLDivElement) {
         onViewStateChange: ({ viewState }) => {
             deck3DConfigStore.updateViewState(viewState);
         },
+        getTooltip: info => {
+            if (!info.object) return null;
+            const { lat, lon, elevation, cycle, time } = info.object;
+            const timeStr = time ? formatTime(time) : '?';
+            return {
+                html: `
+                    <div>
+                        <strong>Longitude:</strong> ${lon?.toFixed(5)}<br>
+                        <strong>Latitude:</strong> ${lat?.toFixed(5)}<br>
+                        <strong>Elevation:</strong> ${elevation?.toFixed(2)} m <br>
+                        <strong>Cycle:</strong> ${cycle ?? '?'}<br>
+                        <strong>Time:</strong> ${timeStr ?? '?'}<br>
+                    </div>
+                `,
+                style: {
+                    background: 'rgba(20, 20, 20, 0.85)',
+                    color: 'white',
+                    padding: '8px',
+                    fontSize: '13px',
+                    borderRadius: '4px'
+                }
+            };
+        },        
         debug: deck3DConfigStore.debug,
     });
 }
@@ -167,6 +193,8 @@ export async function loadAndCachePointCloudData(reqId: number) {
     latField = fieldStore.getLatFieldName(reqId);
     lonField = fieldStore.getLonFieldName(reqId);
     heightField = fieldStore.getHFieldName(reqId);
+    timeField = fieldStore.getTimeFieldName(reqId);
+
     if (reqId === lastLoadedReqId) {
         console.log(`Data for reqId ${reqId} is already cached.`);
         return;
@@ -185,9 +213,6 @@ export async function loadAndCachePointCloudData(reqId: number) {
         const { value: rows = [] } = await result.readRows().next();
 
         if (rows.length > 0) {
-            latField = fieldStore.getLatFieldName(reqId);
-            lonField = fieldStore.getLonFieldName(reqId);
-            heightField = fieldStore.getHFieldName(reqId);
             
             cachedRawData = rows.filter(d => {
                 const lon = d[lonField];
@@ -203,7 +228,6 @@ export async function loadAndCachePointCloudData(reqId: number) {
             console.log(`Cached ${cachedRawData.length} valid data points.`);
 
             if (cachedRawData.length > 0) {
-                // (your current code)
                 latField = fieldStore.getLatFieldName(reqId);
                 lonField = fieldStore.getLonFieldName(reqId);
                 heightField = fieldStore.getHFieldName(reqId);
@@ -342,7 +366,15 @@ export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
             Math.round(rawColor[3] * 255),
         ];
 
-        return { position: [x, y, z] as [number, number, number], color };
+        return {
+            position: [x, y, z] as [number, number, number],
+            color,
+            lat: d[latField],
+            lon: d[lonField],
+            elevation: d[heightField],
+            cycle: d['cycle'],
+            time: d[timeField] ?? null, // Handle time field if available
+        };
     });
     computeCentroid(pointCloudData.map(p => p.position));
     
@@ -354,6 +386,7 @@ export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
         getColor: d => d.color,
         pointSize: deck3DConfigStore.pointSize,
         opacity: 0.95,
+        pickable: true,
     });
     
     const layers: Layer<any>[] = [layer];

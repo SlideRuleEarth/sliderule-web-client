@@ -24,7 +24,7 @@
                 v-model="deck3DConfigStore.pointSize"
                 inputId="pointSizeId"
                 size="small"
-                :step="0.1"
+                :step="0.5"
                 :min="0.1"
                 :max="10"
                 showButtons
