@@ -42,7 +42,7 @@ export const useMapStore = defineStore('map', {
         wrapX: false
     }),
     polygonSource:'Draw on Map' as string,
-    polygonSourceItems: ['Draw on Map','GeoJSON File'] as string[],
+    polygonSourceItems: ['Draw on Map','GeoJSON File', 'Shapefile'] as string[],
     polyCoords: <Coordinate[][]>([]),
     currentReqId: 0 as number,
     reDrawElevationsTimeoutHandle: null as TimeoutHandle | null, // Handle for the timeout to clear it when necessary
