@@ -3,15 +3,18 @@ import type { Feature as OLFeature } from 'ol';
 import type { Geometry } from 'ol/geom';
 import * as shapefile from 'shapefile';
 
+// Supports both File and URL string
+export type ShapefileInputSource = File | string;
+
 export interface ShapefileInputs {
-    shp: File;
-    dbf: File;
-    shx?: File;
+    shp: ShapefileInputSource;
+    dbf: ShapefileInputSource;
+    shx?: ShapefileInputSource;
 }
 
 /**
  * Reads shapefile components and returns OpenLayers features.
- * Throws on error.
+ * Accepts File or asset URL string for each part.
  */
 export async function readShapefileToOlFeatures({
     shp,
@@ -20,9 +23,9 @@ export async function readShapefileToOlFeatures({
 }: ShapefileInputs): Promise<OLFeature<Geometry>[]> {
     try {
         const [shpBuf, dbfBuf, shxBuf] = await Promise.all([
-            readFileAsync(shp),
-            readFileAsync(dbf),
-            shx ? readFileAsync(shx) : Promise.resolve(undefined),
+            loadAsArrayBuffer(shp),
+            loadAsArrayBuffer(dbf),
+            shx ? loadAsArrayBuffer(shx) : Promise.resolve(undefined),
         ]);
 
         const source = await shapefile.open(shpBuf, dbfBuf, shxBuf as any);
@@ -45,13 +48,27 @@ export async function readShapefileToOlFeatures({
 
         return olFeatures;
     } catch (err) {
-        // Optional: you could wrap this in a custom error
         throw new Error("Failed to read shapefile: " + (err instanceof Error ? err.message : String(err)));
     }
 }
 
+/**
+ * Helper to load File or asset URL string as ArrayBuffer
+ */
+async function loadAsArrayBuffer(input: ShapefileInputSource): Promise<ArrayBuffer> {
+    if (input instanceof File) {
+        return readFileAsync(input);
+    } else if (typeof input === "string") {
+        const resp = await fetch(input);
+        if (!resp.ok) throw new Error(`Failed to fetch asset: ${input}`);
+        return await resp.arrayBuffer();
+    } else {
+        throw new Error('Invalid input type (expected File or URL string)');
+    }
+}
+
 // Helper for reading File as ArrayBuffer
-export async function readFileAsync(file: File): Promise<ArrayBuffer> {
+async function readFileAsync(file: File): Promise<ArrayBuffer> {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result as ArrayBuffer);

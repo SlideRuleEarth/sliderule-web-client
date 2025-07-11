@@ -26,6 +26,7 @@
     import { clearPolyCoords, drawGeoJson, enableTagDisplay, disableTagDisplay, saveMapZoomState, renderRequestPolygon, canRestoreZoomCenter, assignStyleFunctionToPinLayer } from "@/utils/SrMapUtils";
     import { onActivated } from "vue";
     import { onDeactivated } from "vue";
+    import { Ref } from "vue";
     import { checkAreaOfConvexHullWarning,updateSrViewName,renderReqPin } from "@/utils/SrMapUtils";
     import { toLonLat } from 'ol/proj';
     import { useReqParamsStore } from "@/stores/reqParamsStore";
@@ -50,7 +51,13 @@
     import SrCustomTooltip from "@/components//SrCustomTooltip.vue";
     import SrDropPinControl from "@/components//SrDropPinControl.vue";
     import Point from 'ol/geom/Point';
-
+    import { readShapefileToOlFeatures,ShapefileInputs } from "@/composables/useReadShapefile";
+    
+    const defaultBathymetryFeatures: Ref<Feature<Geometry>[] | null> = ref(null);
+    const showBathymetryFeatures = computed(() => {
+        return ((reqParamsStore.missionValue === 'ICESat-2') && (reqParamsStore.iceSat2SelectedAPI === 'atl24x'));
+    });
+    const defaultBathymetryFeaturesLoaded = ref(false);
     const featureMenuOverlayRef = ref();
     const tooltipRef = ref();
  
@@ -116,6 +123,12 @@
     const uploadedFeaturesVectorSource = new VectorSource({wrapX: false});
     const uploadedFeaturesVectorLayer = new VectorLayer({
         source: uploadedFeaturesVectorSource,
+        zIndex: 10,
+    });
+
+    const bathymetryFeaturesVectorSource = new VectorSource({wrapX: false});
+    const bathymetryFeaturesVectorLayer = new VectorLayer({
+        source: bathymetryFeaturesVectorSource,
         zIndex: 10,
     });
 
@@ -523,6 +536,49 @@
         }
     }
 
+    function loadBathymetryFeatures(features: Feature<Geometry>[]) {
+        //console.log('loadBathymetryFeatures.length:', features.length);
+        const map = mapStore.getMap();
+        if(map){
+            if(bathymetryFeaturesVectorLayer && bathymetryFeaturesVectorLayer instanceof Layer){
+                const vectorSource = bathymetryFeaturesVectorLayer.getSource();
+                if(vectorSource){
+                    console.log("loadBathymetryFeatures: Adding features to vector source");
+                    vectorSource.addFeatures(features);
+                    console.log("loadBathymetryFeatures: Features added to vector source");
+                }
+            } else {
+                console.error('loadBathymetryFeatures Error: Vector layer not found or is not a VectorLayer');
+                console.trace('Vector layer not found or is not a VectorLayer');
+                // Handle the case where the vector layer is not found or is not a VectorLayer
+            }
+        } else {
+            console.error('Map is not defined');
+            // Handle the case where the map is not defined
+        }
+        defaultBathymetryFeaturesLoaded.value = true;
+        //console.log("loadBathymetryFeatures defaultBathymetryFeaturesLoaded:",defaultBathymetryFeaturesLoaded.value);
+    }
+
+    async function loadDefaultBathymetryFeatures() {
+        const shpUrl = '/shapefiles/ATL24_Mask_v5.shp';
+        const dbfUrl = '/shapefiles/ATL24_Mask_v5.dbf';
+        const shxUrl = '/shapefiles/ATL24_Mask_v5.shx';
+
+        const bathyInputs: ShapefileInputs = {
+            shp: shpUrl,
+            dbf: dbfUrl,
+            shx: shxUrl
+        };
+        defaultBathymetryFeatures.value = await readShapefileToOlFeatures(bathyInputs);
+        if(defaultBathymetryFeatures.value && defaultBathymetryFeatures.value.length > 0){
+            loadBathymetryFeatures(defaultBathymetryFeatures.value);
+        } else {
+            console.warn("SrMap onMounted no features to load from bathy assets shapefile");
+        }
+        //console.log("loadDefaultBathymetryFeatures defaultBathymetryFeaturesLoaded:",defaultBathymetryFeaturesLoaded.value);
+    }
+
     onMounted(async () => {
         //console.log("SrMap onMounted");
         //console.log("SrProjectionControl onMounted projectionControlElement:", projectionControlElement.value);
@@ -539,6 +595,8 @@
         recordsLayer.set('title', 'Records Layer');
         uploadedFeaturesVectorLayer.set('name', 'Uploaded Features');
         uploadedFeaturesVectorLayer.set('title', 'Uploaded Features');
+        bathymetryFeaturesVectorLayer.set('name', 'Bathymetry Features');
+        bathymetryFeaturesVectorLayer.set('title', 'Bathymetry Features');
         Object.values(srProjections.value).forEach(projection => {
             //console.log(`Title: ${projection.title}, Name: ${projection.name} def:${projection.proj4def}`);
             proj4.defs(projection.name, projection.proj4def);
@@ -767,6 +825,7 @@
                     map.addLayer(pinVectorLayer);
                     map.addLayer(recordsLayer);
                     map.addLayer(uploadedFeaturesVectorLayer);
+                    map.addLayer(bathymetryFeaturesVectorLayer);
                     addLayersForCurrentView(map,srViewObj.projectionName);      
                 } else {
                     console.error("SrMap Error: srViewKey is null");
@@ -935,6 +994,20 @@
             pinVectorSource.clear();  
         }
     });
+    watch(showBathymetryFeatures, (newValue) => {
+        //console.log(`SrMap watch showBathymetryFeatures changed to ${newValue} defaultBathymetryFeaturesLoaded: ${defaultBathymetryFeaturesLoaded.value}`);
+        if(defaultBathymetryFeaturesLoaded.value === false){
+            loadDefaultBathymetryFeatures();
+        }
+        if (newValue) {
+            // Show bathymetry features
+            bathymetryFeaturesVectorLayer.setVisible(true);
+        } else {
+            // Hide bathymetry features
+            bathymetryFeaturesVectorLayer.setVisible(false);
+        }
+    });
+
 </script>
 
 <template>

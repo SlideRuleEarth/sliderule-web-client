@@ -41,7 +41,7 @@ import Dialog from "primevue/dialog";
 import Button from "primevue/button";
 import type { Feature as OLFeature } from "ol";
 import type { Geometry } from "ol/geom";
-import { readShapefileToOlFeatures } from "@/composables/useReadShapeFile";
+import { readShapefileToOlFeatures } from "@/composables/useReadShapefile";
 
 // Emit the features array to the parent
 const emit = defineEmits<{
