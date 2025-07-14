@@ -493,7 +493,7 @@ async function handleLongTourButtonClick() {
         @long-tour-button-click="handleLongTourButtonClick"
       />
     </header>
-    <div class="content">
+    <div class="sliderule-content">
       <RouterView />
     </div>
     
@@ -610,7 +610,7 @@ async function handleLongTourButtonClick() {
   z-index: 1000;
 }
 
-.content {
+.sliderule-content {
   margin-top: 4rem;
   overflow-y: auto;
   height: calc(100vh - 5rem);

@@ -4,6 +4,7 @@ import type OLMap from 'ol/Map';
 import { fromLonLat } from 'ol/proj';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { containsCoordinate } from 'ol/extent';
+import { getScrollableAncestors } from '@/utils/SrMapUtils';
 
 const props = defineProps<{
     map: OLMap | null;
@@ -11,6 +12,7 @@ const props = defineProps<{
 
 const globalChartStore = useGlobalChartStore();
 let highlightEl: HTMLDivElement | null = null;
+let scrollTimeout: number | undefined;
 
 function updatePosition(lat: number, lon: number) {
     if (!props.map || !highlightEl) return;
@@ -53,8 +55,38 @@ function hideMarker() {
     }
 }
 
+const handleScroll = () => {
+    //console.log('Scroll event detected, hiding marker enabled?:', globalChartStore.enableLocationFinder);
+    hideMarker();
+    clearTimeout(scrollTimeout);
+    scrollTimeout = window.setTimeout(() => {
+        if (globalChartStore.enableLocationFinder) {
+            updatePosition(globalChartStore.locationFinderLat, globalChartStore.locationFinderLon);
+        }
+    }, 150); // adjust delay as needed
+};
+
 onMounted(() => {
     if (!props.map) return;
+    //props.map.on('movestart', () => console.log('Map move started'));
+    //props.map.on('moveend', () => console.log('Map move ended'));
+    //const scrollContainer = document.querySelector('.sliderule-content'); 
+    //scrollContainer?.addEventListener('scroll', handleScroll, { passive: true });
+
+    const mapEl = props.map?.getTargetElement();
+    const scrollContainers = getScrollableAncestors(mapEl ?? null);
+    //console.log('Scrollable containers:', scrollContainers);
+
+    for (const container of scrollContainers) {
+        container.addEventListener('scroll', handleScroll, { passive: true });
+    }
+
+    onUnmounted(() => {
+        for (const container of scrollContainers) {
+            container.removeEventListener('scroll', handleScroll);
+        }
+    });
+
     globalChartStore.enableLocationFinder = true;
     highlightEl = document.createElement('div');
     highlightEl.className = 'map-highlight-marker';
@@ -99,6 +131,8 @@ onUnmounted(() => {
     }
     props.map?.un('movestart', hideMarker);
     props.map?.un('moveend', hideMarker);
+    window.removeEventListener('scroll', handleScroll);
+    clearTimeout(scrollTimeout);
 
 });
 </script>

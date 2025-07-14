@@ -1331,3 +1331,24 @@ export function zoomOutToFullMap(map: OLMap): void {
 
     console.log('zoomOutToFullMap: zoomed to full projection/world extent:', extent);
 }
+export function getScrollableAncestors(el: HTMLElement | null): HTMLElement[] {
+    const scrollables: HTMLElement[] = [];
+
+    while (el && el !== document.body && el !== document.documentElement) {
+        const style = getComputedStyle(el);
+        const overflowY = style.overflowY;
+        const overflowX = style.overflowX;
+
+        const isScrollable = ['auto', 'scroll', 'overlay'].some(v =>
+            [overflowY, overflowX].includes(v)
+        );
+
+        if (isScrollable && (el.scrollHeight > el.clientHeight || el.scrollWidth > el.clientWidth)) {
+            scrollables.push(el);
+        }
+
+        el = el.parentElement;
+    }
+
+    return scrollables;
+}
