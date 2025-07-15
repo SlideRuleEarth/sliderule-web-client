@@ -21,6 +21,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     xZoomEnd: 100 as number,
     yZoomStart: 0 as number,
     yZoomEnd: 100 as number,
+    showSlopeLines: false as boolean, // Optional property for slope lines
   }),
 
   getters: {

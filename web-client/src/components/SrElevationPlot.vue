@@ -34,6 +34,7 @@ import SrSimpleYatcCntrl from "./SrSimpleYatcCntrl.vue";
 import ProgressSpinner from "primevue/progressspinner";
 import Panel from 'primevue/panel';
 import { useFieldNameStore } from "@/stores/fieldNameStore";
+import Checkbox from 'primevue/checkbox';
 
 
 const tooltipRef = ref();
@@ -535,6 +536,12 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
     }
 });
 
+watch(() => atlChartFilterStore.showSlopeLines, async (newValue) => {
+    console.log('Slope Lines visibility changed:', newValue, atlChartFilterStore.showSlopeLines);
+    // Handle the change in slope lines visibility
+    await callPlotUpdateDebounced('from watch atlChartFilterStore.showSlopeLines');
+});
+
 </script>
 <template>
     <div class="sr-elevation-plot-container" v-if="loadingComponent">
@@ -708,6 +715,15 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                 class="sr-run-control" 
                 v-if="mission==='ICESat-2' && !recTreeStore.selectedApi?.includes('atl03')"
             >
+                <Checkbox
+                    v-if="(recTreeStore.selectedApi==='atl06p')" 
+                    v-model="atlChartFilterStore.showSlopeLines"
+                    binary
+                    inputId="sslCheckbox"
+                    size="small"
+                    :tooltipText="'Show Slope Lines for ATL06p'"
+                />
+                <label for="sslCheckbox" class="sr-checkbox-label">Show Slope Lines</label>
                 <div
                     @mouseover="tooltipRef.showTooltip($event, photonCloudBtnTooltip)"
                     @mouseleave="tooltipRef.hideTooltip()"
@@ -1050,6 +1066,8 @@ fieldset {
   -webkit-user-drag: none;
   user-select: none;
 }
-
+.sr-checkbox-label {
+  margin-left: 0.5rem;
+}
 
 </style>

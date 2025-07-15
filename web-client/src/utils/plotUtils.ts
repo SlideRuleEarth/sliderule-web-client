@@ -1,7 +1,7 @@
 import { useChartStore } from "@/stores/chartStore";
 import { useGlobalChartStore } from "@/stores/globalChartStore";
 import { db as indexedDb } from "@/db/SlideRuleDb";
-import { fetchScatterData,setDataOrder } from "@/utils/SrDuckDbUtils";
+import { fetchScatterData,setDataOrder,getAtl06SlopeSegments } from "@/utils/SrDuckDbUtils";
 import { type EChartsOption, type LegendComponentOption, type ScatterSeriesOption, type EChartsType, number } from 'echarts';
 import { createWhereClause } from "./spotUtils";
 import type { ECharts } from 'echarts/core';
@@ -62,11 +62,11 @@ export interface SrScatterSeriesData{
     name: string;
     type: string;
     data: number[][];
-    dimensions: string[];
-    large: boolean;
-    largeThreshold: number;
-    animation: boolean;
-    yAxisIndex: number;
+    dimensions?: string[];
+    large?: boolean;
+    largeThreshold?: number;
+    animation?: boolean;
+    yAxisIndex?: number;
     symbolSize?: number;
     progressive?: number;
     progressiveThreshold?: number;
@@ -79,6 +79,13 @@ export interface SrScatterSeriesData{
       y: number;
     };
     z?: number;
+    // the following is for line series:
+    lineStyle?: {
+        color: string;
+        width: number;
+    };
+    symbol?: string;
+    polyline?: boolean;
   };
   min: number | null;
   max: number | null;  
@@ -616,6 +623,35 @@ async function getSeriesFor(reqIdStr:string,isOverlay=false) : Promise<SrScatter
                 seriesData = await getSeriesForAtl03x(reqIdStr, fileName, x, y, minXToUse);
             } else if(func.includes('atl06')){
                 seriesData = await getSeriesForAtl06(reqIdStr, fileName, x, y);
+                if(useAtlChartFilterStore().showSlopeLines){
+                    //console.log(`getSeriesFor ${reqIdStr} showSlopeLines is true, adding slope lines`);
+                    const slopeLines = await getAtl06SlopeSegments(reqIdStr, fileName, x, useFieldNameStore().getHFieldName(reqId), 'dh_fit_dx');
+                    if(slopeLines && slopeLines.length > 0){
+                        // For ECharts:
+
+                        const flattenedSlopeLines: (number[] | null)[] = slopeLines
+                            .map(seg => [seg[0], seg[1], null])
+                            .flat();
+
+                        seriesData.push({
+                            series: {
+                                name: 'dh_fit_dx Slope',
+                                type: 'line',
+                                data: flattenedSlopeLines as unknown as number[][], // 👈 force TypeScript to accept it
+                                lineStyle: { color: '#111', width: 1.5 },
+                                symbol: 'none',
+                                polyline: false,
+                                z: 11
+                            },
+                            min: null,
+                            max: null
+                        });
+
+
+                    } else {
+                        console.warn(`getSeriesFor ${reqIdStr} showSlopeLines is true but no slope lines found`);
+                    }
+                }
             } else if(func.includes('atl08')){
                 seriesData = await getSeriesForAtl08(reqIdStr, fileName, x, y);
             } else if(func.includes('atl24')){

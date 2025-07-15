@@ -1309,3 +1309,65 @@ export async function getAllColumnMinMax(
     console.log( `getAllColumnMinMax took ${endTime - startTime} ms.\nresult:`, result);
     return result;
 }
+/**
+ * For each ATL06 point, creates a single line segment centered at the point (x, y),
+ * with length 40m, and a slope determined by dh_fit_dx.
+ *
+ * @param reqIdStr   The request id string.
+ * @param fileName   Parquet file to query.
+ * @param xField     Name of the x coordinate field (e.g., segment_dist or longitude).
+ * @param yField     Name of the y coordinate field (e.g., h_mean).
+ * @param dhFitDxField Name of the field with the segment slope (dh_fit_dx).
+ * @param segmentLength The length of each segment in meters (default: 40).
+ * @param whereClause Optional WHERE clause to limit rows.
+ */
+export async function getAtl06SlopeSegments(
+    reqIdStr: string,
+    fileName: string,
+    xField: string,
+    yField: string,
+    dhFitDxField: string,
+    segmentLength: number = 40,
+    whereClause: string = ''
+): Promise<number[][][]> {
+    const duckDbClient = await createDuckDbClient();
+    await duckDbClient.insertOpfsParquet(fileName);
+
+    // Build SQL
+    const sql = `
+        SELECT ${xField}, ${yField}, ${dhFitDxField}
+        FROM '${fileName}'
+        ${whereClause ? whereClause : ''}
+        WHERE ${yField} IS NOT NULL AND ${dhFitDxField} IS NOT NULL
+    `.replace(/\s+/g, ' ');
+
+    const lines: number[][][] = [];
+    try {
+        const queryResult = await duckDbClient.query(sql);
+        for await (const chunk of queryResult.readRows()) {
+            for (const row of chunk) {
+                const x = Number(row[xField]);
+                const y = Number(row[yField]);
+                const slope = Number(row[dhFitDxField]);
+                if (!isFinite(x) || !isFinite(y) || !isFinite(slope)) continue;
+
+                // Calculate line endpoints for a segment of `segmentLength` meters, centered at (x, y)
+                // Slope is dy/dx. The direction vector is (dx, slope * dx), normalized for segmentLength
+                const denom = Math.sqrt(1 + slope * slope);
+                const dx = (segmentLength / 2) / denom;
+                const dy = slope * dx;
+
+                const x1 = x - dx;
+                const y1 = y - dy;
+                const x2 = x + dx;
+                const y2 = y + dy;
+
+                lines.push([[x1, y1], [x2, y2]]);
+            }
+        }
+    } catch (error) {
+        console.error('getAtl06SlopeSegments error:', error);
+        throw error;
+    }
+    return lines;
+}
