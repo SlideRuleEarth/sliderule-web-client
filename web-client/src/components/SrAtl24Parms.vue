@@ -170,6 +170,7 @@ import Button from 'primevue/button';
 import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
 import SrSliderInput from './SrSliderInput.vue';
 import { useSlideruleDefaults } from '@/stores/defaultsStore';
+import { atl24ClassOptions } from '@/types/SrStaticOptions';
 
 const reqParamsStore = useReqParamsStore();
 const defaultsStore = useSlideruleDefaults();
