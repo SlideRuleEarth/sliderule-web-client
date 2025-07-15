@@ -51,7 +51,7 @@
     import SrCustomTooltip from "@/components//SrCustomTooltip.vue";
     import SrDropPinControl from "@/components//SrDropPinControl.vue";
     import Point from 'ol/geom/Point';
-    import { readShapefileToOlFeatures,ShapefileInputs } from "@/composables/useReadShapefile";
+    import { readShapefileToOlFeatures,ShapefileInputs } from "@/composables/useReadShapeFile";
     
     const defaultBathymetryFeatures: Ref<Feature<Geometry>[] | null> = ref(null);
     const showBathymetryFeatures = computed(() => {
