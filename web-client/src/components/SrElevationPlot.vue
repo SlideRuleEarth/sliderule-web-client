@@ -3,6 +3,7 @@ import { use } from "echarts/core";
 import ToggleButton from "primevue/togglebutton";
 import { CanvasRenderer } from "echarts/renderers";
 import { ScatterChart } from "echarts/charts";
+import { CustomChart } from 'echarts/charts'
 import { TitleComponent, TooltipComponent, LegendComponent, DataZoomComponent, ToolboxComponent } from "echarts/components";
 import VChart, { THEME_KEY } from "vue-echarts";
 import { provide, watch, onMounted, onUnmounted, ref, computed } from "vue";
@@ -34,6 +35,7 @@ import SrSimpleYatcCntrl from "./SrSimpleYatcCntrl.vue";
 import ProgressSpinner from "primevue/progressspinner";
 import Panel from 'primevue/panel';
 import { useFieldNameStore } from "@/stores/fieldNameStore";
+import Checkbox from 'primevue/checkbox';
 
 
 const tooltipRef = ref();
@@ -57,7 +59,8 @@ const dialogsInitialized = ref(false); // Track if dialogs have been initialized
 
 use([
     CanvasRenderer, 
-    ScatterChart, 
+    ScatterChart,
+    CustomChart, 
     TitleComponent, 
     TooltipComponent, 
     LegendComponent, 
@@ -535,6 +538,12 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
     }
 });
 
+watch(() => atlChartFilterStore.showSlopeLines, async (newValue) => {
+    console.log('Slope Lines visibility changed:', newValue, atlChartFilterStore.showSlopeLines);
+    // Handle the change in slope lines visibility
+    await callPlotUpdateDebounced('from watch atlChartFilterStore.showSlopeLines');
+});
+
 </script>
 <template>
     <div class="sr-elevation-plot-container" v-if="loadingComponent">
@@ -726,6 +735,17 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                         variant="text"
                     >
                     </ToggleButton>
+                </div>
+                <div v-if="recTreeStore.selectedApi==='atl06p'" class="slope-checkbox-group">
+                    <Checkbox
+                        v-if="(recTreeStore.selectedApi==='atl06p')" 
+                        v-model="atlChartFilterStore.showSlopeLines"
+                        binary
+                        inputId="sslCheckbox"
+                        size="small"
+                        :tooltipText="'Show Slope Lines for ATL06p'"
+                    />
+                    <label  v-if="(recTreeStore.selectedApi==='atl06p')"  for="sslCheckbox" class="sr-checkbox-label">Show Slope Lines</label>
                 </div>
                 <SrRunControl 
                     :includeAdvToggle="false"
@@ -935,15 +955,29 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
   white-space: nowrap;  /* Make sure each items text doesnt wrap within itself */
 }
 
-.sr-run-control{
+.sr-run-control {
     display: flex;
     flex-direction: row;
-    justify-content: left;
-    align-items: left;
+    justify-content: flex-start; /* left-aligned, but children can be centered vertically */
+    align-items: center;         /* <--- this ensures vertical centering */
+    gap: 0.125rem;                /* or whatever spacing you prefer */
     overflow-y: auto;
     overflow-x: auto;
     width: auto;
     min-width: 10rem;
+}
+
+.slope-checkbox-group {
+    display: flex;
+    flex-direction: row;
+    align-items: center;   /* vertical centering */
+    margin-left: 0.0rem;
+}
+
+.sr-checkbox-label {
+    margin-left: 0.5rem;
+    font-size: 1rem;      /* or match your app's font size */
+    cursor: pointer;
 }
 
 
@@ -1050,6 +1084,5 @@ fieldset {
   -webkit-user-drag: none;
   user-select: none;
 }
-
 
 </style>

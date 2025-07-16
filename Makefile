@@ -28,7 +28,7 @@ src-tag-and-push: ## Tag and push the web client source code to the repository
 	$(ROOT)/VITE_VERSION.sh $(VERSION) && git push --tags; git push
 
 upload-assets: ## Upload hashed JS/CSS assets with long cache duration
-	export AWS_MAX_ATTEMPTS=5 AWS_RETRY_MODE=standard && \
+	export AWS_MAX_ATTEMPTS=10 AWS_RETRY_MODE=standard && \
 	echo "Uploading /assets with long cache duration..." && \
 	aws s3 sync web-client/dist/assets/ s3://$(S3_BUCKET)/assets/ \
 		--delete \
