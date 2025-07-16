@@ -717,15 +717,6 @@ watch(() => atlChartFilterStore.showSlopeLines, async (newValue) => {
                 class="sr-run-control" 
                 v-if="mission==='ICESat-2' && !recTreeStore.selectedApi?.includes('atl03')"
             >
-                <Checkbox
-                    v-if="(recTreeStore.selectedApi==='atl06p')" 
-                    v-model="atlChartFilterStore.showSlopeLines"
-                    binary
-                    inputId="sslCheckbox"
-                    size="small"
-                    :tooltipText="'Show Slope Lines for ATL06p'"
-                />
-                <label  v-if="(recTreeStore.selectedApi==='atl06p')"  for="sslCheckbox" class="sr-checkbox-label">Show Slope Lines</label>
                 <div
                     @mouseover="tooltipRef.showTooltip($event, photonCloudBtnTooltip)"
                     @mouseleave="tooltipRef.hideTooltip()"
@@ -744,6 +735,17 @@ watch(() => atlChartFilterStore.showSlopeLines, async (newValue) => {
                         variant="text"
                     >
                     </ToggleButton>
+                </div>
+                <div v-if="recTreeStore.selectedApi==='atl06p'" class="slope-checkbox-group">
+                    <Checkbox
+                        v-if="(recTreeStore.selectedApi==='atl06p')" 
+                        v-model="atlChartFilterStore.showSlopeLines"
+                        binary
+                        inputId="sslCheckbox"
+                        size="small"
+                        :tooltipText="'Show Slope Lines for ATL06p'"
+                    />
+                    <label  v-if="(recTreeStore.selectedApi==='atl06p')"  for="sslCheckbox" class="sr-checkbox-label">Show Slope Lines</label>
                 </div>
                 <SrRunControl 
                     :includeAdvToggle="false"
@@ -953,15 +955,29 @@ watch(() => atlChartFilterStore.showSlopeLines, async (newValue) => {
   white-space: nowrap;  /* Make sure each items text doesnt wrap within itself */
 }
 
-.sr-run-control{
+.sr-run-control {
     display: flex;
     flex-direction: row;
-    justify-content: left;
-    align-items: left;
+    justify-content: flex-start; /* left-aligned, but children can be centered vertically */
+    align-items: center;         /* <--- this ensures vertical centering */
+    gap: 0.125rem;                /* or whatever spacing you prefer */
     overflow-y: auto;
     overflow-x: auto;
     width: auto;
     min-width: 10rem;
+}
+
+.slope-checkbox-group {
+    display: flex;
+    flex-direction: row;
+    align-items: center;   /* vertical centering */
+    margin-left: 0.0rem;
+}
+
+.sr-checkbox-label {
+    margin-left: 0.5rem;
+    font-size: 1rem;      /* or match your app's font size */
+    cursor: pointer;
 }
 
 
@@ -1067,9 +1083,6 @@ fieldset {
   touch-action: none; /* Disable default gestures to allow dragging */
   -webkit-user-drag: none;
   user-select: none;
-}
-.sr-checkbox-label {
-  margin-left: 0.5rem;
 }
 
 </style>
