@@ -19,7 +19,7 @@ import { useAtl03CnfColorMapStore } from "@/stores/atl03CnfColorMapStore";
 import { useAtl08ClassColorMapStore } from "@/stores/atl08ClassColorMapStore";
 import { useAtl24ClassColorMapStore } from "@/stores/atl24ClassColorMapStore";
 import { formatKeyValuePair } from '@/utils/formatUtils';
-import { SELECTED_LAYER_NAME_PREFIX,type MinMax, type MinMaxLowHigh } from "@/types/SrTypes";
+import { SELECTED_LAYER_NAME_PREFIX,type MinMax, type MinMaxLowHigh, type AtlReqParams } from "@/types/SrTypes";
 import { useSymbolStore } from "@/stores/symbolStore";
 import { useFieldNameStore } from "@/stores/fieldNameStore";
 import { createDuckDbClient } from "@/utils/SrDuckDb";
@@ -671,7 +671,7 @@ export async function initChartStoreFor(reqId:number) : Promise<boolean>{
             return false;
         }
 
-        const { file, func, description, num_bytes, cnt } = request;
+        const { file, func, description, num_bytes, cnt, parameters } = request;
 
         if (file) {
             chartStore.setFile(reqIdStr, file);
@@ -699,6 +699,16 @@ export async function initChartStoreFor(reqId:number) : Promise<boolean>{
         } else {
             if(cnt===undefined){
                 console.error(`No cnt found for reqId: ${reqIdStr}`, request);
+                status = false;
+            }
+        }
+        if(parameters){
+            const parms = parameters as AtlReqParams;
+            if(parms){
+                console.log(`initChartStoreFor ${reqIdStr} setting parameters:`, parms);
+                chartStore.setParameters(reqIdStr, parms);
+            } else {
+                console.warn(`No parameters found for reqId: ${reqIdStr}`, request);
                 status = false;
             }
         }
@@ -788,11 +798,13 @@ export async function getScatterOptions(req_id:number): Promise<any> {
                     if(useAtlChartFilterStore().showSlopeLines){
                         //console.log(`getSeriesFor ${reqIdStr} showSlopeLines is true, adding slope lines`);
                         const minX = chartStore.getRawMinX(reqIdStr); // Use *raw* min, not normalized
-                        const segmentLength = useReqParamsStore().getLengthValue();
+                        const parameters = chartStore.getParameters(reqIdStr);
+                        //console.log(`getScatterOptions ${reqIdStr} CURRENT parms:`, parameters);
+                        const segmentLength = parameters.parms.len;
                         const whereClause = chartStore.getWhereClause(reqIdStr);
-                        console.log(`getScatterOptions ${reqIdStr} minX: ${minX} segmentLength: ${segmentLength} whereClause: ${whereClause}`);
+                        //console.log(`getScatterOptions ${reqIdStr} minX: ${minX} segmentLength: ${segmentLength} whereClause: ${whereClause}`);
                         const slopeLines = await getAtl06SlopeSegments(reqIdStr, fileName, x, useFieldNameStore().getHFieldName(req_id), 'dh_fit_dx', segmentLength, whereClause, minX);
-                        console.log(`getSeriesFor ${reqIdStr} slopeLines (${slopeLines.length}):`, slopeLines);
+                        //console.log(`getSeriesFor ${reqIdStr} slopeLines (${slopeLines.length}):`, slopeLines);
                         const slopeLineItems = slopeLines.map(seg => [seg[0][0], seg[0][1], seg[1][0], seg[1][1]]);
                         if(slopeLineItems && slopeLineItems.length > 0){
                             slopeSeries = {

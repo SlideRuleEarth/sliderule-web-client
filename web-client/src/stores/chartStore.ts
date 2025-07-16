@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { type MinMax, type MinMaxLowHigh } from '@/types/SrTypes';
-import type { SrMenuItem } from '@/types/SrTypes';
+import type { AtlReqParams, SrMenuItem } from '@/types/SrTypes';
 
 interface ChartState {
     currentFile: string;
@@ -34,6 +34,7 @@ interface ChartState {
     showYDataMenu: boolean;
     useSelectedMinMax: boolean;
     initLegendUnselected: boolean;
+    parameters: AtlReqParams; // New field for request parameters
 }
 
 
@@ -84,6 +85,7 @@ export const useChartStore = defineStore('chartStore', {
                     showYDataMenu: false,
                     useSelectedMinMax: true,
                     initLegendUnselected: false,
+                    parameters: {} as AtlReqParams,
                 };
             }
             return true;
@@ -406,6 +408,14 @@ export const useChartStore = defineStore('chartStore', {
         getInitLegendUnselected(reqIdStr: string): boolean {
             this.ensureState(reqIdStr);
             return this.stateByReqId[reqIdStr].initLegendUnselected;
+        },
+        setParameters(reqIdStr: string, parameters: AtlReqParams): void {
+            this.ensureState(reqIdStr);
+            this.stateByReqId[reqIdStr].parameters = parameters;
+        },
+        getParameters(reqIdStr: string): AtlReqParams {
+            this.ensureState(reqIdStr);
+            return this.stateByReqId[reqIdStr].parameters;
         },
     },
 });
