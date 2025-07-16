@@ -17,6 +17,7 @@
                             v-if="shouldDisplayElevationPlot" 
                             :startingReqId="reqId"
                         />
+
                     </TabPanel>
                     <TabPanel value="1" v-if="(mission==='ICESat-2') && !recTreeStore.findApiForReqId(reqId).includes('atl13')">
                         <!-- Only render SrTimeSeries if active tab is '1' AND your other condition is met -->

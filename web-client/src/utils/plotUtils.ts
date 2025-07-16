@@ -23,6 +23,7 @@ import { SELECTED_LAYER_NAME_PREFIX,type MinMax, type MinMaxLowHigh } from "@/ty
 import { useSymbolStore } from "@/stores/symbolStore";
 import { useFieldNameStore } from "@/stores/fieldNameStore";
 import { createDuckDbClient } from "@/utils/SrDuckDb";
+import { useReqParamsStore } from "@/stores/reqParamsStore";
 
 export const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<string[]> }>({});
 export const yDataSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
@@ -623,35 +624,6 @@ async function getSeriesFor(reqIdStr:string,isOverlay=false) : Promise<SrScatter
                 seriesData = await getSeriesForAtl03x(reqIdStr, fileName, x, y, minXToUse);
             } else if(func.includes('atl06')){
                 seriesData = await getSeriesForAtl06(reqIdStr, fileName, x, y);
-                if(useAtlChartFilterStore().showSlopeLines){
-                    //console.log(`getSeriesFor ${reqIdStr} showSlopeLines is true, adding slope lines`);
-                    const slopeLines = await getAtl06SlopeSegments(reqIdStr, fileName, x, useFieldNameStore().getHFieldName(reqId), 'dh_fit_dx');
-                    if(slopeLines && slopeLines.length > 0){
-                        // For ECharts:
-
-                        const flattenedSlopeLines: (number[] | null)[] = slopeLines
-                            .map(seg => [seg[0], seg[1], null])
-                            .flat();
-
-                        seriesData.push({
-                            series: {
-                                name: 'dh_fit_dx Slope',
-                                type: 'line',
-                                data: flattenedSlopeLines as unknown as number[][], // 👈 force TypeScript to accept it
-                                lineStyle: { color: '#111', width: 1.5 },
-                                symbol: 'none',
-                                polyline: false,
-                                z: 11
-                            },
-                            min: null,
-                            max: null
-                        });
-
-
-                    } else {
-                        console.warn(`getSeriesFor ${reqIdStr} showSlopeLines is true but no slope lines found`);
-                    }
-                }
             } else if(func.includes('atl08')){
                 seriesData = await getSeriesForAtl08(reqIdStr, fileName, x, y);
             } else if(func.includes('atl24')){
@@ -754,6 +726,34 @@ export async function initChartStore() {
     console.log(`initChartStore took ${endTime - startTime} milliseconds.`);
 }
 
+export function slopeRenderItem(_params:any, api:any) {
+    const x1 = api.coord([api.value(0), api.value(1)]);
+    const x2 = api.coord([api.value(2), api.value(3)]);
+    return {
+        type: 'line',
+        shape: {
+            x1: x1[0],
+            y1: x1[1],
+            x2: x2[0],
+            y2: x2[1]
+        },
+        style: api.style({
+            stroke: '#60a5fa', // Light blue (matches points)
+            lineWidth: 1.0
+        })
+    };
+}
+
+
+export function attachRenderItem(option: any) {
+    if (option.series && Array.isArray(option.series)) {
+        for (const s of option.series) {
+            if (s.type === 'custom' && s.name === 'dh_fit_dx Slope') {
+                s.renderItem = slopeRenderItem;
+            }
+        }
+    }
+}
 
 export async function getScatterOptions(req_id:number): Promise<any> {
     const chartStore = useChartStore();
@@ -780,10 +780,35 @@ export async function getScatterOptions(req_id:number): Promise<any> {
     let options = null;
     try{
         let seriesData = [] as SrScatterSeriesData[];
+        let slopeSeries = null;
         if(mission === 'ICESat-2'){
             if(fileName){
                 if(spots.length>0 && rgt>0 && cycles.length>0){
                     seriesData = await getSeriesFor(reqIdStr);
+                    if(useAtlChartFilterStore().showSlopeLines){
+                        //console.log(`getSeriesFor ${reqIdStr} showSlopeLines is true, adding slope lines`);
+                        const minX = chartStore.getRawMinX(reqIdStr); // Use *raw* min, not normalized
+                        const segmentLength = useReqParamsStore().getLengthValue();
+                        const whereClause = chartStore.getWhereClause(reqIdStr);
+                        console.log(`getScatterOptions ${reqIdStr} minX: ${minX} segmentLength: ${segmentLength} whereClause: ${whereClause}`);
+                        const slopeLines = await getAtl06SlopeSegments(reqIdStr, fileName, x, useFieldNameStore().getHFieldName(req_id), 'dh_fit_dx', segmentLength, whereClause, minX);
+                        console.log(`getSeriesFor ${reqIdStr} slopeLines (${slopeLines.length}):`, slopeLines);
+                        const slopeLineItems = slopeLines.map(seg => [seg[0][0], seg[0][1], seg[1][0], seg[1][1]]);
+                        if(slopeLineItems && slopeLineItems.length > 0){
+                            slopeSeries = {
+                                type: 'custom',
+                                name: 'dh_fit_dx Slope',
+                                coordinateSystem: 'cartesian2d',
+                                data: slopeLineItems,
+                                renderItem: slopeRenderItem,
+                                z: 11
+                            };
+                           
+                            //console.log(`getSeriesFor ${reqIdStr} adding slopeLines series:`, slopeSeries);
+                        } else {
+                            console.warn(`getSeriesFor ${reqIdStr} showSlopeLines is true but no slope lines found`);
+                        }
+                    }
                 } else {
                     console.warn('getScatterOptions Filter not set i.e. spots, rgts, or cycles is empty');
                 }
@@ -797,6 +822,16 @@ export async function getScatterOptions(req_id:number): Promise<any> {
             console.error(`getScatterOptions ${reqIdStr} mission:${mission} not supported`);
         }
         if(seriesData.length !== 0){
+            for(const pt of slopeSeries?.data ?? []) {
+                if(Array.isArray(pt) && (!isFinite(pt[0]) || !isFinite(pt[1]))) {
+                    console.warn("Bad point:", pt);
+                }
+            }
+
+            const legendNames = [
+                ...seriesData.map(series => series.series.name),
+                ...(slopeSeries ? [slopeSeries.name] : [])
+            ];
             options = {
                 title: {
                     text: globalChartStore.titleOfElevationPlot,
@@ -819,9 +854,9 @@ export async function getScatterOptions(req_id:number): Promise<any> {
                     formatter: (params: any) => formatTooltip(params,latFieldName,lonFieldName),
                 },
                 legend: {
-                    data: seriesData.map(series => series.series.name),
+                    data: legendNames,
                     selected: Object.fromEntries(
-                        seriesData.map(series => [series.series.name, !initLegendUnselected])
+                        legendNames.map(name => [name, !initLegendUnselected])
                     ),
                     selectedMode: !initLegendUnselected,
                     left: 'left',
@@ -853,7 +888,10 @@ export async function getScatterOptions(req_id:number): Promise<any> {
                         formatter: (value: number) => value.toFixed(1)  // Format to one decimal place
                     }
                 })),
-                series: seriesData.map(series => series.series),
+                series:[
+                            ...seriesData.map(series => series.series),
+                            ...(slopeSeries ? [slopeSeries] : [])
+                        ],
                 dataZoom: [
                     {
                         type: 'slider', // This creates a slider to zoom in the X-axis
@@ -918,10 +956,11 @@ export async function getScatterOptionsFor(reqId:number) {
 
     if (Object.keys(newScatterOptions).length > 0) {
         if(plotRef?.chart){
+            attachRenderItem(newScatterOptions);
             plotRef.chart.setOption(newScatterOptions,{notMerge: true });
-            //console.log(`getScatterOptionsFor Options applied to chart:`, newScatterOptions);
+            console.log(`getScatterOptionsFor Options applied to chart:`, newScatterOptions);
             const options = plotRef.chart.getOption();
-            //console.log(`getScatterOptionsFor ${reqId} Options from chart:`, options);
+            console.log(`getScatterOptionsFor ${reqId} Options from chart:`, options);
         } else {
             console.error(`getScatterOptionsFor ${reqId} plotRef.chart is undefined`);
         }
@@ -1018,12 +1057,13 @@ function removeUnusedOptions(options:any):any {
     delete options.visualMap;
     delete options.timeline;
     delete options.calendar;
+    //console.log('removeUnusedOptions returning options:', options);
     return options;
 }
 
 async function appendSeries(reqId: number): Promise<void> {
     try {
-        //console.log(`appendSeries(${reqId})`);
+        console.log(`appendSeries(${reqId})`);
         const reqIdStr = reqId.toString();
         const plotRef = useAtlChartFilterStore().getPlotRef();
         if (!plotRef?.chart) {
@@ -1211,6 +1251,7 @@ async function appendSeries(reqId: number): Promise<void> {
             ];
         }
 
+        attachRenderItem(filteredOptions);
         // -----------------------------
         //     APPLY UPDATED OPTIONS
         // -----------------------------
@@ -1222,7 +1263,7 @@ async function appendSeries(reqId: number): Promise<void> {
             }, { notMerge: true }
         );
         const options = chart.getOption() as EChartsOption;
-        //console.log(`initScatterPlotWith ${reqId} AFTER options:`, options);
+        //console.log(`appendSeries ${reqId} AFTER options:`, options);
 
         //console.log( `appendSeries(${reqIdStr}): Successfully appended scatter series and updated yAxis + legend.`,chart.getOption());
     } catch (error) {

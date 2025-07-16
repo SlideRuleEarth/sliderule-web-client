@@ -1320,6 +1320,8 @@ export async function getAllColumnMinMax(
  * @param dhFitDxField Name of the field with the segment slope (dh_fit_dx).
  * @param segmentLength The length of each segment in meters (default: 40).
  * @param whereClause Optional WHERE clause to limit rows.
+ * @param minX Optional minimum x value to offset the segments.
+ * @returns An array of line segments, each defined by two endpoints [[x1, y
  */
 export async function getAtl06SlopeSegments(
     reqIdStr: string,
@@ -1328,17 +1330,25 @@ export async function getAtl06SlopeSegments(
     yField: string,
     dhFitDxField: string,
     segmentLength: number = 40,
-    whereClause: string = ''
+    whereClause: string = '',
+    minX?: number // new param!
 ): Promise<number[][][]> {
     const duckDbClient = await createDuckDbClient();
     await duckDbClient.insertOpfsParquet(fileName);
 
-    // Build SQL
+    let filters = [];
+    if (whereClause) {
+        // Remove "WHERE" if present
+        const clause = whereClause.replace(/^\s*WHERE\s+/i, '').trim();
+        if (clause) filters.push(clause);
+    }
+    filters.push(`${yField} IS NOT NULL`);
+    filters.push(`${dhFitDxField} IS NOT NULL`);
+
     const sql = `
         SELECT ${xField}, ${yField}, ${dhFitDxField}
         FROM '${fileName}'
-        ${whereClause ? whereClause : ''}
-        WHERE ${yField} IS NOT NULL AND ${dhFitDxField} IS NOT NULL
+        WHERE ${filters.join(' AND ')}
     `.replace(/\s+/g, ' ');
 
     const lines: number[][][] = [];
@@ -1346,13 +1356,15 @@ export async function getAtl06SlopeSegments(
         const queryResult = await duckDbClient.query(sql);
         for await (const chunk of queryResult.readRows()) {
             for (const row of chunk) {
-                const x = Number(row[xField]);
+                const rawX = Number(row[xField]);
                 const y = Number(row[yField]);
                 const slope = Number(row[dhFitDxField]);
-                if (!isFinite(x) || !isFinite(y) || !isFinite(slope)) continue;
+                if (!isFinite(rawX) || !isFinite(y) || !isFinite(slope)) continue;
 
-                // Calculate line endpoints for a segment of `segmentLength` meters, centered at (x, y)
-                // Slope is dy/dx. The direction vector is (dx, slope * dx), normalized for segmentLength
+                // Normalize x for alignment with scatter plot
+                const x = (typeof minX === 'number') ? rawX - minX : rawX;
+
+                // Calculate line endpoints
                 const denom = Math.sqrt(1 + slope * slope);
                 const dx = (segmentLength / 2) / denom;
                 const dy = slope * dx;

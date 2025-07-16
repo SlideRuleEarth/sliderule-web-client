@@ -3,6 +3,7 @@ import { use } from "echarts/core";
 import ToggleButton from "primevue/togglebutton";
 import { CanvasRenderer } from "echarts/renderers";
 import { ScatterChart } from "echarts/charts";
+import { CustomChart } from 'echarts/charts'
 import { TitleComponent, TooltipComponent, LegendComponent, DataZoomComponent, ToolboxComponent } from "echarts/components";
 import VChart, { THEME_KEY } from "vue-echarts";
 import { provide, watch, onMounted, onUnmounted, ref, computed } from "vue";
@@ -58,7 +59,8 @@ const dialogsInitialized = ref(false); // Track if dialogs have been initialized
 
 use([
     CanvasRenderer, 
-    ScatterChart, 
+    ScatterChart,
+    CustomChart, 
     TitleComponent, 
     TooltipComponent, 
     LegendComponent, 
@@ -723,7 +725,7 @@ watch(() => atlChartFilterStore.showSlopeLines, async (newValue) => {
                     size="small"
                     :tooltipText="'Show Slope Lines for ATL06p'"
                 />
-                <label for="sslCheckbox" class="sr-checkbox-label">Show Slope Lines</label>
+                <label  v-if="(recTreeStore.selectedApi==='atl06p')"  for="sslCheckbox" class="sr-checkbox-label">Show Slope Lines</label>
                 <div
                     @mouseover="tooltipRef.showTooltip($event, photonCloudBtnTooltip)"
                     @mouseleave="tooltipRef.hideTooltip()"
