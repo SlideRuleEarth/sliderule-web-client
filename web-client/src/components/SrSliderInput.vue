@@ -86,7 +86,6 @@ const handleChange = (source: 'slider' | 'input') => (event: Event) => {
 };
 
 onMounted(() => {
-    innerValue.value = props.defaultValue;
 })
 watch(() => props.modelValue, (newVal) => {
   const sanitized = typeof newVal === 'number' && !isNaN(newVal) ? newVal : props.defaultValue;
