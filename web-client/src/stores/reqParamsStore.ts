@@ -6,11 +6,11 @@ import { calculatePolygonArea } from "@/composables/SrTurfUtils";
 import { convertTimeFormat } from '@/utils/parmUtils';
 import { db } from '@/db/SlideRuleDb';
 import { convexHull } from "@/composables/SrTurfUtils";
-import { useGlobalChartStore } from './globalChartStore';
+import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { type ApiName, isValidAPI,type SrMultiSelectNumberItem } from '@/types/SrTypes'
 import { type Icesat2ConfigYapc } from '@/types/slideruleDefaultsInterfaces'
-import { useSlideruleDefaults } from './defaultsStore';
-import { useRasterParamsStore } from './rasterParamsStore';
+import { useSlideruleDefaults } from '@/stores/defaultsStore';
+import { useRasterParamsStore } from '@/stores/rasterParamsStore';
 import { 
   distanceInOptions,
   surfaceReferenceTypeOptions,
@@ -76,10 +76,10 @@ export function getDefaultReqParamsState(): SrReqParamsState {
       spreadValue: 20.0,
       PE_CountValue: 10,
       windowValue: 3.0,
-      enableAtl03Confidence: false,
+      enableAtl03Classification: false,
       surfaceReferenceType: [surfaceReferenceTypeOptions[0]] as SrMultiSelectNumberItem[],
       signalConfidenceNumber: [] as number[],
-      qualityPHNumber: [] as number[],
+      qualityPHNumber: [0] as number[],
       enableAtl08Classification: false,
       atl08LandType: [] as string[],
       distanceIn: distanceInOptions[0], // { label: 'meters', value: 'meters' },
@@ -112,10 +112,12 @@ export function getDefaultReqParamsState(): SrReqParamsState {
       YAPCScore: 0.0,
       usesYAPCKnn: false,
       YAPCKnn: 0,
+      usesYAPCMinKnn: false,
+      YAPCMinKnn: 5,
       usesYAPCWindowHeight: false,
-      YAPCWindowHeight: 0.0,
+      YAPCWindowHeight: 6.0,
       usesYAPCWindowWidth: false,
-      YAPCWindowWidth: 0.0,
+      YAPCWindowWidth: 15.0,
       usesYAPCVersion: false,
       YAPCVersion: 0 as number,
       resources: [] as string[],
@@ -373,7 +375,7 @@ const createReqParamsStore = (id: string) =>
             }
           } else {
             if(this.missionValue === 'ICESat-2') {
-              if(this.enableAtl03Confidence) {
+              if(this.enableAtl03Classification) {
                 if (this.surfaceReferenceType.length===1 &&  this.surfaceReferenceType[0].value===-1){
                   req.srt = -1; // and not [-1]
                 } else {
@@ -503,7 +505,7 @@ const createReqParamsStore = (id: string) =>
               }
             }
           }
-          if(this.enableAtl03Confidence) {
+          if(this.enableAtl03Classification) {
             if(this.qualityPHNumber.length>0){
               req.quality_ph = this.qualityPHNumber;
             }
@@ -838,28 +840,28 @@ const createReqParamsStore = (id: string) =>
           this.useReqTimeout = false;
           this.useNodeTimeout = false;
           this.useReadTimeout = false;
-          const sto = await useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'timeout');
+          const sto = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'timeout');
           if(sto){
               this.setServerTimeout(sto);
           } else {
               console.warn('No default server timeout found, setting to fallback default of 601 seconds');
               this.setServerTimeout(601); // fallback default
           }
-          const nto = await useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'node_timeout');
+          const nto = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'node_timeout');
           if(nto){
               this.setNodeTimeout(nto);
           } else {
               console.warn('No default node timeout found, setting to fallback default of 601 seconds');
               this.setNodeTimeout(601); // fallback default
           }
-          const rto = await useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'read_timeout');
+          const rto = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'read_timeout');
           if(rto){
               this.setReadTimeout(rto);
           } else {
               console.warn('No default read timeout found, setting to fallback default of 601 seconds');
               this.setReadTimeout(601); // fallback default
           }
-          const rqto = await useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'rqst_timeout');
+          const rqto = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'rqst_timeout');
           if(rqto){
               this.setReqTimeout(rqto);
           } else {
@@ -897,12 +899,42 @@ const createReqParamsStore = (id: string) =>
         },
         setUseYAPCKnn(value:boolean) {
           this.usesYAPCKnn = value;
+          if(value){
+            const defaultKnn = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'yapc.knn');
+            if((defaultKnn !== undefined) && (defaultKnn !== null)){
+              this.setYAPCKnn(defaultKnn);
+            } else {
+              console.warn('No default knn found, setting to fallback default of 5');
+              this.setYAPCKnn(5); // fallback default
+            }
+          }
         },
         getYAPCKnn():number {
           return this.YAPCKnn;
         },
         setYAPCKnn(value:number) {
           this.YAPCKnn = value;
+        },
+        getUseYAPCMinKnn():boolean {
+          return this.usesYAPCMinKnn;
+        },
+        setUseYAPCMinKnn(value:boolean) {
+          this.usesYAPCMinKnn = value;
+          if(value){
+            const defaultMinKnn = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'yapc.min_knn');
+            if((defaultMinKnn !== undefined) && (defaultMinKnn !== null)){
+              this.setYAPCMinKnn(defaultMinKnn);
+            } else {
+              console.warn('No default min knn found, setting to fallback default of 5');
+              this.setYAPCMinKnn(5); // fallback default
+            }
+          }
+        },
+        getYAPCMinKnn():number {
+          return this.YAPCMinKnn;
+        },
+        setYAPCMinKnn(value:number) {
+          this.YAPCMinKnn = value;
         },
         getYAPCWindowHeight() {
           return this.YAPCWindowHeight;
@@ -915,12 +947,30 @@ const createReqParamsStore = (id: string) =>
         },
         setUsesYAPCWindowWidth(value:boolean) {
           this.usesYAPCWindowWidth = value;
+          if(value){
+            const defaultWidth = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'yapc.win_x');
+            if(defaultWidth){
+              this.setYAPCWindowWidth(defaultWidth);
+            } else {
+              console.warn('No default window width found, setting to fallback default of 10');
+              this.setYAPCWindowWidth(15); // fallback default
+            }
+          }
         },
         getUsesYAPCWindowHeight() {
           return this.usesYAPCWindowHeight;
         },
         setUsesYAPCWindowHeight(value:boolean) {
           this.usesYAPCWindowHeight = value;
+          if(value){
+            const defaultHeight = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'yapc.win_h');
+            if(defaultHeight){
+              this.setYAPCWindowHeight(defaultHeight);
+            } else {
+              console.warn('No default window height found, setting to fallback default of 10');
+              this.setYAPCWindowHeight(6); // fallback default
+            }
+          }
         },
         getYAPCWindowWidth() {
           return this.YAPCWindowWidth;
@@ -936,7 +986,7 @@ const createReqParamsStore = (id: string) =>
         },
 
         async initYapcDefaults(){
-          const yapc = await useSlideruleDefaults().getNestedMissionDefault<object>(this.missionValue,'yapc') as Icesat2ConfigYapc;
+          const yapc = useSlideruleDefaults().getNestedMissionDefault<object>(this.missionValue,'yapc') as Icesat2ConfigYapc;
           console.log('yapc:',yapc);
           if (yapc) {
             this.setYAPCVersion(yapc['version']); //3

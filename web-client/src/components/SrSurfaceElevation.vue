@@ -9,15 +9,15 @@ import { onMounted } from 'vue';
 const reqParamsStore = useReqParamsStore();
 async function presetValues() {
     if (!reqParamsStore.enableSurfaceElevation) {
-        const min_window_height = await useSlideruleDefaults().getNestedMissionDefault<number>(reqParamsStore.missionValue, 'H_min_win');
+        const min_window_height = useSlideruleDefaults().getNestedMissionDefault<number>(reqParamsStore.missionValue, 'H_min_win');
         if(min_window_height){
             reqParamsStore.minWindowHeight = min_window_height;
         }
-        const sigma_r_max = await useSlideruleDefaults().getNestedMissionDefault<number>(reqParamsStore.missionValue, 'sigma_r_max');
+        const sigma_r_max = useSlideruleDefaults().getNestedMissionDefault<number>(reqParamsStore.missionValue, 'sigma_r_max');
         if(sigma_r_max){
             reqParamsStore.setSigmaRmax(sigma_r_max);
         }
-        const maxIterations = await useSlideruleDefaults().getNestedMissionDefault<number>(reqParamsStore.missionValue, 'maxi');
+        const maxIterations = useSlideruleDefaults().getNestedMissionDefault<number>(reqParamsStore.missionValue, 'maxi');
         if(maxIterations){
             reqParamsStore.setMaxIterations(maxIterations);
         }

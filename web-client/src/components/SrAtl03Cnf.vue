@@ -16,15 +16,15 @@ const reqParamsStore = useReqParamsStore();
                 labelFontSize="large"
                 tooltipText="A set of photon classification values that are designed to identify signal photons for different surface types with specified confidence" 
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#icesat-2-request-fields"
-                v-model="reqParamsStore.enableAtl03Confidence"
+                v-model="reqParamsStore.enableAtl03Classification"
             />
         </div>
         <div class="sr-atl03-cnf-body">
             <SrSurfaceRefType
-                :insensitive="!reqParamsStore.enableAtl03Confidence"
+                :insensitive="!reqParamsStore.enableAtl03Classification"
             />
             <SrMultiSelectNumber
-                :insensitive="!reqParamsStore.enableAtl03Confidence"
+                :insensitive="!reqParamsStore.enableAtl03Classification"
                 label="Signal Confidence"
                 ariaLabel="Signal Confidence"
                 :menuOptions="signalConfidenceNumberOptions"
@@ -38,7 +38,7 @@ const reqParamsStore = useReqParamsStore();
                 @update:value="reqParamsStore.signalConfidenceNumber = $event"
             />            
             <SrMultiSelectNumber
-                :insensitive="!reqParamsStore.enableAtl03Confidence"
+                :insensitive="!reqParamsStore.enableAtl03Classification"
                 label="Quality PH"
                 placeholder="Select Quality PH"
                 ariaLabel="Quality PH"

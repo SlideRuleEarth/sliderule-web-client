@@ -58,7 +58,7 @@ export interface SrReqParamsState {
     spreadValue: number;
     PE_CountValue: number;
     windowValue: number;    
-    enableAtl03Confidence: boolean;
+    enableAtl03Classification: boolean;
     surfaceReferenceType: SrMultiSelectNumberItem[];
     signalConfidenceNumber: number[];
     qualityPHNumber: number[];
@@ -94,6 +94,8 @@ export interface SrReqParamsState {
     YAPCScore: number;
     usesYAPCKnn: boolean;
     YAPCKnn: number;
+    usesYAPCMinKnn: boolean;
+    YAPCMinKnn: number;
     usesYAPCWindowHeight: boolean;
     YAPCWindowHeight: number;
     usesYAPCWindowWidth: boolean;

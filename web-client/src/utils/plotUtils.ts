@@ -705,7 +705,7 @@ export async function initChartStoreFor(reqId:number) : Promise<boolean>{
         if(parameters){
             const parms = parameters as AtlReqParams;
             if(parms){
-                console.log(`initChartStoreFor ${reqIdStr} setting parameters:`, parms);
+                //console.log(`initChartStoreFor ${reqIdStr} setting parameters:`, parms);
                 chartStore.setParameters(reqIdStr, parms);
             } else {
                 console.warn(`No parameters found for reqId: ${reqIdStr}`, request);

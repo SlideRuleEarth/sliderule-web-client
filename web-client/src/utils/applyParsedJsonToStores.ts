@@ -81,7 +81,7 @@ export function applyParsedJsonToStores(
         console.log('Parsed srt values:', values);
         if (values.length > 0) {
             store.surfaceReferenceType = surfaceReferenceTypeOptions.filter(opt => values.includes(opt.value));
-            store.enableAtl03Confidence = true;
+            store.enableAtl03Classification = true;
         } else {
             store.surfaceReferenceType = [];
             addError('srt', `invalid value: ${JSON.stringify(data.srt)}`);

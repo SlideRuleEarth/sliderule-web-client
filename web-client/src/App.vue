@@ -20,6 +20,7 @@ import SrJsonDisplayDialog from '@/components/SrJsonDisplayDialog.vue';
 import introJs from 'intro.js';
 import { useTourStore } from '@/stores/tourStore.js';
 import { useViewportHeight } from '@/composables/useViewportHeight';
+import { useSlideruleDefaults } from '@/stores/defaultsStore'
 
 const srToastStore = useSrToastStore();
 const recTreeStore = useRecTreeStore();
@@ -176,6 +177,10 @@ async function getCommonSteps(type: string): Promise<ReturnType<typeof introJs>[
 
 onMounted(async () => {
     console.log('App onMounted');
+
+    const defaultsStore = useSlideruleDefaults();
+    await defaultsStore.fetchDefaults();
+
     const reqId = await recTreeStore.updateRecMenu('from App');
     initChartStore();
     if ((reqId <= 0) && (recTreeStore.allReqIds.length > 0)) {
