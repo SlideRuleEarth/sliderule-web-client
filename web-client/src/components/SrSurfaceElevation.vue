@@ -1,28 +1,11 @@
 <script setup lang="ts">
 
-import SrSliderInput from './SrSliderInput.vue';
-import { useReqParamsStore } from '../stores/reqParamsStore';
-import SrCheckbox from './SrCheckbox.vue';
-import { useSlideruleDefaults } from '@/stores/defaultsStore';
+import SrSwitchedSliderInput from '@/components/SrSwitchedSliderInput.vue';
+import { useReqParamsStore } from '@/stores/reqParamsStore';
 import { onMounted } from 'vue';
 
 const reqParamsStore = useReqParamsStore();
-async function presetValues() {
-    if (!reqParamsStore.enableSurfaceElevation) {
-        const min_window_height = useSlideruleDefaults().getNestedMissionDefault<number>(reqParamsStore.missionValue, 'H_min_win');
-        if(min_window_height){
-            reqParamsStore.minWindowHeight = min_window_height;
-        }
-        const sigma_r_max = useSlideruleDefaults().getNestedMissionDefault<number>(reqParamsStore.missionValue, 'sigma_r_max');
-        if(sigma_r_max){
-            reqParamsStore.setSigmaRmax(sigma_r_max);
-        }
-        const maxIterations = useSlideruleDefaults().getNestedMissionDefault<number>(reqParamsStore.missionValue, 'maxi');
-        if(maxIterations){
-            reqParamsStore.setMaxIterations(maxIterations);
-        }
-    }
-}
+
 
 onMounted(async () => {
 
@@ -32,20 +15,16 @@ onMounted(async () => {
 <template>
     <div class="sr-surface-elevation-container">
         <div class="sr-surface-elevation-header">
-            <SrCheckbox 
-                label="Surface Elevation Algorithm"
-                v-model="reqParamsStore.enableSurfaceElevation"
-                @update:model-value="presetValues"
-                labelFontSize="large" 
-                tooltipText="The surface elevation of the selected photons"
-                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#surface-fit"
-            />
+            <span class="sr-surface-elevation-hdr">Surface Elevation Algorithm</span>
         </div>
         <div class="sr-surface-elevation-body">
-            <SrSliderInput
+            <SrSwitchedSliderInput
                 v-model="reqParamsStore.maxIterations"
                 label="Max Iterations"
-                :insensitive="!reqParamsStore.enableSurfaceElevation"
+                :getCheckboxValue="reqParamsStore.getUseMaxIterations"
+                :setCheckboxValue="reqParamsStore.setUseMaxIterations"
+                :getValue="reqParamsStore.getMaxIterations"
+                :setValue="reqParamsStore.setMaxIterations"
                 :min="1"
                 :max="200"
                 :sliderMin="1"
@@ -55,12 +34,15 @@ onMounted(async () => {
                 tooltipText="maxi: The maximum number of iterations, not including initial least-squares-fit selection"
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#surface-fit"
             />
-            <SrSliderInput
+            <SrSwitchedSliderInput
                 v-model="reqParamsStore.minWindowHeight"
-                label="Min window height (meters)"
-                :insensitive="!reqParamsStore.enableSurfaceElevation"
+                label="Min window height"
                 :min="0"
                 :max="200"
+                :getCheckboxValue="reqParamsStore.getUseMinWindowHeight"
+                :setCheckboxValue="reqParamsStore.setUseMinWindowHeight"
+                :getValue="reqParamsStore.getMinWindowHeight"
+                :setValue="reqParamsStore.setMinWindowHeight"
                 :sliderMin="3"
                 :sliderMax="20"
                 :defaultValue="reqParamsStore.minWindowHeight" 
@@ -68,10 +50,13 @@ onMounted(async () => {
                 tooltipText="H_min_win: The minimum height to which the refined photon-selection window is allowed to shrink, in meters"
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#surface-fit"
             />
-            <SrSliderInput
+            <SrSwitchedSliderInput
                 v-model="reqParamsStore.maxRobustDispersion"
-                label="Max robust dispersion (meters)"
-                :insensitive="!reqParamsStore.enableSurfaceElevation"
+                label="Max robust dispersion"
+                :getCheckboxValue="reqParamsStore.getUseMaxRobustDispersion"
+                :setCheckboxValue="reqParamsStore.setUseMaxRobustDispersion"
+                :getValue="reqParamsStore.getSigmaRmax"
+                :setValue="reqParamsStore.setSigmaRmax"
                 :min="0"
                 :max="200"
                 :defaultValue="reqParamsStore.maxRobustDispersion" 
@@ -96,5 +81,10 @@ onMounted(async () => {
     align-items: center;
     background-color: transparent;
     margin-bottom: 1rem;
+}
+.sr-surface-elevation-hdr {
+    font-size: large;
+    font-weight: bold;
+    color: var(--p-color-text);
 }
 </style>

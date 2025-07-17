@@ -71,8 +71,11 @@ export interface SrReqParamsState {
     useMinimumPhotonCount: boolean;
     minimumPhotonCount: number;
     maxIterations: number;
+    useMaxIterations: boolean;
     minWindowHeight: number;
+    useMinWindowHeight: boolean;
     maxRobustDispersion: number;
+    useMaxRobustDispersion: boolean;
     binSize: number;
     geoLocation: SrListStringItem;
     useAbsoluteHeights: boolean;
@@ -104,7 +107,6 @@ export interface SrReqParamsState {
     YAPCVersion: number;
     resources: string[];
     useChecksum: boolean;
-    enableSurfaceElevation: boolean;
     enableAtl24Classification: boolean;
     atl24_class_ph: string[];
     defaultsFetched: boolean;

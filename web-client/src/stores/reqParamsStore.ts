@@ -89,8 +89,11 @@ export function getDefaultReqParamsState(): SrReqParamsState {
       useMinimumPhotonCount: false,
       minimumPhotonCount: -1,
       maxIterations: -1,
+      useMaxIterations: false,
       minWindowHeight: -1.0,
+      useMinWindowHeight: false,
       maxRobustDispersion: -1,
+      useMaxRobustDispersion: false,
       binSize: 0.0,
       geoLocation: { label: 'mean', value: 'mean' },
       useAbsoluteHeights: false,
@@ -122,7 +125,6 @@ export function getDefaultReqParamsState(): SrReqParamsState {
       YAPCVersion: 0 as number,
       resources: [] as string[],
       useChecksum: false,
-      enableSurfaceElevation: false,
       enableAtl24Classification: false,
       atl24_class_ph: ['unclassified', 'bathymetry', 'sea_surface'] as string[],
       defaultsFetched: false,
@@ -429,17 +431,16 @@ const createReqParamsStore = (id: string) =>
           }
 
           if(this.missionValue === 'ICESat-2') {
-            if(this.getEnableSurfaceElevation()){
-              if(this.getSigmaRmax()>=0.0){//maxRobustDispersion
-                  req.sigma_r_max = this.getSigmaRmax();
-              }
-              if(this.getMaxIterations()>=0){
-                req.maxi = this.getMaxIterations();
-              }
-              if(this.getMinWindowHeight() >= 0.0){
-                req.H_min_win = this.getMinWindowHeight();
-              }
+            if(this.getUseMaxRobustDispersion()){//maxRobustDispersion
+                req.sigma_r_max = this.getSigmaRmax();
             }
+            if(this.getUseMaxIterations()){
+              req.maxi = this.getMaxIterations();
+            }
+            if(this.getUseMinWindowHeight()){
+              req.H_min_win = this.getMinWindowHeight();
+            }
+            
             if(this.useLength){
               req.len = this.getLengthValue();
             }
@@ -741,6 +742,15 @@ const createReqParamsStore = (id: string) =>
         },
         setUseLength(useLength:boolean){
           this.useLength = useLength;
+          if(useLength){
+            const defaultLength = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'len');
+            if(defaultLength !== undefined && defaultLength !== null){
+              this.setLengthValue(defaultLength);
+            } else {
+              console.warn('No default length found for mission', this.missionValue, 'setting to fallback default of 40');
+              this.setLengthValue(40); // fallback default
+            }
+          }
         },
         getUseLength(){
           return this.useLength;
@@ -753,6 +763,15 @@ const createReqParamsStore = (id: string) =>
         },
         setUseStep(useStep:boolean){
           this.useStep = useStep;
+          if(useStep){
+            const defaultStep = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'res');
+            if((defaultStep !== undefined) && (defaultStep !== null)){
+              this.setStepValue(defaultStep);
+            } else {
+              console.warn('No default step found for mission', this.missionValue, 'setting to fallback default of 20');
+              this.setStepValue(20); // fallback default
+            }
+          }
         },
         getUseStep(){
           return this.useStep;
@@ -780,6 +799,15 @@ const createReqParamsStore = (id: string) =>
         },
         setUseAlongTrackSpread(ats:boolean){
           this.useAlongTrackSpread = ats;
+          if(ats){
+            const defaultSpread = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'along_track_spread');
+            if((defaultSpread !== undefined) && (defaultSpread !== null)){
+              this.setAlongTrackSpread(defaultSpread);
+            } else {
+              console.warn('No default along track spread found for mission', this.missionValue, 'setting to fallback default of 0');
+              this.setAlongTrackSpread(20); // fallback default
+            }
+          }
         },
         getAlongTrackSpread():number {
           return this.alongTrackSpread;
@@ -792,6 +820,15 @@ const createReqParamsStore = (id: string) =>
         },
         setUseMinimumPhotonCount(useMinimumPhotonCount:boolean){
           this.useMinimumPhotonCount = useMinimumPhotonCount;
+          if(useMinimumPhotonCount){
+            const defaultMinCount = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'min_photon_count');
+            if((defaultMinCount !== undefined) && (defaultMinCount !== null)){
+              this.setMinimumPhotonCount(defaultMinCount);
+            } else {
+              console.warn('No default minimum photon count found for mission', this.missionValue, 'setting to fallback default of 1');
+              this.setMinimumPhotonCount(10); // fallback default
+            }
+          }
         },
         getMinimumPhotonCount(): number {
           return this.minimumPhotonCount;
@@ -949,7 +986,7 @@ const createReqParamsStore = (id: string) =>
           this.usesYAPCWindowWidth = value;
           if(value){
             const defaultWidth = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'yapc.win_x');
-            if(defaultWidth){
+            if(defaultWidth !== undefined && defaultWidth !== null){
               this.setYAPCWindowWidth(defaultWidth);
             } else {
               console.warn('No default window width found, setting to fallback default of 10');
@@ -964,7 +1001,7 @@ const createReqParamsStore = (id: string) =>
           this.usesYAPCWindowHeight = value;
           if(value){
             const defaultHeight = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'yapc.win_h');
-            if(defaultHeight){
+            if(defaultHeight !== undefined && defaultHeight !== null){
               this.setYAPCWindowHeight(defaultHeight);
             } else {
               console.warn('No default window height found, setting to fallback default of 10');
@@ -1062,11 +1099,44 @@ const createReqParamsStore = (id: string) =>
         setEnableAtl08Classification(enableAtl08Classification:boolean) {
           this.enableAtl08Classification = enableAtl08Classification;
         },
-        getEnableSurfaceElevation(): boolean {
-          return this.enableSurfaceElevation;
+        getUseMaxIterations(): boolean {
+          return this.useMaxIterations;
         },
-        setEnableSurfaceElevation(enableSurfaceElevation:boolean) {
-          this.enableSurfaceElevation = enableSurfaceElevation;
+        setUseMaxIterations(useMaxIterations:boolean) {
+            this.useMaxIterations = useMaxIterations;
+            const defaultMaxIterations = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'maxi');
+            if((defaultMaxIterations !== undefined) && (defaultMaxIterations !== null)){
+              this.setMaxIterations(defaultMaxIterations);
+            } else {
+              console.warn('No default max iterations found for mission', this.missionValue, 'setting to fallback default of 5');
+              this.setMaxIterations(5); // fallback default
+            }
+        },
+        getUseMaxRobustDispersion(): boolean {
+          return this.useMaxRobustDispersion;
+        },
+        setUseMaxRobustDispersion(useRobustDispersion:boolean) {
+            this.useMaxRobustDispersion = useRobustDispersion;
+            const defaultSigmaRmax = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'sigma_r_max');
+            if((defaultSigmaRmax !== undefined) && (defaultSigmaRmax !== null)){
+              this.setSigmaRmax(defaultSigmaRmax);
+            } else {
+              console.warn('No default sigma_r_max found for mission', this.missionValue, 'setting to fallback default of 10.0');
+              this.setSigmaRmax(10.0); // fallback default
+            }
+        },
+        getUseMinWindowHeight(): boolean {
+          return this.useMinWindowHeight;
+        },
+        setUseMinWindowHeight(useMinWindowHeight:boolean) {
+            this.useMinWindowHeight = useMinWindowHeight;
+            const defaultMinWindowHeight = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'H_min_win');
+            if((defaultMinWindowHeight !== undefined) && (defaultMinWindowHeight !== null)){
+              this.setMinWindowHeight(defaultMinWindowHeight);
+            } else {
+              console.warn('No default min window height found for mission', this.missionValue, 'setting to fallback default of 0.5');
+              this.setMinWindowHeight(3.0); // fallback default
+            }
         },
         setPoly(poly: SrRegion) {
           this.poly = poly;
