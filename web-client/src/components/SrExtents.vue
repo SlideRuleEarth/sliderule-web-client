@@ -12,20 +12,29 @@ const reqParamsStore = useReqParamsStore();
 
 onMounted(async () => {
     const len = await useSlideruleDefaults().getNestedMissionDefault<number>(reqParamsStore.missionValue, 'len');
+    //console.log(`SrExtents mounted for mission ${reqParamsStore.missionValue} with default len=${len}`);
     if(len){
         reqParamsStore.setLengthValue(len);
+    } else {
+        console.warn(`No default length found for mission ${reqParamsStore.missionValue}`);
     }
     const res = await useSlideruleDefaults().getNestedMissionDefault<number>(reqParamsStore.missionValue, 'res');
     if(res){
         reqParamsStore.setStepValue(res);
+    } else {
+        console.warn(`No default step size found for mission ${reqParamsStore.missionValue}`);
     }
     const ats = await useSlideruleDefaults().getNestedMissionDefault<number>(reqParamsStore.missionValue, 'ats');
     if (ats) {
         reqParamsStore.setAlongTrackSpread(ats);
+    } else {
+        console.warn(`No default along-track spread found for mission ${reqParamsStore.missionValue}`);
     }
     const cnt = await useSlideruleDefaults().getNestedMissionDefault<number>(reqParamsStore.missionValue, 'cnt');
     if (cnt) {
         reqParamsStore.setMinimumPhotonCount(cnt);
+    } else {
+        console.warn(`No default minimum photon count found for mission ${reqParamsStore.missionValue}`);
     }
 });
 
