@@ -43,6 +43,7 @@ const reqParamsStore = useReqParamsStore();
                 placeholder="Select Quality PH"
                 ariaLabel="Quality PH"
                 :menuOptions="qualityPHOptions"
+                :default="[qualityPHOptions[0]]"
                 @update:value="reqParamsStore.qualityPHNumber = $event"
             />  
         </div>
