@@ -71,6 +71,18 @@ async function initYapc(){
         :insensitive="!reqParamsStore.enableYAPC"
     />
     <SrSwitchedSliderInput
+        label="Min Knn"
+        v-model="reqParamsStore.YAPCMinKnn"
+        :getCheckboxValue="reqParamsStore.getUseYAPCMinKnn"
+        :setCheckboxValue="reqParamsStore.setUseYAPCMinKnn"
+        :getValue="reqParamsStore.getYAPCMinKnn"
+        :setValue="reqParamsStore.setYAPCMinKnn"
+        :min="1"
+        :max="100" 
+        :decimalPlaces="0"
+        :insensitive="!reqParamsStore.enableYAPC"
+    />
+    <SrSwitchedSliderInput
         label="Window Height"
         v-model="reqParamsStore.YAPCWindowHeight"
         :getCheckboxValue="reqParamsStore.getUsesYAPCWindowHeight"

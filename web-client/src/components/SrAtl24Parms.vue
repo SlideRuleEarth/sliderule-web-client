@@ -164,7 +164,7 @@ import SrMultiSelectNumber from '@/components/SrMultiSelectNumber.vue';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
 import SrCheckbox from '@/components/SrCheckbox.vue';
 import Checkbox from 'primevue/checkbox';
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed } from 'vue';
 import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
 import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
@@ -178,11 +178,7 @@ const newAncillaryField = ref('');
 const defaultConfidenceThreshold = computed(() => {
     return defaultsStore.defaults?.icesat2?.atl24?.confidence_threshold ?? 0;
 });
-onMounted(async () => {
-    if (!defaultsStore.fetched) {
-        await defaultsStore.getDefaults();
-    }
-});
+
 
 function addAncillaryField() {
     const trimmed = newAncillaryField.value.trim();

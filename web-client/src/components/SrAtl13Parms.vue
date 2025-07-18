@@ -43,21 +43,12 @@
 
 <script setup lang="ts">
 import { useReqParamsStore } from '@/stores/reqParamsStore';
-import { onMounted } from 'vue';
 import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
 import SrLabelInfoIconButton from '@/components/SrLabelInfoIconButton.vue';
-import { useSlideruleDefaults } from '@/stores/defaultsStore';
 import SrCheckbox from '@/components/SrCheckbox.vue';
 
 const reqParamsStore = useReqParamsStore();
-const defaultsStore = useSlideruleDefaults();
-
-onMounted(async () => {
-    if (!defaultsStore.fetched) {
-        await defaultsStore.getDefaults();
-    }
-});
 
 
 </script>

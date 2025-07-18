@@ -9,6 +9,7 @@ import type {
     SrMultiSelectNumberItem,
     SrMultiSelectTextItem,
     SrMenuItem,
+    SrPhoReal,
 } from '@/types/SrTypes';
 
 export interface SrReqParamsState {
@@ -58,7 +59,7 @@ export interface SrReqParamsState {
     spreadValue: number;
     PE_CountValue: number;
     windowValue: number;    
-    enableAtl03Confidence: boolean;
+    enableAtl03Classification: boolean;
     surfaceReferenceType: SrMultiSelectNumberItem[];
     signalConfidenceNumber: number[];
     qualityPHNumber: number[];
@@ -71,10 +72,12 @@ export interface SrReqParamsState {
     useMinimumPhotonCount: boolean;
     minimumPhotonCount: number;
     maxIterations: number;
+    useMaxIterations: boolean;
     minWindowHeight: number;
+    useMinWindowHeight: boolean;
     maxRobustDispersion: number;
-    binSize: number;
-    geoLocation: SrListStringItem;
+    useMaxRobustDispersion: boolean;
+    phoRealUseBinSize: boolean;
     useAbsoluteHeights: boolean;
     gediBeams: number[];
     sendWaveforms: boolean;
@@ -94,6 +97,8 @@ export interface SrReqParamsState {
     YAPCScore: number;
     usesYAPCKnn: boolean;
     YAPCKnn: number;
+    usesYAPCMinKnn: boolean;
+    YAPCMinKnn: number;
     usesYAPCWindowHeight: boolean;
     YAPCWindowHeight: number;
     usesYAPCWindowWidth: boolean;
@@ -102,7 +107,6 @@ export interface SrReqParamsState {
     YAPCVersion: number;
     resources: string[];
     useChecksum: boolean;
-    enableSurfaceElevation: boolean;
     enableAtl24Classification: boolean;
     atl24_class_ph: string[];
     defaultsFetched: boolean;
@@ -135,6 +139,7 @@ export interface SrReqParamsState {
     gedi_fields: string[];
     useAtl13RefId: boolean;
     atl13: Atl13;
+    phoreal: SrPhoReal;
     useAtl13Polygon: boolean;
     useAtl13Point: boolean;
     forcedAddedParams: Record<string, unknown>,

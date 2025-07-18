@@ -3,12 +3,12 @@ import { ref } from 'vue'
 import type { CreConfig, BathyConfig, CoreConfig, Icesat2Config, SwotConfig, GediConfig } from '@/types/slideruleDefaultsInterfaces'
 
 export interface SlideRuleDefaults {
-  cre: CreConfig
-  bathy: BathyConfig
-  core: CoreConfig
-  icesat2: Icesat2Config
-  swot: SwotConfig
-  gedi: GediConfig
+    cre: CreConfig
+    bathy: BathyConfig
+    core: CoreConfig
+    icesat2: Icesat2Config
+    swot: SwotConfig
+    gedi: GediConfig
 }
 
 export const useSlideruleDefaults = defineStore('slideruleDefaults', () => {
@@ -17,19 +17,16 @@ export const useSlideruleDefaults = defineStore('slideruleDefaults', () => {
     const error = ref<Error | null>(null)
     const fetched = ref(false)
 
-    const fetchDefaults = async () => {
-        if ((fetched.value || loading.value ) ) return
-        loading.value = true
-        error.value = null
+    // --- 1. ONE-TIME FETCHER ---
+    async function fetchDefaults() {
+        if (fetched.value || loading.value) return;
+        loading.value = true;
+        error.value = null;
         try {
             const res = await fetch('https://sliderule.slideruleearth.io/source/defaults')
             if (!res.ok) throw new Error(`Failed to fetch: ${res.statusText}`)
             const json = await res.json()
-
-            if (!json || Object.keys(json).length === 0) {
-                throw new Error('Fetched defaults are null or empty')
-            }
-            
+            if (!json || Object.keys(json).length === 0) throw new Error('Fetched defaults are null or empty')
             defaults.value = json as SlideRuleDefaults
             fetched.value = true
             console.log('Fetched defaults:', defaults.value)
@@ -40,70 +37,71 @@ export const useSlideruleDefaults = defineStore('slideruleDefaults', () => {
         }
     }
 
-    const getNestedDefault = async <T = unknown>(
-        apiKey: string,
-        nestedKey: string
-    ): Promise<T | null> => {
-        const validKeys: (keyof SlideRuleDefaults)[] = ['core', 'icesat2', 'cre', 'gedi', 'swot', 'bathy']
-    
+    // --- 2. SYNCHRONOUS GETTERS ---
+    function getNestedDefault<T = unknown>(apiKey: string, nestedPath: string): T | null {
+        const validKeys: (keyof SlideRuleDefaults)[] = ['core', 'icesat2', 'cre', 'gedi', 'swot', 'bathy'];
+        if (!defaults.value) throw new Error('Defaults not yet loaded');
         if (!validKeys.includes(apiKey as keyof SlideRuleDefaults)) {
-            console.warn(`Invalid API key: ${apiKey}`)
-            return null
+            console.warn(`Invalid API key: ${apiKey}`);
+            return null;
         }
-    
-        await fetchDefaults()
-        
-        const typedKey = apiKey as keyof SlideRuleDefaults
-    
+
+        const typedKey = apiKey as keyof SlideRuleDefaults;
         const fallbackOrder: Partial<Record<keyof SlideRuleDefaults, (keyof SlideRuleDefaults)[]>> = {
             bathy: ['core', 'icesat2', 'bathy'],
             gedi: ['core', 'gedi'],
             swot: ['core', 'swot'],
             cre: ['core', 'cre'],
             core: ['core'],
-            icesat2: ['core','icesat2'],
-        }
-    
-        const tryKeys = fallbackOrder[typedKey] || [typedKey]
-    
-        for (const key of tryKeys) {
-            const section = defaults.value?.[key]
-            if (section && nestedKey in section) {
-                return (section as Record<string, unknown>)[nestedKey] as T
-            }
-        }
-    
-        console.warn(`Nested key "${nestedKey}" not found in any fallbacks for "${apiKey}"`)
-        return null
-    }
+            icesat2: ['core', 'icesat2'],
+        };
+        const tryKeys = fallbackOrder[typedKey] || [typedKey];
 
-    const getNestedMissionDefault = async <T = unknown>(
-        missionKey: string, // ICESat-2, GEDI
-        nestedKey: string
-    ): Promise<T | null> => {
-        if(missionKey === 'ICESat-2') {
-            return getNestedDefault<T>('icesat2', nestedKey);
+        for (const key of tryKeys) {
+            let section: any = defaults.value?.[key];
+            if (!section) continue;
+            const pathParts = nestedPath.split('.');
+            let value = section;
+            let found = true;
+            for (const part of pathParts) {
+                if (value && typeof value === 'object' && part in value) {
+                    value = value[part];
+                } else {
+                    found = false;
+                    break;
+                }
+            }
+            if (found) return value as T;
         }
-        if( missionKey === 'GEDI') {
-            return getNestedDefault<T>('gedi', nestedKey);
-        }
-        console.error(`Invalid mission key: ${missionKey}`);
+        console.warn(`Nested key path "${nestedPath}" not found in any fallbacks for "${apiKey}"`);
         return null;
     }
 
-    const getDefaults = async (): Promise<SlideRuleDefaults | null> => {
-        await fetchDefaults();
+
+    function getNestedMissionDefault<T = unknown>(missionKey: string, nestedKey: string): T | null {
+        if (missionKey === 'ICESat-2') {
+            return getNestedDefault<T>('icesat2', nestedKey)
+        }
+        if (missionKey === 'GEDI') {
+            return getNestedDefault<T>('gedi', nestedKey)
+        }
+        console.error(`Invalid mission key: ${missionKey}`)
+        return null
+    }
+
+    function getDefaults(): SlideRuleDefaults | null {
+        if (!defaults.value) throw new Error('Defaults not yet loaded')
         return defaults.value
     }
-    
-    
+
     return {
         loading,
         error,
         fetched,
         defaults,
+        fetchDefaults, // <-- call ONCE at app startup
         getNestedDefault,
-        getNestedMissionDefault,  
+        getNestedMissionDefault,
         getDefaults,
     }
 })

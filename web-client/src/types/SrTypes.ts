@@ -171,9 +171,18 @@ export type OutputFormat = {
     path: string;
     with_checksum: boolean;
 };
+
+export interface SrPhoReal {
+    above_classifier?: boolean;
+    binsize?: number;
+    geoloc?: 'mean' | 'median' | 'center' ;
+    send_waveform?: boolean;
+    use_abs_h?: boolean;
+}
+
 // Define the parameter type for the atl06p function
 export interface AtlReqParams {
-    phoreal?: {};
+    phoreal?: SrPhoReal;
     asset?: string;
     cnf?: number[];
     ats?: number;
