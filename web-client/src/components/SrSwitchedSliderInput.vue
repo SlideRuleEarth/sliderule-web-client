@@ -2,7 +2,7 @@
     <div class="sr-switched-slider-input-wrapper">
         <div class="sr-switched-slider-labeled-cb">
             <SrCheckbox v-model="computedCheckboxValue" label=""  :insensitive="props.insensitive"/>
-            <SrLabelInfoIconButton :label="label" :tooltipText="tooltipText" :tooltipUrl="tooltipUrl" :insensitive="insensitive"/>
+            <SrLabelInfoIconButton :label="props.label" :tooltipText="props.tooltipText" :tooltipUrl="props.tooltipUrl" :insensitive="props.insensitive"/>
         </div>
         <div class="sr-slider">
             <SrSliderInput 
@@ -15,7 +15,8 @@
                 :sliderMax="sliderMax" 
                 :decimalPlaces="decimalPlaces" 
                 :insensitive="!computedCheckboxValue || props.insensitive" 
-                :tooltipText="tooltipText"  
+                :tooltipText="tooltipText" 
+                :sliderWidth="props.sliderWidth" 
             />
         </div>
     </div>
@@ -76,7 +77,11 @@
         tooltipUrl: {
             type: String,
             default: ''
-        }
+        },
+        sliderWidth: {
+            type: [String, Number],
+            default: '12rem'
+        },
     });
 
     const innerModelValue = computed({

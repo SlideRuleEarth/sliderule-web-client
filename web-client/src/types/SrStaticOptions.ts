@@ -48,11 +48,7 @@ export const distanceInOptions = [
         { name: 'meters', value: 'meters' },
         { name: 'segments', value: 'segments' },
     ] as SrMenuItem[];
-export const geoLocationOptions = [
-          { name: 'mean', value: 'mean' },
-          { name: 'median', value: 'median' },
-          { name: 'center', value: 'center' },
-    ] as SrMultiSelectTextItem[];
+export const geoLocationOptions = ['mean', 'median', 'center'] as string[];
 export const gediBeamsOptions = [
           { name: '0', value: 0 },
           { name: '1', value: 1 },
