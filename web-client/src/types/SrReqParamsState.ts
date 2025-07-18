@@ -9,6 +9,7 @@ import type {
     SrMultiSelectNumberItem,
     SrMultiSelectTextItem,
     SrMenuItem,
+    SrPhoReal,
 } from '@/types/SrTypes';
 
 export interface SrReqParamsState {
@@ -76,8 +77,7 @@ export interface SrReqParamsState {
     useMinWindowHeight: boolean;
     maxRobustDispersion: number;
     useMaxRobustDispersion: boolean;
-    binSize: number;
-    geoLocation: SrListStringItem;
+    phoRealUseBinSize: boolean;
     useAbsoluteHeights: boolean;
     gediBeams: number[];
     sendWaveforms: boolean;
@@ -139,6 +139,7 @@ export interface SrReqParamsState {
     gedi_fields: string[];
     useAtl13RefId: boolean;
     atl13: Atl13;
+    phoreal: SrPhoReal;
     useAtl13Polygon: boolean;
     useAtl13Point: boolean;
     forcedAddedParams: Record<string, unknown>,

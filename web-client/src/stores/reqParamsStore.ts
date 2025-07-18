@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { type SrReqParamsState } from '@/types/SrReqParamsState';
-import type { AtlReqParams, AtlxxReqParams, SrRegion, OutputFormat } from '@/types/SrTypes';
+import type { AtlReqParams, AtlxxReqParams, SrRegion, OutputFormat, SrPhoReal } from '@/types/SrTypes';
 import { type SrListNumberItem, type Atl13, type Atl13Coord } from '@/types/SrTypes';
 import { calculatePolygonArea } from "@/composables/SrTurfUtils";
 import { convertTimeFormat } from '@/utils/parmUtils';
@@ -94,8 +94,8 @@ export function getDefaultReqParamsState(): SrReqParamsState {
       useMinWindowHeight: false,
       maxRobustDispersion: -1,
       useMaxRobustDispersion: false,
-      binSize: 0.0,
-      geoLocation: { label: 'mean', value: 'mean' },
+      phoreal: {} as SrPhoReal,
+      phoRealUseBinSize: false,
       useAbsoluteHeights: false,
       sendWaveforms: false,
       useABoVEClassifier: false,
@@ -344,7 +344,23 @@ const createReqParamsStore = (id: string) =>
             console.error('getAtlReqParams: mission not recognized:', this.missionValue);
           }
           if(this.iceSat2SelectedAPI==='atl08p') {
-            req.phoreal = {};
+            req.phoreal = this.phoreal; // atl08p requires phoreal even if not used
+            
+            if(this.phoRealUseBinSize){
+              req.phoreal.binsize = this.phoreal.binsize;
+            }
+            if(this.useABoVEClassifier){
+              req.phoreal.above_classifier = true;
+            }
+            if(this.useAbsoluteHeights){
+              req.phoreal.use_abs_h = true;
+            }
+            if(this.sendWaveforms){
+              req.phoreal.send_waveform = true;
+            }
+            if(this.atl08AncillaryFields.length>0){
+              req.anc_fields = (req.anc_fields ?? []).concat(this.atl08AncillaryFields);
+            }
           }
           if(this.iceSat2SelectedAPI === 'atl24x'){
             req.atl24 = {};

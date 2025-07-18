@@ -18,11 +18,11 @@ const YapcSchema = z.object({
     win_x: z.number().optional(),
 });
 export const PhoRealSchema = z.object({
-    above_classifier: z.number(),
-    binsize: z.number(),
-    geoloc: z.number(),
-    send_waveform: z.number(),
-    use_abs_h: z.number()
+    above_classifier: z.boolean().optional(),
+    binsize: z.number().optional(),
+    geoloc: z.string().optional(),
+    send_waveform: z.boolean().optional(),
+    use_abs_h: z.boolean().optional()
 });
 const Atl24Schema = z.object({
     compact: z.boolean().optional(),
