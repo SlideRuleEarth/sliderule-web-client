@@ -6,13 +6,11 @@
     "build": "run-p \"build-only {@}\" --",
     "build_with_maps": "VITE_BUILD_SOURCEMAP=true run-p \"build-only {@}\" --",
     "test:unit": "vitest",
-    "test:e2e": "start-server-and-test preview http://localhost:4173 'cypress run --e2e'",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
     "build-only": "vite build",
     "dev": "vite",
     "format": "prettier --write src/",
     "preview": "vite preview",
-    "test:e2e:dev": "start-server-and-test 'vite dev --port 4173' http://localhost:4173 'cypress open --e2e'",
     "type-check": "vue-tsc --build --force"
   },
   "dependencies": {
@@ -73,7 +71,6 @@
     "@vue/test-utils": "^2.4.6",
     "@vue/tsconfig": "^0.5.1",
     "eslint": "^9.12.0",
-    "eslint-plugin-cypress": "^3.5.0",
     "eslint-plugin-vue": "^9.28.0",
     "jsdom": "^25.0.0",
     "npm-run-all2": "^6.2.3",
