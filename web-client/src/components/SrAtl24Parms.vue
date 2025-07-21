@@ -14,18 +14,20 @@
                 >
             </SrLabelInfoIconButton>
             <div class = "sr-parm-row">
-                <Checkbox
-                    binary
-                    v-model="reqParamsStore.useAtl24Compact"
-                    size="small"
-                />
-                <SrCheckbox
-                    label="Compact"
-                    v-model="reqParamsStore.atl24Compact"
-                    :insensitive="!reqParamsStore.useAtl24Compact"
-                    labelFontSize="small"
-                    :labelOnLeft="true"
-                />
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <Checkbox
+                        binary
+                        v-model="reqParamsStore.useAtl24Compact"
+                        size="small"
+                    />
+                    <SrCheckbox
+                        label="Compact"
+                        v-model="reqParamsStore.atl24Compact"
+                        :insensitive="!reqParamsStore.useAtl24Compact"
+                        labelFontSize="small"
+                        :labelOnLeft="true"
+                    />
+                </div>
             </div>
             <div class = "sr-parm-row">
                 <Checkbox
@@ -33,26 +35,16 @@
                     v-model="reqParamsStore.useAtl24Classification"
                     size="small"
                 />
-                <SrMultiSelectNumber
-                    label="Atl24 Classification"
+                <label style="font-size: small;">Atl24 Classification</label>
+                <MultiSelect
+                    v-model="reqParamsStore.atl24_class_ph"
+                    size="small"
+                    labelFontSize="small"
                     placeholder="Select Atl24 Classification"
                     ariaLabel="Atl24 Classification"
-                    :menuOptions="atl24ClassOptions"
-                    :insensitive="!reqParamsStore.useAtl24Classification"
-                    @update:value="reqParamsStore.atl24Classification = $event"
-                />
-            </div>
-            <div class = "sr-parm-row">
-                <Checkbox
-                    binary
-                    v-model="reqParamsStore.useAtl24InvalidKD"
-                    size="small"
-                />
-                <SrCheckbox
-                    label="Invalid KD"
-                    v-model="reqParamsStore.atl24InvalidKD"
-                    :insensitive="!reqParamsStore.useAtl24InvalidKD"
-                    labelFontSize="small"
+                    multiple
+                    :options="atl24_class_ph_Options"
+                    :disabled="!reqParamsStore.useAtl24Classification"
                 />
             </div>
             <div class = "sr-parm-row">
@@ -62,6 +54,7 @@
                     size="small"
                 />
                 <SrSliderInput
+                    v-model="reqParamsStore.atl24ConfidenceThreshold"
                     label="Confidence Threshold"
                     :min="0"
                     :max="1"
@@ -71,61 +64,93 @@
                     inputWidth='4rem'
                     :decimalPlaces="2"
                     :defaultValue="defaultConfidenceThreshold" 
-                    v-model="reqParamsStore.atl24ConfidenceThreshold"
+                    labelFontSize="small"
                     :insensitive="!reqParamsStore.useAtl24ConfidenceThreshold"
-                    labelFontSize="small"
                 />
             </div>
             <div class = "sr-parm-row">
-                <Checkbox
-                    binary
-                    v-model="reqParamsStore.useAtl24InvalidWindspeed"
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <Checkbox
+                        binary
+                        v-model="reqParamsStore.useAtl24InvalidKD"
+                        size="small"
+                    />
+                    <label style="font-size: small;">Invalid KD</label>
+                </div>
+                <SelectButton
+                    v-model="reqParamsStore.atl24InvalidKD"
+                    :options="OnOffOptions"
+                    multiple
                     size="small"
+                    :disabled="!reqParamsStore.useAtl24InvalidKD"
                 />
-                <SrCheckbox
-                    label="Invalid Windspeed"
+            </div>
+            <div class = "sr-parm-row">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <Checkbox
+                        v-model="reqParamsStore.useAtl24InvalidWindspeed"
+                        binary
+                        size="small"
+                    />
+                    <label style="font-size: small;">Invalid Windspeed</label>
+                </div>
+                <SelectButton
                     v-model="reqParamsStore.atl24InvalidWindspeed"
-                    :insensitive="!reqParamsStore.useAtl24InvalidWindspeed"
-                    labelFontSize="small"
+                    :options="OnOffOptions"
+                    multiple
+                    size="small"
+                    :disabled="!reqParamsStore.useAtl24InvalidWindspeed"
                 />
             </div>
             <div class = "sr-parm-row">
-                <Checkbox
-                    binary
-                    v-model="reqParamsStore.useAtl24LowConfidence"
-                    size="small"
-                />
-                <SrCheckbox
-                    label="Atl24 Low Confidence"
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <Checkbox
+                        binary
+                        v-model="reqParamsStore.useAtl24LowConfidence"
+                        size="small"
+                    />
+                    <label style="font-size: small;">Low Confidence</label>
+                </div>
+                <SelectButton
                     v-model="reqParamsStore.atl24LowConfidence"
-                    :insensitive="!reqParamsStore.useAtl24LowConfidence"
-                    labelFontSize="small"
+                    :options="OnOffOptions"
+                    multiple
+                    size="small"
+                    :disabled="!reqParamsStore.useAtl24LowConfidence"
                 />
             </div>
             <div class = "sr-parm-row">
-                <Checkbox
-                    binary
-                    v-model="reqParamsStore.useAtl24Night"
-                    size="small"
-                />
-                <SrCheckbox
-                    label="Atl24 Nighttime"
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <Checkbox
+                        binary
+                        v-model="reqParamsStore.useAtl24Night"
+                        size="small"
+                    />
+                    <label style="font-size: small;">Atl24 Nighttime</label>
+                </div>
+                <SelectButton
                     v-model="reqParamsStore.atl24Night"
-                    :insensitive="!reqParamsStore.useAtl24Night"
-                    labelFontSize="small"
+                    :options="OnOffOptions"
+                    multiple
+                    size="small"
+                    :disabled="!reqParamsStore.useAtl24Night"
                 />
             </div>
             <div class = "sr-parm-row">
-                <Checkbox
-                    binary
-                    v-model="reqParamsStore.useAtl24SensorDepthExceeded"
-                    size="small"
-                />
-                <SrCheckbox
-                    label="Atl24 Sensor Depth Exceeded"
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <Checkbox
+                        binary
+                        v-model="reqParamsStore.useAtl24SensorDepthExceeded"
+                        size="small"
+                    />
+                    <label style="font-size: small;">Atl24 Sensor Depth Exceeded</label>
+                </div>
+                <SelectButton
                     v-model="reqParamsStore.atl24SensorDepthExceeded"
-                    :insensitive="!reqParamsStore.useAtl24SensorDepthExceeded"
-                    labelFontSize="small"
+                    :options="OnOffOptions"
+                    multiple
+                    size="small"
+                    :disabled="!reqParamsStore.useAtl24SensorDepthExceeded"
                 />
             </div>
             <div class="sr-atl24-ancillary-fields">
@@ -160,7 +185,6 @@
 </template>
 
 <script setup lang="ts">
-import SrMultiSelectNumber from '@/components/SrMultiSelectNumber.vue';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
 import SrCheckbox from '@/components/SrCheckbox.vue';
 import Checkbox from 'primevue/checkbox';
@@ -170,7 +194,9 @@ import Button from 'primevue/button';
 import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
 import SrSliderInput from './SrSliderInput.vue';
 import { useSlideruleDefaults } from '@/stores/defaultsStore';
-import { atl24ClassOptions } from '@/types/SrStaticOptions';
+import { atl24_class_ph_Options, OnOffOptions } from '@/types/SrStaticOptions';
+import { SelectButton } from 'primevue';
+import MultiSelect from 'primevue/multiselect';
 
 const reqParamsStore = useReqParamsStore();
 const defaultsStore = useSlideruleDefaults();
@@ -215,11 +241,17 @@ function removeAncillaryField(index: number) {
 .sr-atl24-ancillary-fields {
     margin-top: 0.5rem;
 }
-
+.sr-ancillary-input-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
 .sr-parm-row {
     display: flex;
     flex-direction: row;
     align-items: center;
+    justify-content: space-between;
     gap: 0.5rem;
     margin: 0.125rem;
 }
@@ -230,5 +262,7 @@ function removeAncillaryField(index: number) {
     margin: 0.5rem;
     
 }
-
+.sr-atl24-ancillary-fields {
+    margin-top: 0.5rem;
+}
 </style>

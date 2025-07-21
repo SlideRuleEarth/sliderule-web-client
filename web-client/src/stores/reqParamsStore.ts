@@ -18,6 +18,7 @@ import {
   iceSat2APIsItems,
   gediAPIsItems,
   atl24_class_ph_Options,
+  OnOffOptions,
 } from '@/types/SrStaticOptions';
 
 interface YapcConfig {
@@ -126,25 +127,24 @@ export function getDefaultReqParamsState(): SrReqParamsState {
       resources: [] as string[],
       useChecksum: false,
       enableAtl24Classification: false,
-      atl24_class_ph: ['unclassified', 'bathymetry', 'sea_surface'] as string[],
       defaultsFetched: false,
       useDatum: false,
       useAtl24Compact: false,
       atl24Compact: false,
       useAtl24Classification: false,
-      atl24Classification: [40],
+      atl24_class_ph: ['bathymetry'] as string[],
       useAtl24ConfidenceThreshold: false,
       atl24ConfidenceThreshold: 0.6,
       useAtl24InvalidKD: false,
-      atl24InvalidKD: false,
+      atl24InvalidKD: OnOffOptions,
       useAtl24InvalidWindspeed: false,
-      atl24InvalidWindspeed: false,
+      atl24InvalidWindspeed: OnOffOptions,
       useAtl24LowConfidence: false,
-      atl24LowConfidence: false,
+      atl24LowConfidence: OnOffOptions,
       useAtl24Night: false,
-      atl24Night: false,
+      atl24Night: OnOffOptions,
       useAtl24SensorDepthExceeded: false,
-      atl24SensorDepthExceeded: false,
+      atl24SensorDepthExceeded: OnOffOptions,
       atl24AncillaryFields: [] as string[],
       atl03AncillaryFields: [] as string[],
       atl08AncillaryFields: [] as string[],
@@ -368,7 +368,7 @@ const createReqParamsStore = (id: string) =>
               req.atl24.compact = this.atl24Compact;
             }
             if(this.useAtl24Classification){
-              req.atl24.class_ph = this.atl24Classification;
+              req.atl24.class_ph = this.atl24_class_ph;
             }
             if(this.useAtl24ConfidenceThreshold){
               req.atl24.confidence_threshold = this.atl24ConfidenceThreshold;
