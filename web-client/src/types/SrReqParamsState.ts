@@ -77,11 +77,7 @@ export interface SrReqParamsState {
     useMinWindowHeight: boolean;
     maxRobustDispersion: number;
     useMaxRobustDispersion: boolean;
-    phoRealUseBinSize: boolean;
-    useAbsoluteHeights: boolean;
     gediBeams: number[];
-    sendWaveforms: boolean;
-    useABoVEClassifier: boolean;
     degradeFlag: boolean;
     l2QualityFlag: boolean;
     l4QualityFlag: boolean;
@@ -138,7 +134,13 @@ export interface SrReqParamsState {
     gedi_fields: string[];
     useAtl13RefId: boolean;
     atl13: Atl13;
-    phoreal: SrPhoReal;
+    usePhoRealBinSize: boolean;
+    phoRealBinSize: number;
+    usePhoRealGeoLocation: boolean;
+    phoRealGeoLocation: string;
+    usePhoRealAbsoluteHeights: boolean;
+    usePhoRealSendWaveforms: boolean;
+    usePhoRealABoVEClassifier: boolean;
     useAtl13Polygon: boolean;
     useAtl13Point: boolean;
     forcedAddedParams: Record<string, unknown>,

@@ -95,7 +95,7 @@ const fieldsHeader = computed(() => {
                     </AccordionContent>
                 </AccordionPanel>
                 <AccordionPanel value="6" v-if="mission==='ICESat-2' && props.iceSat2SelectedAPI.includes('atl08')" >
-                    <AccordionHeader>Veg Density Alg</AccordionHeader>
+                    <AccordionHeader>PhoREAL Veg Density Alg</AccordionHeader>
                     <AccordionContent v-if="isExpanded(6)">
                         <SrVegDensity />
                     </AccordionContent>

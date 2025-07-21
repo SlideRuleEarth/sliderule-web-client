@@ -19,6 +19,7 @@ import {
   gediAPIsItems,
   atl24_class_ph_Options,
   OnOffOptions,
+  geoLocationOptions,
 } from '@/types/SrStaticOptions';
 
 interface YapcConfig {
@@ -95,11 +96,13 @@ export function getDefaultReqParamsState(): SrReqParamsState {
       useMinWindowHeight: false,
       maxRobustDispersion: -1,
       useMaxRobustDispersion: false,
-      phoreal: {} as SrPhoReal,
-      phoRealUseBinSize: false,
-      useAbsoluteHeights: false,
-      sendWaveforms: false,
-      useABoVEClassifier: false,
+      usePhoRealGeoLocation: false,
+      phoRealGeoLocation: geoLocationOptions[0], // 'mean'
+      usePhoRealBinSize: false,
+      phoRealBinSize: 0,
+      usePhoRealAbsoluteHeights: false,
+      usePhoRealSendWaveforms: false,
+      usePhoRealABoVEClassifier: false,
       gediBeams: [0, 1, 2, 3, 5, 6, 8, 11] as number[],
       degradeFlag: true,
       l2QualityFlag: true,
@@ -344,18 +347,20 @@ const createReqParamsStore = (id: string) =>
             console.error('getAtlReqParams: mission not recognized:', this.missionValue);
           }
           if(this.iceSat2SelectedAPI==='atl08p') {
-            req.phoreal = this.phoreal; // atl08p requires phoreal even if not used
-            
-            if(this.phoRealUseBinSize){
-              req.phoreal.binsize = this.phoreal.binsize;
+            req.phoreal = {}; // atl08p requires phoreal even if not used
+            if(this.usePhoRealGeoLocation){ 
+              req.phoreal.geoloc = this.phoRealGeoLocation;
             }
-            if(this.useABoVEClassifier){
+            if(this.usePhoRealBinSize){
+              req.phoreal.binsize = this.phoRealBinSize;
+            }
+            if(this.usePhoRealABoVEClassifier){
               req.phoreal.above_classifier = true;
             }
-            if(this.useAbsoluteHeights){
+            if(this.usePhoRealAbsoluteHeights){
               req.phoreal.use_abs_h = true;
             }
-            if(this.sendWaveforms){
+            if(this.usePhoRealSendWaveforms){
               req.phoreal.send_waveform = true;
             }
             if(this.atl08AncillaryFields.length>0){
