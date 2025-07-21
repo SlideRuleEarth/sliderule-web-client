@@ -81,3 +81,4 @@ export const atl24ClassOptions= [
       ] as SrMultiSelectNumberItem[];
 export const YAPCVersionOptions = ['0', '1', '2', '3'] as string[];
 export const atl24_class_ph_Options = ['unclassified', 'bathymetry', 'sea_surface'] as string[];
+export const OnOffOptions = ['On', 'Off'] as string[];
