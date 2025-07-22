@@ -300,7 +300,7 @@ const handleClientVersionButtonClick = () => {
 
 async function handleQuickTourButtonClick() {
 
-    const tour = introJs();
+    const tour = introJs.tour();
     let steps = await getCommonSteps('quick');
 
     tour.setOptions({
@@ -310,12 +310,12 @@ async function handleQuickTourButtonClick() {
     });
     
     // 👉 Run the tour and listen for completion
-    tour.oncomplete(() => {
+    tour.onComplete(() => {
         tourStore.markSeen();
     });
 
     // 👉 Optional: also mark seen if user exits early
-    tour.onexit(() => {
+    tour.onExit(() => {
         tourStore.markSeen();
     });
 
@@ -328,7 +328,7 @@ async function handleLongTourButtonClick() {
     const isAniPad = deviceStore.getUserAgent().includes('iPad');
     console.log('handleQuickTourButtonClick','isMobile:', isMobile, 'isAniPad:', isAniPad);
 
-    const tour = introJs();
+    const tour = introJs.tour();
     let steps = await getCommonSteps('long');
 
     const srRadioBoxContainerGenEl = document.querySelector('#sr-radio-box-container-gen');
@@ -464,12 +464,12 @@ async function handleLongTourButtonClick() {
     });
 
     // 👉 Run the tour and listen for completion
-    tour.oncomplete(() => {
+    tour.onComplete(() => {
         tourStore.markSeen();
     });
 
     // 👉 Optional: also mark seen if user exits early
-    tour.onexit(() => {
+    tour.onExit(() => {
         tourStore.markSeen();
     });
 
