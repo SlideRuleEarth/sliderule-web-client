@@ -451,14 +451,19 @@ async getJsonMetaDataForKey(
 
     async getServerReqFromMetaData(parquetFilePath: string): Promise<string | undefined> {
       const thisMetaData = await this.getJsonMetaDataForKey('sliderule', parquetFilePath, true);
+      //console.log('getServerReqFromMetaData thisMetaData:', thisMetaData);
+      //console.log('getServerReqFromMetaData thisMetaData.formattedMetadata:', thisMetaData.formattedMetadata);
+      //console.log('getServerReqFromMetaData thisMetaData.parsedMetadata:', thisMetaData.parsedMetadata);
       if (thisMetaData.parsedMetadata) {
-        // Check if the parsed metadata contains a 'serverReq' key
         if (thisMetaData.parsedMetadata.recordinfo) {
           console.log('getServerReqFromMetaData thisMetaData.parsedMetadata.recordinfo:', thisMetaData.parsedMetadata.recordinfo);
         } else {
           console.warn(`getServerReqFromMetaData: thisMetaData.parsedMetadata recordinfo key not found in metadata for ${parquetFilePath}`);
         }
+      } else {
+        console.warn(`getServerReqFromMetaData: No parsed metadata found for ${parquetFilePath}`);
       }
+      // Return the formatted metadata
 
       return thisMetaData.formattedMetadata;
     }

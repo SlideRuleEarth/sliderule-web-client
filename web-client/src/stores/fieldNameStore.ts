@@ -8,7 +8,9 @@ const curGedi2apElevationField = ref('elevation_lm');
 
 function getHFieldNameForAPIStr(funcStr: string): string {
     switch (funcStr) {
+        case 'atl06': return 'h_mean';
         case 'atl06p': return 'h_mean';
+        case 'atl06s': return 'h_li';
         case 'atl06sp': return 'h_li';
         case 'atl03vp': return 'segment_ph_cnt';
         case 'atl03sp': return 'height';
@@ -50,9 +52,13 @@ function getDefaultElOptions(reqId:number): string[] {
     const funcStr = useRecTreeStore().findApiForReqId(reqId);
     let options=[] as string[];
     switch (funcStr) {
-        case 'atl06p':  options = ['h_mean','rms_misfit','h_sigma','n_fit_photons','dh_fit_dx','pflags','w_surface_window_final','y_atc','cycle'];
+        case 'atl06':
+        case 'atl06p':
+            options = ['h_mean','rms_misfit','h_sigma','n_fit_photons','dh_fit_dx','pflags','w_surface_window_final','y_atc','cycle'];
             break;
-        case 'atl06sp': options = ['h_li','y_atc','cycle'];
+        case 'atl06s':
+        case 'atl06sp':
+            options = ['h_li','y_atc','cycle'];
             break;
         case 'atl03vp': options = ['segment_ph_cnt'];
             break;

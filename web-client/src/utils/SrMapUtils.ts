@@ -858,9 +858,9 @@ export function renderRequestPolygon(map: OLMap,
 async function getAtl13CoordFromSvrParms(reqId:number): Promise<SrLatLon | null> {
     const jsonStr = await db.getSvrParams(reqId) as any;
     const jsonObj = JSON.parse(jsonStr);
-    console.log('getAtl13CoordFromSvrParms reqId:',reqId, 'jsonObj:', 'jsonObj:',jsonObj);
-    console.log('getAtl13CoordFromSvrParms jsonObj.atl13.coord:',jsonObj?.atl13?.coord);
-    console.log('getAtl13CoordFromSvrParms jsonObj.atl13.coord.lon:',jsonObj?.atl13?.coord?.lon, 'jsonObj.atl13.coord.lat:',jsonObj?.atl13?.coord?.lat, ' typeof jsonObj.atl13.coord.lon:',typeof jsonObj?.atl13?.coord?.lon, ' typeof jsonObj.atl13.coord.lat:',typeof jsonObj?.atl13?.coord?.lat);
+    //console.log('getAtl13CoordFromSvrParms reqId:',reqId, 'jsonObj:', 'jsonObj:',jsonObj);
+    //console.log('getAtl13CoordFromSvrParms jsonObj.atl13.coord:',jsonObj?.atl13?.coord);
+    //console.log('getAtl13CoordFromSvrParms jsonObj.atl13.coord.lon:',jsonObj?.atl13?.coord?.lon, 'jsonObj.atl13.coord.lat:',jsonObj?.atl13?.coord?.lat, ' typeof jsonObj.atl13.coord.lon:',typeof jsonObj?.atl13?.coord?.lon, ' typeof jsonObj.atl13.coord.lat:',typeof jsonObj?.atl13?.coord?.lat);
     if (jsonObj?.atl13?.coord && typeof jsonObj?.atl13?.coord?.lon === 'number' && typeof jsonObj?.atl13?.coord?.lat === 'number') {
         return {
             lon: jsonObj.atl13.coord.lon,
