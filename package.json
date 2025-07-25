@@ -8,10 +8,18 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.54.1",
-    "@types/node": "^24.0.15"
+    "@types/node": "^24.0.15",
+    "serve": "^14.2.4"
   },
-  "scripts": {},
+  "scripts": {
+    "test:local": "ENV=local npx playwright test",
+    "test:test": "ENV=test npx playwright test",
+    "test:prod": "ENV=prod npx playwright test"
+  },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^17.2.1"
+  }
 }
