@@ -206,3 +206,4 @@ export interface NullReqParams {
   
   
 export type ReqParams = AtlReqParams | AtlxxReqParams | NullReqParams;
+export type SrLonLatPoint = { lon: number; lat: number };
