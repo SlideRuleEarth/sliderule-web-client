@@ -100,19 +100,21 @@ export function extractCoordinates(geometry: any): Coordinate[] {
     }
 }
 
-
 export function drawGeoJson(
     uniqueId: string,
     vectorSource: VectorSource,
     geoJsonData: string | object,
     color: string,
     noFill: boolean = false,
-    tag: string = ''
+    tag: string = '',
+    dataProjection: string = 'EPSG:4326'
 ): Extent | undefined {
+    console.log(`drawGeoJson: uniqueId=${uniqueId}, color=${color}, noFill=${noFill}, tag=${tag}, dataProjection=${dataProjection}`);
+    
     const map = useMapStore().map;
     if (!map || !vectorSource || !geoJsonData) return;
 
-    let geoJsonString = typeof geoJsonData === 'string'
+    const geoJsonString = typeof geoJsonData === 'string'
         ? geoJsonData.trim()
         : JSON.stringify(geoJsonData);
 
@@ -121,7 +123,7 @@ export function drawGeoJson(
 
     try {
         features = format.readFeatures(geoJsonString, {
-            dataProjection: 'EPSG:4326',
+            dataProjection,
             featureProjection: useMapStore().getSrViewObj()?.projectionName || 'EPSG:3857',
         });
     } catch (e) {
@@ -131,13 +133,13 @@ export function drawGeoJson(
 
     const style = new Style({
         stroke: new Stroke({ color, width: 2 }),
-        fill: noFill ? undefined : new Fill({ color: 'rgba(255, 0, 0, 0.1)' })
+        fill: noFill ? undefined : new Fill({ color: color.replace(/, *1\)$/, ', 0.1)') }) // semi-transparent fill
     });
 
     features.forEach((feature, i) => {
         feature.setId(`feature-${uniqueId}-${i}`);
         feature.setStyle(style);
-        feature.set('tag', tag);
+        feature.set('tag', tag || uniqueId);
     });
 
     vectorSource.addFeatures(features);

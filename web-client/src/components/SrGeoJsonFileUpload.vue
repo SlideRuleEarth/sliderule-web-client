@@ -4,7 +4,6 @@ import FileUpload from 'primevue/fileupload';
 import ProgressBar from 'primevue/progressbar';
 import Button from 'primevue/button';
 import SrToast from 'primevue/toast';
-import { useMapStore } from '@/stores/mapStore';
 import { useGeoJsonUploader } from '@/composables/useGeoJsonUploader';
 import { drawGeoJson, zoomOutToFullMap } from '@/utils/SrMapUtils';
 
@@ -23,12 +22,10 @@ const props = defineProps({
     }
 });
 
-const mapStore = useMapStore();
 const upload_progress = ref(0);
 const upload_progress_visible = ref(false);
 
 const { handleUpload } = useGeoJsonUploader(
-    mapStore,
     props,
     drawGeoJson,
     zoomOutToFullMap,

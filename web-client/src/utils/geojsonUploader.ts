@@ -16,8 +16,8 @@ export function extractSrRegionFromGeometry(geometry: any): SrRegion {
                 lat: coord[1],
             }));
         } else {
-            console.error('Polygon has insufficient coordinates:', JSON.stringify(geometry));
-            throw new Error('Polygon has insufficient coordinates');
+            console.error('Polygon has invalid coordinates:', JSON.stringify(geometry));
+            throw new Error('Polygon has invalid coordinates');
         }
     }
 
@@ -30,8 +30,8 @@ export function extractSrRegionFromGeometry(geometry: any): SrRegion {
                 lat: coord[1],
             }));
         } else {
-            console.error('MultiPolygon has insufficient coordinates:', JSON.stringify(geometry));
-            throw new Error('MultiPolygon has insufficient coordinates');
+            console.error('MultiPolygon has invalid coordinates:', JSON.stringify(geometry));
+            throw new Error('MultiPolygon has invalid coordinates');
         }
     }
 

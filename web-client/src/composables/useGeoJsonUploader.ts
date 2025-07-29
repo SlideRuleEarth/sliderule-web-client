@@ -6,8 +6,9 @@ import { Map as OLMapType } from 'ol';
 import type { SrRegion } from '@/types/SrTypes';
 import VectorLayer from 'ol/layer/Vector';
 import type { FileUploadUploaderEvent } from 'primevue/fileupload';
+import { useMapStore } from '@/stores/mapStore';
 
-export function useGeoJsonUploader(mapStore: any, props: any, drawGeoJson: Function, zoomOutToFullMap: Function, upload_progress: any, upload_progress_visible: any) {
+export function useGeoJsonUploader( props: any, drawGeoJson: Function, zoomOutToFullMap: Function, upload_progress: any, upload_progress_visible: any) {
     const toast = useToast();
     const geoJsonStore = useGeoJsonStore();
     const reqParamsStore = useReqParamsStore();
@@ -19,11 +20,13 @@ export function useGeoJsonUploader(mapStore: any, props: any, drawGeoJson: Funct
             return;
         }
 
-        let vectorLayer = map.getLayers().getArray().find((layer: any) =>
+        const vectorLayer = map.getLayers().getArray().find((layer: any) =>
             layer.get('name') === (props.loadReqPoly ? 'Drawing Layer' : 'Uploaded Features')
         );
 
-        const color = props.loadReqPoly ? 'rgba(255, 0, 0, 1)' : 'rgba(180, 100, 0, 1)';
+        const polyColor = 'rgba(255, 0, 0, 1)';   // red
+        const hullColor = 'rgba(0, 0, 255, 1)';   // blue
+
         if (!vectorLayer || !(vectorLayer instanceof VectorLayer)) {
             toast.add({ severity: 'error', summary: 'Layer Error', detail: 'Could not find expected vector layer', group: 'headless' });
             return;
@@ -35,61 +38,106 @@ export function useGeoJsonUploader(mapStore: any, props: any, drawGeoJson: Funct
             return;
         }
 
-        // Initial drawing
-        let drawExtent = drawGeoJson('fromFile', vectorSource, geoJsonData, color, true);
+        let combinedExtent: number[] | undefined;
+        let allCoords: SrRegion = [];
 
-        if (props.loadReqPoly) {
-            if (features.length > 1) {
-                toast.add({
-                    severity: 'error',
-                    summary: 'Multiple Features Warning',
-                    detail: 'Only one polygon feature is allowed for request input.',
-                    group: 'headless'
-                });
-                return;
-            }
+        for (let fIndex = 0; fIndex < features.length; fIndex++) {
+            const feature = features[fIndex];
+            const geometry = feature.geometry;
 
-            try {
-                const geometry = features[0].geometry;
-                const srRegion: SrRegion = extractSrRegionFromGeometry(geometry);
-                const polygonRings = geometry.coordinates[0]; // first polygon
+            if (!geometry) continue;
 
-                if(geometry.type === "MultiPolygon" && Array.isArray(polygonRings) && polygonRings[0].length > 1) {
+            if (geometry.type === 'Polygon') {
+                const srRegion = extractSrRegionFromGeometry(geometry);
+                if (srRegion.length >= 3) {
+                    allCoords.push(...srRegion);
+                    const extent = drawGeoJson(`polygon-${fIndex + 1}`, vectorSource, JSON.stringify({ type: 'Feature', geometry }), polyColor, false, `polygon-${fIndex + 1}`);
+                    if (extent) {
+                        combinedExtent = expandExtent(combinedExtent, extent);
+                    }
+                } else {
                     toast.add({
                         severity: 'warn',
-                        summary: 'MultiPolygon Warning',
-                        detail: 'Using first polygon of MultiPolygon for request input.',
+                        summary: 'Skipping Invalid Polygon',
+                        detail: `Polygon in feature ${fIndex + 1} has less than 3 points.`,
                         group: 'headless'
                     });
                 }
-                if (srRegion.length < 3) {
-                    toast.add({
-                        severity: 'error',
-                        summary: 'Convex Hull Error',
-                        detail: `Region requires at least 3 points, got ${srRegion.length}`,
-                        group: 'headless'
-                    });
-                    return;
-                } 
 
-                const { geoJson, label } = processConvexHull(srRegion);
-                drawExtent = drawGeoJson('convexHull', vectorSource, JSON.stringify(geoJson), 'rgba(255, 0, 0, 1)', false, label);
-                reqParamsStore.poly = reqParamsStore.convexHull;
-                return drawExtent;
+            } else if (geometry.type === 'MultiPolygon') {
+                const polygons = geometry.coordinates as number[][][][];
 
-            } catch (err: any) {
-                console.error('Convex hull error:', err);
+                for (let i = 0; i < polygons.length; i++) {
+                    const outerRing = polygons[i][0];
+                    if (Array.isArray(outerRing) && outerRing.length >= 3) {
+                        const srRegion: SrRegion = outerRing.map(coord => ({ lon: coord[0], lat: coord[1] }));
+                        allCoords.push(...srRegion);
+
+                        const polygonFeature = {
+                            type: 'Feature',
+                            geometry: {
+                                type: 'Polygon',
+                                coordinates: [outerRing]
+                            }
+                        };
+
+                        const extent = drawGeoJson(`multipolygon-${fIndex + 1}-${i + 1}`, vectorSource, JSON.stringify(polygonFeature), polyColor, false, `polygon-${fIndex + 1}-${i + 1}`);
+                        if (extent) {
+                            combinedExtent = expandExtent(combinedExtent, extent);
+                        }
+                    } else {
+                        toast.add({
+                            severity: 'warn',
+                            summary: 'Skipping Invalid MultiPolygon Part',
+                            detail: `MultiPolygon part ${i + 1} in feature ${fIndex + 1} has less than 3 points.`,
+                            group: 'headless'
+                        });
+                    }
+                }
+
+            } else {
                 toast.add({
-                    severity: 'error',
-                    summary: 'Geometry Error',
-                    detail: String(err),
+                    severity: 'warn',
+                    summary: 'Unsupported Geometry',
+                    detail: `Feature ${fIndex + 1} has unsupported geometry type: ${geometry.type}`,
                     group: 'headless'
                 });
             }
-        } else {
-            // Just add all features
-            return addGeoJsonToLayer(map, vectorSource, geoJsonData);
         }
+
+        // Now draw the combined convex hull in blue
+        if (allCoords.length >= 3) {
+            const { geoJson, label } = processConvexHull(allCoords);
+            const extent = drawGeoJson('combined-convexHull', vectorSource, JSON.stringify(geoJson), hullColor, false, `${label}-combined`);
+            if (extent) {
+                combinedExtent = expandExtent(combinedExtent, extent);
+            }
+
+            if (props.loadReqPoly) {
+                reqParamsStore.poly = reqParamsStore.convexHull;
+            }
+        } else {
+            toast.add({
+                severity: 'warn',
+                summary: 'Convex Hull Skipped',
+                detail: 'Not enough valid points to construct a convex hull.',
+                group: 'headless'
+            });
+        }
+
+        return combinedExtent;
+    }
+
+
+    // Utility to merge extents
+    function expandExtent(current: number[] | undefined, next: number[]): number[] {
+        if (!current) return next;
+        return [
+            Math.min(current[0], next[0]),
+            Math.min(current[1], next[1]),
+            Math.max(current[2], next[2]),
+            Math.max(current[3], next[3])
+        ];
     }
 
     async function handleUpload(event: FileUploadUploaderEvent) {
@@ -110,6 +158,7 @@ export function useGeoJsonUploader(mapStore: any, props: any, drawGeoJson: Funct
         };
 
         reader.onload = async (e) => {
+            const mapStore = useMapStore();
             const map = mapStore.getMap() as OLMapType;
             let drawExtent: number[] | undefined;
 

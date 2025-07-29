@@ -72,7 +72,7 @@ onMounted(async () => {
             :max="1.0"
             :decimalPlaces="4"
             tooltipText="The number of pixels to rasterize the polygon into"
-            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/GeoRaster.html#georaster"
+            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/basic_usage.html#rasterized-area-of-interest"
         />
         <SrCheckbox
             label="Ignore Poly for CMR"
