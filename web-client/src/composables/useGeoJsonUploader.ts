@@ -8,8 +8,15 @@ import VectorLayer from 'ol/layer/Vector';
 import type { FileUploadUploaderEvent } from 'primevue/fileupload';
 import { useMapStore } from '@/stores/mapStore';
 import { polyColor, hullColor, pointColor } from '@/types/SrTypes';
+import { load } from 'ol/Image';
 
-export function useGeoJsonUploader(props: any, drawGeoJson: Function, zoomOutToFullMap: Function, upload_progress: any, upload_progress_visible: any) {
+export function useGeoJsonUploader(
+    props: any, 
+    drawGeoJson: Function, 
+    zoomOutToFullMap: Function, 
+    upload_progress: any, 
+    upload_progress_visible: any,
+) {
     const toast = useToast();
     const geoJsonStore = useGeoJsonStore();
     const reqParamsStore = useReqParamsStore();
@@ -145,24 +152,31 @@ export function useGeoJsonUploader(props: any, drawGeoJson: Function, zoomOutToF
                 });
             }
         }
-
-        if (allCoords.length >= 3) {
-            const { geoJson, label } = processConvexHull(allCoords);
-            const extent = drawGeoJson('combined-convexHull', vectorSource, JSON.stringify(geoJson), hullColor, false, `${label}-combined`);
-            if (extent) {
-                combinedExtent = expandExtent(combinedExtent, extent);
+        if (props.loadReqPoly) {
+            if (allCoords.length >= 3) {
+                const { geoJson, label } = processConvexHull(allCoords);
+                const extent = drawGeoJson('combined-convexHull', vectorSource, JSON.stringify(geoJson), hullColor, false, `${label}-combined`);
+                if (extent) {
+                    combinedExtent = expandExtent(combinedExtent, extent);
+                }
+                console.log('useGeoJsonStore().getReqGeoJsonData():', useGeoJsonStore().getReqGeoJsonData());
+                console.log('useGeoJsonStore().reqHasPoly():', geoJsonStore.reqHasPoly());
+                console.log('useGeoJsonStore().reqParamsStore.poly BEFORE:', reqParamsStore.poly);
+                // If the uploaded GeoJSON has a valid polygon, we will use that.
+                // If not, we will use the convex hull as the request polygon.
+                // Only set reqParamsStore.poly if no valid polygon was uploaded 
+                if (useGeoJsonStore().getReqGeoJsonData() == null || !geoJsonStore.reqHasPoly()) {
+                    reqParamsStore.poly = reqParamsStore.convexHull;
+                }
+                console.log('useGeoJsonStore().reqParamsStore.poly AFTER:', reqParamsStore.poly);
+            } else {
+                toast.add({
+                    severity: 'warn',
+                    summary: 'Convex Hull Skipped',
+                    detail: 'Not enough valid points to construct a convex hull.',
+                    group: 'headless'
+                });
             }
-
-            if (props.loadReqPoly) {
-                reqParamsStore.poly = reqParamsStore.convexHull;
-            }
-        } else {
-            toast.add({
-                severity: 'warn',
-                summary: 'Convex Hull Skipped',
-                detail: 'Not enough valid points to construct a convex hull.',
-                group: 'headless'
-            });
         }
 
         return combinedExtent;
@@ -179,9 +193,10 @@ export function useGeoJsonUploader(props: any, drawGeoJson: Function, zoomOutToF
     }
 
     async function handleUpload(event: FileUploadUploaderEvent, isFeaturesUpload: boolean = false) {
+
         const files = Array.isArray(event.files) ? event.files : [event.files];
         const file = files[0];
-
+        console.log('handleUpload called with file:', file, 'isFeaturesUpload:', isFeaturesUpload);
         if (!file) {
             toast.add({ severity: 'error', summary: 'Upload Error', detail: 'No file provided', group: 'headless' });
             return;
@@ -206,6 +221,7 @@ export function useGeoJsonUploader(props: any, drawGeoJson: Function, zoomOutToF
                 }
 
                 const geoJsonData = JSON.parse(e.target.result);
+                console.log('Parsed GeoJSON data:', geoJsonData, isFeaturesUpload ? '(features upload)' : '(request upload)');
                 if(isFeaturesUpload){
                     geoJsonStore.setFeaturesGeoJsonData(geoJsonData);
                 } else {
@@ -240,8 +256,7 @@ export function useGeoJsonUploader(props: any, drawGeoJson: Function, zoomOutToF
                 if (e.lengthComputable) {
                     const percent = Math.round((e.loaded / e.total) * 100);
                     upload_progress.value = percent;
-                    if (!upload_progress_visible.value) {
-                        upload_progress_visible.value = true;
+                    if (upload_progress_visible.value) {
                         toast.add({ severity: 'info', summary: 'Upload Progress', detail: `${percent}%`, group: 'headless' });
                     }
                 }
@@ -250,10 +265,12 @@ export function useGeoJsonUploader(props: any, drawGeoJson: Function, zoomOutToF
     }
 
     async function handleReqUpload(event: FileUploadUploaderEvent) {
+        console.log('handleReqUpload called');
         handleUpload(event);
     }
 
     async function handleFeaturesUpload(event: FileUploadUploaderEvent) {
+        console.log('handleFeaturesUpload called');
         handleUpload(event, true);
     }
 

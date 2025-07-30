@@ -10,6 +10,7 @@ import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { type ApiName, isValidAPI,type SrMultiSelectNumberItem } from '@/types/SrTypes'
 import { type Icesat2ConfigYapc } from '@/types/slideruleDefaultsInterfaces'
 import { useSlideruleDefaults } from '@/stores/defaultsStore';
+import { useGeoJsonStore } from './geoJsonStore';
 import { useRasterParamsStore } from '@/stores/rasterParamsStore';
 import { 
   distanceInOptions,
@@ -21,6 +22,7 @@ import {
   OnOffOptions,
   geoLocationOptions,
 } from '@/types/SrStaticOptions';
+import { use } from 'echarts';
 
 interface YapcConfig {
   version: number;
@@ -485,6 +487,13 @@ const createReqParamsStore = (id: string) =>
           if(this.poly?.length && !this.ignorePolygon) {
             req.poly = this.poly;
           }
+          const geojsonStore = useGeoJsonStore();
+          console.log('getAtlReqParams: geojsonStore.getReqGeoJsonData():', geojsonStore.getReqGeoJsonData());
+          if(geojsonStore.getReqGeoJsonData() != null){
+            if(geojsonStore.reqHasPoly()) {
+              req.geojson = geojsonStore.getReqGeoJsonData();
+            }
+          }
           if(this.passInvalid) {
             req.pass_invalid = true;
           } else {
@@ -566,7 +575,7 @@ const createReqParamsStore = (id: string) =>
             req.yapc = yapc;
             //console.log('using req.yapc:',req.yapc)
           }
-          if (this.poly?.length && this.convexHull?.length) {
+          if (this.convexHull?.length) {
             req.cmr = { polygon: this.convexHull };
           }
 
@@ -1098,8 +1107,12 @@ const createReqParamsStore = (id: string) =>
           console.error('getCurAPIObj: mission not recognized or API not valid mission:', this.missionValue,'iceSat2API:', this.iceSat2SelectedAPI, 'gediAPI:', this.gediSelectedAPI);
           return null; // Explicitly return `null` instead of `''`
         },    
-        setConvexHull(convexHull: SrRegion) {
+        setConvexHull(convexHull: SrRegion|null) {
           this.convexHull = convexHull;
+          if(convexHull === null || convexHull.length === 0) {
+            this.areaOfConvexHull = 0;
+            return;
+          }
           this.areaOfConvexHull = calculatePolygonArea(convexHull);
         },
         getConvexHull(): SrRegion|null {
@@ -1159,7 +1172,7 @@ const createReqParamsStore = (id: string) =>
               this.setMinWindowHeight(3.0); // fallback default
             }
         },
-        setPoly(poly: SrRegion) {
+        setPoly(poly: SrRegion| null) {
           this.poly = poly;
         },
         // setCmr(cmr: { polygon: SrRegion }) {

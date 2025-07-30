@@ -6,6 +6,7 @@ import Button from 'primevue/button';
 import SrToast from 'primevue/toast';
 import { useGeoJsonUploader } from '@/composables/useGeoJsonUploader';
 import { drawGeoJson, zoomOutToFullMap } from '@/utils/SrMapUtils';
+import { load } from 'ol/Image';
 
 const props = defineProps({
     reportUploadProgress: {
@@ -30,7 +31,7 @@ const { handleReqUpload, handleFeaturesUpload } = useGeoJsonUploader(
     drawGeoJson,
     zoomOutToFullMap,
     upload_progress,
-    upload_progress_visible
+    upload_progress_visible,
 );
 
 const onSelect = (e: any) => {
@@ -67,19 +68,32 @@ const onClear = () => {
             </template>
         </SrToast>
         <div class="sr-file-upload">
-            <FileUpload mode="basic" 
-                        name="SrFileUploads[]" 
-                        :auto="true" 
-                        accept=".geojson,.json" 
-                        :maxFileSize="10000000000" 
-                        customUpload 
-                        :chooseLabel="label"
-                        @uploader="props.loadReqPoly ? handleReqUpload : handleFeaturesUpload"
-                        @select="onSelect"
-                        @error="onError"
-                        @clear="onClear"
+            <FileUpload v-if="props.loadReqPoly"
+                    mode="basic" 
+                    name="SrFileUploads[]" 
+                    :auto="true" 
+                    accept=".geojson,.json" 
+                    :maxFileSize="10000000000" 
+                    customUpload 
+                    :chooseLabel="label"
+                    @uploader="handleReqUpload"
+                    @select="onSelect"
+                    @error="onError"
+                    @clear="onClear"
             />
-    </div>
+            <FileUpload v-if="!props.loadReqPoly"
+                    mode="basic" 
+                    name="SrFileUploads[]" 
+                    :auto="true" 
+                    accept=".geojson,.json" 
+                    :maxFileSize="10000000000" 
+                    customUpload 
+                    :chooseLabel="label"
+                    @uploader="handleFeaturesUpload"
+                    @select="onSelect"
+                    @error="onError"
+                    @clear="onClear"
+            />    </div>
     </div>
 </template>
 

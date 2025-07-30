@@ -43,7 +43,7 @@ export function processConvexHull(region: SrRegion): { geoJson: any; label: stri
     const reqParamsStore = useReqParamsStore();
 
     const cleanRegion = isClockwise(region) ? region.slice().reverse() : region;
-    reqParamsStore.poly = cleanRegion;
+    //reqParamsStore.setPoly(cleanRegion);
 
     const hull: SrLonLatPoint[] = convexHull(cleanRegion);
     reqParamsStore.setConvexHull(hull);

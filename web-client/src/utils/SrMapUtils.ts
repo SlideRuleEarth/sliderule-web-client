@@ -62,7 +62,7 @@ type ScatterplotLayerProps = ConstructorParameters<typeof ScatterplotLayer>[0];
 
 export const polyCoordsExist = computed(() => {
     let exist = false;
-    if(useGeoJsonStore().reqGeoJsonData){
+    if(useGeoJsonStore().getReqGeoJsonData()){
         //console.log('useGeoJsonStore().geoJsonData:',useGeoJsonStore().geoJsonData);
         exist = true;
     } else if (useMapStore().polyCoords.length > 0) {
@@ -76,8 +76,8 @@ export const polyCoordsExist = computed(() => {
 });
 export const clearPolyCoords = () => {
     useMapStore().polyCoords = [];
-    if(useGeoJsonStore().reqGeoJsonData){
-        useGeoJsonStore().reqGeoJsonData = null;
+    if(useGeoJsonStore().getReqGeoJsonData()){
+        useGeoJsonStore().setReqGeoJsonData(null);
     }
 }
 export function extractCoordinates(geometry: any): Coordinate[] {
@@ -671,28 +671,29 @@ export function checkAreaOfConvexHullWarning(): boolean {
     return true;
 }
 
-export function checkAreaOfConvexHullError(): boolean {
+export function checkAreaOfConvexHullError(): {ok: boolean, msg?: string} {
     const currentApi = useReqParamsStore().getCurAPIObj();
     if (useReqParamsStore().getUseRgt()){
-        console.warn('checkAreaOfConvexHullError: useRGT is true skipping check');
-        return true;//TBD HACK ALERT make this check better
+        const msg = 'checkAreaOfConvexHullError: useRGT is true skipping check';
+        console.warn(msg);
+        return {ok: true, msg: msg};
     }
     if(currentApi){
         const limit = useAreaThresholdsStore().getAreaErrorThreshold(currentApi)
         //console.log('checkAreaOfConvexHullError area:',limit);
         if(useReqParamsStore().getAreaOfConvexHull() > limit){
-            const msg = `The area of the convex hull is too large (${useReqParamsStore().getFormattedAreaOfConvexHull()}).\n Please zoom in and then select a smaller area  < ${useAreaThresholdsStore().getAreaErrorThreshold(currentApi)} km²).`;
+            const msg = `The area of the convex hull is too large (${useReqParamsStore().getFormattedAreaOfConvexHull()}).\n Please zoom in and then select a smaller area  < ${limit} km²).`;
             if(!useAdvancedModeStore().getAdvanced()){
                 useSrToastStore().error('Error',msg);
             } else {
                 //console.log('checkAreaOfConvexHullError: Advanced mode is enabled. '+msg);
             }
-            return false;
+            return {ok: false, msg: msg};
         }
     } else {
         console.error('checkAreaOfConvexHullError: currentApi is null');
     }
-    return true;
+    return {ok: true, msg: 'Size is acceptable'};
 }
 
 export function dumpMapLayers(map: OLMap, tag:string=''): void {

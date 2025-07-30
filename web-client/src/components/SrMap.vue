@@ -32,7 +32,7 @@
     import { useReqParamsStore } from "@/stores/reqParamsStore";
     import { convexHull, isClockwise } from "@/composables/SrTurfUtils";
     import { type Coordinate } from "ol/coordinate";
-    import { polyColor,hullColor, type SrRegion } from '@/types/SrTypes'
+    import { hullColor, type SrRegion } from '@/types/SrTypes'
     import { format } from 'ol/coordinate';
     import SrViewControl from "./SrViewControl.vue";
     import SrBaseLayerControl from "./SrBaseLayerControl.vue";
@@ -231,7 +231,7 @@
             { "lat": topRight[1], "lon": topRight[0] },
             { "lat": topLeft[1], "lon": topLeft[0] } // close the loop by repeating the first point
         ];
-        reqParamsStore.poly = poly;
+        reqParamsStore.setPoly(poly);
         //console.log("Poly:", poly);
         reqParamsStore.setConvexHull(convexHull(poly));
         const tag = reqParamsStore.getFormattedAreaOfConvexHull();
@@ -353,10 +353,10 @@
                     }));
                     if(isClockwise(srLonLatCoordinates)){
                         //console.log('poly is clockwise, reversing');
-                        reqParamsStore.poly = srLonLatCoordinates.reverse();
+                        reqParamsStore.setPoly(srLonLatCoordinates.reverse());
                     } else {
                         ////console.log('poly is counter-clockwise');
-                        reqParamsStore.poly = srLonLatCoordinates;
+                        reqParamsStore.setPoly(srLonLatCoordinates);
                     }
                     //console.log('reqParamsStore.poly:',reqParamsStore.poly);
 
@@ -443,7 +443,7 @@
                     vectorSource.clear();
                     cleared = true;
                     reqParamsStore.poly = [];
-                    reqParamsStore.convexHull = [];
+                    reqParamsStore.setConvexHull([]);
                 } else {
                     //console.log("clearDrawingLayer vectorSource has no features:",vectorSource);
                 }
