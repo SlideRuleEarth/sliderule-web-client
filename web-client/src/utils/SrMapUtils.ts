@@ -11,7 +11,7 @@ import type OLMap from "ol/Map.js";
 import { unByKey } from 'ol/Observable';
 import type { EventsKey } from 'ol/events';
 import type { ExtHMean } from '@/workers/workerUtils';
-import { Style, Fill, Stroke } from 'ol/style';
+import { Style, Icon, Fill, Stroke, Circle as CircleStyle } from 'ol/style';
 import { getSpotNumber,getGtsForSpotsAndScOrients } from '@/utils/spotUtils';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
@@ -51,11 +51,11 @@ import { boundingExtent } from 'ol/extent';
 import type { Geometry } from 'ol/geom';
 import type { Extent } from 'ol/extent';
 import type { SrLatLon } from '@/types/SrTypes';
-import Point from 'ol/geom/Point';
-import { Circle as CircleStyle } from 'ol/style';
 import type { FeatureLike } from 'ol/Feature';
 import getZoom  from 'ol/View'; // Utility function, or use map.getView().getZoom()
 import VectorLayer from 'ol/layer/Vector';
+import Point from 'ol/geom/Point';
+import Overlay from 'ol/Overlay';
 
 // This grabs the constructor’s first parameter type
 type ScatterplotLayerProps = ConstructorParameters<typeof ScatterplotLayer>[0];
@@ -109,8 +109,8 @@ export function drawGeoJson(
     tag: string = '',
     dataProjection: string = 'EPSG:4326'
 ): Extent | undefined {
-    console.log(`drawGeoJson: uniqueId=${uniqueId}, color=${color}, noFill=${noFill}, tag=${tag}, dataProjection=${dataProjection}`);
-    
+    //console.log(`drawGeoJson: uniqueId=${uniqueId}, geoJsonData=${geoJsonData}, color=${color}, noFill=${noFill}, tag=${tag}, dataProjection=${dataProjection}`);
+
     const map = useMapStore().map;
     if (!map || !vectorSource || !geoJsonData) return;
 
@@ -120,7 +120,7 @@ export function drawGeoJson(
 
     const format = new GeoJSON();
     let features: Feature[] = [];
-
+    //console.log('drawGeoJson: Parsing GeoJSON data:', geoJsonString);
     try {
         features = format.readFeatures(geoJsonString, {
             dataProjection,
@@ -130,16 +130,79 @@ export function drawGeoJson(
         console.error('Failed to parse GeoJSON:', e);
         return;
     }
-
-    const style = new Style({
-        stroke: new Stroke({ color, width: 2 }),
-        fill: noFill ? undefined : new Fill({ color: color.replace(/, *1\)$/, ', 0.1)') }) // semi-transparent fill
-    });
-
+    //console.log(`drawGeoJson: Parsed ${features.length} features from GeoJSON.`);
     features.forEach((feature, i) => {
         feature.setId(`feature-${uniqueId}-${i}`);
-        feature.setStyle(style);
         feature.set('tag', tag || uniqueId);
+        //console.log(`drawGeoJson: Processing feature ${i} with id ${feature.getId()}`);
+
+        const geometry = feature.getGeometry();
+        const props = feature.getProperties();
+        const isPoint = geometry?.getType() === 'Point';
+        console.log(`drawGeoJson: Feature geometry type: ${geometry?.getType()} props:`, props);
+        if (isPoint) {
+            const coord = (geometry as Point).getCoordinates();
+            const markerSymbol = props['marker-symbol'];
+            const markerColor = props['marker-color'] || color;
+
+            // Fallback circle style
+            const fallbackStyle = new Style({
+                image: new CircleStyle({
+                    radius: 6,
+                    fill: new Fill({ color: markerColor }),
+                    stroke: new Stroke({ color: '#fff', width: 1 })
+                })
+            });
+
+            if (markerSymbol) {
+                const iconUrl = `/icons/${markerSymbol}.png`;
+
+                // Optimistically apply icon style (browser will cache/miss it)
+                const img = new Image();
+                img.onload = () => {
+                    feature.setStyle(new Style({
+                        image: new Icon({
+                            anchor: [0.5, 1],
+                            src: `/icons/${markerSymbol}.png`,  // ✅ public-relative path
+                            scale: 1,
+                            crossOrigin: 'anonymous',
+                        }),
+                    }));
+                };
+                img.onerror = () => {
+                    console.warn(`⚠️ Missing icon: ${iconUrl}`);
+                    feature.setStyle(fallbackStyle);
+                };
+                img.src = iconUrl;
+            } else {
+                feature.setStyle(fallbackStyle);
+            }
+
+            // Add label overlay
+            const label = props.name || props.title;
+            if (label && map) {
+                const el = document.createElement('div');
+                el.className = 'ol-marker-label';
+                el.innerText = label;
+
+                const overlay = new Overlay({
+                    element: el,
+                    position: coord,
+                    positioning: 'bottom-center',
+                    stopEvent: false,
+                    offset: [0, -18]
+                });
+
+                map.addOverlay(overlay);
+            }
+
+        } else {
+            const style = new Style({
+                stroke: new Stroke({ color, width: 2 }),
+                fill: noFill ? undefined : new Fill({ color: color.replace(/, *1\)$/, ', 0.1)') }),
+            });
+            feature.setStyle(style);
+        }
     });
 
     vectorSource.addFeatures(features);

@@ -1339,5 +1339,18 @@
     display: none;
 }
 
+.ol-marker-label {
+    background: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #333;
+    white-space: nowrap;
+    border: 1px solid #ccc;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+    pointer-events: none;
+}
+
+
 
 </style>

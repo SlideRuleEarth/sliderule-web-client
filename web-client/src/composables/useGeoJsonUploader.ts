@@ -8,7 +8,7 @@ import VectorLayer from 'ol/layer/Vector';
 import type { FileUploadUploaderEvent } from 'primevue/fileupload';
 import { useMapStore } from '@/stores/mapStore';
 
-export function useGeoJsonUploader( props: any, drawGeoJson: Function, zoomOutToFullMap: Function, upload_progress: any, upload_progress_visible: any) {
+export function useGeoJsonUploader(props: any, drawGeoJson: Function, zoomOutToFullMap: Function, upload_progress: any, upload_progress_visible: any) {
     const toast = useToast();
     const geoJsonStore = useGeoJsonStore();
     const reqParamsStore = useReqParamsStore();
@@ -26,6 +26,7 @@ export function useGeoJsonUploader( props: any, drawGeoJson: Function, zoomOutTo
 
         const polyColor = 'rgba(255, 0, 0, 1)';   // red
         const hullColor = 'rgba(0, 0, 255, 1)';   // blue
+        const pointColor = 'rgba(0, 200, 0, 1)';  // green
 
         if (!vectorLayer || !(vectorLayer instanceof VectorLayer)) {
             toast.add({ severity: 'error', summary: 'Layer Error', detail: 'Could not find expected vector layer', group: 'headless' });
@@ -44,6 +45,8 @@ export function useGeoJsonUploader( props: any, drawGeoJson: Function, zoomOutTo
         for (let fIndex = 0; fIndex < features.length; fIndex++) {
             const feature = features[fIndex];
             const geometry = feature.geometry;
+            const properties = feature.properties || {};
+            //console.log(`Processing feature ${fIndex + 1}/${features.length} with geometry: ${geometry ? JSON.stringify(geometry) : 'undefined'} and properties: ${JSON.stringify(properties)}`);
 
             if (!geometry) continue;
 
@@ -51,7 +54,7 @@ export function useGeoJsonUploader( props: any, drawGeoJson: Function, zoomOutTo
                 const srRegion = extractSrRegionFromGeometry(geometry);
                 if (srRegion.length >= 3) {
                     allCoords.push(...srRegion);
-                    const extent = drawGeoJson(`polygon-${fIndex + 1}`, vectorSource, JSON.stringify({ type: 'Feature', geometry }), polyColor, false, `polygon-${fIndex + 1}`);
+                    const extent = drawGeoJson(`polygon-${fIndex + 1}`, vectorSource, JSON.stringify({ type: 'Feature', geometry, properties }), polyColor, false, `polygon-${fIndex + 1}`);
                     if (extent) {
                         combinedExtent = expandExtent(combinedExtent, extent);
                     }
@@ -78,7 +81,8 @@ export function useGeoJsonUploader( props: any, drawGeoJson: Function, zoomOutTo
                             geometry: {
                                 type: 'Polygon',
                                 coordinates: [outerRing]
-                            }
+                            },
+                            properties
                         };
 
                         const extent = drawGeoJson(`multipolygon-${fIndex + 1}-${i + 1}`, vectorSource, JSON.stringify(polygonFeature), polyColor, false, `polygon-${fIndex + 1}-${i + 1}`);
@@ -95,6 +99,45 @@ export function useGeoJsonUploader( props: any, drawGeoJson: Function, zoomOutTo
                     }
                 }
 
+            } else if (geometry.type === 'Point') {
+                const coord = geometry.coordinates;
+                allCoords.push({ lon: coord[0], lat: coord[1] });
+
+                const pointFeature = {
+                    type: 'Feature',
+                    geometry: {
+                        type: 'Point',
+                        coordinates: coord
+                    },
+                    properties
+                };
+
+                const extent = drawGeoJson(`point-${fIndex + 1}`, vectorSource, JSON.stringify(pointFeature), pointColor, false, `point-${fIndex + 1}`);
+                if (extent) {
+                    combinedExtent = expandExtent(combinedExtent, extent);
+                }
+
+            } else if (geometry.type === 'MultiPoint') {
+                const coords = geometry.coordinates;
+                for (let i = 0; i < coords.length; i++) {
+                    const coord = coords[i];
+                    allCoords.push({ lon: coord[0], lat: coord[1] });
+
+                    const pointFeature = {
+                        type: 'Feature',
+                        geometry: {
+                            type: 'Point',
+                            coordinates: coord
+                        },
+                        properties
+                    };
+
+                    const extent = drawGeoJson(`multipoint-${fIndex + 1}-${i + 1}`, vectorSource, JSON.stringify(pointFeature), pointColor, false, `point-${fIndex + 1}-${i + 1}`);
+                    if (extent) {
+                        combinedExtent = expandExtent(combinedExtent, extent);
+                    }
+                }
+
             } else {
                 toast.add({
                     severity: 'warn',
@@ -105,7 +148,6 @@ export function useGeoJsonUploader( props: any, drawGeoJson: Function, zoomOutTo
             }
         }
 
-        // Now draw the combined convex hull in blue
         if (allCoords.length >= 3) {
             const { geoJson, label } = processConvexHull(allCoords);
             const extent = drawGeoJson('combined-convexHull', vectorSource, JSON.stringify(geoJson), hullColor, false, `${label}-combined`);
@@ -128,8 +170,6 @@ export function useGeoJsonUploader( props: any, drawGeoJson: Function, zoomOutTo
         return combinedExtent;
     }
 
-
-    // Utility to merge extents
     function expandExtent(current: number[] | undefined, next: number[]): number[] {
         if (!current) return next;
         return [
