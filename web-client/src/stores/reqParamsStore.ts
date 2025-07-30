@@ -39,7 +39,7 @@ export function getDefaultReqParamsState(): SrReqParamsState {
       asset: 'icesat2',
       isArrowStream: false,
       isFeatherStream: false,
-      rasterizePolyCellSize: 0.001,
+      rasterizePolyCellSize: 0.01,
       ignorePolygon: false,
       poly: null as SrRegion | null,
       convexHull: null as SrRegion | null,
@@ -1162,9 +1162,9 @@ const createReqParamsStore = (id: string) =>
         setPoly(poly: SrRegion) {
           this.poly = poly;
         },
-        setCmr(cmr: { polygon: SrRegion }) {
-          this.poly = cmr.polygon;
-        },
+        // setCmr(cmr: { polygon: SrRegion }) {
+        //   this.poly = cmr.polygon;
+        // },
         dropPin(coord: number[]) {
           this.useAtl13Point = true;
           this.atl13.coord = {lon:coord[0],lat:coord[1]}; 

@@ -2,11 +2,15 @@ import { defineStore } from 'pinia';
 
 export const useGeoJsonStore = defineStore('geoJson', {
   state: () => ({
-    geoJsonData: null,
+    reqGeoJsonData: null,
+    featuresGeoJsonData: null,
   }),
   actions: {
-    setGeoJsonData(data: any) {
-      this.geoJsonData = data;
+    setReqGeoJsonData(data: any) {
+      this.reqGeoJsonData = data;
+    },
+    setFeaturesGeoJsonData(data: any) {
+      this.featuresGeoJsonData = data;
     },
   },
 });

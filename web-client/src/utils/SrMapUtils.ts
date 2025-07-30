@@ -62,7 +62,7 @@ type ScatterplotLayerProps = ConstructorParameters<typeof ScatterplotLayer>[0];
 
 export const polyCoordsExist = computed(() => {
     let exist = false;
-    if(useGeoJsonStore().geoJsonData){
+    if(useGeoJsonStore().reqGeoJsonData){
         //console.log('useGeoJsonStore().geoJsonData:',useGeoJsonStore().geoJsonData);
         exist = true;
     } else if (useMapStore().polyCoords.length > 0) {
@@ -76,8 +76,8 @@ export const polyCoordsExist = computed(() => {
 });
 export const clearPolyCoords = () => {
     useMapStore().polyCoords = [];
-    if(useGeoJsonStore().geoJsonData){
-        useGeoJsonStore().geoJsonData = null;
+    if(useGeoJsonStore().reqGeoJsonData){
+        useGeoJsonStore().reqGeoJsonData = null;
     }
 }
 export function extractCoordinates(geometry: any): Coordinate[] {
@@ -197,6 +197,7 @@ export function drawGeoJson(
             }
 
         } else {
+            console.log(`drawGeoJson: Setting style for non-point feature with color ${color} and noFill=${noFill}`);
             const style = new Style({
                 stroke: new Stroke({ color, width: 2 }),
                 fill: noFill ? undefined : new Fill({ color: color.replace(/, *1\)$/, ', 0.1)') }),

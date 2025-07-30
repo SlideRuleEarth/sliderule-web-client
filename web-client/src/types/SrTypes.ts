@@ -207,3 +207,6 @@ export interface NullReqParams {
   
 export type ReqParams = AtlReqParams | AtlxxReqParams | NullReqParams;
 export type SrLonLatPoint = { lon: number; lat: number };
+export const polyColor = 'rgba(255, 0, 0, 1)';   // red
+export const hullColor = 'rgba(0, 0, 255, 1)';   // blue
+export const pointColor = 'rgba(0, 200, 0, 1)';  // green

@@ -60,6 +60,7 @@ onMounted(async () => {
         <SrGeoJsonFileUpload
             v-if="mapStore.polygonSource==='GeoJSON File'"
             :loadReqPoly="true"
+            :reportUploadProgress="true"
         />
         <SrSliderInput
             v-if="mapStore.polygonSource==='GeoJSON File'"
@@ -149,7 +150,9 @@ onMounted(async () => {
         </Fieldset>
         <div class="sr-upload-geojson-container">
             <label class="sr-gj-label">{{ "Upload GeoJSON map features" }}</label>
-            <SrGeoJsonFileUpload/>
+            <SrGeoJsonFileUpload 
+                :reportUploadProgress="true"
+            />
         </div>
         <div class="sr-upload-shapefile-container">
             <label class="sr-gj-label">{{ "Upload Shapefile map features" }}</label>

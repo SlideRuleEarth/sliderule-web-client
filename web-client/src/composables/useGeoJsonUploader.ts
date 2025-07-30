@@ -7,6 +7,7 @@ import type { SrRegion } from '@/types/SrTypes';
 import VectorLayer from 'ol/layer/Vector';
 import type { FileUploadUploaderEvent } from 'primevue/fileupload';
 import { useMapStore } from '@/stores/mapStore';
+import { polyColor, hullColor, pointColor } from '@/types/SrTypes';
 
 export function useGeoJsonUploader(props: any, drawGeoJson: Function, zoomOutToFullMap: Function, upload_progress: any, upload_progress_visible: any) {
     const toast = useToast();
@@ -24,9 +25,6 @@ export function useGeoJsonUploader(props: any, drawGeoJson: Function, zoomOutToF
             layer.get('name') === (props.loadReqPoly ? 'Drawing Layer' : 'Uploaded Features')
         );
 
-        const polyColor = 'rgba(255, 0, 0, 1)';   // red
-        const hullColor = 'rgba(0, 0, 255, 1)';   // blue
-        const pointColor = 'rgba(0, 200, 0, 1)';  // green
 
         if (!vectorLayer || !(vectorLayer instanceof VectorLayer)) {
             toast.add({ severity: 'error', summary: 'Layer Error', detail: 'Could not find expected vector layer', group: 'headless' });
@@ -180,7 +178,7 @@ export function useGeoJsonUploader(props: any, drawGeoJson: Function, zoomOutToF
         ];
     }
 
-    async function handleUpload(event: FileUploadUploaderEvent) {
+    async function handleUpload(event: FileUploadUploaderEvent, isFeaturesUpload: boolean = false) {
         const files = Array.isArray(event.files) ? event.files : [event.files];
         const file = files[0];
 
@@ -208,7 +206,11 @@ export function useGeoJsonUploader(props: any, drawGeoJson: Function, zoomOutToF
                 }
 
                 const geoJsonData = JSON.parse(e.target.result);
-                geoJsonStore.setGeoJsonData(geoJsonData);
+                if(isFeaturesUpload){
+                    geoJsonStore.setFeaturesGeoJsonData(geoJsonData);
+                } else {
+                    geoJsonStore.setReqGeoJsonData(geoJsonData);
+                }
 
                 drawExtent = await handleGeoJsonLoad(map, geoJsonData);
             } catch (err: any) {
@@ -247,5 +249,14 @@ export function useGeoJsonUploader(props: any, drawGeoJson: Function, zoomOutToF
         }
     }
 
-    return { handleUpload };
+    async function handleReqUpload(event: FileUploadUploaderEvent) {
+        handleUpload(event);
+    }
+
+    async function handleFeaturesUpload(event: FileUploadUploaderEvent) {
+        handleUpload(event, true);
+    }
+
+
+    return { handleReqUpload, handleFeaturesUpload };
 }

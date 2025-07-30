@@ -32,7 +32,7 @@
     import { useReqParamsStore } from "@/stores/reqParamsStore";
     import { convexHull, isClockwise } from "@/composables/SrTurfUtils";
     import { type Coordinate } from "ol/coordinate";
-    import type { SrRegion } from '@/types/SrTypes'
+    import { polyColor,hullColor, type SrRegion } from '@/types/SrTypes'
     import { format } from 'ol/coordinate';
     import SrViewControl from "./SrViewControl.vue";
     import SrBaseLayerControl from "./SrBaseLayerControl.vue";
@@ -383,7 +383,7 @@
                             console.error("Error:map is null");
                         }
                         //console.log('GeoJSON:', JSON.stringify(geoJson));
-                        const drawExtent = drawGeoJson('userDrawn',vectorSource, JSON.stringify(geoJson), 'red', false, tag );
+                        const drawExtent = drawGeoJson('userDrawn',vectorSource, JSON.stringify(geoJson), hullColor, false, tag );
                         if (map && drawExtent) {
                             const [minX, minY, maxX, maxY] = drawExtent;
                             const isZeroArea = minX === maxX || minY === maxY;
@@ -403,7 +403,7 @@
                         //console.log("drawExtent in projName:",drawExtent.map(coord => toLonLat(coord,projName)));
                         //console.log("drawExtent in projName:",drawExtent.map(coord => toLonLat(coord,projName)));
                         //console.log("reqParamsStore.poly:",reqParamsStore.poly);
-                    reqParamsStore.poly = thisConvexHull;
+                        reqParamsStore.poly = thisConvexHull;
                         checkAreaOfConvexHullWarning(); 
                     } else {
                         console.error("Error:convexHull is null");

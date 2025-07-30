@@ -25,7 +25,7 @@ const props = defineProps({
 const upload_progress = ref(0);
 const upload_progress_visible = ref(false);
 
-const { handleUpload } = useGeoJsonUploader(
+const { handleReqUpload, handleFeaturesUpload } = useGeoJsonUploader(
     props,
     drawGeoJson,
     zoomOutToFullMap,
@@ -74,7 +74,7 @@ const onClear = () => {
                         :maxFileSize="10000000000" 
                         customUpload 
                         :chooseLabel="label"
-                        @uploader="handleUpload"
+                        @uploader="props.loadReqPoly ? handleReqUpload : handleFeaturesUpload"
                         @select="onSelect"
                         @error="onError"
                         @clear="onClear"

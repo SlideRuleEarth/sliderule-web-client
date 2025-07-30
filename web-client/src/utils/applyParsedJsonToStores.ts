@@ -130,9 +130,8 @@ export function applyParsedJsonToStores(
 
     if (data.atl24) {
         store.enableAtl24Classification = true;
-        if (data.atl24.class_ph) store.atl24_class_ph = data.atl24.class_ph;
         if (data.atl24.compact !== undefined) store.useAtl24Compact = true, store.atl24Compact = data.atl24.compact;
-        if (data.atl24.classification !== undefined) store.useAtl24Classification = true, store.atl24Classification = data.atl24.classification;
+        if (data.atl24.classification !== undefined) store.useAtl24Classification = true, store.atl24_class_ph = data.atl24.classification;
         if (data.atl24.confidence_threshold !== undefined) store.useAtl24ConfidenceThreshold = true, store.atl24ConfidenceThreshold = data.atl24.confidence_threshold;
         if (data.atl24.invalid_kd !== undefined) store.useAtl24InvalidKD = true, store.atl24InvalidKD = data.atl24.invalid_kd;
         if (data.atl24.invalid_wind_speed !== undefined) store.useAtl24InvalidWindspeed = true, store.atl24InvalidWindspeed = data.atl24.invalid_wind_speed;
