@@ -56,6 +56,7 @@ To run this web client locally, follow the instructions below.
 This project uses a variety of open source libraries to enhance functionality. Below is a list of key packages used:
 
 - **Vue.js 3** - Frontend framework for building interactive web apps.
+- **Vite** – Next-generation frontend build tool that provides fast development and optimized production builds.
 - **PrimeVue** - UI component library for Vue.js.
 - **ECharts** - Charting library for creating data visualizations.
 - **OpenLayers** - High-performance library for displaying and interacting with map data.
