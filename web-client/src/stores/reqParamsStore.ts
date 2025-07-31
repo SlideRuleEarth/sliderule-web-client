@@ -491,7 +491,10 @@ const createReqParamsStore = (id: string) =>
           console.log('getAtlReqParams: geojsonStore.getReqGeoJsonData():', geojsonStore.getReqGeoJsonData());
           if(geojsonStore.getReqGeoJsonData() != null){
             if(geojsonStore.reqHasPoly()) {
-              req.geojson = geojsonStore.getReqGeoJsonData();
+              req.region_mask = {
+                  geojson: JSON.stringify(geojsonStore.getReqGeoJsonData()),
+                  cellsize: this.getRasterizePolyCellSize(),
+              };
             }
           }
           if(this.passInvalid) {

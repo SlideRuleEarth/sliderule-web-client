@@ -603,6 +603,7 @@ export async function duckDbLoadOpfsParquetFile(fileName: string): Promise<any> 
         const endTime = performance.now(); // End time
         console.log(`duckDbLoadOpfsParquetFile took ${endTime - startTime} milliseconds.`);
     }
+    console.log('duckDbLoadOpfsParquetFile serverReq:', serverReq);
     return serverReq;   
 }
 

@@ -90,7 +90,7 @@ export async function atlxx(func:string,atlxxReqParams: AtlxxReqParams, callback
     try {
         let sanityCheck = false;
         const hasFilter = (atlxxReqParams.parms.rgt && (atlxxReqParams.parms.cycle || atlxxReqParams.parms.region || (atlxxReqParams.parms.t0 && atlxxReqParams.parms.t1)));
-        const hasPolygon = (atlxxReqParams.parms.poly && atlxxReqParams.parms.poly.length > 0) || (atlxxReqParams.parms.geojson.feature.geometry);
+        const hasPolygon = (atlxxReqParams.parms.poly && atlxxReqParams.parms.poly.length > 0) || (atlxxReqParams.parms.region_mask);
         if(func.includes('atl13')){
             const hasMapPin = atlxxReqParams.parms.atl13?.coord && atlxxReqParams.parms.atl13?.coord?.lon && atlxxReqParams.parms.atl13?.coord?.lat;
             sanityCheck = (hasMapPin || hasPolygon );
