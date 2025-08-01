@@ -567,17 +567,21 @@
             shx: '/shapefiles/ATL24_Mask_v5.shx'
         };
 
-       
-
-        const { features, warning } = await readShapefileToOlFeatures(bathyFiles);
-        defaultBathymetryFeatures.value = features;
-        if (warning) {
-            toast.add({
-                severity: 'warn',
-                summary: 'Projection Warning',
-                detail: warning,
-                life: 8000,
-            });
+        const map = mapRef.value?.map;
+        if(map){
+            const map_projection = map.getView().getProjection().getCode(); // e.g. 'EPSG:3857'
+            const { features, warning } = await readShapefileToOlFeatures(map_projection,bathyFiles);
+            defaultBathymetryFeatures.value = features;
+            if (warning) {
+                toast.add({
+                    severity: 'warn',
+                    summary: 'Projection Warning',
+                    detail: warning,
+                    life: 8000,
+                });
+            }
+        } else {
+            console.error('Map is not defined, cannot load bathymetry features');
         }
         if (defaultBathymetryFeatures.value?.length) {
             loadBathymetryFeatures(defaultBathymetryFeatures.value);

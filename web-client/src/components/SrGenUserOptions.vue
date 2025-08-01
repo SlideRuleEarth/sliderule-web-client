@@ -10,37 +10,77 @@ import Fieldset from 'primevue/fieldset';
 import Button from 'primevue/button';
 import { useMapStore } from '@/stores/mapStore';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
-import { onMounted } from 'vue';
+import { onMounted, watchEffect } from 'vue';
 import type { Feature as OLFeature } from "ol";
 import type { Geometry } from "ol/geom";
 import { Map as OLMapType} from "ol";
-import { Layer as OLlayer } from 'ol/layer';
+import { boundingExtent } from 'ol/extent';
+import { useMapProjection } from '@/composables/useMapProjection';
+import { Style, Fill, Stroke } from 'ol/style';
+import VectorLayer from 'ol/layer/Vector';
+import { logFeatureSummary } from '@/utils/logFeatureSummary';
 
 
-
+const mapProjection = useMapProjection();
 const mapStore = useMapStore();
 const reqParamsStore = useReqParamsStore();
 
+const defaultStyle = new Style({
+    fill: new Fill({ color: 'rgba(255, 0, 0, 0.2)' }),
+    stroke: new Stroke({ color: 'red', width: 2 }),
+});
 
 function onShapefileFeatures(features: OLFeature<Geometry>[]) {
+    console.log(`Received ${features.length} shapefile features`);
+    features.forEach((f, i) => logFeatureSummary(f, i));
 
     const map = mapStore.getMap() as OLMapType;
+    let extent;
     if (map) {
-        const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === 'Uploaded Features');
-        if(vectorLayer && vectorLayer instanceof OLlayer){
+        const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === 'Uploaded Features') ;
+        if(vectorLayer && vectorLayer instanceof VectorLayer){
+            if (!vectorLayer.getStyle()) {
+                console.log('Setting default style for uploaded features layer!');
+                vectorLayer.setStyle(defaultStyle);
+            }
             const vectorSource = vectorLayer.getSource();
             if(vectorSource){
+                console.log(`Adding ${features.length} features to vector layer`);
                 vectorSource.addFeatures(features);
             }
         } else {
             console.error('Vector layer not found or is not a VectorLayer');
             // Handle the case where the vector layer is not found or is not a VectorLayer
         }
+        const validGeometries = features
+            .map(f => f.getGeometry())
+            .filter((g): g is Geometry => g !== undefined);
+
+        if (validGeometries.length > 0) {
+            extent = boundingExtent(validGeometries.map(g => g.getExtent()));
+            map.getView().fit(extent, { padding: [20, 20, 20, 20], maxZoom: 16 });
+        }
+        if (!extent) {
+            console.warn('No valid geometries found in shapefile features to compute extent.');
+            return;
+        }        
+        map.getView().fit(extent, { padding: [20, 20, 20, 20], maxZoom: 16 });
+    } else {
+        console.error('Map instance not found in mapStore');
+        // Handle the case where the map is not available   
     }
 }
+
 onMounted(async () => {
     // Initialize any required state or fetch data if needed
     await reqParamsStore.restoreTimeouts();
+    console.log('SrGenUserOptions mounted, map projection:', mapProjection.value);
+});
+
+watchEffect(() => {
+    const map = mapStore.getMap();
+    const code = map?.getView().getProjection().getCode();
+    if (code) mapProjection.value = code;
 });
 
 </script>
@@ -156,7 +196,10 @@ onMounted(async () => {
         </div>
         <div class="sr-upload-shapefile-container">
             <label class="sr-gj-label">{{ "Upload Shapefile map features" }}</label>
-            <SrShapefileUpload @features="onShapefileFeatures"/>
+            <SrShapefileUpload 
+                :map_projection="mapProjection"
+                @features="onShapefileFeatures"
+            />
         </div>
      </div>  
 </template>

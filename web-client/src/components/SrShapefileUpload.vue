@@ -43,11 +43,15 @@ import type { Feature as OLFeature } from "ol";
 import type { Geometry } from "ol/geom";
 import { readShapefileToOlFeatures } from "@/composables/useReadShapefile";
 import { useToast } from "primevue/usetoast";
+import { logFeatureSummary } from '@/utils/logFeatureSummary';
 
 const toast = useToast();
 
 const emit = defineEmits<{
     (e: "features", features: OLFeature<Geometry>[]): void;
+}>();
+const props = defineProps<{
+    map_projection?: string; // optional, fallback to EPSG:3857 if undefined
 }>();
 
 const showDialog = ref(false);
@@ -64,15 +68,19 @@ const onFilesSelected = async (event: Event) => {
             ? singleFile
             : files;
 
-        const { features, warning, detectedProjection } = await readShapefileToOlFeatures(input);
+        const mapProjection = props.map_projection ?? "EPSG:3857";
+
+        const { features, warning, detectedProjection } = await readShapefileToOlFeatures(mapProjection, input);
+        features.forEach((f, i) => logFeatureSummary(f, i));
 
         if (detectedProjection) {
             toast.add({
                 severity: 'info',
                 summary: 'Detected Projection (.prj)',
                 detail: detectedProjection,
-                life: 8000,
+                life: 60000,
             });
+            console.log(`Detected shapefile projection: ${detectedProjection}`);
         }
 
         if (warning) {
@@ -80,8 +88,9 @@ const onFilesSelected = async (event: Event) => {
                 severity: 'warn',
                 summary: 'Projection Warning',
                 detail: warning,
-                life: 8000,
+                life: 60000,
             });
+            console.warn(`Shapefile projection warning: ${warning}`);
         }
         emit("features", features);
         showDialog.value = false;
