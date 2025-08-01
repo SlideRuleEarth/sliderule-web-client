@@ -19,7 +19,7 @@
                 <input
                     type="file"
                     multiple
-                    accept=".shp,.dbf,.shx"
+                    accept=".prj,.shp,.dbf,.shx,.zip"
                     @change="onFilesSelected"
                     style="width:100%;margin-bottom:1.5em"
                 />
@@ -42,6 +42,9 @@ import Button from "primevue/button";
 import type { Feature as OLFeature } from "ol";
 import type { Geometry } from "ol/geom";
 import { readShapefileToOlFeatures } from "@/composables/useReadShapefile";
+import { useToast } from "primevue/usetoast";
+
+const toast = useToast();
 
 const emit = defineEmits<{
     (e: "features", features: OLFeature<Geometry>[]): void;
@@ -49,16 +52,48 @@ const emit = defineEmits<{
 
 const showDialog = ref(false);
 
-async function onFilesSelected(event: Event) {
+const onFilesSelected = async (event: Event) => {
     const files = (event.target as HTMLInputElement).files;
-    if (!files) return;
+    if (!files || files.length === 0) return;
 
     try {
-        const olFeatures = await readShapefileToOlFeatures(files);
-        emit("features", olFeatures);
+        const singleFile = files.length === 1 ? files[0] : null;
+
+        // If it's a .zip, pass it directly
+        const input = singleFile && singleFile.name.toLowerCase().endsWith('.zip')
+            ? singleFile
+            : files;
+
+        const { features, warning, detectedProjection } = await readShapefileToOlFeatures(input);
+
+        if (detectedProjection) {
+            toast.add({
+                severity: 'info',
+                summary: 'Detected Projection (.prj)',
+                detail: detectedProjection,
+                life: 8000,
+            });
+        }
+
+        if (warning) {
+            toast.add({
+                severity: 'warn',
+                summary: 'Projection Warning',
+                detail: warning,
+                life: 8000,
+            });
+        }
+        emit("features", features);
         showDialog.value = false;
     } catch (err) {
-        alert((err instanceof Error ? err.message : String(err)));
+        toast.add({
+            severity: 'error',
+            summary: 'Upload failed',
+            detail: (err instanceof Error ? err.message : String(err)),
+            life: 5000,
+        });
     }
-}
+};
+
+
 </script>

@@ -567,7 +567,18 @@
             shx: '/shapefiles/ATL24_Mask_v5.shx'
         };
 
-        defaultBathymetryFeatures.value = await readShapefileToOlFeatures(bathyFiles);
+       
+
+        const { features, warning } = await readShapefileToOlFeatures(bathyFiles);
+        defaultBathymetryFeatures.value = features;
+        if (warning) {
+            toast.add({
+                severity: 'warn',
+                summary: 'Projection Warning',
+                detail: warning,
+                life: 8000,
+            });
+        }
         if (defaultBathymetryFeatures.value?.length) {
             loadBathymetryFeatures(defaultBathymetryFeatures.value);
         } else {
