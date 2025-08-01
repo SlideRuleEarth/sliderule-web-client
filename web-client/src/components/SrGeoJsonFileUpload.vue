@@ -6,7 +6,6 @@ import Button from 'primevue/button';
 import SrToast from 'primevue/toast';
 import { useGeoJsonUploader } from '@/composables/useGeoJsonUploader';
 import { drawGeoJson, zoomOutToFullMap } from '@/utils/SrMapUtils';
-import { load } from 'ol/Image';
 
 const props = defineProps({
     reportUploadProgress: {
@@ -76,6 +75,7 @@ const onClear = () => {
                     :maxFileSize="10000000000" 
                     customUpload 
                     :chooseLabel="label"
+                    :chooseIcon="'pi pi-upload'"
                     @uploader="handleReqUpload"
                     @select="onSelect"
                     @error="onError"
@@ -89,11 +89,13 @@ const onClear = () => {
                     :maxFileSize="10000000000" 
                     customUpload 
                     :chooseLabel="label"
+                    :chooseIcon="'pi pi-upload'"
                     @uploader="handleFeaturesUpload"
                     @select="onSelect"
                     @error="onError"
                     @clear="onClear"
-            />    </div>
+            />    
+        </div>
     </div>
 </template>
 

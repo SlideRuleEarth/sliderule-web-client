@@ -43,35 +43,22 @@ import type { Feature as OLFeature } from "ol";
 import type { Geometry } from "ol/geom";
 import { readShapefileToOlFeatures } from "@/composables/useReadShapefile";
 
-// Emit the features array to the parent
 const emit = defineEmits<{
     (e: "features", features: OLFeature<Geometry>[]): void;
 }>();
 
 const showDialog = ref(false);
 
-
 async function onFilesSelected(event: Event) {
     const files = (event.target as HTMLInputElement).files;
     if (!files) return;
 
-    const shp = Array.from(files).find(f => f.name.endsWith('.shp'));
-    const dbf = Array.from(files).find(f => f.name.endsWith('.dbf'));
-    const shx = Array.from(files).find(f => f.name.endsWith('.shx'));
-
-    if (!shp || !dbf) {
-        alert('Please provide at least .shp and .dbf files');
-        return;
-    }
-
     try {
-        const olFeatures = await readShapefileToOlFeatures({ shp, dbf, shx });
+        const olFeatures = await readShapefileToOlFeatures(files);
         emit("features", olFeatures);
         showDialog.value = false;
     } catch (err) {
-        // You can use a toast, modal, etc.
         alert((err instanceof Error ? err.message : String(err)));
     }
 }
-
 </script>

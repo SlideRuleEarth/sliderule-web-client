@@ -51,7 +51,7 @@
     import SrCustomTooltip from "@/components//SrCustomTooltip.vue";
     import SrDropPinControl from "@/components//SrDropPinControl.vue";
     import Point from 'ol/geom/Point';
-    import { readShapefileToOlFeatures,ShapefileInputs } from "@/composables/useReadShapeFile";
+    import { readShapefileToOlFeatures } from "@/composables/useReadShapefile";
     
     const defaultBathymetryFeatures: Ref<Feature<Geometry>[] | null> = ref(null);
     const showBathymetryFeatures = computed(() => {
@@ -561,22 +561,18 @@
     }
 
     async function loadDefaultBathymetryFeatures() {
-        const shpUrl = '/shapefiles/ATL24_Mask_v5.shp';
-        const dbfUrl = '/shapefiles/ATL24_Mask_v5.dbf';
-        const shxUrl = '/shapefiles/ATL24_Mask_v5.shx';
-
-        const bathyInputs: ShapefileInputs = {
-            shp: shpUrl,
-            dbf: dbfUrl,
-            shx: shxUrl
+        const bathyFiles = {
+            shp: '/shapefiles/ATL24_Mask_v5.shp',
+            dbf: '/shapefiles/ATL24_Mask_v5.dbf',
+            shx: '/shapefiles/ATL24_Mask_v5.shx'
         };
-        defaultBathymetryFeatures.value = await readShapefileToOlFeatures(bathyInputs);
-        if(defaultBathymetryFeatures.value && defaultBathymetryFeatures.value.length > 0){
+
+        defaultBathymetryFeatures.value = await readShapefileToOlFeatures(bathyFiles);
+        if (defaultBathymetryFeatures.value?.length) {
             loadBathymetryFeatures(defaultBathymetryFeatures.value);
         } else {
-            console.warn("SrMap onMounted no features to load from bathy assets shapefile");
+            console.warn("No bathymetry features loaded from static shapefile");
         }
-        //console.log("loadDefaultBathymetryFeatures defaultBathymetryFeaturesLoaded:",defaultBathymetryFeaturesLoaded.value);
     }
 
     onMounted(async () => {
