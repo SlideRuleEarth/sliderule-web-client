@@ -1,39 +1,3 @@
-<template>
-    <div>
-        <Button
-            icon="pi pi-upload"
-            label="Upload Shapefile"
-            class="p-button-sm"
-            @click="showDialog = true"
-        />
-
-        <Dialog
-            v-model:visible="showDialog"
-            header="Upload Shapefile"
-            modal
-            :closable="true"
-            :dismissableMask="true"
-            style="min-width:340px"
-        >
-            <div class="p-fluid" style="margin-bottom:1rem">
-                <input
-                    type="file"
-                    multiple
-                    accept=".prj,.shp,.dbf,.shx,.zip"
-                    @change="onFilesSelected"
-                    style="width:100%;margin-bottom:1.5em"
-                />
-            </div>
-            <template #footer>
-                <Button
-                    label="Close"
-                    severity="secondary"
-                    @click="showDialog = false"
-                />
-            </template>
-        </Dialog>
-    </div>
-</template>
 
 <script setup lang="ts">
 import { ref } from "vue";
@@ -59,7 +23,6 @@ const onFilesSelected = async (event: Event) => {
     try {
         const singleFile = files.length === 1 ? files[0] : null;
 
-        // If it's a .zip, pass it directly
         const input = singleFile && singleFile.name.toLowerCase().endsWith('.zip')
             ? singleFile
             : files;
@@ -94,6 +57,64 @@ const onFilesSelected = async (event: Event) => {
         });
     }
 };
-
-
 </script>
+<template>
+    <div class="shp-upload">
+        <div class="trigger">
+            <Button
+                icon="pi pi-upload"
+                label="Upload Shapefile"
+                class="p-button-sm"
+                @click="showDialog = true"
+            />
+        </div>
+
+        <Dialog
+            v-model:visible="showDialog"
+            header="Upload Shapefile"
+            modal
+            :closable="true"
+            :dismissableMask="true"
+            class="shp-upload-dialog"
+        >
+            <div class="p-fluid file-row">
+                <input
+                    type="file"
+                    multiple
+                    accept=".prj,.shp,.dbf,.shx,.zip"
+                    @change="onFilesSelected"
+                    class="file-input"
+                />
+            </div>
+            <template #footer>
+                <Button
+                    label="Close"
+                    severity="secondary"
+                    @click="showDialog = false"
+                />
+            </template>
+        </Dialog>
+    </div>
+</template>
+
+<style scoped>
+/* center the launch button like the GeoJSON one */
+.shp-upload .trigger {
+    display: flex;
+    justify-content: center;
+    margin: 0.5rem 0 0.25rem;
+}
+
+/* optional: keep widths consistent with your GeoJSON button */
+.shp-upload .trigger :deep(.p-button) {
+    min-width: 220px; /* tweak to match your other button */
+}
+
+/* existing dialog bits */
+.shp-upload .file-row { margin-bottom: 1rem; }
+.shp-upload .file-input { width: 100%; margin-bottom: 1.5em; }
+:deep(.shp-upload-dialog) { min-width: 340px; }
+@media (max-width: 380px) {
+    :deep(.shp-upload-dialog) { min-width: auto; width: 95vw; }
+}
+</style>
