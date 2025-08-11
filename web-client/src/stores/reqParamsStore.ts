@@ -578,10 +578,6 @@ const createReqParamsStore = (id: string) =>
             req.yapc = yapc;
             //console.log('using req.yapc:',req.yapc)
           }
-          // if (this.convexHull?.length) {
-          //   req.cmr = { polygon: this.convexHull };
-          // }
-
           if(this.distanceIn.value === 'segments') {
             req.dist_in_seg = true;
           }

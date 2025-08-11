@@ -23,7 +23,7 @@
     import { Vector as VectorSource } from 'ol/source';
     import { fromExtent }  from 'ol/geom/Polygon';
     import { Stroke, Style, Fill } from 'ol/style';
-    import { clearPolyCoords, drawGeoJson, enableTagDisplay, disableTagDisplay, saveMapZoomState, renderRequestPolygon, canRestoreZoomCenter, assignStyleFunctionToPinLayer } from "@/utils/SrMapUtils";
+    import { clearPolyCoords, clearReqGeoJsonData, drawGeoJson, enableTagDisplay, disableTagDisplay, saveMapZoomState, renderRequestPolygon, canRestoreZoomCenter, assignStyleFunctionToPinLayer } from "@/utils/SrMapUtils";
     import { onActivated } from "vue";
     import { onDeactivated } from "vue";
     import { Ref } from "vue";
@@ -52,6 +52,7 @@
     import SrDropPinControl from "@/components//SrDropPinControl.vue";
     import Point from 'ol/geom/Point';
     import { readShapefileToOlFeatures } from "@/composables/useReadShapefile";
+    import { useGeoJsonStore } from "@/stores/geoJsonStore";
     
     const defaultBathymetryFeatures: Ref<Feature<Geometry>[] | null> = ref(null);
     const showBathymetryFeatures = computed(() => {
@@ -466,12 +467,14 @@
             disableDrawPolygon();
             clearDrawingLayer();
             clearPolyCoords();
+            clearReqGeoJsonData();
             enableDragBox();
         } else if (newPickedValue === 'Polygon'){
             disableDragBox();
             disableDrawPolygon();
             clearDrawingLayer();
             clearPolyCoords();
+            clearReqGeoJsonData();
             enableDrawPolygon();
             if (await useRequestsStore().getNumReqs() < useRequestsStore().helpfulReqAdviceCnt+2) {
                 toast.add({ severity: 'info', summary: 'Draw instructions', detail: 'Draw a polygon by clicking for each point and returning to the first point', life: 5000 });
@@ -481,6 +484,7 @@
             disableDrawPolygon();
             clearDrawingLayer();
             clearPolyCoords();
+            clearReqGeoJsonData();
             const records = getLayerByName("Records Layer");
             const map = mapRef.value?.map;
             if (map && records && wasRecordsLayerVisible.value) {
@@ -808,6 +812,12 @@
                             renderReqPin(map,reqParamsStore.atl13.coord);
                         }
                     }
+                    const reqGeoJsonData = useGeoJsonStore().getReqGeoJsonData();
+                    if(reqGeoJsonData){
+                        //console.log("drawCurrentReqPolyAndPin drawing reqGeoJsonData:",geoJsonData);
+                        drawGeoJson('reqGeoJson',vectorSource, reqGeoJsonData, poly_color, true);
+                    }
+
                 } else {
                     console.error("drawCurrentReqPolyAndPin Error:vectorSource is null");
                 }

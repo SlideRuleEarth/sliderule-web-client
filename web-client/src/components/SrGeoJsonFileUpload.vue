@@ -5,7 +5,6 @@ import ProgressBar from 'primevue/progressbar';
 import Button from 'primevue/button';
 import SrToast from 'primevue/toast';
 import { useGeoJsonUploader } from '@/composables/useGeoJsonUploader';
-import { drawGeoJson, zoomOutToFullMap } from '@/utils/SrMapUtils';
 
 const props = defineProps({
     reportUploadProgress: {
@@ -27,8 +26,6 @@ const upload_progress_visible = ref(false);
 
 const { handleReqUpload, handleFeaturesUpload } = useGeoJsonUploader(
     props,
-    drawGeoJson,
-    zoomOutToFullMap,
     upload_progress,
     upload_progress_visible,
 );
