@@ -5,7 +5,6 @@
 import { defineConfig, devices } from '@playwright/test';
 import * as dotenv from 'dotenv';
 import fs from 'fs';
-import path from 'path';
 
 // Load environment-specific .env file
 const env = process.env.ENV || 'local';
@@ -46,20 +45,10 @@ export default defineConfig({
         // },
     ],
 
-    webServer: [
-        {
-            command: 'npm run dev',
-            port: 5173,
-            cwd: path.resolve(__dirname, 'web-client'),
-            timeout: 60 * 1000,
-            reuseExistingServer: !process.env.CI,
-        },
-        // {
-        //     command: 'npx serve tests/data -l 5174',
-        //     port: 5174,
-        //     cwd: path.resolve(__dirname),
-        //     timeout: 10 * 1000,
-        //     reuseExistingServer: true,
-        // }
-    ],
+    webServer: {
+        command: 'npm run build && npm run preview -- --port=5173',
+        port: 5173,
+        reuseExistingServer: !process.env.CI
+    },
+   
 });
