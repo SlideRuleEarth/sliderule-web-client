@@ -93,12 +93,12 @@ const selectBox = (boxId: number) => {
     // console.log("GenUserOptions selection complete. BEFORE reqParameterStore.missionValue:", reqParameterStore.missionValue);
     // console.log("GenUserOptions selection complete. BEFORE reqParameterStore.iceSat2SelectedAPI:", reqParameterStore.iceSat2SelectedAPI);
     if(reqParameterStore.getMissionValue() != 'ICESat-2' || reqParameterStore.getIceSat2API() != 'atl13x'){
-      reqParameterStore.poly = savedPoly;
-      reqParameterStore.convexHull = savedConvexHull;
+      reqParameterStore.setPoly(savedPoly);
+      reqParameterStore.setConvexHull(savedConvexHull);
     } else {
       // If the user selected the atl13x API, we need to reset the polygon and convex hull
-      reqParameterStore.poly = [];
-      reqParameterStore.convexHull = [];
+      reqParameterStore.setPoly([]);
+      reqParameterStore.setConvexHull([]);
     }
   }
   //console.log("GenUserOptions selection complete. AFTER reqParameterStore.poly:", reqParameterStore.poly);

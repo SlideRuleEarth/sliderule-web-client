@@ -402,8 +402,15 @@ async getJsonMetaDataForKey(
                     if (keyString === key) {
                         try {
                             parsedMetadata = JSON.parse(valueString);
-                            formattedMetadata = JSON.stringify(parsedMetadata, null, 2);
                             //console.log(`getJsonMetaDataForKey Formatted ${keyString} Metadata:`, formattedMetadata);
+                          try {
+                              formattedMetadata = JSON.stringify(parsedMetadata, null, 2);
+                              //console.log(`getJsonMetaDataForKey Formatted ${keyString} Metadata:`, formattedMetadata);
+                          } catch (stringifyError) {
+                              console.error(`getJsonMetaDataForKey Error stringifying JSON of ${keyString} valueString:`,valueString);
+                              console.error(`getJsonMetaDataForKey Error stringifying JSON of ${keyString} metadata:`,parsedMetadata);
+                              console.error(`getJsonMetaDataForKey Error stringifying JSON of ${keyString} error:`, stringifyError);
+                          }
                         } catch (parseError) {
                             console.error(`getJsonMetaDataForKey Error parsing JSON of ${keyString} valueString:`,valueString);
                             console.error(`getJsonMetaDataForKey Error parsing JSON of ${keyString} metadata:`,parsedMetadata);
@@ -451,14 +458,19 @@ async getJsonMetaDataForKey(
 
     async getServerReqFromMetaData(parquetFilePath: string): Promise<string | undefined> {
       const thisMetaData = await this.getJsonMetaDataForKey('sliderule', parquetFilePath, true);
+      console.log('getServerReqFromMetaData thisMetaData:', thisMetaData);
+      console.log('getServerReqFromMetaData thisMetaData.formattedMetadata:', thisMetaData.formattedMetadata);
+      console.log('getServerReqFromMetaData thisMetaData.parsedMetadata:', thisMetaData.parsedMetadata);
       if (thisMetaData.parsedMetadata) {
-        // Check if the parsed metadata contains a 'serverReq' key
         if (thisMetaData.parsedMetadata.recordinfo) {
           console.log('getServerReqFromMetaData thisMetaData.parsedMetadata.recordinfo:', thisMetaData.parsedMetadata.recordinfo);
         } else {
           console.warn(`getServerReqFromMetaData: thisMetaData.parsedMetadata recordinfo key not found in metadata for ${parquetFilePath}`);
         }
+      } else {
+        console.warn(`getServerReqFromMetaData: No parsed metadata found for ${parquetFilePath}`);
       }
+      // Return the formatted metadata
 
       return thisMetaData.formattedMetadata;
     }

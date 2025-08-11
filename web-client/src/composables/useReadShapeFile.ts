@@ -1,78 +1,73 @@
 import { GeoJSON } from 'ol/format';
 import type { Feature as OLFeature } from 'ol';
 import type { Geometry } from 'ol/geom';
-import * as shapefile from 'shapefile';
+import shp from 'shpjs';
 
-// Supports both File and URL string
-export type ShapefileInputSource = File | string;
+export async function readShapefileToOlFeatures(
+    input: FileList | File | Record<string, string>
+): Promise<{
+    features: OLFeature<Geometry>[];
+    warning: string | null;
+    detectedProjection: string | null;
+}> {
+    let fileMap: Record<string, ArrayBuffer> = {};
+    let geojson;
 
-export interface ShapefileInputs {
-    shp: ShapefileInputSource;
-    dbf: ShapefileInputSource;
-    shx?: ShapefileInputSource;
-}
+    const isZipFile = (f: unknown): f is File =>
+        f instanceof File && f.name.toLowerCase().endsWith('.zip');
 
-/**
- * Reads shapefile components and returns OpenLayers features.
- * Accepts File or asset URL string for each part.
- */
-export async function readShapefileToOlFeatures({
-    shp,
-    dbf,
-    shx,
-}: ShapefileInputs): Promise<OLFeature<Geometry>[]> {
-    try {
-        const [shpBuf, dbfBuf, shxBuf] = await Promise.all([
-            loadAsArrayBuffer(shp),
-            loadAsArrayBuffer(dbf),
-            shx ? loadAsArrayBuffer(shx) : Promise.resolve(undefined),
-        ]);
+    const isFileList = (f: unknown): f is FileList =>
+        typeof FileList !== 'undefined' && f instanceof FileList;
 
-        const source = await shapefile.open(shpBuf, dbfBuf, shxBuf as any);
-        const features: any[] = [];
-        let result: { done: boolean; value: any };
-        do {
-            result = await source.read();
-            if (!result.done) features.push(result.value);
-        } while (!result.done);
+    const isUrlMap = (f: unknown): f is Record<string, string> =>
+        typeof f === 'object' && f !== null && !isFileList(f) && !(f instanceof File);
 
-        const geojson = {
-            type: 'FeatureCollection',
-            features
-        };
-
-        const geojsonFormat = new GeoJSON();
-        const olFeatures = geojsonFormat.readFeatures(geojson, {
-            featureProjection: 'EPSG:3857',
-        }) as OLFeature<Geometry>[];
-
-        return olFeatures;
-    } catch (err) {
-        throw new Error("Failed to read shapefile: " + (err instanceof Error ? err.message : String(err)));
-    }
-}
-
-/**
- * Helper to load File or asset URL string as ArrayBuffer
- */
-async function loadAsArrayBuffer(input: ShapefileInputSource): Promise<ArrayBuffer> {
-    if (input instanceof File) {
-        return readFileAsync(input);
-    } else if (typeof input === "string") {
-        const resp = await fetch(input);
-        if (!resp.ok) throw new Error(`Failed to fetch asset: ${input}`);
-        return await resp.arrayBuffer();
+    if (isZipFile(input)) {
+        geojson = await shp(await input.arrayBuffer());
+    } else if (isFileList(input)) {
+        for (const file of Array.from(input)) {
+            const ext = file.name.split('.').pop()?.toLowerCase();
+            if (ext) fileMap[ext] = await file.arrayBuffer();
+        }
+        geojson = await shp(fileMap);
+    } else if (isUrlMap(input)) {
+        const entries = Object.entries(input);
+        const buffers = await Promise.all(entries.map(([_, url]) =>
+            fetch(url).then(resp => {
+                if (!resp.ok) throw new Error(`Failed to fetch ${url}`);
+                return resp.arrayBuffer();
+            })
+        ));
+        fileMap = Object.fromEntries(entries.map(([ext], i) => [ext, buffers[i]]));
+        geojson = await shp(fileMap);
     } else {
-        throw new Error('Invalid input type (expected File or URL string)');
+        throw new Error("Unsupported shapefile input type");
     }
-}
 
-// Helper for reading File as ArrayBuffer
-async function readFileAsync(file: File): Promise<ArrayBuffer> {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as ArrayBuffer);
-        reader.onerror = () => reject(reader.error || new Error('Failed to read file'));
-        reader.readAsArrayBuffer(file);
-    });
+    // Check .prj for non-EPSG:4326 content
+    let warning: string | null = null;
+    let detectedProjection: string | null = null;
+
+    if (fileMap.prj) {
+        const decoder = new TextDecoder('utf-8');
+        const prj = decoder.decode(fileMap.prj).toLowerCase();
+
+        detectedProjection = prj.trim().split('\n').join(' ').slice(0, 100) + '...'; // preview
+
+        const is4326 =
+            prj.includes("wgs_1984") &&
+            (prj.includes("geographic") || prj.includes("gcs_wgs_1984") || prj.includes("4326"));
+
+        if (!is4326) {
+            warning = `Warning: The shapefile's .prj indicates a non-EPSG:4326 projection. This may cause misalignment.`;
+        }
+    }
+
+    const geojsonFormat = new GeoJSON();
+    const features = geojsonFormat.readFeatures(geojson, {
+        featureProjection: 'EPSG:3857', // Map projection
+        dataProjection: 'EPSG:4326',     // Assume input is in EPSG:4326
+    }) as OLFeature<Geometry>[];
+
+return { features, warning, detectedProjection };
 }

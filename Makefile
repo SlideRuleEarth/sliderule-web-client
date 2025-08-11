@@ -80,7 +80,11 @@ live-update-testsliderule: ## Update the web client at testsliderule.org with ne
 live-update-client-dot-slideruleearth: ## Update the web client at client.slideruleearth.io with new build
 	make live-update S3_BUCKET=slideruleearth-webclient-dot DOMAIN_APEX=slideruleearth.io DOMAIN=client.slideruleearth.io
 
-build: ## Build the web client and update the dist folder
+convert-icons: ## Convert Maki SVG icons in src/assets/maki-svg to PNGs in public/icons
+	@echo "🔄 Converting Maki SVG icons to PNGs..."
+	node ./web-client/convert-maki-icons.js
+
+build: convert-icons ## Build the web client and update the dist folder
 	export VITE_BUILD_ENV=$(BUILD_ENV); \
 	export VITE_APP_BUILD_DATE=$$(date +"%Y-%m-%d %T"); \
 	export VITE_APP_VERSION=$$(git describe --tags --abbrev=0); \

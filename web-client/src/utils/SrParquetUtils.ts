@@ -211,31 +211,29 @@ export const formatBytes = (bytes:number) => {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
-
-export function updateFilename(req_id: number, filename: string): { func: string, newFilename: string } {
-    // This function replaces external rec_id in the filename with the newly created req_id that matches this applications db
-    // i.e.
-    // <atl0n>_<external_rec_id>_<date>.parquet with <atl0n>_<newly_created_req_id>_<date>.parquet in the filename
-
-    // Regular expression to match the required pattern
-    const regex = /^(\w+)_(\d+)_(.+\.parquet)$/;
-
-    let func = '';
-    let suffix = '';
-    // Apply the regex to the filename
-    const match = filename.match(regex);
-    if (match) {
-        func = match[1];
-        suffix = match[3];
-    } else {
-        func = 'Imported';
-        suffix = filename;
+export function addTimestampToFilename(filename: string): string {
+    if (!filename.endsWith('.parquet')) {
+        throw new Error('Filename must end with .parquet');
     }
 
-    // Construct the new filename
-    const newFilename = `${func}_${req_id}_${suffix}`;
-    console.warn('updateFilename req_id:',req_id,'filename:',filename,'newFilename:',newFilename);
-    return { func, newFilename };
+    const timestamp = new Date().toISOString().replace(/[:.-]/g, '').slice(0, 15); // e.g. 20250724T142301
+    const baseName = filename.slice(0, -8); // remove ".parquet"
+    return `${baseName}_${timestamp}.parquet`;
+}
+
+export function getApiFromFilename(filename: string): { func: string } {
+    // This function extracts the API from a filename that looks like:
+    // <atlxxx>_<anything>.parquet
+
+    // Regular expression to match the required pattern
+    const regex = /^(atl[0-9]{2}[a-z]*)_/i;
+
+    const match = filename.match(regex);
+    if (match && match[1]) {
+        return { func: match[1].toLowerCase() };
+    }
+
+    throw new Error(`Unable to extract API function from filename: ${filename}`);
 }
 
 // export function elIsLoaded():boolean {

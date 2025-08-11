@@ -124,7 +124,7 @@ function getServerParams(request:SrRequestRecord): SrSvrParmsUsed|SrSvrParmsPoly
             return {} as NullReqParams;
         }
     } catch (error) {
-        console.error(`Failed to get svr_parms for req_id ${request.req_id}:`, error);
+        console.error(`Failed to get svr_parms for req_id ${request.req_id}:`, error, ' for request:', request);
         throw error;
     }
 }

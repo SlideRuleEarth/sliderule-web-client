@@ -5,7 +5,6 @@ import ProgressBar from 'primevue/progressbar';
 import Button from 'primevue/button';
 import SrToast from 'primevue/toast';
 import { useToast } from 'primevue/usetoast';
-import { updateFilename } from '@/utils/SrParquetUtils';
 import { duckDbLoadOpfsParquetFile, readOrCacheSummary } from '@/utils/SrDuckDbUtils';
 import { useRequestsStore } from '@/stores/requestsStore';
 import { useRecTreeStore } from '@/stores/recTreeStore';
@@ -14,6 +13,7 @@ import { createDuckDbClient } from '@/utils/SrDuckDb';
 import type { SrRegion } from '@/types/SrTypes';
 import type { ImportWorkerRequest, ImportWorkerResponse } from '@/types/SrImportWorkerTypes';
 import SrImportWorker from '@/workers/SrImportWorker?worker'; 
+import { addTimestampToFilename, getApiFromFilename } from '@/utils/SrParquetUtils';
 
 const toast = useToast();
 
@@ -94,15 +94,9 @@ const customUploader = async (event: any) => {
                 }
             };
         });
-        const srReqRec = await requestsStore.createNewSrRequestRecord();
 
-        if (!srReqRec || !srReqRec.req_id) {
-            alert('Failed to create new SlideRule request record');
-            return;
-        }
-
-        const { func, newFilename } = updateFilename(srReqRec.req_id, file.name);
-
+        
+        const newFilename = addTimestampToFilename(file.name);
         const msg: ImportWorkerRequest = {
             fileName: file.name,
             newFileName: newFilename,
@@ -110,7 +104,6 @@ const customUploader = async (event: any) => {
         };
 
         worker.postMessage(msg);
-
 
         let result: ImportWorkerResponse;
         try {
@@ -152,9 +145,40 @@ const customUploader = async (event: any) => {
         }
 
         upload_progress.value = 30;
+        const srReqRec = await requestsStore.createNewSrRequestRecord();
 
-        srReqRec.file = newFilename;
-        srReqRec.func = func;
+        if (!srReqRec || !srReqRec.req_id) {
+            alert('Failed to create new SlideRule request record');
+            return;
+        }
+
+
+        try {
+            const slideruleRaw = metadata.sliderule;
+            const slideruleObj = typeof slideruleRaw === 'string'
+                ? JSON.parse(slideruleRaw)
+                : slideruleRaw;
+
+            srReqRec.func = slideruleObj?.server?.rqst?.endpoint;
+            if (!srReqRec.func) {
+                const api = getApiFromFilename(opfsFile.name);
+                srReqRec.func = api.func;
+            }
+            if (!srReqRec.func) {
+                throw new Error('Function not found in SlideRule metadata and fallback to filename failed');
+            }
+        } catch (e) {
+            toast.add({
+                severity: 'error',
+                summary: 'Metadata Error',
+                detail: 'Unable to parse SlideRule metadata. File may be corrupted.',
+                life: 4000
+            });
+            console.error('Error parsing SlideRule metadata:', e);
+            return;
+        }
+
+        srReqRec.file = opfsFile.name;
         srReqRec.status = 'imported';
         srReqRec.description = `Imported from SlideRule Parquet File ${file.name}`;
 

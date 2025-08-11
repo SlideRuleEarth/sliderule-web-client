@@ -60,6 +60,7 @@ onMounted(async () => {
         <SrGeoJsonFileUpload
             v-if="mapStore.polygonSource==='GeoJSON File'"
             :loadReqPoly="true"
+            :reportUploadProgress="true"
         />
         <SrSliderInput
             v-if="mapStore.polygonSource==='GeoJSON File'"
@@ -72,7 +73,7 @@ onMounted(async () => {
             :max="1.0"
             :decimalPlaces="4"
             tooltipText="The number of pixels to rasterize the polygon into"
-            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/GeoRaster.html#georaster"
+            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/basic_usage.html#rasterized-area-of-interest"
         />
         <SrCheckbox
             label="Ignore Poly for CMR"
@@ -149,7 +150,9 @@ onMounted(async () => {
         </Fieldset>
         <div class="sr-upload-geojson-container">
             <label class="sr-gj-label">{{ "Upload GeoJSON map features" }}</label>
-            <SrGeoJsonFileUpload/>
+            <SrGeoJsonFileUpload 
+                :reportUploadProgress="true"
+            />
         </div>
         <div class="sr-upload-shapefile-container">
             <label class="sr-gj-label">{{ "Upload Shapefile map features" }}</label>

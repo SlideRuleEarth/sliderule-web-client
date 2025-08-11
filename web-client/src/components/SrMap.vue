@@ -23,7 +23,7 @@
     import { Vector as VectorSource } from 'ol/source';
     import { fromExtent }  from 'ol/geom/Polygon';
     import { Stroke, Style, Fill } from 'ol/style';
-    import { clearPolyCoords, drawGeoJson, enableTagDisplay, disableTagDisplay, saveMapZoomState, renderRequestPolygon, canRestoreZoomCenter, assignStyleFunctionToPinLayer } from "@/utils/SrMapUtils";
+    import { clearPolyCoords, clearReqGeoJsonData, drawGeoJson, enableTagDisplay, disableTagDisplay, saveMapZoomState, renderRequestPolygon, canRestoreZoomCenter, assignStyleFunctionToPinLayer } from "@/utils/SrMapUtils";
     import { onActivated } from "vue";
     import { onDeactivated } from "vue";
     import { Ref } from "vue";
@@ -32,7 +32,7 @@
     import { useReqParamsStore } from "@/stores/reqParamsStore";
     import { convexHull, isClockwise } from "@/composables/SrTurfUtils";
     import { type Coordinate } from "ol/coordinate";
-    import type { SrRegion } from '@/types/SrTypes'
+    import { hullColor, type SrRegion } from '@/types/SrTypes'
     import { format } from 'ol/coordinate';
     import SrViewControl from "./SrViewControl.vue";
     import SrBaseLayerControl from "./SrBaseLayerControl.vue";
@@ -51,7 +51,8 @@
     import SrCustomTooltip from "@/components//SrCustomTooltip.vue";
     import SrDropPinControl from "@/components//SrDropPinControl.vue";
     import Point from 'ol/geom/Point';
-    import { readShapefileToOlFeatures,ShapefileInputs } from "@/composables/useReadShapeFile";
+    import { readShapefileToOlFeatures } from "@/composables/useReadShapefile";
+    import { useGeoJsonStore } from "@/stores/geoJsonStore";
     
     const defaultBathymetryFeatures: Ref<Feature<Geometry>[] | null> = ref(null);
     const showBathymetryFeatures = computed(() => {
@@ -231,7 +232,7 @@
             { "lat": topRight[1], "lon": topRight[0] },
             { "lat": topLeft[1], "lon": topLeft[0] } // close the loop by repeating the first point
         ];
-        reqParamsStore.poly = poly;
+        reqParamsStore.setPoly(poly);
         //console.log("Poly:", poly);
         reqParamsStore.setConvexHull(convexHull(poly));
         const tag = reqParamsStore.getFormattedAreaOfConvexHull();
@@ -353,10 +354,10 @@
                     }));
                     if(isClockwise(srLonLatCoordinates)){
                         //console.log('poly is clockwise, reversing');
-                        reqParamsStore.poly = srLonLatCoordinates.reverse();
+                        reqParamsStore.setPoly(srLonLatCoordinates.reverse());
                     } else {
                         ////console.log('poly is counter-clockwise');
-                        reqParamsStore.poly = srLonLatCoordinates;
+                        reqParamsStore.setPoly(srLonLatCoordinates);
                     }
                     //console.log('reqParamsStore.poly:',reqParamsStore.poly);
 
@@ -383,7 +384,7 @@
                             console.error("Error:map is null");
                         }
                         //console.log('GeoJSON:', JSON.stringify(geoJson));
-                        const drawExtent = drawGeoJson('userDrawn',vectorSource, JSON.stringify(geoJson), 'red', false, tag );
+                        const drawExtent = drawGeoJson('userDrawn',vectorSource, JSON.stringify(geoJson), hullColor, false, tag );
                         if (map && drawExtent) {
                             const [minX, minY, maxX, maxY] = drawExtent;
                             const isZeroArea = minX === maxX || minY === maxY;
@@ -403,7 +404,7 @@
                         //console.log("drawExtent in projName:",drawExtent.map(coord => toLonLat(coord,projName)));
                         //console.log("drawExtent in projName:",drawExtent.map(coord => toLonLat(coord,projName)));
                         //console.log("reqParamsStore.poly:",reqParamsStore.poly);
-                    reqParamsStore.poly = thisConvexHull;
+                        reqParamsStore.poly = thisConvexHull;
                         checkAreaOfConvexHullWarning(); 
                     } else {
                         console.error("Error:convexHull is null");
@@ -443,7 +444,7 @@
                     vectorSource.clear();
                     cleared = true;
                     reqParamsStore.poly = [];
-                    reqParamsStore.convexHull = [];
+                    reqParamsStore.setConvexHull([]);
                 } else {
                     //console.log("clearDrawingLayer vectorSource has no features:",vectorSource);
                 }
@@ -466,12 +467,14 @@
             disableDrawPolygon();
             clearDrawingLayer();
             clearPolyCoords();
+            clearReqGeoJsonData();
             enableDragBox();
         } else if (newPickedValue === 'Polygon'){
             disableDragBox();
             disableDrawPolygon();
             clearDrawingLayer();
             clearPolyCoords();
+            clearReqGeoJsonData();
             enableDrawPolygon();
             if (await useRequestsStore().getNumReqs() < useRequestsStore().helpfulReqAdviceCnt+2) {
                 toast.add({ severity: 'info', summary: 'Draw instructions', detail: 'Draw a polygon by clicking for each point and returning to the first point', life: 5000 });
@@ -481,6 +484,7 @@
             disableDrawPolygon();
             clearDrawingLayer();
             clearPolyCoords();
+            clearReqGeoJsonData();
             const records = getLayerByName("Records Layer");
             const map = mapRef.value?.map;
             if (map && records && wasRecordsLayerVisible.value) {
@@ -561,22 +565,29 @@
     }
 
     async function loadDefaultBathymetryFeatures() {
-        const shpUrl = '/shapefiles/ATL24_Mask_v5.shp';
-        const dbfUrl = '/shapefiles/ATL24_Mask_v5.dbf';
-        const shxUrl = '/shapefiles/ATL24_Mask_v5.shx';
-
-        const bathyInputs: ShapefileInputs = {
-            shp: shpUrl,
-            dbf: dbfUrl,
-            shx: shxUrl
+        const bathyFiles = {
+            shp: '/shapefiles/ATL24_Mask_v5.shp',
+            dbf: '/shapefiles/ATL24_Mask_v5.dbf',
+            shx: '/shapefiles/ATL24_Mask_v5.shx'
         };
-        defaultBathymetryFeatures.value = await readShapefileToOlFeatures(bathyInputs);
-        if(defaultBathymetryFeatures.value && defaultBathymetryFeatures.value.length > 0){
+
+       
+
+        const { features, warning } = await readShapefileToOlFeatures(bathyFiles);
+        defaultBathymetryFeatures.value = features;
+        if (warning) {
+            toast.add({
+                severity: 'warn',
+                summary: 'Projection Warning',
+                detail: warning,
+                life: 8000,
+            });
+        }
+        if (defaultBathymetryFeatures.value?.length) {
             loadBathymetryFeatures(defaultBathymetryFeatures.value);
         } else {
-            console.warn("SrMap onMounted no features to load from bathy assets shapefile");
+            console.warn("No bathymetry features loaded from static shapefile");
         }
-        //console.log("loadDefaultBathymetryFeatures defaultBathymetryFeaturesLoaded:",defaultBathymetryFeaturesLoaded.value);
     }
 
     onMounted(async () => {
@@ -801,6 +812,12 @@
                             renderReqPin(map,reqParamsStore.atl13.coord);
                         }
                     }
+                    const reqGeoJsonData = useGeoJsonStore().getReqGeoJsonData();
+                    if(reqGeoJsonData){
+                        //console.log("drawCurrentReqPolyAndPin drawing reqGeoJsonData:",geoJsonData);
+                        drawGeoJson('reqGeoJson',vectorSource, reqGeoJsonData, poly_color, true);
+                    }
+
                 } else {
                     console.error("drawCurrentReqPolyAndPin Error:vectorSource is null");
                 }
@@ -1338,6 +1355,19 @@
 .hidden-control {
     display: none;
 }
+
+.ol-marker-label {
+    background: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #333;
+    white-space: nowrap;
+    border: 1px solid #ccc;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+    pointer-events: none;
+}
+
 
 
 </style>
