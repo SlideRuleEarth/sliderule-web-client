@@ -279,26 +279,37 @@ export class DuckDBClient {
     }
   }
 
-    // Method to execute paginated queries with in-query random sampling
-    async queryForColNames(fileName:string): Promise<string[]> {
-      const startTime = performance.now(); // Start time
-      const conn = await this._db!.connect();
-      let tbl: Table<any> | undefined;
-      const query = `SELECT * FROM "${fileName}" LIMIT 1`;
+  async queryForColNames(fileName: string): Promise<string[]> {
+    const start = performance.now();
+    const conn = await this._db!.connect();
+    // Escape identifier: "my weird.table"
+    const ident = `"${fileName.replace(/"/g, '""')}"`;
+
+    try {
+      // DuckDB returns schema info here even if the table has 0 rows
+      const res = await conn.query(`DESCRIBE SELECT * FROM ${ident}`);
+      const rows = res.toArray() as any[];
+      const names = rows.map(r => r.column_name ?? r.name).filter(Boolean);
+      if (names.length === 0) throw new Error(`No columns found for ${fileName}`);
+      return names;
+    } catch (err) {
+      // Fallback: pragma_table_info (works for physical tables/views)
       try {
-        tbl = await conn.query(query);
-        const rows = tbl.toArray().map((r) => Object.fromEntries(r));
-        return Object.keys(rows[0]);
-      } catch (error) {
-        console.error(`Query SELECT * FROM ${fileName} execution error with tbl:${tbl} error:`, error);
-        throw error;
-      } finally {
-        await conn.close();
-        const endTime = performance.now(); // End time
-        const duration = endTime - startTime; // Duration in milliseconds
-        console.log(`queryForColNames took ${duration} milliseconds.`);
-      }
+        const lit = `'${fileName.replace(/'/g, "''")}'`; // string literal
+        const res2 = await conn.query(
+          `SELECT name AS column_name FROM pragma_table_info(${lit}) ORDER BY cid`
+        );
+        const names2 = (res2.toArray() as any[]).map(r => r.column_name);
+        if (names2.length) return names2;
+      } catch {}
+      console.error(`queryForColNames failed for ${fileName}`, err);
+      throw err;
+    } finally {
+      await conn.close();
+      console.log(`queryForColNames took ${performance.now() - start} ms`);
     }
+  }
+
 
   // Method for constructing query templates
   queryTag(strings: TemplateStringsArray, ...params: any[]) {

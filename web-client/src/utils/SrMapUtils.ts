@@ -508,7 +508,10 @@ export function isClickable(d: ElevationDataItem): boolean {
 export async function processSelectedElPnt(d: ElevationDataItem): Promise<void> {
     const gcs = useGlobalChartStore();
     gcs.setSelectedElevationRec(d);
-    useAnalysisMapStore().tooltipRef.hideTooltip();
+    const ttRef = useMapStore().tooltipRef;
+    if (ttRef) {
+        ttRef.hideTooltip();
+    }
     useAtlChartFilterStore().setShowPhotonCloud(false);
     clearPlot();
     useAtlChartFilterStore().setSelectedOverlayedReqIds([]);
