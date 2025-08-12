@@ -37,11 +37,12 @@ export default defineConfig({
     { name: 'firefox',  use: { ...devices['Desktop Firefox'] } },
   ],
 
-  webServer: {
-    command: 'npm run build && npm run preview -- --port=5173',
-    port: 5173,
-    reuseExistingServer: !process.env.CI,
-    cwd: __dirname,            // run Vite in web-client/
-    timeout: 120_000,
-  },
+    webServer: {
+        // run your Makefile so VITE_* are set exactly like local
+        command: 'make -s build && npm run preview -- --port=5173',
+        port: 5173,
+        reuseExistingServer: !process.env.CI,
+        cwd: ROOT, // repo root (Makefile lives here)
+        timeout: 120_000,
+    }
 });

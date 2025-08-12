@@ -3,19 +3,30 @@ on:
   push:
     branches: [ main, master ]
   pull_request:
-
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    env:
+      ENV: ci
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # <-- so git describe / tags work in Makefile
 
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: npm
           cache-dependency-path: web-client/package-lock.json
+
+      - name: Create .env.ci at repo root
+        working-directory: web-client
+        run: |
+          {
+            echo "BASE_URL=http://localhost:5173"
+            echo "VITE_APP_ENV=ci"
+            # echo "VITE_API_BASE=${{ secrets.VITE_API_BASE }}"
+          } > ../.env.ci
 
       - name: Install deps
         working-directory: web-client
@@ -24,13 +35,6 @@ jobs:
       - name: Install Playwright browsers
         working-directory: web-client
         run: npx playwright install --with-deps
-
-      - name: Create CI env file
-        working-directory: web-client
-        run: |
-          echo "BASE_URL=http://localhost:5173" > ../.env.ci
-        env:
-          ENV: ci
 
       - name: Debug – list tests
         working-directory: web-client
