@@ -38,8 +38,8 @@ export default defineConfig({
   ],
 
     webServer: {
-        // run your Makefile so VITE_* are set exactly like local
-        command: 'make -s build && npm run preview -- --port=5173',
+        // build at repo root (Makefile), then preview inside web-client
+        command: 'make -s build && npm --prefix web-client run preview -- --port=5173 --strictPort',
         port: 5173,
         reuseExistingServer: !process.env.CI,
         cwd: ROOT, // repo root (Makefile lives here)
