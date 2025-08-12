@@ -19,7 +19,7 @@ if (fs.existsSync(envPath)) {
 
 export default defineConfig({
   // Your tests live at repo root under tests/e2e
-  testDir: path.resolve(ROOT, 'tests'),
+  testDir: path.resolve(__dirname, 'tests'),
 
   reporter: [['html', { outputFolder: path.resolve(__dirname, 'playwright-report'), open: 'never' }]],
   fullyParallel: true,
