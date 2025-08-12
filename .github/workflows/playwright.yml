@@ -25,6 +25,10 @@ jobs:
         working-directory: web-client
         run: npx playwright install --with-deps
 
+      - name: Debug – list tests Playwright sees
+        working-directory: web-client
+        run: npx playwright test --list
+
       - name: Run Playwright tests
         working-directory: web-client
         run: npx playwright test
