@@ -25,6 +25,13 @@ jobs:
         working-directory: web-client
         run: npx playwright install --with-deps
 
+      - name: Create CI env file
+        working-directory: web-client
+        run: |
+          echo "BASE_URL=http://localhost:5173" > ../.env.ci
+        env:
+          ENV: ci
+
       - name: Debug – list tests
         working-directory: web-client
         run: npx playwright test --list
@@ -34,7 +41,7 @@ jobs:
         run: |
           node -p "require('./package.json').devDependencies?.['@playwright/test'] || 'MISSING'"
           node -p "require.resolve('@playwright/test/package.json')"
-          
+
       - name: Run Playwright tests
         working-directory: web-client
         run: npx playwright test
