@@ -64,7 +64,7 @@ function getDefaultElOptions(reqId:number): string[] {
             break;
         case 'atl03sp': options = ['height','atl03_cnf','atl08_class','y_atc','cycle'];
             break;
-        case 'atl03x':  options = ['height','atl03_cnf','y_atc','cycle','srcid'];
+        case 'atl03x':  options = ['height','atl03_cnf','y_atc','cycle','srcid','yapc_score'];
             break;
         case 'atl08p':  options = ['h_mean_canopy','h_max_canopy','h_te_median','cycle'];
             break;
