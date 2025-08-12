@@ -29,6 +29,12 @@ jobs:
         working-directory: web-client
         run: npx playwright test --list
 
+      - name: Debug – verify @playwright/test is installed
+        working-directory: web-client
+        run: |
+          node -p "require('./package.json').devDependencies?.['@playwright/test'] || 'MISSING'"
+          node -p "require.resolve('@playwright/test/package.json')"
+          
       - name: Run Playwright tests
         working-directory: web-client
         run: npx playwright test
