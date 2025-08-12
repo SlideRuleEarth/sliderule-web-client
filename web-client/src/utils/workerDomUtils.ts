@@ -180,6 +180,9 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
                             successMsg = 'File created with no data.\nAdjust your parameters or region and try again.';
                             useSrToastStore().warn('No data found',successMsg);
                         }
+                        if (summary?.numPoints === 0) {
+                            useSrToastStore().warn('No data found', 'File created with no points.\nAdjust your parameters or region and try again.');
+                        }
                         console.log('handleWorkerMsg opfs_ready succesMsg:',successMsg);
                     } else {
                         const newReqId = await useRecTreeStore().updateRecMenu('opfs_ready',workerMsg.req_id); // update the tree menu and use this as selected node

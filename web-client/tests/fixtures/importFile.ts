@@ -1,7 +1,7 @@
 // fixtures/importFile.ts
 import { test as skipIntroTest } from './skipIntroTour';
 import { type Page, expect } from '@playwright/test';
-import path from 'path';
+import { fileURLToPath } from 'node:url';
 
 export const test = skipIntroTest.extend<{
     pageAfterImport: Page;
@@ -34,7 +34,7 @@ export const test = skipIntroTest.extend<{
             }
             console.log(`[WebKit] Successfully injected file: ${fileName} into OPFS`);
         } else {
-            const filePath = path.resolve(__dirname, `../data/${fileName}`);
+            const filePath = fileURLToPath(new URL(`../data/${fileName}`, import.meta.url));
             const fileInput = pageAfterTour.locator('input[type="file"]');
             await fileInput.setInputFiles(filePath);
 
