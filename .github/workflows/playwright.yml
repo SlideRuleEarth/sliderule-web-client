@@ -10,28 +10,24 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
           cache-dependency-path: web-client/package-lock.json
 
-      - name: Install dependencies
-        working-directory: web-client
-        run: npm ci 
+      - name: Install deps
+        run: npm ci --prefix web-client
 
       - name: Install Playwright browsers
-        working-directory: web-client
-        run: npx playwright install --with-deps
+        run: npx --prefix web-client playwright install --with-deps
 
-      - name: Debug – list tests Playwright sees
-        working-directory: web-client
-        run: npx playwright test --list -c ../playwright.config.ts
+      # run from repo root so config at ./playwright.config.mts is picked up
+      - name: Debug – list tests
+        run: npx --prefix web-client playwright test --list -c playwright.config.mts
 
       - name: Run Playwright tests
-        working-directory: web-client
-        run: npx playwright test -c ../playwright.config.ts
+        run: npx --prefix web-client playwright test -c playwright.config.mts
 
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
