@@ -3,6 +3,9 @@ on:
   push:
     branches: [ main, master ]
   pull_request:
+    branches: [ main, master ]   # only PRs *into* main/master
+  workflow_dispatch: {}
+  
 jobs:
   test:
     runs-on: ubuntu-latest
