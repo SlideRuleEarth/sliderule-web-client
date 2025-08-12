@@ -19,19 +19,19 @@ jobs:
 
       - name: Install dependencies
         working-directory: web-client
-        run: npm ci --prefix web-client
+        run: npm ci 
 
       - name: Install Playwright browsers
         working-directory: web-client
-        run: npx --prefix web-client playwright install --with-deps
+        run: npx playwright install --with-deps
 
       - name: Debug – list tests Playwright sees
         working-directory: web-client
-        run: npx --prefix web-client playwright test --list
+        run: npx playwright test --list -c ../playwright.config.ts
 
       - name: Run Playwright tests
         working-directory: web-client
-        run: npx --prefix web-client playwright test
+        run: npx playwright test -c ../playwright.config.ts
 
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
