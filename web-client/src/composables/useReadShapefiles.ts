@@ -2,7 +2,7 @@ import { GeoJSON } from 'ol/format';
 import type { Feature as OLFeature } from 'ol';
 import type { Geometry } from 'ol/geom';
 import shp from 'shpjs';
-
+ 
 export async function readShapefileToOlFeatures(
     input: FileList | File | Record<string, string>
 ): Promise<{

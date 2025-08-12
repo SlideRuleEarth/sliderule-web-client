@@ -5,7 +5,7 @@ import Dialog from "primevue/dialog";
 import Button from "primevue/button";
 import type { Feature as OLFeature } from "ol";
 import type { Geometry } from "ol/geom";
-import { readShapefileToOlFeatures } from "@/composables/useReadShapefile";
+import { readShapefileToOlFeatures } from "@/composables/useReadShapefiles";
 import { useToast } from "primevue/usetoast";
 
 const toast = useToast();
