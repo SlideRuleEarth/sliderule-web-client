@@ -1076,6 +1076,7 @@
             <SrBaseLayerControl @baselayer-control-created="handleBaseLayerControlCreated" @update-baselayer="handleUpdateBaseLayer" />
             <SrDropPinControl v-if="reqParamsStore.iceSat2SelectedAPI==='atl13x'" @drop-pin-control-created="handlePinDropControlCreated"/>
             <SrUploadRegionControl
+                v-if="reqParamsStore.iceSat2SelectedAPI != 'atl13x'"
                 :iconOnly="true"
                 @upload-region-control-created="handleUploadRegionControlCreated"
             />

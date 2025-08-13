@@ -13,7 +13,7 @@
 :root .ol-control.sr-control {
   background: transparent;
   border-radius: 0;
-  padding: 0;
+  padding: 0.25rem;
   box-shadow: none;
 }
 

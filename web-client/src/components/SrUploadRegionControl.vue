@@ -1,7 +1,12 @@
 <!-- SrUploadRegionControl.vue -->
 <template>
-  <!-- The control DOM; SrMap will add the created control to the map -->
-  <div ref="containerEl" class="ol-control sr-upload-region-control">
+  <!-- Wrapper that OL will style; global CSS targets .sr-control -->
+  <div
+    ref="containerEl"
+    class="ol-control ol-unselectable sr-control sr-upload-region-control"
+    role="group"
+    aria-label="Upload Region control"
+  >
     <SrUploadRegion :iconOnly="iconOnly" />
   </div>
 </template>
@@ -17,7 +22,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  /** Follows your pattern: parent (SrMap.vue) listens and calls map.addControl(...) */
+  /** Parent (SrMap.vue) listens and calls map.addControl(control) */
   (e: 'upload-region-control-created', control: Control): void;
 }>();
 
@@ -26,7 +31,7 @@ let control: Control | null = null;
 
 onMounted(() => {
   if (!containerEl.value) return;
-  // Build the OpenLayers control with this component’s root element
+  // Create the OpenLayers control using this component’s root element
   control = new Control({ element: containerEl.value });
   emit('upload-region-control-created', control);
 });
@@ -38,9 +43,7 @@ onBeforeUnmount(() => {
 });
 </script>
 
-<style scoped>
-/* Keep it lightweight; position in SrMap.vue like your other controls */
-.sr-upload-region-control {
-  pointer-events: auto; /* allow clicks inside the control */
-}
-</style>
+<!-- No scoped styles here; all styling comes from your global CSS:
+     .ol-control.sr-control { ...neutralize OL styles... }
+     .ol-control.sr-control .sr-glow-button { ... }
+-->
