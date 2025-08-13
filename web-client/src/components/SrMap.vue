@@ -50,6 +50,7 @@
     import type LayerRenderer  from 'ol/renderer/Layer';
     import SrCustomTooltip from "@/components//SrCustomTooltip.vue";
     import SrDropPinControl from "@/components//SrDropPinControl.vue";
+    import SrUploadRegionControl from "@/components/SrUploadRegionControl.vue";
     import Point from 'ol/geom/Point';
     import { readShapefileToOlFeatures } from "@/composables/useReadShapefiles";
     import { useGeoJsonStore } from "@/stores/geoJsonStore";
@@ -776,6 +777,15 @@
         }
     };
 
+    function handleUploadRegionControlCreated(uploadControl: any) {
+    const map = mapRef.value?.map;
+    if (map) {
+        map.addControl(uploadControl);
+    } else {
+        console.error("handleUploadRegionControlCreated Error: map is null");
+    }
+    }
+
     async function addRecordLayer() : Promise<void> {
         const startTime = performance.now(); // Start time
         const reqIds = recTreeStore.allReqIds;
@@ -1065,9 +1075,11 @@
             <SrViewControl @view-control-created="handleViewControlCreated" @update-view="handleUpdateSrView"/>
             <SrBaseLayerControl @baselayer-control-created="handleBaseLayerControlCreated" @update-baselayer="handleUpdateBaseLayer" />
             <SrDropPinControl v-if="reqParamsStore.iceSat2SelectedAPI==='atl13x'" @drop-pin-control-created="handlePinDropControlCreated"/>
+            <SrUploadRegionControl
+                :iconOnly="true"
+                @upload-region-control-created="handleUploadRegionControlCreated"
+            />
         </Map.OlMap>
-
-
 
     </div>    
     <SrCustomTooltip ref="tooltipRef" id="MainMapTooltip" />
@@ -1366,6 +1378,16 @@
     border: 1px solid #ccc;
     box-shadow: 0 1px 3px rgba(0,0,0,0.25);
     pointer-events: none;
+}
+
+:deep(.ol-control.sr-upload-region-control) {
+  top: 19.0rem;
+  left: 0.5rem;
+  right: auto;
+  bottom: auto;
+  background-color: black;
+  color: var(--ol-font-color);
+  border-radius: var(--p-border-radius);
 }
 
 

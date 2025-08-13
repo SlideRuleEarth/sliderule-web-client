@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SrUploadRegion from '@/components/SrUploadRegion.vue';
 import SrMenu from '@/components/SrMenu.vue';
 import SrSwitchedSliderInput from '@/components/SrSwitchedSliderInput.vue';
 import SrCheckbox from '@/components/SrCheckbox.vue';
@@ -47,7 +48,8 @@ onMounted(async () => {
 
 <template>
     <div class="sr-gen-user-options-container">
-       <SrMenu
+        <SrUploadRegion :iconOnly="true"/>
+        <SrMenu
             v-model="mapStore.polygonSource"
             label = "Polygon Source"
             aria-label="Select Polygon Source"
