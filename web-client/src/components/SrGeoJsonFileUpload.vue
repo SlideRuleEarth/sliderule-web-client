@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import FileUpload from 'primevue/fileupload';
 import ProgressBar from 'primevue/progressbar';
 import Button from 'primevue/button';
 import SrToast from 'primevue/toast';
 import { useGeoJsonUploader } from '@/composables/useGeoJsonUploader';
+import { useMapStore } from '@/stores/mapStore';
+
+const mapStore = useMapStore();
 
 const props = defineProps({
     reportUploadProgress: {
@@ -29,6 +32,16 @@ const { handleReqUpload, handleFeaturesUpload } = useGeoJsonUploader(
     upload_progress,
     upload_progress_visible,
 );
+
+onMounted(() => {
+    // console.log('SrGeoJsonFileUpload mounted, props:', props);
+    if(props.loadReqPoly){
+        // console.log('SrGeoJsonFileUpload will load request polygon');
+        mapStore.setPolySource("GeoJSON File");
+    } else {
+        // console.log('SrGeoJsonFileUpload will load features');
+    }
+});
 
 const onSelect = (e: any) => {
     console.log('onSelect e:', e);

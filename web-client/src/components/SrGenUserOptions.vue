@@ -48,7 +48,7 @@ onMounted(async () => {
 
 <template>
     <div class="sr-gen-user-options-container">
-        <SrUploadRegion :iconOnly="true"/>
+        <SrUploadRegion />
         <SrMenu
             v-model="mapStore.polygonSource"
             label = "Polygon Source"

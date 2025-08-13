@@ -7,7 +7,7 @@
     role="group"
     aria-label="Upload Region control"
   >
-    <SrUploadRegion :iconOnly="iconOnly" />
+    <SrUploadRegion />
   </div>
 </template>
 
@@ -16,10 +16,6 @@ import { ref, onMounted, onBeforeUnmount } from 'vue';
 import Control from 'ol/control/Control';
 import SrUploadRegion from '@/components/SrUploadRegion.vue';
 
-const props = defineProps<{
-  /** Show the trigger as icon-only (passed to SrUploadRegion) */
-  iconOnly?: boolean;
-}>();
 
 const emit = defineEmits<{
   /** Parent (SrMap.vue) listens and calls map.addControl(control) */
