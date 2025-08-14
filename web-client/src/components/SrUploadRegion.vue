@@ -8,7 +8,16 @@ import SrSliderInput from '@/components/SrSliderInput.vue';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
 import SrShapefileUpload from './SrShapefileUpload.vue';
 
-
+const props = defineProps({
+    reportUploadProgress: {
+        type: Boolean,
+        default: false
+    },
+    loadReqPoly: {
+        type: Boolean,
+        default: false
+    }
+});
 const emit = defineEmits<{
     (e: 'open'): void;
     (e: 'close'): void;
@@ -27,6 +36,12 @@ function handleDialogHide() {
     mapStore.setPolySource("Draw on Map");
     emit('close');
 }
+
+function handleGeoJsonFileUploadFinished() {
+    console.log('GeoJSON file upload finished; closing dialog.');
+    showDialog.value = false;
+}
+
 </script>
 
 <template>
@@ -54,10 +69,14 @@ function handleDialogHide() {
             <div class="p-fluid">
 
                 <SrGeoJsonFileUpload
-                    :loadReqPoly="true"
-                    :reportUploadProgress="true"
+                    :loadReqPoly="props.loadReqPoly"
+                    :reportUploadProgress="props.reportUploadProgress"
+                    @done="handleGeoJsonFileUploadFinished"
                 />
-                <SrShapefileUpload/>
+                <SrShapefileUpload
+                    :loadReqPoly="props.loadReqPoly"
+                    :reportUploadProgress="props.reportUploadProgress"
+                />
                 <SrSliderInput
                     label="Rasterize Polygon cell size"
                     unitsLabel="Degrees"

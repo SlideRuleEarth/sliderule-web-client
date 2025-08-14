@@ -1077,7 +1077,8 @@
             <SrDropPinControl v-if="reqParamsStore.iceSat2SelectedAPI==='atl13x'" @drop-pin-control-created="handlePinDropControlCreated"/>
             <SrUploadRegionControl
                 v-if="reqParamsStore.iceSat2SelectedAPI != 'atl13x'"
-                :iconOnly="true"
+                :reportUploadProgress="true"
+                :loadReqPoly="true"
                 @upload-region-control-created="handleUploadRegionControlCreated"
             />
         </Map.OlMap>

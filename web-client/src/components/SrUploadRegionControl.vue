@@ -7,7 +7,10 @@
     role="group"
     aria-label="Upload Region control"
   >
-    <SrUploadRegion />
+    <SrUploadRegion 
+      :reportUploadProgress="props.reportUploadProgress"
+      :loadReqPoly="props.loadReqPoly"
+    />
   </div>
 </template>
 
@@ -16,7 +19,16 @@ import { ref, onMounted, onBeforeUnmount } from 'vue';
 import Control from 'ol/control/Control';
 import SrUploadRegion from '@/components/SrUploadRegion.vue';
 
-
+const props = defineProps({
+    reportUploadProgress: {
+        type: Boolean,
+        default: false
+    },
+    loadReqPoly: {
+        type: Boolean,
+        default: false
+    }
+});
 const emit = defineEmits<{
   /** Parent (SrMap.vue) listens and calls map.addControl(control) */
   (e: 'upload-region-control-created', control: Control): void;

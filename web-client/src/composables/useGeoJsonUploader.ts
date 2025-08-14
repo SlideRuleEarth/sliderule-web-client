@@ -6,21 +6,21 @@ import type { FileUploadUploaderEvent } from 'primevue/fileupload';
 import { useMapStore } from '@/stores/mapStore';
 import { handleGeoJsonLoad, zoomOutToFullMap } from '@/utils/SrMapUtils';
 
-
 export function useGeoJsonUploader(
     props: any,
     upload_progress: any,
     upload_progress_visible: any,
+    onDone?: () => void            // <-- callback from SFC
 ) {
     const toast = useToast();
     const geoJsonStore = useGeoJsonStore();
     const reqParamsStore = useReqParamsStore();
 
-    async function handleUpload(event: FileUploadUploaderEvent, isFeaturesUpload: boolean = false) {
+    async function handleUpload(event: FileUploadUploaderEvent) {
 
         const files = Array.isArray(event.files) ? event.files : [event.files];
         const file = files[0];
-        console.log('handleUpload called with file:', file, 'isFeaturesUpload:', isFeaturesUpload);
+        console.log('handleUpload called with file:', file, props.loadReqPoly ? '(request upload)' : '(features upload)');
         if (!file) {
             toast.add({ severity: 'error', summary: 'Upload Error', detail: 'No file provided' });
             return;
@@ -45,11 +45,11 @@ export function useGeoJsonUploader(
                 }
 
                 const geoJsonData = JSON.parse(e.target.result);
-                console.log('Parsed GeoJSON data:', geoJsonData, isFeaturesUpload ? '(features upload)' : '(request upload)');
-                if (isFeaturesUpload) {
-                    geoJsonStore.setFeaturesGeoJsonData(geoJsonData);
-                } else {
+                console.log('Parsed GeoJSON data:', geoJsonData, props.loadReqPoly ? '(request upload)' : '(features upload)');
+                if (props.loadReqPoly) {
                     geoJsonStore.setReqGeoJsonData(geoJsonData);
+                } else {
+                    geoJsonStore.setFeaturesGeoJsonData(geoJsonData);
                 }
 
                 // 👉 NEW: call the util version, pass loadReqPoly from props
@@ -78,6 +78,14 @@ export function useGeoJsonUploader(
             }
         };
 
+        reader.onloadend = (e) => {
+            console.log('File read completed:', e);
+            toast.add({ severity: 'success', summary: 'Upload Complete', detail: `File "${file.name}" uploaded successfully.` });
+            upload_progress.value = 100;
+            upload_progress_visible.value = false;
+            onDone?.();   // <-- notify SFC
+        };
+
         if (props.reportUploadProgress) {
             reader.onprogress = (e) => {
                 if (e.lengthComputable) {
@@ -91,16 +99,8 @@ export function useGeoJsonUploader(
         }
     }
 
-    async function handleReqUpload(event: FileUploadUploaderEvent) {
-        console.log('handleReqUpload called');
-        handleUpload(event);
-    }
-
-    async function handleFeaturesUpload(event: FileUploadUploaderEvent) {
-        console.log('handleFeaturesUpload called');
-        handleUpload(event, true);
-    }
 
 
-    return { handleReqUpload, handleFeaturesUpload };
+
+    return { handleUpload };
 }
