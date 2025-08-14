@@ -1079,8 +1079,23 @@
                 v-if="reqParamsStore.iceSat2SelectedAPI != 'atl13x'"
                 :reportUploadProgress="true"
                 :loadReqPoly="true"
+                corner="top-left"
+                :offsetX="'0.5rem'"
+                :offsetY="'19rem'"
                 @upload-region-control-created="handleUploadRegionControlCreated"
             />
+            <SrUploadRegionControl
+                v-if="reqParamsStore.iceSat2SelectedAPI != 'atl13x'"
+                :reportUploadProgress="true"
+                :loadReqPoly="false"
+                corner="top-right"
+                :offsetX="'0.5rem'"
+                :offsetY="'2.5rem'"
+                bg='white'
+                color='black'
+                @upload-region-control-created="handleUploadRegionControlCreated"
+            />
+
         </Map.OlMap>
 
     </div>    
@@ -1128,7 +1143,7 @@
 }
 
 :deep( .ol-control.ol-layerswitcher ){
-  top: 2.25rem;
+  top: 5rem;
   bottom: auto;
   left: auto;
   background-color: transparent;
@@ -1171,12 +1186,49 @@
   color: var(--p-primary-color);
   border-radius: var(--p-border-radius);
 }
+/* Size the launcher square */
+:deep(.ol-control.ol-layerswitcher > button) {
+  width: 2.0rem;           /* your target box */
+  height: 2.0rem;
+  padding: 0;               /* remove inner padding */
+  background: transparent;
+  display: grid;            /* perfectly center the icon */
+  place-items: center;
+  line-height: 1;           /* don't shrink the icon */
+  font-size: 1.4rem;        /* <— grows the icon (base for ::before/::after) */
+}
 
-/* :deep(.ol-control.ol-layerswitcher .panel-container .ul.panel){
-  background-color: red;
-  color: red;
-  border-radius: var(--p-border-radius);
-} */
+/* Make the glyphs use more of the box */
+:deep(.ol-control.ol-layerswitcher > button::before),
+:deep(.ol-control.ol-layerswitcher > button::after) {
+    margin: 0;                   /* reset any theme offsets */
+    line-height: 1;
+}
+
+
+/* 2) Panel width */
+:deep(.ol-control.ol-layerswitcher .panel-container) {
+  width: 22rem;            /* <- change me */
+  max-width: 90vw;
+}
+
+/* 3) Panel max height + scrolling */
+:deep(.ol-control.ol-layerswitcher .panel) {
+  max-height: 55vh;        /* <- change me */
+  overflow: auto;
+}
+
+/* Optional: compact list items & checkbox hit-box */
+:deep(.ol-layerswitcher .panel .li-content) {
+  padding: 0.25rem 0.5rem;
+}
+:deep(.ol-layerswitcher .panel .li-content > label) {
+  font-size: 0.95rem;      /* text size */
+}
+:deep(.ol-layerswitcher .panel .li-content > label::before) {
+  width: 0.95rem; height: 0.95rem; /* checkbox size */
+}
+
 :deep(.ol-layerswitcher label){
   background-color: transparent;
   color: var(--p-primary-color);
@@ -1191,11 +1243,6 @@
   border-width: 2px;
 } 
 
-/* :deep(.ol-layerswitcher .panel-container .li-content > label::after){
-  border-width: 1px;
-  background-color: var(--p-primary-color);
-
-}  */
 :deep(.panel-container.ol-ext-dialog){
   background-color: transparent;
 }
@@ -1248,16 +1295,6 @@
   max-width: 30rem; 
 }
 
-/* :deep( .ol-control.sr-layers-control ){
-  top: 0.55rem;
-  bottom: auto;
-  right: auto;
-  left: 23.5rem;
-  background-color: transparent;
-  border-radius: var(--p-border-radius);
-  color: white;
-  max-width: 30rem; 
-} */
 :deep(.ol-ext-dialog .ol-content .ol-wmscapabilities .ol-url .url){
   color: white;
   background-color: var(--p-primary-600);
@@ -1382,15 +1419,22 @@
     pointer-events: none;
 }
 
+/* SrMap.vue (scoped with :deep) or a global stylesheet */
 :deep(.ol-control.sr-upload-region-control) {
-  top: 19.0rem;
-  left: 0.5rem;
-  right: auto;
-  bottom: auto;
-  background-color: black;
-  color: var(--ol-font-color);
-  border-radius: var(--p-border-radius);
+  position: absolute;
+  top: var(--sr-top, auto);
+  right: var(--sr-right, auto);
+  bottom: var(--sr-bottom, auto);
+  left: var(--sr-left, auto);
+
+  background-color: var(--sr-bg, black);
+  color: var(--sr-color, var(--ol-font-color));
+  border-radius: var(--sr-radius, var(--p-border-radius));
+
+  /* Whatever defaults you want: padding, shadow, etc. */
+  padding: 0.25rem;
 }
+
 
 
 
