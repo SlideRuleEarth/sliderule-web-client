@@ -80,7 +80,7 @@ export function useGeoJsonUploader(
 
         reader.onloadend = (e) => {
             console.log('File read completed:', e);
-            toast.add({ severity: 'success', summary: 'Upload Complete', detail: `File "${file.name}" uploaded successfully.` });
+            toast.add({ severity: 'success', summary: 'Upload Complete', detail: `File "${file.name}" uploaded successfully.`, life: 5000 });
             upload_progress.value = 100;
             upload_progress_visible.value = false;
             onDone?.();   // <-- notify SFC
