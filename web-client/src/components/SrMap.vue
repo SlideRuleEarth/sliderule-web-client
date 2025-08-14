@@ -1098,8 +1098,8 @@
                 corner="top-right"
                 :offsetX="'0.5rem'"
                 :offsetY="'2.5rem'"
-                bg='white'
-                color='black'
+                bg="rgba(255,255,255,0.6)" 
+                color="black"
                 @upload-region-control-created="handleUploadRegionControlCreated"
             />
 
