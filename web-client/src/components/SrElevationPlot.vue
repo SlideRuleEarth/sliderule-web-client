@@ -332,8 +332,8 @@ const shouldDisplayOverlayGradient =computed(() => {
             (computedOverlayDataKey.value!='atl24_class');
 });
 
-const isAtl24WithPhotonCloud = computed(() => { // hack needed until sever supports both heights
-    return ((atlChartFilterStore.selectedOverlayedReqIds.length > 0) && (recTreeStore.selectedApi==='atl24x'));
+const isAtl24WithPhotonCloud = computed(() => { // hack needed until server supports both heights
+    return ((atlChartFilterStore.selectedOverlayedReqIds.length > 0) && (recTreeStore.selectedApi.includes('atl24')));
 });
 
 const PC_OnTooltip = computed(() => { 
@@ -736,16 +736,16 @@ watch(() => atlChartFilterStore.showSlopeLines, async (newValue) => {
                     >
                     </ToggleButton>
                 </div>
-                <div v-if="recTreeStore.selectedApi==='atl06p'" class="slope-checkbox-group">
+                <div v-if="recTreeStore.selectedApi.includes('atl06')" class="slope-checkbox-group">
                     <Checkbox
-                        v-if="(recTreeStore.selectedApi==='atl06p')" 
+                        v-if="(recTreeStore.selectedApi.includes('atl06'))" 
                         v-model="atlChartFilterStore.showSlopeLines"
                         binary
                         inputId="sslCheckbox"
                         size="small"
-                        :tooltipText="'Show Slope Lines for ATL06p'"
+                        :tooltipText="'Show linear fit for each segment'"
                     />
-                    <label  v-if="(recTreeStore.selectedApi==='atl06p')"  for="sslCheckbox" class="sr-checkbox-label">Show Slope Lines</label>
+                    <label  v-if="(recTreeStore.selectedApi.includes('atl06'))"  for="sslCheckbox" class="sr-checkbox-label">Show linear fit for each segment</label>
                 </div>
                 <SrRunControl 
                     :includeAdvToggle="false"
