@@ -22,7 +22,7 @@ const emit = defineEmits<{
     (e: 'open'): void;
     (e: 'close'): void;
 }>();
-
+const computedTooltipText = props.loadReqPoly ? 'Upload a GeoJSON or Shapefile defining a polygonal region of interest' : 'Upload a GeoJSON or Shapefile defining features to add to the map';
 const mapStore = useMapStore();
 const reqParamsStore = useReqParamsStore();
 
@@ -53,6 +53,7 @@ function handleGeoJsonFileUploadFinished() {
             @click="openPolygonSourceDialog"
             variant="text"
             aria-label="Open Polygon Source dialog"
+            :title="computedTooltipText"
         />
 
         <!-- Dialog -->

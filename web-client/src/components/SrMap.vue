@@ -599,6 +599,13 @@
         } else {
             console.error('tooltipRef is null on mount');
         }        
+        // Wait for the control to be rendered in the DOM
+        const button = document.querySelector<HTMLButtonElement>(
+            ".ol-control.ol-layerswitcher > button"
+        );
+        if (button) {
+            button.title = "Toggle layer switcher"; // Your tooltip text here
+        }
         drawVectorLayer.set('name', 'Drawing Layer');
         drawVectorLayer.set('title', 'Drawing Layer');
         pinVectorLayer.set('name', 'Pin Layer');
