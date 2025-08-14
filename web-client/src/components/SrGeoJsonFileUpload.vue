@@ -1,10 +1,14 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import FileUpload from 'primevue/fileupload';
 import ProgressBar from 'primevue/progressbar';
 import Button from 'primevue/button';
 import SrToast from 'primevue/toast';
 import { useGeoJsonUploader } from '@/composables/useGeoJsonUploader';
+
+const emit = defineEmits<{
+    (e: 'done'): void;   // use lowercase; parent listens as @done
+}>();
 
 const props = defineProps({
     reportUploadProgress: {
@@ -24,11 +28,20 @@ const props = defineProps({
 const upload_progress = ref(0);
 const upload_progress_visible = ref(false);
 
-const { handleReqUpload, handleFeaturesUpload } = useGeoJsonUploader(
+const { handleUpload } = useGeoJsonUploader(
     props,
     upload_progress,
     upload_progress_visible,
+    () => emit('done')   // pass a callback the composable can call
 );
+
+onMounted(() => {
+    if(props.loadReqPoly){
+        console.log('SrGeoJsonFileUpload will load request polygon');
+    } else {
+        console.log('SrGeoJsonFileUpload will load features');
+    }
+});
 
 const onSelect = (e: any) => {
     console.log('onSelect e:', e);
@@ -41,6 +54,7 @@ const onError = (e: any) => {
 const onClear = () => {
     console.log('onClear');
 };
+
 </script>
 
 <template>
@@ -64,7 +78,7 @@ const onClear = () => {
             </template>
         </SrToast>
         <div class="sr-file-upload">
-            <FileUpload v-if="props.loadReqPoly"
+            <FileUpload 
                     mode="basic" 
                     name="SrFileUploads[]" 
                     :auto="true" 
@@ -73,25 +87,11 @@ const onClear = () => {
                     customUpload 
                     :chooseLabel="label"
                     :chooseIcon="'pi pi-upload'"
-                    @uploader="handleReqUpload"
+                    @uploader="handleUpload"
                     @select="onSelect"
                     @error="onError"
                     @clear="onClear"
-            />
-            <FileUpload v-if="!props.loadReqPoly"
-                    mode="basic" 
-                    name="SrFileUploads[]" 
-                    :auto="true" 
-                    accept=".geojson,.json" 
-                    :maxFileSize="10000000000" 
-                    customUpload 
-                    :chooseLabel="label"
-                    :chooseIcon="'pi pi-upload'"
-                    @uploader="handleFeaturesUpload"
-                    @select="onSelect"
-                    @error="onError"
-                    @clear="onClear"
-            />    
+            />   
         </div>
     </div>
 </template>

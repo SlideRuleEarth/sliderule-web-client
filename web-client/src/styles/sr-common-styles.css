@@ -9,6 +9,47 @@
     box-shadow: 0 0 12px var(--p-button-primary-border-color), 0 0 20px var(--p-button-primary-border-color);
 }
 
+/* remove OL's default background, padding, etc. just for our control */
+:root .ol-control.sr-control {
+  background: transparent;
+  border-radius: 0;
+  padding: 0.25rem;
+  box-shadow: none;
+}
+
+/* neutralize OL button rules inside our control */
+:root .ol-control.sr-control button,
+:root .ol-control.sr-control .p-button {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  width: auto;
+  height: auto;
+  line-height: normal;
+  color: inherit;
+  box-shadow: none;
+}
+
+/* keep focus visible but avoid OL's outline */
+:root .ol-control.sr-control button:focus,
+:root .ol-control.sr-control .p-button:focus {
+  outline: none;
+}
+
+/* glow button look */
+:root .ol-control.sr-control .sr-glow-button {
+  border-radius: 0.75rem;
+  background: #0b1525;
+  color: #9cc9ff;
+  box-shadow: 0 0 0 0 rgba(60,130,255,0.0), 0 0 24px rgba(60,130,255,0.35);
+}
+
+:root .ol-control.sr-control .sr-glow-button:hover,
+:root .ol-control.sr-control .sr-glow-button:focus-visible {
+  box-shadow: 0 0 24px rgba(60,130,255,0.6);
+}
+/* ========== Intro.js Theming ========== */
+
 .introjs-tooltip {
     font-family: var(--font-family);
     background-color: var(--p-surface-card);

@@ -7,14 +7,30 @@ import type { Feature as OLFeature } from "ol";
 import type { Geometry } from "ol/geom";
 import { readShapefileToOlFeatures } from "@/composables/useReadShapefiles";
 import { useToast } from "primevue/usetoast";
+import { useMapStore } from "@/stores/mapStore";
 
-const toast = useToast();
 
+const props = defineProps({
+    reportUploadProgress: {
+        type: Boolean,
+        default: false
+    },
+    loadReqPoly: {
+        type: Boolean,
+        default: false
+    }
+});
 const emit = defineEmits<{
     (e: "features", features: OLFeature<Geometry>[]): void;
 }>();
+const mapStore = useMapStore();
+const toast = useToast();
 
 const showDialog = ref(false);
+function openFileDialog() {
+    showDialog.value = true;
+    mapStore.setPolySource("Shapefile");
+}
 
 const onFilesSelected = async (event: Event) => {
     const files = (event.target as HTMLInputElement).files;
@@ -65,7 +81,8 @@ const onFilesSelected = async (event: Event) => {
                 icon="pi pi-upload"
                 label="Upload Shapefile"
                 class="p-button-sm"
-                @click="showDialog = true"
+                @click="openFileDialog"
+                :disabled="true"  
             />
         </div>
 

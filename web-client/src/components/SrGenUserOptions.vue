@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SrUploadRegion from '@/components/SrUploadRegion.vue';
 import SrMenu from '@/components/SrMenu.vue';
 import SrSwitchedSliderInput from '@/components/SrSwitchedSliderInput.vue';
 import SrCheckbox from '@/components/SrCheckbox.vue';
@@ -47,36 +48,8 @@ onMounted(async () => {
 
 <template>
     <div class="sr-gen-user-options-container">
-       <SrMenu
-            v-model="mapStore.polygonSource"
-            label = "Polygon Source"
-            aria-label="Select Polygon Source"
-            :menuOptions="mapStore.polygonSourceItems"
-            :getSelectedMenuItem="useMapStore().getPolySource"
-            :setSelectedMenuItem="useMapStore().setPolySource"
-            tooltipText="This is how you define the region of interest"
-            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/basic_usage.html#polygons"
-        />
-        <SrGeoJsonFileUpload
-            v-if="mapStore.polygonSource==='GeoJSON File'"
-            :loadReqPoly="true"
-            :reportUploadProgress="true"
-        />
-        <SrSliderInput
-            v-if="mapStore.polygonSource==='GeoJSON File'"
-            label="Rasterize Polygon cell size"
-            unitsLabel="Degrees"
-            v-model="reqParamsStore.rasterizePolyCellSize"
-            :getValue="reqParamsStore.getRasterizePolyCellSize"
-            :setValue="reqParamsStore.setRasterizePolyCellSize"
-            :min="0.0001"
-            :max="1.0"
-            :decimalPlaces="4"
-            tooltipText="The number of pixels to rasterize the polygon into"
-            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/basic_usage.html#rasterized-area-of-interest"
-        />
         <SrCheckbox
-            label="Ignore Poly for CMR"
+            label="Specify Resources (no CMR polygon search)"
             v-model="reqParamsStore.ignorePolygon"
             tooltipText="When you check this the server skips the CMR polygon search and uses the resources you specify below"
             tooltipUrl="https://slideruleearth.io/web/rtd/api_reference/earthdata.html#cmr"
