@@ -317,6 +317,66 @@ export async function handleGeoJsonLoad(
                 }
             }
 
+        } else if (geometry.type === 'LineString') {
+            const coords = geometry.coordinates as number[][];
+            if (Array.isArray(coords) && coords.length >= 2) {
+                // add vertices to hull inputs
+                allCoords.push(...coords.map(c => ({ lon: c[0], lat: c[1] })));
+
+                const lineFeature = {
+                    type: 'Feature',
+                    geometry: {
+                        type: 'LineString',
+                        coordinates: coords
+                    },
+                    properties
+                };
+
+                const extent = drawGeoJson(
+                    `linestring-${fIndex + 1}`,
+                    vectorSource,
+                    JSON.stringify(lineFeature),
+                    /* use a dedicated lineColor if you have one */ polyColor,
+                    false,
+                    `line-${fIndex + 1}`
+                );
+                if (extent) combinedExtent = expandExtent(combinedExtent, extent);
+            } else {
+                srToast.warn('Skipping Invalid LineString',
+                    `LineString in feature ${fIndex + 1} has less than 2 points.`);
+            }
+
+        } else if (geometry.type === 'MultiLineString') {
+            const lines = geometry.coordinates as number[][][];
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                if (Array.isArray(line) && line.length >= 2) {
+                    allCoords.push(...line.map(c => ({ lon: c[0], lat: c[1] })));
+
+                    const lineFeature = {
+                        type: 'Feature',
+                        geometry: {
+                            type: 'LineString',
+                            coordinates: line
+                        },
+                        properties
+                    };
+
+                    const extent = drawGeoJson(
+                        `multilinestring-${fIndex + 1}-${i + 1}`,
+                        vectorSource,
+                        JSON.stringify(lineFeature),
+                        /* use a dedicated lineColor if you have one */ polyColor,
+                        false,
+                        `line-${fIndex + 1}-${i + 1}`
+                    );
+                    if (extent) combinedExtent = expandExtent(combinedExtent, extent);
+                } else {
+                    srToast.warn('Skipping Invalid MultiLineString Part',
+                        `MultiLineString part ${i + 1} in feature ${fIndex + 1} has less than 2 points.`);
+                }
+            }
+
         } else if (geometry.type === 'Point') {
             const coord = geometry.coordinates;
             allCoords.push({ lon: coord[0], lat: coord[1] });
@@ -367,6 +427,7 @@ export async function handleGeoJsonLoad(
             }
 
         } else {
+            console.warn('Unsupported geometry type:', geometry.type);
             srToast.warn('Unsupported Geometry', `Feature ${fIndex + 1} has unsupported geometry type: ${geometry.type}`);
         }
     }
