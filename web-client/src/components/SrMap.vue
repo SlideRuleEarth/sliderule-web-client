@@ -42,7 +42,7 @@
     import VectorLayer from "ol/layer/Vector";
     import { useDebugStore } from "@/stores/debugStore";
     import { updateMapView } from "@/utils/SrMapUtils";
-    import { renderSvrReqPoly,zoomOutToFullMap,renderSvrReqPin} from "@/utils/SrMapUtils";
+    import { renderSvrReqPoly,renderSvrReqRegionMask,zoomOutToFullMap,renderSvrReqPin} from "@/utils/SrMapUtils";
     import router from '@/router/index.js';
     import { useRecTreeStore } from "@/stores/recTreeStore";
     import SrFeatureMenuOverlay from "@/components/SrFeatureMenuOverlay.vue";
@@ -805,6 +805,7 @@
                     renderSvrReqPin(map,reqId);
                 }
                 renderSvrReqPoly(map, reqId);
+                renderSvrReqRegionMask(map, reqId);
             });
         } else {
             console.warn("addRecordLayer SrMap skipping addRecordLayer when map is null");

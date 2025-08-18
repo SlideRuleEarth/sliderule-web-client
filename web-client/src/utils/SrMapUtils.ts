@@ -72,6 +72,7 @@ import VectorLayer from 'ol/layer/Vector';
 import Point from 'ol/geom/Point';
 import Overlay from 'ol/Overlay';
 import { extractSrRegionFromGeometry, processConvexHull } from '@/utils/geojsonUploader';
+ 
 
 // This grabs the constructor’s first parameter type
 type ScatterplotLayerProps = ConstructorParameters<typeof ScatterplotLayer>[0];
@@ -119,6 +120,33 @@ export function extractCoordinates(geometry: any): Coordinate[] {
     }
 }
 
+function unwrapGeoJson(input: string | unknown): any {
+    // 1) parse if stringified
+    let data: any = input;
+    if (typeof data === 'string') {
+        const trimmed = data.trim();
+        try { data = JSON.parse(trimmed); } catch { /* it might already be raw GeoJSON string */ }
+    }
+
+    // 2) peel common wrappers
+    if (data && typeof data === 'object') {
+        if (data.server?.rqst?.parms?.region_mask?.geojson)
+            data = data.server.rqst.parms.region_mask.geojson;
+        else if (data.region_mask?.geojson)
+            data = data.region_mask.geojson;
+        else if (data.geojson)
+            data = data.geojson;
+    }
+
+    // 3) if geojson is still a string, parse it
+    if (typeof data === 'string') {
+        try { data = JSON.parse(data); } catch { /* leave as string; OL can ingest a raw JSON string */ }
+    }
+
+    return data;
+}
+
+
 export function drawGeoJson(
     uniqueId: string,
     vectorSource: VectorSource,
@@ -130,7 +158,7 @@ export function drawGeoJson(
 ): Extent | undefined {
     const map = useMapStore().map;
     if (!map || !vectorSource || !geoJsonData) return;
-
+    console.log(`drawGeoJson called with uniqueId: ${uniqueId}, color: ${color}, noFill: ${noFill}, tag: ${tag} dataProjection: ${dataProjection} geoJsonData:`, geoJsonData);
     const geoJsonString = typeof geoJsonData === 'string'
         ? geoJsonData.trim()
         : JSON.stringify(geoJsonData);
@@ -138,7 +166,17 @@ export function drawGeoJson(
     const format = new GeoJSON();
     let features: Feature[] = [];
     try {
-        features = format.readFeatures(geoJsonString, {
+        console.log('Parsing GeoJSON data:', geoJsonString);
+
+        const normalized = unwrapGeoJson(geoJsonData);
+
+        // Optional: validate before passing to OL
+        if (!normalized || (typeof normalized === 'object' && !normalized.type)) {
+            console.error('drawGeoJson: input is not a valid GeoJSON object (missing "type"). Got:', normalized);
+            return;
+        }
+
+        features = format.readFeatures(normalized, {
             dataProjection,
             featureProjection: useMapStore().getSrViewObj()?.projectionName || 'EPSG:3857',
         });
@@ -1208,13 +1246,7 @@ export async function renderSvrReqPoly(map: OLMap, reqId: number, layerName: str
             poly = await db.getSvrReqPoly(reqId);
             const rc = await db.getRunContext(reqId);
             if (poly.length > 0) {
-                if (rc) {
-                    if (rc?.parentReqId <= 0) {
-                        renderRequestPolygon(map, poly, 'blue', reqId, layerName, forceZoom);
-                    }
-                } else {
-                    renderRequestPolygon(map, poly, 'blue', reqId, layerName, forceZoom);
-                }
+                renderRequestPolygon(map, poly, 'blue', reqId, layerName, forceZoom);
             } else {
                 console.warn('renderSvrReqPoly No svrReqPoly for reqId:', reqId);
             }
@@ -1226,6 +1258,47 @@ export async function renderSvrReqPoly(map: OLMap, reqId: number, layerName: str
     }
     const endTime = performance.now();
     return poly;
+}
+
+export async function renderSvrReqRegionMask(
+    map: OLMap,
+    reqId: number,
+    layerName: string = 'Region Mask Layer',
+    forceZoom: boolean = false
+): Promise<SrRegion | null> {
+    const startTime = performance.now();
+    let region: SrRegion | null = null;
+    try {
+        if (!map) {
+            console.error('renderSvrReqRegionMask Error: map is null');
+            return null;
+        }
+        const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer');
+        if(vectorLayer && vectorLayer instanceof OLlayer){
+            const vectorSource = vectorLayer.getSource();
+            if(vectorSource){
+                const uniqueId = `region-mask-${reqId}`;
+                const regionGeoJsonData = await db.getRegionMaskFromSvrParms(reqId);
+
+                if(regionGeoJsonData && regionGeoJsonData.rows && regionGeoJsonData.rows > 0){
+                    //console.log("drawCurrentReqPolyAndPin drawing reqGeoJsonData:",geoJsonData);
+                    drawGeoJson(uniqueId,vectorSource, regionGeoJsonData, 'red', true);
+                } else {
+                    //console.log(`renderSvrReqRegionMask: No region mask found in svrParms for reqId ${reqId} regionGeoJsonData:`, regionGeoJsonData);
+                }
+            } else {
+                console.error('renderSvrReqRegionMask: vector source not found for layer Drawing Layer');
+            }
+        } else {
+            console.error('renderSvrReqRegionMask: vector layer not found');
+        }
+    } catch (error) {
+        console.error('renderSvrReqRegionMask Error:', error);
+    }
+
+    const endTime = performance.now();
+    console.log(`renderSvrReqRegionMask took ${endTime - startTime} milliseconds.`);
+    return region;
 }
 
 export async function updateSrViewName(srViewName: string): Promise<void> {
