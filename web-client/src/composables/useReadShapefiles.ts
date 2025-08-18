@@ -2,6 +2,7 @@
 import type { ToastServiceMethods } from 'primevue/toastservice'; // v4 types
 import { GeoJSON } from 'ol/format';
 import type { Feature as OLFeature } from 'ol';
+import { get as getProjection } from 'ol/proj';
 import type { Geometry } from 'ol/geom';
 import shp from 'shpjs';
 import JSZip from 'jszip';
@@ -10,6 +11,7 @@ import { useReqParamsStore } from '@/stores/reqParamsStore';
 import { useMapStore } from '@/stores/mapStore';
 import type OLMap from 'ol/Map.js';
 import { handleGeoJsonLoad, zoomOutToFullMap } from '@/utils/SrMapUtils';
+import { prjToSupportedEpsg } from '@/utils/prjToEpsg';
 
 // ----------  pure parser that returns raw GeoJSON ----------
 export async function parseShapefileToGeoJSON(
@@ -142,7 +144,7 @@ export async function loadShapefileToMap(
   const map = options.map ?? useMapStore().getMap();
   let drawExtent: number[] | undefined;
   const { geojson, warning, detectedProjection } = await parseShapefileToGeoJSON(input);
-
+  console.log('Shapefile parsed:', { geojson, warning, detectedProjection });
   if (loadReqPoly) geoJsonStore.setReqGeoJsonData(geojson);
   else geoJsonStore.setFeaturesGeoJsonData(geojson);
   if(map){
@@ -183,7 +185,8 @@ export async function loadShapefileToMap(
 }
 
 export async function readShapefileToOlFeatures(
-    input: FileList | File | Record<string, string>
+    input: FileList | File | Record<string, string>,
+    opts?: { sourceCRS?: string | null; targetCRS?: string }
 ): Promise<{
     features: OLFeature<Geometry>[];
     warning: string | null;
@@ -191,6 +194,7 @@ export async function readShapefileToOlFeatures(
 }> {
     let fileMap: Record<string, ArrayBuffer> = {};
     let geojson: any;
+    let prjText: string | null = null;
 
     const isZipFile = (f: unknown): f is File =>
         f instanceof File && f.name.toLowerCase().endsWith('.zip');
@@ -211,7 +215,6 @@ export async function readShapefileToOlFeatures(
         // 1) Extract PRJ (if present) from the zip
         const zipBuf = await input.arrayBuffer();
         const zip = await JSZip.loadAsync(zipBuf);
-        let prjText: string | null = null;
 
         // Find the first *.prj (case-insensitive), ignoring folder paths
         for (const name of Object.keys(zip.files)) {
@@ -300,18 +303,34 @@ export async function readShapefileToOlFeatures(
         throw new Error('Unsupported shapefile input type');
     }
 
-    const geojsonFormat = new GeoJSON();
-    const features = geojsonFormat.readFeatures(geojson, {
-        featureProjection: 'EPSG:3857', // map projection
-        dataProjection: 'EPSG:4326',    // assume input is in EPSG:4326 (you warn if not)
-    }) as OLFeature<Geometry>[];
+    const forced = opts?.sourceCRS ?? null;
+    const detected = prjToSupportedEpsg(prjText ?? null);
+    let sourceCRS = forced || detected || 'EPSG:4326';
 
-    console.log(
-        'Converting GeoJSON to OL features geojson:',
-        geojson,
-        'features.length:',
-        features.length
-    );
+    // Use the map’s current projection as target (or the override)
+    const mapTarget = useMapStore().getSrViewObj()?.projectionName || 'EPSG:3857';
+    const targetCRS = opts?.targetCRS || mapTarget;
 
-    return { features, warning, detectedProjection };
+    // If for some reason it’s not registered, fall back safely
+    const haveSource = !!getProjection(sourceCRS);
+    const haveTarget = !!getProjection(targetCRS);
+
+    if (!haveSource) {
+        warning = `Source CRS ${sourceCRS} is not registered; assuming EPSG:4326.`;
+        sourceCRS = 'EPSG:4326';
+    }
+    if (!haveTarget) {
+        warning = (warning ? warning + ' ' : '') + `Target CRS ${targetCRS} is not registered; features will not be reprojected.`;
+    }
+
+    const features = new GeoJSON().readFeatures(geojson, {
+        dataProjection: sourceCRS,
+        featureProjection: haveTarget ? targetCRS : undefined,
+    });
+    console.log(`Converted GeoJSON to OL features: ${features.length} features, from ${sourceCRS} to ${targetCRS}`, { features });
+    return {
+        features,
+        warning,
+        detectedProjection: detected || 'EPSG:4326',
+    };
 }
