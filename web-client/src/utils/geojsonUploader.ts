@@ -4,7 +4,7 @@ import { Style, Stroke } from 'ol/style';
 import { drawGeoJson,zoomOutToFullMap, getBoundingExtentFromFeatures } from '@/utils/SrMapUtils';
 import { convexHull, isClockwise } from "@/composables/SrTurfUtils";
 import { useReqParamsStore } from '@/stores/reqParamsStore';
-import { Map as OLMapType } from 'ol';
+import type OLMap from 'ol/Map.js';
 import type { SrLonLatPoint } from '@/types/SrTypes';
 
 export function extractSrRegionFromGeometry(geometry: any): SrRegion {
@@ -62,7 +62,7 @@ export function processConvexHull(region: SrRegion): { geoJson: any; label: stri
     const label = reqParamsStore.getFormattedAreaOfConvexHull().toString();
     return { geoJson, label };
 }
-export function addGeoJsonToLayer(map: OLMapType, vectorSource: any, geoJsonData: any): number[] | undefined {
+export function addGeoJsonToLayer(map: OLMap, vectorSource: any, geoJsonData: any): number[] | undefined {
     const format = new GeoJSON();
     const features = format.readFeatures(geoJsonData, {
         dataProjection: 'EPSG:4326',

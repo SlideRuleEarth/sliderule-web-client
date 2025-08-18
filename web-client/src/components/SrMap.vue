@@ -1,6 +1,6 @@
 <script setup lang="ts">
     import { ref, onMounted, onBeforeUnmount, computed, watch } from "vue";
-    import { Map as OLMap} from "ol";
+    import type OLMap from 'ol/Map.js';
     import { useToast } from "primevue/usetoast";
     import { findSrViewKey } from "@/composables/SrViews";
     import { useProjectionNames } from "@/composables/SrProjections";

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { watch, onMounted, onUnmounted } from 'vue';
-import type OLMap from 'ol/Map';
+import type OLMap from 'ol/Map.js';
 import { fromLonLat } from 'ol/proj';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { containsCoordinate } from 'ol/extent';

@@ -38,7 +38,7 @@ function handleDialogHide() {
     emit('close');
 }
 
-function handleGeoJsonFileUploadFinished() {
+function handleFileUploadFinished() {
     console.log('GeoJSON file upload finished; closing dialog.');
     showDialog.value = false;
 }
@@ -73,11 +73,12 @@ function handleGeoJsonFileUploadFinished() {
                 <SrGeoJsonFileUpload
                     :loadReqPoly="props.loadReqPoly"
                     :reportUploadProgress="props.reportUploadProgress"
-                    @done="handleGeoJsonFileUploadFinished"
+                    @done="handleFileUploadFinished"
                 />
                 <SrShapefileUpload
                     :loadReqPoly="props.loadReqPoly"
                     :reportUploadProgress="props.reportUploadProgress"
+                    @done="handleFileUploadFinished"
                 />
                 <SrSliderInput
                     label="Rasterize Polygon cell size"
