@@ -712,7 +712,7 @@
             addRecordLayer();
             if(haveReqPoly || haveReqPin){
                 //draw and zoom to the current reqParamsStore.poly
-                drawCurrentReqPolyAndPin('red');
+                drawCurrentReqPolyAndPin();
             }
         } else {
             console.error("SrMap Error:mapRef.value?.map is null");
@@ -813,7 +813,7 @@
         console.log('SrMap addRecordLayer for reqIds.length:',reqIds.length,` took ${endTime - startTime} ms`);
     }
 
-    function drawCurrentReqPolyAndPin(poly_color:string) {
+    function drawCurrentReqPolyAndPin() {
         const map = mapRef.value?.map;
         if(map){
             const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer');
@@ -821,7 +821,7 @@
                 const vectorSource = vectorLayer.getSource();
                 if(vectorSource){
                     if(reqParamsStore.poly){
-                        renderRequestPolygon(map, reqParamsStore.poly, poly_color);
+                        renderRequestPolygon(map, reqParamsStore.poly, 'blue');
                     } 
                     // check and see if pinCoordinate is defined
                     if(reqParamsStore.useAtl13Point){
@@ -832,7 +832,7 @@
                     const reqGeoJsonData = useGeoJsonStore().getReqGeoJsonData();
                     if(reqGeoJsonData){
                         //console.log("drawCurrentReqPolyAndPin drawing reqGeoJsonData:",geoJsonData);
-                        drawGeoJson('reqGeoJson',vectorSource, reqGeoJsonData, poly_color, true);
+                        drawGeoJson('reqGeoJson',vectorSource, reqGeoJsonData, 'red', true);
                     }
 
                 } else {
