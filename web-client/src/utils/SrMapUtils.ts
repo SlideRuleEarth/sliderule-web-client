@@ -1263,8 +1263,7 @@ export async function renderSvrReqPoly(map: OLMap, reqId: number, layerName: str
 export async function renderSvrReqRegionMask(
     map: OLMap,
     reqId: number,
-    layerName: string = 'Region Mask Layer',
-    forceZoom: boolean = false
+    layerName: string = 'Records Layer'
 ): Promise<SrRegion | null> {
     const startTime = performance.now();
     let region: SrRegion | null = null;
@@ -1273,7 +1272,7 @@ export async function renderSvrReqRegionMask(
             console.error('renderSvrReqRegionMask Error: map is null');
             return null;
         }
-        const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer');
+        const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === layerName);
         if(vectorLayer && vectorLayer instanceof OLlayer){
             const vectorSource = vectorLayer.getSource();
             if(vectorSource){
@@ -1297,7 +1296,7 @@ export async function renderSvrReqRegionMask(
     }
 
     const endTime = performance.now();
-    console.log(`renderSvrReqRegionMask took ${endTime - startTime} milliseconds.`);
+    //console.log(`renderSvrReqRegionMask took ${endTime - startTime} milliseconds.`);
     return region;
 }
 
