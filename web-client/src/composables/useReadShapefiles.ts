@@ -2,7 +2,8 @@ import { GeoJSON } from 'ol/format';
 import type { Feature as OLFeature } from 'ol';
 import type { Geometry } from 'ol/geom';
 import shp from 'shpjs';
- 
+import JSZip from 'jszip';
+
 export async function readShapefileToOlFeatures(
     input: FileList | File | Record<string, string>
 ): Promise<{
@@ -11,7 +12,7 @@ export async function readShapefileToOlFeatures(
     detectedProjection: string | null;
 }> {
     let fileMap: Record<string, ArrayBuffer> = {};
-    let geojson;
+    let geojson: any;
 
     const isZipFile = (f: unknown): f is File =>
         f instanceof File && f.name.toLowerCase().endsWith('.zip');
@@ -22,52 +23,117 @@ export async function readShapefileToOlFeatures(
     const isUrlMap = (f: unknown): f is Record<string, string> =>
         typeof f === 'object' && f !== null && !isFileList(f) && !(f instanceof File);
 
+    // Values we’ll compute regardless of branch
+    let detectedProjection: string | null = null;
+    let warning: string | null = null;
+
     if (isZipFile(input)) {
-        geojson = await shp(await input.arrayBuffer());
+        console.log('readShapefileToOlFeatures: processing zip file input:', input);
+
+        // 1) Extract PRJ (if present) from the zip
+        const zipBuf = await input.arrayBuffer();
+        const zip = await JSZip.loadAsync(zipBuf);
+        let prjText: string | null = null;
+
+        // Find the first *.prj (case-insensitive), ignoring folder paths
+        for (const name of Object.keys(zip.files)) {
+            if (name.toLowerCase().endsWith('.prj')) {
+                prjText = await zip.files[name].async('string');
+                break;
+            }
+        }
+
+        if (prjText) {
+            const prjLower = prjText.toLowerCase();
+            // Nice preview without always adding ellipsis
+            const preview = prjLower.length > 120 ? prjLower.slice(0, 120) + '…' : prjLower;
+            detectedProjection = preview;
+            console.log('Detected .prj content:', prjLower);
+
+            const is4326 =
+                prjLower.includes('wgs_1984') &&
+                (prjLower.includes('geographic') ||
+                 prjLower.includes('gcs_wgs_1984') ||
+                 prjLower.includes('4326'));
+
+            if (!is4326) {
+                warning = `Warning: The shapefile's .prj indicates a non-EPSG:4326 projection. This may cause misalignment.`;
+                console.warn(warning, 'Detected .prj content:', prjLower);
+            } else {
+                console.log('Shapefile .prj indicates EPSG:4326 projection.');
+            }
+        } else {
+            console.log('No .prj found in zip.');
+        }
+
+        // 2) Convert to GeoJSON as before
+        geojson = await shp(zipBuf);
+        console.log('readShapefileToOlFeatures: processed zip file geojson:', geojson);
     } else if (isFileList(input)) {
+        console.log('readShapefileToOlFeatures: processing FileList input:', input);
         for (const file of Array.from(input)) {
             const ext = file.name.split('.').pop()?.toLowerCase();
             if (ext) fileMap[ext] = await file.arrayBuffer();
         }
+        // Detect PRJ here (existing behavior)
+        if (fileMap.prj) {
+            const prj = new TextDecoder('utf-8').decode(fileMap.prj).toLowerCase();
+            const preview = prj.length > 120 ? prj.slice(0, 120) + '…' : prj;
+            detectedProjection = preview;
+
+            const is4326 =
+                prj.includes('wgs_1984') &&
+                (prj.includes('geographic') || prj.includes('gcs_wgs_1984') || prj.includes('4326'));
+
+            if (!is4326) {
+                warning = `Warning: The shapefile's .prj indicates a non-EPSG:4326 projection. This may cause misalignment.`;
+            }
+        }
         geojson = await shp(fileMap);
     } else if (isUrlMap(input)) {
+        console.log('readShapefileToOlFeatures: processing URL map input:', input);
         const entries = Object.entries(input);
-        const buffers = await Promise.all(entries.map(([_, url]) =>
-            fetch(url).then(resp => {
-                if (!resp.ok) throw new Error(`Failed to fetch ${url}`);
-                return resp.arrayBuffer();
-            })
-        ));
-        fileMap = Object.fromEntries(entries.map(([ext], i) => [ext, buffers[i]]));
+        const buffers = await Promise.all(
+            entries.map(([_, url]) =>
+                fetch(url).then(resp => {
+                    if (!resp.ok) throw new Error(`Failed to fetch ${url}`);
+                    return resp.arrayBuffer();
+                })
+            )
+        );
+        fileMap = Object.fromEntries(entries.map(([ext], i) => [ext.toLowerCase(), buffers[i]]));
+
+        if (fileMap.prj) {
+            const prj = new TextDecoder('utf-8').decode(fileMap.prj).toLowerCase();
+            const preview = prj.length > 120 ? prj.slice(0, 120) + '…' : prj;
+            detectedProjection = preview;
+
+            const is4326 =
+                prj.includes('wgs_1984') &&
+                (prj.includes('geographic') || prj.includes('gcs_wgs_1984') || prj.includes('4326'));
+
+            if (!is4326) {
+                warning = `Warning: The shapefile's .prj indicates a non-EPSG:4326 projection. This may cause misalignment.`;
+            }
+        }
+
         geojson = await shp(fileMap);
     } else {
-        throw new Error("Unsupported shapefile input type");
-    }
-
-    // Check .prj for non-EPSG:4326 content
-    let warning: string | null = null;
-    let detectedProjection: string | null = null;
-
-    if (fileMap.prj) {
-        const decoder = new TextDecoder('utf-8');
-        const prj = decoder.decode(fileMap.prj).toLowerCase();
-
-        detectedProjection = prj.trim().split('\n').join(' ').slice(0, 100) + '...'; // preview
-
-        const is4326 =
-            prj.includes("wgs_1984") &&
-            (prj.includes("geographic") || prj.includes("gcs_wgs_1984") || prj.includes("4326"));
-
-        if (!is4326) {
-            warning = `Warning: The shapefile's .prj indicates a non-EPSG:4326 projection. This may cause misalignment.`;
-        }
+        throw new Error('Unsupported shapefile input type');
     }
 
     const geojsonFormat = new GeoJSON();
     const features = geojsonFormat.readFeatures(geojson, {
-        featureProjection: 'EPSG:3857', // Map projection
-        dataProjection: 'EPSG:4326',     // Assume input is in EPSG:4326
+        featureProjection: 'EPSG:3857', // map projection
+        dataProjection: 'EPSG:4326',    // assume input is in EPSG:4326 (you warn if not)
     }) as OLFeature<Geometry>[];
 
-return { features, warning, detectedProjection };
+    console.log(
+        'Converting GeoJSON to OL features geojson:',
+        geojson,
+        'features.length:',
+        features.length
+    );
+
+    return { features, warning, detectedProjection };
 }

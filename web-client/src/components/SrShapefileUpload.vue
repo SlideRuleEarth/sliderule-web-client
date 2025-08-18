@@ -1,6 +1,6 @@
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref,onMounted } from "vue";
 import Dialog from "primevue/dialog";
 import Button from "primevue/button";
 import type { Feature as OLFeature } from "ol";
@@ -32,6 +32,14 @@ function openFileDialog() {
     mapStore.setPolySource("Shapefile");
 }
 
+onMounted(() => {
+    if(props.loadReqPoly){
+        console.log('onMounted SrShapefileUpload: will load request polygon');
+    } else {
+        console.log('onMounted SrShapefileUpload: will load features');
+    }
+});
+
 const onFilesSelected = async (event: Event) => {
     const files = (event.target as HTMLInputElement).files;
     if (!files || files.length === 0) return;
@@ -44,6 +52,9 @@ const onFilesSelected = async (event: Event) => {
             : files;
 
         const { features, warning, detectedProjection } = await readShapefileToOlFeatures(input);
+        console.log(`Shapefile upload successful; read ${features.length} features:`, features);
+        console.log('Detected projection:', detectedProjection);
+        console.log('Projection warning:', warning);
 
         if (detectedProjection) {
             toast.add({
@@ -82,7 +93,6 @@ const onFilesSelected = async (event: Event) => {
                 label="Upload Shapefile"
                 class="p-button-sm"
                 @click="openFileDialog"
-                :disabled="true"  
             />
         </div>
 

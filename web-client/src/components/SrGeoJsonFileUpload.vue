@@ -37,9 +37,9 @@ const { handleUpload } = useGeoJsonUploader(
 
 onMounted(() => {
     if(props.loadReqPoly){
-        console.log('SrGeoJsonFileUpload will load request polygon');
+        console.log('onMounted SrGeoJsonFileUpload: will load request polygon');
     } else {
-        console.log('SrGeoJsonFileUpload will load features');
+        console.log('onMounted SrGeoJsonFileUpload: will load features');
     }
 });
 
