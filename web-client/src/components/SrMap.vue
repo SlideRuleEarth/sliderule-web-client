@@ -26,7 +26,7 @@
     import { clearPolyCoords, clearReqGeoJsonData, drawGeoJson, enableTagDisplay, disableTagDisplay, saveMapZoomState, renderRequestPolygon, canRestoreZoomCenter, assignStyleFunctionToPinLayer } from "@/utils/SrMapUtils";
     import { onActivated } from "vue";
     import { onDeactivated } from "vue";
-    import { Ref } from "vue";
+    import type { Ref } from "vue";
     import { checkAreaOfConvexHullWarning,updateSrViewName,renderReqPin } from "@/utils/SrMapUtils";
     import { toLonLat } from 'ol/proj';
     import { useReqParamsStore } from "@/stores/reqParamsStore";
@@ -66,7 +66,7 @@
     const wasRecordsLayerVisible = ref(false);
     const isDrawing = ref(false);
 
-    function onFeatureMenuSelect(feature) {
+    function onFeatureMenuSelect(feature: Feature<Geometry>) {
         onFeatureClick([feature]); // Use your existing handler logic
         featureMenuOverlayRef.value.hideMenu();
     }

@@ -155,7 +155,50 @@ deploy-docs-to-testsliderule: ## Deploy the docs to the testsliderule.org cloudf
 destroy-docs-testsliderule: ## Destroy the web client from the testsliderule.org cloudfront and remove the S3 bucket
 	make destroy DOMAIN=docs.testsliderule.org S3_BUCKET=testsliderule-docs DOMAIN_APEX=testsliderule.org 
 
-.PHONY: check-vars
+.PHONY: check-vars typecheck lint test-unit test-unit-watch coverage-unit test-e2e test-all ci-check
+# =========================
+# Testing / Quality targets
+# =========================
+
+typecheck: ## Run TypeScript type checking
+	cd web-client && npm run typecheck
+
+lint: ## Run ESLint
+	cd web-client && npm run lint
+
+test-unit: ## Run Vitest unit tests (CI-friendly)
+	cd web-client && npm run test:unit
+
+test-unit-watch: ## Run Vitest in watch mode (local dev)
+	cd web-client && npm run test:unit:watch
+
+coverage-unit: ## Run unit tests with coverage report
+	cd web-client && npm run coverage:unit
+
+test-e2e: ## Run Playwright E2E tests
+	cd web-client && npm run test:e2e
+
+test-e2e-headed: ## Run Playwright tests in headed mode
+	cd web-client && npm run test:e2e:headed
+
+test-e2e-ui: ## Open the Playwright Test UI (Explorer)
+	cd web-client && npm run test:e2e:ui
+
+test-e2e-debug: ## Run Playwright in debug mode (PWDEBUG=1)
+	cd web-client && npm run test:e2e:debug
+
+test-all: typecheck lint test-unit test-e2e ## Run all checks
+
+pw-report: ## Open the last Playwright HTML report
+	cd web-client && npm run pw:report
+
+ci-check: ## CI gate: clean install + types + lint + unit + e2e
+	cd web-client && npm ci
+	cd web-client && npm run typecheck
+	cd web-client && npm run lint
+	cd web-client && npm run test:unit
+	cd web-client && npm run test:e2e
+
 check-vars:
 	@test -n "$(DOMAIN)" || (echo "❌ DOMAIN is not set"; exit 1)
 	@test -n "$(S3_BUCKET)" || (echo "❌ S3_BUCKET is not set"; exit 1)
@@ -166,8 +209,7 @@ check-vars:
 	@echo "   DOMAIN_APEX     = $(DOMAIN_APEX)"
 	@echo "   S3_BUCKET       = $(S3_BUCKET)"
 	@echo "   DISTRIBUTION_ID = $(DISTRIBUTION_ID)"
-
-
+	
 help: ## That's me!
 	@printf "\033[37m%-30s\033[0m %s\n" "#-----------------------------------------------------------------------------------------"
 	@printf "\033[37m%-30s\033[0m %s\n" "# Makefile Help       "

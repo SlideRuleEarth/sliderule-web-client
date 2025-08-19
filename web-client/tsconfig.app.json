@@ -1,15 +1,35 @@
 {
   "extends": "@vue/tsconfig/tsconfig.dom.json",
-  "include": ["env.d.ts", "sliderule.d.ts", "src/**/*", "src/**/*.vue"],
-  "exclude": ["src/**/__tests__/*"],
   "compilerOptions": {
     "composite": true,
-    "noEmit": false,
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ESNext", "DOM", "WebWorker"],
+    "types": ["vite/client", "vue"],
+    "strict": true,
+    "esModuleInterop": true,
+    "noEmit": false,               // <-- override the base (it sets noEmit: true)
+    "declaration": true,           // <-- OK for referenced projects
+    "emitDeclarationOnly": true,   // <-- don’t emit JS, just d.ts when/if you run tsc -b
+    "allowJs": true,
+    "checkJs": true,
     "baseUrl": ".",
-    "allowJs": true,                                  /* Allow JavaScript files to be a part of your program. Use the 'checkJS' option to get errors from these files. */
-    "checkJs": true,                                  /* Enable error reporting in type-checked JavaScript files. */
     "paths": {
-      "@/*": ["./src/*"]
-    }
-  }
+      "@/*": ["./src/*"],
+      "vue-shim": ["./vue-shim.d.ts"]
+    },
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": [
+    "env.d.ts",
+    "sliderule.d.ts",
+    "src/**/*",
+    "src/**/*.vue",
+    "workerMimeTypePlugin.ts"
+  ],
+  "exclude": ["node_modules", "tests/**"]
 }
