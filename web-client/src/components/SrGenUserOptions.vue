@@ -1,44 +1,34 @@
 <script setup lang="ts">
-import SrUploadRegion from '@/components/SrUploadRegion.vue';
-import SrMenu from '@/components/SrMenu.vue';
 import SrSwitchedSliderInput from '@/components/SrSwitchedSliderInput.vue';
 import SrCheckbox from '@/components/SrCheckbox.vue';
-import SrGeoJsonFileUpload from '@/components/SrGeoJsonFileUpload.vue';
 import SrResources from '@/components/SrResources.vue';
-import SrSliderInput from '@/components/SrSliderInput.vue';
-import SrShapefileUpload from '@/components/SrShapefileUpload.vue';
 import Fieldset from 'primevue/fieldset';
 import Button from 'primevue/button';
-import { useMapStore } from '@/stores/mapStore';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
 import { onMounted } from 'vue';
-import type { Feature as OLFeature } from "ol";
-import type { Geometry } from "ol/geom";
-import { Map as OLMapType} from "ol";
-import { Layer as OLlayer } from 'ol/layer';
 
 
 
-const mapStore = useMapStore();
+//const mapStore = useMapStore();
 const reqParamsStore = useReqParamsStore();
 
 
-function onShapefileFeatures(features: OLFeature<Geometry>[]) {
+// function onShapefileFeatures(features: OLFeature<Geometry>[]) {
 
-    const map = mapStore.getMap() as OLMapType;
-    if (map) {
-        const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === 'Uploaded Features');
-        if(vectorLayer && vectorLayer instanceof OLlayer){
-            const vectorSource = vectorLayer.getSource();
-            if(vectorSource){
-                vectorSource.addFeatures(features);
-            }
-        } else {
-            console.error('Vector layer not found or is not a VectorLayer');
-            // Handle the case where the vector layer is not found or is not a VectorLayer
-        }
-    }
-}
+//     const map = mapStore.getMap() as OLMap;
+//     if (map) {
+//         const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === 'Uploaded Features');
+//         if(vectorLayer && vectorLayer instanceof OLlayer){
+//             const vectorSource = vectorLayer.getSource();
+//             if(vectorSource){
+//                 vectorSource.addFeatures(features);
+//             }
+//         } else {
+//             console.error('Vector layer not found or is not a VectorLayer');
+//             // Handle the case where the vector layer is not found or is not a VectorLayer
+//         }
+//     }
+// }
 onMounted(async () => {
     // Initialize any required state or fetch data if needed
     await reqParamsStore.restoreTimeouts();
@@ -121,7 +111,7 @@ onMounted(async () => {
                 <Button label="Restore Default Timeout behavior" @click="reqParamsStore.restoreTimeouts()"/>
             </div>  
         </Fieldset>
-        <div class="sr-upload-geojson-container">
+        <!-- <div class="sr-upload-geojson-container">
             <label class="sr-gj-label">{{ "Upload GeoJSON map features" }}</label>
             <SrGeoJsonFileUpload 
                 :reportUploadProgress="true"
@@ -130,7 +120,7 @@ onMounted(async () => {
         <div class="sr-upload-shapefile-container">
             <label class="sr-gj-label">{{ "Upload Shapefile map features" }}</label>
             <SrShapefileUpload @features="onShapefileFeatures"/>
-        </div>
+        </div> -->
      </div>  
 </template>
 <style scoped>

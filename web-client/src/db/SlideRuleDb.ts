@@ -12,6 +12,18 @@ export interface SrTimeDelta{
     minutes : number,
     seconds : number
 }
+// Minimal shape we expect for a region mask/raster block
+export interface SrRegionMask {
+    rows: number;
+    cols: number;
+    cellsize: number;
+    latmin: number;
+    lonmin: number;
+    latmax: number;
+    lonmax: number;
+    geojson: any;           // FeatureCollection | string; normalize below
+    fileName?: string;      // optional if present
+}
 
 export type ElevationPlottable = [number, number, number];
 export interface SrRequestRecord {
@@ -927,6 +939,84 @@ export class SlideRuleDexie extends Dexie {
             }
         } catch (error) {
             console.error(`Failed to get svr_parms for req_id ${req_id}:`, error);
+            throw error;
+        }
+    }
+    
+    async getRegionMaskFromSvrParms(req_id: number): Promise<SrRegionMask | undefined> {
+        try {
+            const request = await this.requests.get(req_id);
+            if (!request) {
+                console.error(`getRegionMaskFromSvrParms: no request found for req_id ${req_id}`);
+                return undefined;
+            }
+
+            // Reuse your existing helper to fetch svr_parms (may be a JSON string)
+            const raw = getServerParams(request as SrRequestRecord);
+
+            // Accept either an already-parsed object or a JSON string
+            let svr: any;
+            try {
+                svr = (typeof raw === 'string') ? JSON.parse(raw) : raw;
+            } catch (e) {
+                console.error(`getRegionMaskFromSvrParms: failed to parse svr_parms for req_id ${req_id}`, e, 'raw:', raw);
+                return undefined;
+            }
+
+            // Try modern location first, then sensible fallbacks
+            const maskLike =
+                svr?.server?.rqst?.parms?.region_mask ??
+                svr?.server?.rqst?.parms?.raster ??     // some backends use "raster" for same shape
+                svr?.region_mask ??
+                svr?.raster;
+
+            if (!maskLike) {
+                console.error(`getRegionMaskFromSvrParms: no region_mask/raster found for req_id ${req_id}`);
+                return undefined;
+            }
+
+            // Normalize geojson: handle string or object
+            let geojsonNormalized = maskLike.geojson;
+            if (typeof geojsonNormalized === 'string') {
+                try {
+                    geojsonNormalized = JSON.parse(geojsonNormalized);
+                } catch {
+                    // keep as-is if it isn't valid JSON; caller can decide how to handle
+                }
+            }
+
+            // Coerce numerics defensively
+            const toNum = (v: any) => (typeof v === 'number' ? v : Number(v));
+
+            const normalized: SrRegionMask = {
+                rows: toNum(maskLike.rows),
+                cols: toNum(maskLike.cols),
+                cellsize: toNum(maskLike.cellsize),
+                latmin: toNum(maskLike.latmin),
+                lonmin: toNum(maskLike.lonmin),
+                latmax: toNum(maskLike.latmax),
+                lonmax: toNum(maskLike.lonmax),
+                geojson: geojsonNormalized,
+                fileName: maskLike.fileName
+            };
+
+            // Light validation/logging
+            const hasBasics =
+                Number.isFinite(normalized.rows) &&
+                Number.isFinite(normalized.cols) &&
+                Number.isFinite(normalized.cellsize) &&
+                Number.isFinite(normalized.latmin) &&
+                Number.isFinite(normalized.lonmin) &&
+                Number.isFinite(normalized.latmax) &&
+                Number.isFinite(normalized.lonmax);
+
+            if (!hasBasics) {
+                console.warn('getRegionMaskFromSvrParms: region_mask present but contains non-numeric fields', normalized);
+            }
+
+            return normalized;
+        } catch (error) {
+            console.error(`getRegionMaskFromSvrParms: failed for req_id ${req_id}:`, error);
             throw error;
         }
     }

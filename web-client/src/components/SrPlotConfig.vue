@@ -3,7 +3,7 @@ import Fieldset from "primevue/fieldset";
 import MultiSelect from "primevue/multiselect";
 import FloatLabel from "primevue/floatlabel";
 import Select from "primevue/select";
-import { SelectChangeEvent } from "primevue/select";
+import type { SelectChangeEvent } from "primevue/select";
 import { refreshScatterPlot, updatePlotAndSelectedTrackMapLayer } from "@/utils/plotUtils";
 import { useChartStore } from '@/stores/chartStore';
 import { onMounted, computed, watch } from "vue";

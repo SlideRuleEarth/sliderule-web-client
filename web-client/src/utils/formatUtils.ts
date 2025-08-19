@@ -1,6 +1,5 @@
 import { useReqParamsStore } from '@/stores/reqParamsStore'; 
 import { useSrcIdTblStore } from '@/stores/srcIdTblStore';
-import test from 'node:test';
 function gpsToUnixTimestamp(gpsSeconds: number): number {
     const gpsToUnixOffset = 315964800; // Seconds from Jan 1, 1970 to Jan 6, 1980
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
     import { ref, onMounted, onBeforeUnmount, computed, watch } from "vue";
-    import { Map as OLMap} from "ol";
+    import type OLMap from 'ol/Map.js';
     import { useToast } from "primevue/usetoast";
     import { findSrViewKey } from "@/composables/SrViews";
     import { useProjectionNames } from "@/composables/SrProjections";
@@ -26,7 +26,7 @@
     import { clearPolyCoords, clearReqGeoJsonData, drawGeoJson, enableTagDisplay, disableTagDisplay, saveMapZoomState, renderRequestPolygon, canRestoreZoomCenter, assignStyleFunctionToPinLayer } from "@/utils/SrMapUtils";
     import { onActivated } from "vue";
     import { onDeactivated } from "vue";
-    import { Ref } from "vue";
+    import type { Ref } from "vue";
     import { checkAreaOfConvexHullWarning,updateSrViewName,renderReqPin } from "@/utils/SrMapUtils";
     import { toLonLat } from 'ol/proj';
     import { useReqParamsStore } from "@/stores/reqParamsStore";
@@ -42,7 +42,7 @@
     import VectorLayer from "ol/layer/Vector";
     import { useDebugStore } from "@/stores/debugStore";
     import { updateMapView } from "@/utils/SrMapUtils";
-    import { renderSvrReqPoly,zoomOutToFullMap,renderSvrReqPin} from "@/utils/SrMapUtils";
+    import { renderSvrReqPoly,renderSvrReqRegionMask,zoomOutToFullMap,renderSvrReqPin} from "@/utils/SrMapUtils";
     import router from '@/router/index.js';
     import { useRecTreeStore } from "@/stores/recTreeStore";
     import SrFeatureMenuOverlay from "@/components/SrFeatureMenuOverlay.vue";
@@ -66,7 +66,7 @@
     const wasRecordsLayerVisible = ref(false);
     const isDrawing = ref(false);
 
-    function onFeatureMenuSelect(feature) {
+    function onFeatureMenuSelect(feature: Feature<Geometry>) {
         onFeatureClick([feature]); // Use your existing handler logic
         featureMenuOverlayRef.value.hideMenu();
     }
@@ -712,7 +712,7 @@
             addRecordLayer();
             if(haveReqPoly || haveReqPin){
                 //draw and zoom to the current reqParamsStore.poly
-                drawCurrentReqPolyAndPin('red');
+                drawCurrentReqPolyAndPin();
             }
         } else {
             console.error("SrMap Error:mapRef.value?.map is null");
@@ -805,6 +805,7 @@
                     renderSvrReqPin(map,reqId);
                 }
                 renderSvrReqPoly(map, reqId);
+                renderSvrReqRegionMask(map, reqId);
             });
         } else {
             console.warn("addRecordLayer SrMap skipping addRecordLayer when map is null");
@@ -813,7 +814,7 @@
         console.log('SrMap addRecordLayer for reqIds.length:',reqIds.length,` took ${endTime - startTime} ms`);
     }
 
-    function drawCurrentReqPolyAndPin(poly_color:string) {
+    function drawCurrentReqPolyAndPin() {
         const map = mapRef.value?.map;
         if(map){
             const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer');
@@ -821,7 +822,7 @@
                 const vectorSource = vectorLayer.getSource();
                 if(vectorSource){
                     if(reqParamsStore.poly){
-                        renderRequestPolygon(map, reqParamsStore.poly, poly_color);
+                        renderRequestPolygon(map, reqParamsStore.poly, 'blue');
                     } 
                     // check and see if pinCoordinate is defined
                     if(reqParamsStore.useAtl13Point){
@@ -832,7 +833,7 @@
                     const reqGeoJsonData = useGeoJsonStore().getReqGeoJsonData();
                     if(reqGeoJsonData){
                         //console.log("drawCurrentReqPolyAndPin drawing reqGeoJsonData:",geoJsonData);
-                        drawGeoJson('reqGeoJson',vectorSource, reqGeoJsonData, poly_color, true);
+                        drawGeoJson('reqGeoJson',vectorSource, reqGeoJsonData, 'red', true);
                     }
 
                 } else {

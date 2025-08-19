@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { Map as OLMap } from 'ol';
+import type OLMap from 'ol/Map.js';
 import TileLayer from 'ol/layer/Tile.js';
 import ol_control_WMSCapabilities from 'ol-ext/control/WMSCapabilities';
 import ol_control_WMTSCapabilities from 'ol-ext/control/WMTSCapabilities';

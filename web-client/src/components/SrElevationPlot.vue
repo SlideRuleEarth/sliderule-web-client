@@ -28,7 +28,7 @@ import SrAtl08Colors from "@/components/SrAtl08Colors.vue";
 import SrAtl24Colors from "./SrAtl24Colors.vue";
 import SrCustomTooltip from "@/components/SrCustomTooltip.vue";
 import Dialog from 'primevue/dialog';
-import { AppendToType } from "@/types/SrTypes";
+import type { AppendToType } from "@/types/SrTypes";
 import { processSelectedElPnt } from "@/utils/SrMapUtils";
 import SrCycleSelect from "@/components/SrCycleSelect.vue";
 import SrSimpleYatcCntrl from "./SrSimpleYatcCntrl.vue";

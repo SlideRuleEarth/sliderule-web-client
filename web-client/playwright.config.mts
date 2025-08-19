@@ -1,3 +1,4 @@
+// playwright.config.mts
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { defineConfig, devices } from '@playwright/test';
@@ -6,7 +7,7 @@ import * as dotenv from 'dotenv';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const ROOT = path.resolve(__dirname, '..'); // repo root
+const ROOT = path.resolve(__dirname, '..');
 
 const env = process.env.ENV || 'local';
 const envPath = path.join(ROOT, `.env.${env}`);
@@ -18,8 +19,12 @@ if (fs.existsSync(envPath)) {
 }
 
 export default defineConfig({
-  // Your tests live at repo root under tests/e2e
-  testDir: path.resolve(__dirname, 'tests'),
+  // Only look under tests/e2e
+  testDir: path.resolve(__dirname, 'tests/e2e'),
+  testMatch: /.*\.e2e\.(spec|test)\.(ts|js|mjs|cjs)$/,
+
+  // Belt & suspenders: if someone moves things around, still ignore unit
+  testIgnore: ['**/unit/**', '**/*.vitest.*'],
 
   reporter: [['html', { outputFolder: path.resolve(__dirname, 'playwright-report'), open: 'never' }]],
   fullyParallel: true,
@@ -37,12 +42,11 @@ export default defineConfig({
     { name: 'firefox',  use: { ...devices['Desktop Firefox'] } },
   ],
 
-    webServer: {
-        // build at repo root (Makefile), then preview inside web-client
-        command: 'make -s build && npm --prefix web-client run preview -- --port=5173 --strictPort',
-        port: 5173,
-        reuseExistingServer: !process.env.CI,
-        cwd: ROOT, // repo root (Makefile lives here)
-        timeout: 120_000,
-    }
+  webServer: {
+    command: 'make -s build && npm --prefix web-client run preview -- --port=5173 --strictPort',
+    port: 5173,
+    reuseExistingServer: !process.env.CI,
+    cwd: ROOT,
+    timeout: 120_000,
+  },
 });

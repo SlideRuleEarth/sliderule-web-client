@@ -23,6 +23,7 @@ const emit = defineEmits<{
     (e: 'close'): void;
 }>();
 const computedTooltipText = props.loadReqPoly ? 'Upload a GeoJSON or Shapefile defining a polygonal region of interest' : 'Upload a GeoJSON or Shapefile defining features to add to the map';
+const computedLabelText = props.loadReqPoly ? 'Upload Region of Interest' : 'Upload Features to Map';
 const mapStore = useMapStore();
 const reqParamsStore = useReqParamsStore();
 
@@ -37,7 +38,7 @@ function handleDialogHide() {
     emit('close');
 }
 
-function handleGeoJsonFileUploadFinished() {
+function handleFileUploadFinished() {
     console.log('GeoJSON file upload finished; closing dialog.');
     showDialog.value = false;
 }
@@ -59,7 +60,7 @@ function handleGeoJsonFileUploadFinished() {
         <!-- Dialog -->
         <Dialog
             v-model:visible="showDialog"
-            header="Upload a Region of Interest"
+            :header="computedLabelText"
             modal
             :closable="true"
             :dismissableMask="true"
@@ -72,11 +73,12 @@ function handleGeoJsonFileUploadFinished() {
                 <SrGeoJsonFileUpload
                     :loadReqPoly="props.loadReqPoly"
                     :reportUploadProgress="props.reportUploadProgress"
-                    @done="handleGeoJsonFileUploadFinished"
+                    @done="handleFileUploadFinished"
                 />
                 <SrShapefileUpload
                     :loadReqPoly="props.loadReqPoly"
                     :reportUploadProgress="props.reportUploadProgress"
+                    @done="handleFileUploadFinished"
                 />
                 <SrSliderInput
                     label="Rasterize Polygon cell size"

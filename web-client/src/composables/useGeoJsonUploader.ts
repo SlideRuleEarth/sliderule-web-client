@@ -1,7 +1,7 @@
 import { useToast } from 'primevue/usetoast';
 import { useGeoJsonStore } from '@/stores/geoJsonStore';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
-import { Map as OLMapType } from 'ol';
+import type OLMap from 'ol/Map.js';
 import type { FileUploadUploaderEvent } from 'primevue/fileupload';
 import { useMapStore } from '@/stores/mapStore';
 import { handleGeoJsonLoad, zoomOutToFullMap } from '@/utils/SrMapUtils';
@@ -36,7 +36,7 @@ export function useGeoJsonUploader(
 
         reader.onload = async (e) => {
             const mapStore = useMapStore();
-            const map = mapStore.getMap() as OLMapType;
+            const map = mapStore.getMap() as OLMap;
             let drawExtent: number[] | undefined;
 
             try {

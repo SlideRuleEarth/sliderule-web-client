@@ -18,7 +18,7 @@
 import { ref, onMounted, watch } from 'vue';
 import MultiSelect from 'primevue/multiselect';
 import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
-import { SrMultiSelectTextItem } from '@/types/SrTypes';
+import type { SrMultiSelectTextItem } from '@/types/SrTypes';
 
 
 
