@@ -1,4 +1,5 @@
-// useReadShapefiles.ts
+// @vitest-environment node
+
 import type { ToastServiceMethods } from 'primevue/toastservice'; // v4 types
 import { GeoJSON } from 'ol/format';
 import type { Feature as OLFeature } from 'ol';
