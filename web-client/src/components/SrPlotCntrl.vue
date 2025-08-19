@@ -134,7 +134,7 @@ import SrGradientLegendCntrl from '@/components/SrGradientLegendCntrl.vue';
 import SrRecIdReqDisplay from "./SrRecIdReqDisplay.vue";
 import SrSqlStmnt from "@/components/SrSqlStmnt.vue";
 import { useRecTreeStore } from '@/stores/recTreeStore';
-import { SelectChangeEvent } from 'primevue/select';
+import type { SelectChangeEvent } from 'primevue/select';
 import { useActiveTabStore } from '@/stores/activeTabStore';
 import { useFieldNameStore } from '@/stores/fieldNameStore';
 import { useToast } from 'primevue/usetoast';

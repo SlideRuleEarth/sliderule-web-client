@@ -44,7 +44,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, isRef, WritableComputedRef } from 'vue';
+import { ref, watch, onMounted, isRef } from 'vue';
+import type { WritableComputedRef } from 'vue';
 import Checkbox from 'primevue/checkbox';
 import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
 
