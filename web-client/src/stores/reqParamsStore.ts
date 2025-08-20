@@ -22,15 +22,6 @@ import {
   OnOffOptions,
   geoLocationOptions,
 } from '@/types/SrStaticOptions';
-import { use } from 'echarts';
-
-interface YapcConfig {
-  version: number;
-  score: number;
-  knn?: number; // Optional property
-  win_h?: number; // Optional property
-  win_x?: number; // Optional property
-}
 
 export function getDefaultReqParamsState(): SrReqParamsState {
   return {
@@ -559,10 +550,6 @@ const createReqParamsStore = (id: string) =>
           }
 
           if(this.enableYAPC) {
-            // const yapc:YapcConfig = {
-            //   version: Number(this.getYAPCVersion()),
-            //   score: this.getYAPCScore(),
-            // };
             let yapc = {} as Icesat2ConfigYapc;
             yapc.version = this.getYAPCVersion();
             yapc.score = this.YAPCScore;
