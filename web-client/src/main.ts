@@ -4,6 +4,7 @@ import 'primeicons/primeicons.css'
 import 'primeflex/primeflex.css'
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
+import { piniaMetaPlugin } from '@/composables/piniaMetaPlugin';
 import { createPersistedState } from 'pinia-plugin-persistedstate'
 import PrimeVue from 'primevue/config';
 import { definePreset } from '@primeuix/themes';
@@ -84,6 +85,7 @@ const pinia = createPinia();
 pinia.use(createPersistedState({
   storage: sessionStorage // session is per tab and not persistent when tab is closed
 }))
+pinia.use(piniaMetaPlugin);
 
 export const app = createApp(App)
 app.config.errorHandler = (err, vm, info) => {
