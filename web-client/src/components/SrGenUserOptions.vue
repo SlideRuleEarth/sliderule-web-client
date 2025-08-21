@@ -6,32 +6,70 @@ import Fieldset from 'primevue/fieldset';
 import Button from 'primevue/button';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
 import { onMounted } from 'vue';
+import { useSlideruleDefaults } from '@/stores/defaultsStore';
 
 
 
 //const mapStore = useMapStore();
 const reqParamsStore = useReqParamsStore();
+const defaultValServerTimeout = () => {
+    const value = useSlideruleDefaults().getNestedDefault<number>('core', 'timeout');
+    console.log('SrGenUserOptions: defaultValServerTimeout:', value);
+    if(value === undefined || value === null || value <= 0) {
+        console.error('SrGenUserOptions: defaultValServerTimeout is undefined or null, or <= 0:', value);
+        return 0; // default to 0 seconds if no valid default
+    }
+    return value;
+};
 
+const defaultValRqstTimeout = () => {
+    const value = useSlideruleDefaults().getNestedDefault<number>('core', 'rqst_timeout');
+    console.log('SrGenUserOptions: defaultValRequestTimeout:', value);
+    if(value === undefined || value === null || value <= 0) {
+        console.error('SrGenUserOptions: defaultValRequestTimeout is undefined or null, or <= 0:', value);
+        return 0; // default to 0 seconds if no valid default
+    }
+    return value;
+};
 
-// function onShapefileFeatures(features: OLFeature<Geometry>[]) {
+const defaultValNodeTimeout = () => {
+    const value = useSlideruleDefaults().getNestedDefault<number>('core', 'node_timeout');
+    console.log('SrGenUserOptions: defaultValNodeTimeout:', value);
+    if(value === undefined || value === null || value <= 0) {
+        console.error('SrGenUserOptions: defaultValNodeTimeout is undefined or null, or <= 0:', value);
+        return 0; // default to 0 seconds if no valid default
+    }
+    return value;
+};
 
-//     const map = mapStore.getMap() as OLMap;
-//     if (map) {
-//         const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === 'Uploaded Features');
-//         if(vectorLayer && vectorLayer instanceof OLlayer){
-//             const vectorSource = vectorLayer.getSource();
-//             if(vectorSource){
-//                 vectorSource.addFeatures(features);
-//             }
-//         } else {
-//             console.error('Vector layer not found or is not a VectorLayer');
-//             // Handle the case where the vector layer is not found or is not a VectorLayer
-//         }
-//     }
-// }
+const defaultValReadTimeout = () => {
+    const value = useSlideruleDefaults().getNestedDefault<number>('core', 'read_timeout');
+    console.log('SrGenUserOptions: defaultValReadTimeout:', value);
+    if(value === undefined || value === null || value <= 0) {
+        console.error('SrGenUserOptions: defaultValReadTimeout is undefined or null, or <= 0:', value);
+        return 0; // default to 0 seconds if no valid default
+    }
+    return value;
+};
+
+const ccvServerTimeout = () => { // current checkbox value
+    return reqParamsStore.useServerTimeout !== undefined ? reqParamsStore.useServerTimeout : false;
+};
+
+const ccvRqstTimeout = () => {
+    return reqParamsStore.useReqTimeout !== undefined ? reqParamsStore.useReqTimeout : false;
+};
+
+const ccvNodeTimeout = () => {
+    return reqParamsStore.useNodeTimeout !== undefined ? reqParamsStore.useNodeTimeout : false;
+};
+
+const ccvReadTimeout = () => {
+    return reqParamsStore.useReadTimeout !== undefined ? reqParamsStore.useReadTimeout : false;
+};
+
 onMounted(async () => {
-    // Initialize any required state or fetch data if needed
-    await reqParamsStore.restoreTimeouts();
+ 
 });
 
 </script>
@@ -48,27 +86,32 @@ onMounted(async () => {
         <Fieldset class="sr-timeouts-fieldset" legend="Timeouts" :toggleable="true" :collapsed="false">
             <SrSwitchedSliderInput
                 v-model="reqParamsStore.serverTimeoutValue"
+                label="Server Timeout Override"
                 :getCheckboxValue="reqParamsStore.getUseServerTimeout"
                 :setCheckboxValue="reqParamsStore.setUseServerTimeout"
                 :getValue="reqParamsStore.getServerTimeout"
                 :setValue="reqParamsStore.setServerTimeout"
-                label="Server Timeout Override"
+                :defaultValue="defaultValServerTimeout()"
+                :currentCheckboxValue="ccvServerTimeout()"
+                :inputId="'sr-server-timeout'"
                 :min="60"
                 :max="1000000"
                 :sliderMin="0"
                 :sliderMax="3600"
-                :defaultValue="reqParamsStore.serverTimeoutValue" 
                 :decimalPlaces="0"
                 tooltipText="global timeout setting that sets all timeouts at once (can be overridden by further specifying the other timeouts)"
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/basic_usage.html#timeouts"
             />
             <SrSwitchedSliderInput
                 v-model="reqParamsStore.reqTimeoutValue"
+                label="rqst-timeout"
                 :getCheckboxValue="reqParamsStore.getUseReqTimeout"
                 :setCheckboxValue="reqParamsStore.setUseReqTimeout"
                 :getValue="reqParamsStore.getReqTimeout"
                 :setValue="reqParamsStore.setReqTimeout"
-                label="rqst-timeout"
+                :defaultValue="defaultValRqstTimeout()"
+                :currentCheckboxValue="ccvRqstTimeout()"
+                :inputId="'sr-rqst-timeout'"
                 :min="1"
                 :max="1000000" 
                 :sliderMin="0"
@@ -79,11 +122,14 @@ onMounted(async () => {
             />                    
             <SrSwitchedSliderInput
                 v-model="reqParamsStore.nodeTimeoutValue"
+                label="node-timeout"
                 :getCheckboxValue="reqParamsStore.getUseNodeTimeout"
                 :setCheckboxValue="reqParamsStore.setUseNodeTimeout"
                 :getValue="reqParamsStore.getNodeTimeout"
                 :setValue="reqParamsStore.setNodeTimeout"
-                label="node-timeout"
+                :defaultValue="defaultValNodeTimeout()"
+                :currentCheckboxValue="ccvNodeTimeout()"
+                :inputId="'sr-node-timeout'"
                 :min="1"
                 :max="100000" 
                 :sliderMin="0"
@@ -94,11 +140,14 @@ onMounted(async () => {
             />
             <SrSwitchedSliderInput
                 v-model="reqParamsStore.readTimeoutValue"
+                label="read-timeout"
                 :getCheckboxValue="reqParamsStore.getUseReadTimeout"
                 :setCheckboxValue="reqParamsStore.setUseReadTimeout"
                 :getValue="reqParamsStore.getReadTimeout"
                 :setValue="reqParamsStore.setReadTimeout"
-                label="read-timeout"
+                :defaultValue="defaultValReadTimeout()"
+                :currentCheckboxValue="ccvReadTimeout()"
+                :inputId="'sr-read-timeout'"
                 :min="1"
                 :max="1000000" 
                 :sliderMin="0"

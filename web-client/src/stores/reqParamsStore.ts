@@ -758,15 +758,6 @@ const createReqParamsStore = (id: string) =>
         },
         setUseLength(useLength:boolean){
           this.useLength = useLength;
-          if(useLength){
-            const defaultLength = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'len');
-            if(defaultLength !== undefined && defaultLength !== null){
-              this.setLengthValue(defaultLength);
-            } else {
-              console.warn('No default length found for mission', this.missionValue, 'setting to fallback default of 40');
-              this.setLengthValue(40); // fallback default
-            }
-          }
         },
         getUseLength(){
           return this.useLength;
@@ -779,15 +770,6 @@ const createReqParamsStore = (id: string) =>
         },
         setUseStep(useStep:boolean){
           this.useStep = useStep;
-          if(useStep){
-            const defaultStep = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'res');
-            if((defaultStep !== undefined) && (defaultStep !== null)){
-              this.setStepValue(defaultStep);
-            } else {
-              console.warn('No default step found for mission', this.missionValue, 'setting to fallback default of 20');
-              this.setStepValue(20); // fallback default
-            }
-          }
         },
         getUseStep(){
           return this.useStep;
@@ -815,15 +797,6 @@ const createReqParamsStore = (id: string) =>
         },
         setUseAlongTrackSpread(ats:boolean){
           this.useAlongTrackSpread = ats;
-          if(ats){
-            const defaultSpread = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'along_track_spread');
-            if((defaultSpread !== undefined) && (defaultSpread !== null)){
-              this.setAlongTrackSpread(defaultSpread);
-            } else {
-              console.warn('No default along track spread found for mission', this.missionValue, 'setting to fallback default of 0');
-              this.setAlongTrackSpread(20); // fallback default
-            }
-          }
         },
         getAlongTrackSpread():number {
           return this.alongTrackSpread;
@@ -836,15 +809,6 @@ const createReqParamsStore = (id: string) =>
         },
         setUseMinimumPhotonCount(useMinimumPhotonCount:boolean){
           this.useMinimumPhotonCount = useMinimumPhotonCount;
-          if(useMinimumPhotonCount){
-            const defaultMinCount = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'min_photon_count');
-            if((defaultMinCount !== undefined) && (defaultMinCount !== null)){
-              this.setMinimumPhotonCount(defaultMinCount);
-            } else {
-              console.warn('No default minimum photon count found for mission', this.missionValue, 'setting to fallback default of 1');
-              this.setMinimumPhotonCount(10); // fallback default
-            }
-          }
         },
         getMinimumPhotonCount(): number {
           return this.minimumPhotonCount;
@@ -889,36 +853,37 @@ const createReqParamsStore = (id: string) =>
           this.readTimeoutValue = readTimeoutValue;
         },
         async restoreTimeouts() {
+          console.log('restoreTimeouts called');
           this.useServerTimeout = false;
           this.useReqTimeout = false;
           this.useNodeTimeout = false;
           this.useReadTimeout = false;
-          const sto = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'timeout');
+          const sto = useSlideruleDefaults().getNestedDefault<number>('core', 'timeout');
           if(sto){
               this.setServerTimeout(sto);
           } else {
-              console.warn('No default server timeout found, setting to fallback default of 601 seconds');
+              console.warn('restoreTimeouts: No default server timeout found, setting to fallback default of 601 seconds');
               this.setServerTimeout(601); // fallback default
           }
-          const nto = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'node_timeout');
+          const nto = useSlideruleDefaults().getNestedDefault<number>('core', 'node_timeout');
           if(nto){
               this.setNodeTimeout(nto);
           } else {
-              console.warn('No default node timeout found, setting to fallback default of 601 seconds');
+              console.warn('restoreTimeouts: No default node timeout found, setting to fallback default of 601 seconds');
               this.setNodeTimeout(601); // fallback default
           }
-          const rto = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'read_timeout');
+          const rto = useSlideruleDefaults().getNestedDefault<number>('core', 'read_timeout');
           if(rto){
               this.setReadTimeout(rto);
           } else {
-              console.warn('No default read timeout found, setting to fallback default of 601 seconds');
+              console.warn('restoreTimeouts: No default read timeout found, setting to fallback default of 601 seconds');
               this.setReadTimeout(601); // fallback default
           }
-          const rqto = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'rqst_timeout');
+          const rqto = useSlideruleDefaults().getNestedDefault<number>('core', 'rqst_timeout');
           if(rqto){
               this.setReqTimeout(rqto);
           } else {
-              console.warn('No default request timeout found, setting to fallback default of 601 seconds');
+              console.warn('restoreTimeouts: No default request timeout found, setting to fallback default of 601 seconds');
               this.setReqTimeout(601); // fallback default
           }
         },

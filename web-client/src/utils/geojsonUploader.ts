@@ -1,7 +1,7 @@
 import type { SrRegion } from '@/types/SrTypes';
 import { GeoJSON } from 'ol/format';
 import { Style, Stroke } from 'ol/style';
-import { drawGeoJson,zoomOutToFullMap, getBoundingExtentFromFeatures } from '@/utils/SrMapUtils';
+import { getBoundingExtentFromFeatures } from '@/utils/SrMapUtils';
 import { convexHull, isClockwise } from "@/composables/SrTurfUtils";
 import { useReqParamsStore } from '@/stores/reqParamsStore';
 import type OLMap from 'ol/Map.js';
