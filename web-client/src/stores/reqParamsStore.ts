@@ -1053,39 +1053,18 @@ const createReqParamsStore = (id: string) =>
         },
         setUseMaxIterations(useMaxIterations:boolean) {
             this.useMaxIterations = useMaxIterations;
-            const defaultMaxIterations = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'maxi');
-            if((defaultMaxIterations !== undefined) && (defaultMaxIterations !== null)){
-              this.setMaxIterations(defaultMaxIterations);
-            } else {
-              console.warn('No default max iterations found for mission', this.missionValue, 'setting to fallback default of 5');
-              this.setMaxIterations(5); // fallback default
-            }
         },
         getUseMaxRobustDispersion(): boolean {
           return this.useMaxRobustDispersion;
         },
         setUseMaxRobustDispersion(useRobustDispersion:boolean) {
             this.useMaxRobustDispersion = useRobustDispersion;
-            const defaultSigmaRmax = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'sigma_r_max');
-            if((defaultSigmaRmax !== undefined) && (defaultSigmaRmax !== null)){
-              this.setSigmaRmax(defaultSigmaRmax);
-            } else {
-              console.warn('No default sigma_r_max found for mission', this.missionValue, 'setting to fallback default of 10.0');
-              this.setSigmaRmax(10.0); // fallback default
-            }
         },
         getUseMinWindowHeight(): boolean {
           return this.useMinWindowHeight;
         },
         setUseMinWindowHeight(useMinWindowHeight:boolean) {
             this.useMinWindowHeight = useMinWindowHeight;
-            const defaultMinWindowHeight = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'H_min_win');
-            if((defaultMinWindowHeight !== undefined) && (defaultMinWindowHeight !== null)){
-              this.setMinWindowHeight(defaultMinWindowHeight);
-            } else {
-              console.warn('No default min window height found for mission', this.missionValue, 'setting to fallback default of 0.5');
-              this.setMinWindowHeight(3.0); // fallback default
-            }
         },
         setPoly(poly: SrRegion| null) {
           this.poly = poly;

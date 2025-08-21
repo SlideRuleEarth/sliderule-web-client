@@ -6,6 +6,7 @@ import SrSurfaceRefType from '@/components/SrSurfaceRefType.vue';
 import { signalConfidenceNumberOptions, qualityPHOptions } from '@/types/SrStaticOptions'
 const reqParamsStore = useReqParamsStore();
 
+
 </script>
 
 <template>
@@ -17,6 +18,7 @@ const reqParamsStore = useReqParamsStore();
                 tooltipText="A set of photon classification values that are designed to identify signal photons for different surface types with specified confidence" 
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#icesat-2-request-fields"
                 v-model="reqParamsStore.enableAtl03Classification"
+                :defaultValue="reqParamsStore.enableAtl03Classification"
             />
         </div>
         <div class="sr-atl03-cnf-body">
