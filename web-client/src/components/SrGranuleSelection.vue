@@ -10,6 +10,42 @@ import { tracksOptions,gtsOptions,getGtsAndTracksWithGts } from '@/utils/parmUti
 import { type SrListNumberItem } from '@/types/SrTypes';
 
 const reqParamsStore = useReqParamsStore();
+const defaultEnableGranuleSelection = () => {
+    return reqParamsStore.enableGranuleSelection !== undefined ? reqParamsStore.enableGranuleSelection : false;
+};
+const defaultTracks = () => {
+    return reqParamsStore.tracks !== undefined ? reqParamsStore.tracks : [];
+};
+const defaultBeams = () => {
+    return reqParamsStore.beams !== undefined ? reqParamsStore.beams : [];
+};
+const defaultRgt = () => {
+    return reqParamsStore.rgtValue !== undefined ? reqParamsStore.rgtValue : 0;
+};
+const defaultCycle = () => {
+    return reqParamsStore.cycleValue !== undefined ? reqParamsStore.cycleValue : 0;
+};
+const defaultRegion = () => {
+    return reqParamsStore.regionValue !== undefined ? reqParamsStore.regionValue : 0;
+};
+const defaultUseTime = () => {
+    return reqParamsStore.useTime !== undefined ? reqParamsStore.useTime : false;
+};  
+const defaultT0 = () => {
+    return reqParamsStore.t0Value !== undefined ? reqParamsStore.t0Value : null;
+};
+const defaultT1 = () => {
+    return reqParamsStore.t1Value !== undefined ? reqParamsStore.t1Value : null;
+};
+const ccvRgt = () => {
+    return reqParamsStore.getUseRgt() !== undefined ? reqParamsStore.getUseRgt() : false;
+};
+const ccvCycle = () => {
+    return reqParamsStore.getUseCycle() !== undefined ? reqParamsStore.getUseCycle() : false;
+};
+const ccvRegion = () => {
+    return reqParamsStore.getUseRegion() !== undefined ? reqParamsStore.getUseRegion() : false;
+};
 
 onMounted(() => {
     //console.log('Mounted SrGranuleSelection');
@@ -30,6 +66,7 @@ const GtsSelection = (gts:SrListNumberItem[]) => {
     console.log('GtsSelection gts:',gts, ' => tracks:',reqParamsStore.tracks, ' beams:',reqParamsStore.beams);
 }
 
+
 </script>
 
 <template>
@@ -39,6 +76,7 @@ const GtsSelection = (gts:SrListNumberItem[]) => {
                 v-model="reqParamsStore.enableGranuleSelection"
                 :getCheckboxValue="reqParamsStore.getEnableGranuleSelection"
                 :setCheckboxValue="reqParamsStore.setEnableGranuleSelection"
+                :defaultValue="defaultEnableGranuleSelection()"
                 label="Granule Selection"
                 labelFontSize="large"
                 tooltipText="Granules are the smallest unit of data that can be independently accessed, processed, and analyzed." 
@@ -50,6 +88,7 @@ const GtsSelection = (gts:SrListNumberItem[]) => {
                 :insensitive="!reqParamsStore.enableGranuleSelection"
                 label="Beam(s)" 
                 v-model="reqParamsStore.beams"
+                :defaultValue="reqParamsStore.beams"
                 :getSelectedMenuItem="reqParamsStore.getSelectedGtOptions"
                 :setSelectedMenuItem="reqParamsStore.setSelectedGtOptions"
                 :menuOptions="gtsOptions" 
@@ -65,6 +104,8 @@ const GtsSelection = (gts:SrListNumberItem[]) => {
             :setCheckboxValue="reqParamsStore.setUseRgt"
             :getValue="reqParamsStore.getRgt"
             :setValue="reqParamsStore.setRgt"
+            :defaultValue="defaultRgt()"
+            :currentCheckboxValue="ccvRgt()"
             label="RGT"
             :min="1"
             :max="1388" 
@@ -79,6 +120,8 @@ const GtsSelection = (gts:SrListNumberItem[]) => {
             :setCheckboxValue="reqParamsStore.setUseCycle"
             :getValue="reqParamsStore.getCycle"
             :setValue="reqParamsStore.setCycle"
+            :defaultValue="defaultCycle()"
+            :currentCheckboxValue="ccvCycle()"
             label="Cycle"
             :min="1"
             :max="100" 
@@ -93,6 +136,8 @@ const GtsSelection = (gts:SrListNumberItem[]) => {
             :setCheckboxValue="reqParamsStore.setUseRegion"
             :getValue="reqParamsStore.getRegion"
             :setValue="reqParamsStore.setRegion"
+            :defaultValue="defaultRegion()"
+            :currentCheckboxValue="ccvRegion()"
             label="Atl03 Granule Region"
             :min="1"
             :max="14" 
@@ -106,6 +151,7 @@ const GtsSelection = (gts:SrListNumberItem[]) => {
                 v-model="reqParamsStore.useTime"
                 :getCheckboxValue="reqParamsStore.getUseTime"
                 :setCheckboxValue="reqParamsStore.setUseTime"
+                :defaultValue="defaultUseTime()"
                 label="Use Time Filter"
                 labelFontSize="large"
                 tooltipText="Filter granules by time" 
@@ -117,6 +163,7 @@ const GtsSelection = (gts:SrListNumberItem[]) => {
                 label="T0"
                 :getValue="reqParamsStore.getT0"
                 :setValue="reqParamsStore.setT0"
+                :defaultValue="defaultT0()"
                 tooltipText="Start Time for filtering granules"
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/icesat2.html#photon-input-parameters"
             />
@@ -126,6 +173,7 @@ const GtsSelection = (gts:SrListNumberItem[]) => {
                 label="T1"
                 :getValue="reqParamsStore.getT1"
                 :setValue="reqParamsStore.setT1"
+                :defaultValue="defaultT1()"
                 tooltipText="End Time for filtering granules"
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/icesat2.html#photon-input-parameters"
             />

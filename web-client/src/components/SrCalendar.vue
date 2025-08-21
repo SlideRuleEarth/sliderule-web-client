@@ -1,7 +1,7 @@
 <template>
     <div class="sr-calendar">
         <SrLabelInfoIconButton :label="label" :tooltipText="tooltipText" :tooltipUrl="tooltipUrl" :insensitive="insensitive"/>
-        <DatePicker v-model="innerModelValue" showIcon showTime showSeconds hourFormat="24" timeSeperator=':' :showOnFocus="false" :inputId="inputId" dateFormat="yy-mm-ddT" :disabled="insensitive" :minDate="useReqParamsStore().minDate"/>
+        <DatePicker v-model="innerModelValue" :defaultValue="props.default" showTime showSeconds hourFormat="24" timeSeperator=':' :showOnFocus="false" :inputId="inputId" dateFormat="yy-mm-ddT" :disabled="insensitive" :minDate="useReqParamsStore().minDate"/>
     </div>
 </template>
 
