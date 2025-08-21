@@ -63,7 +63,7 @@ const props = defineProps({
     tooltipUrl: { type: String, default: '' },
     inputWidth: { type: [String, Number], default: '4rem' },
     maxWidth: { type: [String, Number], default: '7rem' },
-    sliderWidth: { type: [String, Number], default: '12rem' }
+    sliderWidth: { type: [String, Number], default: '12rem' },
 });
 
 const emit = defineEmits(['update:modelValue', 'blur', 'change']);
@@ -87,6 +87,7 @@ const handleChange = (source: 'slider' | 'input') => (event: Event) => {
 
 onMounted(() => {
 })
+
 watch(() => props.modelValue, (newVal) => {
   const sanitized = typeof newVal === 'number' && !isNaN(newVal) ? newVal : props.defaultValue;
   if (sanitized !== innerValue.value) {

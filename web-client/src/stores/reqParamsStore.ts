@@ -917,15 +917,6 @@ const createReqParamsStore = (id: string) =>
         },
         setUseYAPCKnn(value:boolean) {
           this.usesYAPCKnn = value;
-          if(value){
-            const defaultKnn = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'yapc.knn');
-            if((defaultKnn !== undefined) && (defaultKnn !== null)){
-              this.setYAPCKnn(defaultKnn);
-            } else {
-              console.warn('No default knn found, setting to fallback default of 5');
-              this.setYAPCKnn(5); // fallback default
-            }
-          }
         },
         getYAPCKnn():number {
           return this.YAPCKnn;
@@ -938,15 +929,6 @@ const createReqParamsStore = (id: string) =>
         },
         setUseYAPCMinKnn(value:boolean) {
           this.usesYAPCMinKnn = value;
-          if(value){
-            const defaultMinKnn = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'yapc.min_knn');
-            if((defaultMinKnn !== undefined) && (defaultMinKnn !== null)){
-              this.setYAPCMinKnn(defaultMinKnn);
-            } else {
-              console.warn('No default min knn found, setting to fallback default of 5');
-              this.setYAPCMinKnn(5); // fallback default
-            }
-          }
         },
         getYAPCMinKnn():number {
           return this.YAPCMinKnn;
@@ -965,30 +947,12 @@ const createReqParamsStore = (id: string) =>
         },
         setUsesYAPCWindowWidth(value:boolean) {
           this.usesYAPCWindowWidth = value;
-          if(value){
-            const defaultWidth = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'yapc.win_x');
-            if(defaultWidth !== undefined && defaultWidth !== null){
-              this.setYAPCWindowWidth(defaultWidth);
-            } else {
-              console.warn('No default window width found, setting to fallback default of 10');
-              this.setYAPCWindowWidth(15); // fallback default
-            }
-          }
         },
         getUsesYAPCWindowHeight() {
           return this.usesYAPCWindowHeight;
         },
         setUsesYAPCWindowHeight(value:boolean) {
           this.usesYAPCWindowHeight = value;
-          if(value){
-            const defaultHeight = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'yapc.win_h');
-            if(defaultHeight !== undefined && defaultHeight !== null){
-              this.setYAPCWindowHeight(defaultHeight);
-            } else {
-              console.warn('No default window height found, setting to fallback default of 10');
-              this.setYAPCWindowHeight(6); // fallback default
-            }
-          }
         },
         getYAPCWindowWidth() {
           return this.YAPCWindowWidth;

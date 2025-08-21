@@ -120,23 +120,23 @@
     });
 
     onMounted(() => {
-        //console.log('Mounted SrSwitchedSliderInputInput:', combinedLabel.value, 'insensitive:', props.insensitive);
+        //console.log('Mounted SrSwitchedSliderInput:', combinedLabel.value, 'insensitive:', props.insensitive);
         // Initialize the slider value based on the checkbox state
         const currentCheckboxValue = props.currentCheckboxValue;
         const defaultValue = props.defaultValue;
-        //console.log('SrSwitchedSliderInputInput:', combinedLabel.value,'currentCheckboxValue:', currentCheckboxValue, 'defaultValue:', defaultValue);
+        //console.log('SrSwitchedSliderInput:', combinedLabel.value,'currentCheckboxValue:', currentCheckboxValue, 'defaultValue:', defaultValue);
         if(!currentCheckboxValue) {// 'use' is falsey
-            if( defaultValue === undefined || defaultValue === null || defaultValue <= 0) {
-                console.error('SrSwitchedSliderInputInput:', combinedLabel.value, 'defaultValue is undefined or null, or <= 0:',props.defaultValue);
+            if( defaultValue === undefined || defaultValue === null || defaultValue < props.min) {
+                console.error('SrSwitchedSliderInput:', combinedLabel.value, 'defaultValue is undefined or null, or < min:',props.defaultValue);
             }
-            if(props.defaultValue > 0) {
+            if(props.defaultValue >= props.min) {
                 props.setValue(defaultValue);
-                //console.log('SrSwitchedSliderInputInput:', combinedLabel.value, 'setValue:', props.defaultValue);
+                //console.log('SrSwitchedSliderInput:', combinedLabel.value, 'setValue:', props.defaultValue);
                 innerModelValue.value = defaultValue;
             }
         } else {
             const value = props.getValue();
-            //console.log('SrSwitchedSliderInputInput:', combinedLabel.value, 'value:', value);
+            //console.log('SrSwitchedSliderInput:', combinedLabel.value, 'value:', value);
             innerModelValue.value = value;
         }
        props.setCheckboxValue(currentCheckboxValue);
