@@ -76,8 +76,6 @@ export function getDefaultReqParamsState(): SrReqParamsState {
       enableAtl03Classification: false,
       surfaceReferenceType: [surfaceReferenceTypeOptions[0]] as SrMultiSelectNumberItem[],
       signalConfidence:[
-                    signalConfidenceNumberOptions[2],
-                    signalConfidenceNumberOptions[3],
                     signalConfidenceNumberOptions[4],
                     signalConfidenceNumberOptions[5],
                     signalConfidenceNumberOptions[6],
