@@ -822,7 +822,7 @@
                 const vectorSource = vectorLayer.getSource();
                 if(vectorSource){
                     if(reqParamsStore.poly){
-                        renderRequestPolygon(map, reqParamsStore.poly, 'blue');
+                        renderRequestPolygon(map, reqParamsStore.poly, 'red');
                     } 
                     // check and see if pinCoordinate is defined
                     if(reqParamsStore.useAtl13Point){
