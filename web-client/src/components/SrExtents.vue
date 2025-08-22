@@ -10,32 +10,18 @@ import { distanceInOptions } from '@/types/SrStaticOptions';
 
 const reqParamsStore = useReqParamsStore();
 
+const defaultLength = () => {return useSlideruleDefaults().getNestedMissionDefault<number>(reqParamsStore.missionValue, 'len') || 40;};
+const defaultStep = () => {return useSlideruleDefaults().getNestedMissionDefault<number>(reqParamsStore.missionValue, 'res') || 1;};
+const defaultAlongTrackSpread = () => {return useSlideruleDefaults().getNestedMissionDefault<number>(reqParamsStore.missionValue, 'ats') || 0;};
+const defaultMinimumPhotonCount = () => {return useSlideruleDefaults().getNestedMissionDefault<number>(reqParamsStore.missionValue, 'cnt') || 1;};
+
+const ccvDefaultLength = () => {return reqParamsStore.getUseLength() !== undefined ? reqParamsStore.getUseLength() : false;};
+const ccvDefaultStep = () => {return reqParamsStore.getUseStep() !== undefined ? reqParamsStore.getUseStep() : false;};
+const ccvDefaultAlongTrackSpread = () => {return reqParamsStore.getUseAlongTrackSpread() !== undefined ? reqParamsStore.getUseAlongTrackSpread() : false;};
+const ccvDefaultMinimumPhotonCount = () => {return reqParamsStore.getUseMinimumPhotonCount() !== undefined ? reqParamsStore.getUseMinimumPhotonCount() : false;};
+
 onMounted(() => {
-    const len = useSlideruleDefaults().getNestedMissionDefault<number>(reqParamsStore.missionValue, 'len');
-    //console.log(`SrExtents mounted for mission ${reqParamsStore.missionValue} with default len=${len}`);
-    if(len){
-        reqParamsStore.setLengthValue(len);
-    } else {
-        console.warn(`No default length found for mission ${reqParamsStore.missionValue}`);
-    }
-    const res = useSlideruleDefaults().getNestedMissionDefault<number>(reqParamsStore.missionValue, 'res');
-    if(res){
-        reqParamsStore.setStepValue(res);
-    } else {
-        console.warn(`No default step size found for mission ${reqParamsStore.missionValue}`);
-    }
-    const ats = useSlideruleDefaults().getNestedMissionDefault<number>(reqParamsStore.missionValue, 'ats');
-    if (ats) {
-        reqParamsStore.setAlongTrackSpread(ats);
-    } else {
-        console.warn(`No default along-track spread found for mission ${reqParamsStore.missionValue}`);
-    }
-    const cnt = useSlideruleDefaults().getNestedMissionDefault<number>(reqParamsStore.missionValue, 'cnt');
-    if (cnt) {
-        reqParamsStore.setMinimumPhotonCount(cnt);
-    } else {
-        console.warn(`No default minimum photon count found for mission ${reqParamsStore.missionValue}`);
-    }
+
 });
 
 </script>
@@ -66,6 +52,8 @@ onMounted(() => {
                     :setCheckboxValue="reqParamsStore.setUseLength"
                     :getValue="reqParamsStore.getLengthValue"
                     :setValue="reqParamsStore.setLengthValue"
+                    :defaultValue="defaultLength()"
+                    :currentCheckboxValue="ccvDefaultLength()"
                     :min="1"
                     :max="200" 
                     :decimal-places="0"                  
@@ -80,6 +68,8 @@ onMounted(() => {
                     :setCheckboxValue="reqParamsStore.setUseStep"
                     :getValue="reqParamsStore.getStepValue"
                     :setValue="reqParamsStore.setStepValue"
+                    :defaultValue="defaultStep()"
+                    :currentCheckboxValue="ccvDefaultStep()"
                     :min="1"
                     :max="100" 
                     :decimal-places="0"
@@ -94,6 +84,8 @@ onMounted(() => {
                     :setCheckboxValue="reqParamsStore.setUseLength"
                     :getValue="reqParamsStore.getLengthValue"
                     :setValue="reqParamsStore.setLengthValue"
+                    :defaultValue="defaultLength()"
+                    :currentCheckboxValue="ccvDefaultLength()"
                     :min="1"
                     :max="200" 
                     :decimal-places="0"                  
@@ -108,6 +100,8 @@ onMounted(() => {
                     :setCheckboxValue="reqParamsStore.setUseStep"
                     :getValue="reqParamsStore.getStepValue"
                     :setValue="reqParamsStore.setStepValue"
+                    :defaultValue="defaultStep()"
+                    :currentCheckboxValue="ccvDefaultStep()"
                     :min="1"
                     :max="100" 
                     :decimal-places="0"
@@ -135,6 +129,8 @@ onMounted(() => {
                     :setCheckboxValue="reqParamsStore.setUseAlongTrackSpread"
                     :getValue="reqParamsStore.getAlongTrackSpread"
                     :setValue="reqParamsStore.setAlongTrackSpread"
+                    :defaultValue="defaultAlongTrackSpread()"
+                    :currentCheckboxValue="ccvDefaultAlongTrackSpread()"
                     :min="0"
                     :max="200" 
                     :decimal-places="0"
@@ -149,6 +145,8 @@ onMounted(() => {
                     :setCheckboxValue="reqParamsStore.setUseMinimumPhotonCount"
                     :getValue="reqParamsStore.getMinimumPhotonCount"
                     :setValue="reqParamsStore.setMinimumPhotonCount"
+                    :defaultValue="defaultMinimumPhotonCount()"
+                    :currentCheckboxValue="ccvDefaultMinimumPhotonCount()"
                     :min="0"
                     :max="200" 
                     :decimal-places="0"

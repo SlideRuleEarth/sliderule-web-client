@@ -6,17 +6,22 @@ import SrCheckBox from './SrCheckbox.vue';
 import { useReqParamsStore } from '../stores/reqParamsStore';
 import { onMounted } from 'vue';
 import { YAPCVersionOptions } from '@/types/SrStaticOptions';
+import { type Icesat2ConfigYapc } from '@/types/slideruleDefaultsInterfaces'
+import { useSlideruleDefaults } from '@/stores/defaultsStore';
 
 const reqParamsStore = useReqParamsStore();
+const defaultEnableYAPC = () => { return reqParamsStore.enableYAPC !== undefined ? reqParamsStore.enableYAPC : false; };
+const defaultYapc = () => { 
+  return useSlideruleDefaults().getNestedMissionDefault<object>(reqParamsStore.missionValue,'yapc') as Icesat2ConfigYapc;
+}
+const ccvDefaultKnn = () => {return reqParamsStore.getUseYAPCKnn() !== undefined ? reqParamsStore.getUseYAPCKnn() : false;};
+const ccvDefaultMinKnn = () => {return reqParamsStore.getUseYAPCMinKnn() !== undefined ? reqParamsStore.getUseYAPCMinKnn() : false;};
+const ccvDefaultWindowHeight = () => {return reqParamsStore.getUsesYAPCWindowHeight() !== undefined ? reqParamsStore.getUsesYAPCWindowHeight() : false;}; 
+const ccvDefaultWindowWidth = () => {return reqParamsStore.getUsesYAPCWindowWidth() !== undefined ? reqParamsStore.getUsesYAPCWindowWidth() : false;};
 
 onMounted(async () => {
-  await reqParamsStore.initYapcDefaults();
+  //await reqParamsStore.initYapcDefaults();
 });
-
-async function initYapc(){
-  //console.log('initYapc');
-  await reqParamsStore.initYapcDefaults();
-}
 
 </script>
 
@@ -25,11 +30,11 @@ async function initYapc(){
     <div class="sr-yapc-header">
       <SrCheckBox
           v-model="reqParamsStore.enableYAPC"
+          :defaultValue="defaultEnableYAPC()"
           label="YAPC" 
           tooltipText="The experimental YAPC (Yet Another Photon Classifier) photon-classification scheme." 
           tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#yapc" 
           labelFontSize="large"
-          @update:modelValue=initYapc          
       />
     </div>
     <div class="sr-yapc-version-header">
@@ -52,6 +57,7 @@ async function initYapc(){
           :setCheckboxValue="reqParamsStore.setUseYAPCScore"
           :getValue="reqParamsStore.getYAPCScore"
           :setValue="reqParamsStore.setYAPCScore"
+          :defaultValue="defaultYapc().score"
           :min="0"
           :max="255" 
           :decimalPlaces="0"
@@ -65,7 +71,9 @@ async function initYapc(){
         :setCheckboxValue="reqParamsStore.setUseYAPCKnn"
         :getValue="reqParamsStore.getYAPCKnn"
         :setValue="reqParamsStore.setYAPCKnn"
-        :min="1"
+        :defaultValue="defaultYapc().knn"
+        :currentCheckboxValue="ccvDefaultKnn()"
+        :min="0"
         :max="100" 
         :decimalPlaces="0"
         :insensitive="!reqParamsStore.enableYAPC"
@@ -77,6 +85,8 @@ async function initYapc(){
         :setCheckboxValue="reqParamsStore.setUseYAPCMinKnn"
         :getValue="reqParamsStore.getYAPCMinKnn"
         :setValue="reqParamsStore.setYAPCMinKnn"
+        :defaultValue="defaultYapc().min_knn"
+        :currentCheckboxValue="ccvDefaultMinKnn()"
         :min="1"
         :max="100" 
         :decimalPlaces="0"
@@ -89,6 +99,8 @@ async function initYapc(){
         :setCheckboxValue="reqParamsStore.setUsesYAPCWindowHeight"
         :getValue="reqParamsStore.getYAPCWindowHeight"
         :setValue="reqParamsStore.setYAPCWindowHeight"
+        :defaultValue="defaultYapc().win_h"
+        :currentCheckboxValue="ccvDefaultWindowHeight()"
         :min="1"
         :max="1000" 
         :decimalPlaces="0"  
@@ -101,6 +113,8 @@ async function initYapc(){
         :setCheckboxValue="reqParamsStore.setUsesYAPCWindowWidth"
         :getValue="reqParamsStore.getYAPCWindowWidth"
         :setValue="reqParamsStore.setYAPCWindowWidth"
+        :defaultValue="defaultYapc().win_x"
+        :currentCheckboxValue="ccvDefaultWindowWidth()"
         :min="1"
         :max="1000" 
         :decimalPlaces="0"

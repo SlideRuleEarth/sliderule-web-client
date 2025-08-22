@@ -14,6 +14,7 @@
                     v-model="selectedMenuItem"
                     :options="menuOptions"
                     :disabled="insensitive"
+                    :defaultValue="props.defaultValue"
                     optionLabel="label"
                     :scrollHeight="scrollHeight"
                     multiple
@@ -36,6 +37,10 @@ const props = defineProps({
         default: ''
     },
     menuOptions: {
+        type: Array as () => SrListNumberItem[],
+        default: () => []
+    },
+    defaultValue: {
         type: Array as () => SrListNumberItem[],
         default: () => []
     },

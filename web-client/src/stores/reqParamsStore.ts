@@ -21,16 +21,9 @@ import {
   atl24_class_ph_Options,
   OnOffOptions,
   geoLocationOptions,
+  signalConfidenceNumberOptions,
+  qualityPHOptions,
 } from '@/types/SrStaticOptions';
-import { use } from 'echarts';
-
-interface YapcConfig {
-  version: number;
-  score: number;
-  knn?: number; // Optional property
-  win_h?: number; // Optional property
-  win_x?: number; // Optional property
-}
 
 export function getDefaultReqParamsState(): SrReqParamsState {
   return {
@@ -82,8 +75,12 @@ export function getDefaultReqParamsState(): SrReqParamsState {
       windowValue: 3.0,
       enableAtl03Classification: false,
       surfaceReferenceType: [surfaceReferenceTypeOptions[0]] as SrMultiSelectNumberItem[],
-      signalConfidenceNumber: [] as number[],
-      qualityPHNumber: [0] as number[],
+      signalConfidence:[
+                    signalConfidenceNumberOptions[4],
+                    signalConfidenceNumberOptions[5],
+                    signalConfidenceNumberOptions[6],
+                ],
+      qualityPH: [qualityPHOptions[0]] as SrMultiSelectNumberItem[],
       enableAtl08Classification: false,
       atl08LandType: [] as string[],
       distanceIn: distanceInOptions[0], // { label: 'meters', value: 'meters' },
@@ -238,8 +235,13 @@ const createReqParamsStore = (id: string) =>
             } else {
                 console.error('presetForScatterPlotOverlay: no poly for parentReqId:', parentReqId);
             }
-            //this.setSrt([-1]);
-            this.signalConfidenceNumber = [0,1,2,3,4];
+            this.signalConfidence = [
+              signalConfidenceNumberOptions[2],
+              signalConfidenceNumberOptions[3],
+              signalConfidenceNumberOptions[4],
+              signalConfidenceNumberOptions[5],
+              signalConfidenceNumberOptions[6],
+            ];
             if(parentApi === 'atl24x'){
               this.enableAtl24Classification = true;
               this.enableAtl08Classification = false;
@@ -449,8 +451,8 @@ const createReqParamsStore = (id: string) =>
               req.atl13_fields = this.atl13_fields;
             }
           }
-          if(this.signalConfidenceNumber.length>0){
-            req.cnf = this.signalConfidenceNumber;
+          if(this.signalConfidence.length>0){
+            req.cnf = this.signalConfidence.map(item => item.value);
           }
 
           if(this.missionValue === 'ICESat-2') {
@@ -540,8 +542,8 @@ const createReqParamsStore = (id: string) =>
             }
           }
           if(this.enableAtl03Classification) {
-            if(this.qualityPHNumber.length>0){
-              req.quality_ph = this.qualityPHNumber;
+            if(this.qualityPH.length>0){
+              req.quality_ph = this.qualityPH.map(item => item.value);
             }
           }
 
@@ -559,10 +561,6 @@ const createReqParamsStore = (id: string) =>
           }
 
           if(this.enableYAPC) {
-            // const yapc:YapcConfig = {
-            //   version: Number(this.getYAPCVersion()),
-            //   score: this.getYAPCScore(),
-            // };
             let yapc = {} as Icesat2ConfigYapc;
             yapc.version = this.getYAPCVersion();
             yapc.score = this.YAPCScore;
@@ -771,15 +769,6 @@ const createReqParamsStore = (id: string) =>
         },
         setUseLength(useLength:boolean){
           this.useLength = useLength;
-          if(useLength){
-            const defaultLength = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'len');
-            if(defaultLength !== undefined && defaultLength !== null){
-              this.setLengthValue(defaultLength);
-            } else {
-              console.warn('No default length found for mission', this.missionValue, 'setting to fallback default of 40');
-              this.setLengthValue(40); // fallback default
-            }
-          }
         },
         getUseLength(){
           return this.useLength;
@@ -792,15 +781,6 @@ const createReqParamsStore = (id: string) =>
         },
         setUseStep(useStep:boolean){
           this.useStep = useStep;
-          if(useStep){
-            const defaultStep = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'res');
-            if((defaultStep !== undefined) && (defaultStep !== null)){
-              this.setStepValue(defaultStep);
-            } else {
-              console.warn('No default step found for mission', this.missionValue, 'setting to fallback default of 20');
-              this.setStepValue(20); // fallback default
-            }
-          }
         },
         getUseStep(){
           return this.useStep;
@@ -828,15 +808,6 @@ const createReqParamsStore = (id: string) =>
         },
         setUseAlongTrackSpread(ats:boolean){
           this.useAlongTrackSpread = ats;
-          if(ats){
-            const defaultSpread = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'along_track_spread');
-            if((defaultSpread !== undefined) && (defaultSpread !== null)){
-              this.setAlongTrackSpread(defaultSpread);
-            } else {
-              console.warn('No default along track spread found for mission', this.missionValue, 'setting to fallback default of 0');
-              this.setAlongTrackSpread(20); // fallback default
-            }
-          }
         },
         getAlongTrackSpread():number {
           return this.alongTrackSpread;
@@ -849,15 +820,6 @@ const createReqParamsStore = (id: string) =>
         },
         setUseMinimumPhotonCount(useMinimumPhotonCount:boolean){
           this.useMinimumPhotonCount = useMinimumPhotonCount;
-          if(useMinimumPhotonCount){
-            const defaultMinCount = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'min_photon_count');
-            if((defaultMinCount !== undefined) && (defaultMinCount !== null)){
-              this.setMinimumPhotonCount(defaultMinCount);
-            } else {
-              console.warn('No default minimum photon count found for mission', this.missionValue, 'setting to fallback default of 1');
-              this.setMinimumPhotonCount(10); // fallback default
-            }
-          }
         },
         getMinimumPhotonCount(): number {
           return this.minimumPhotonCount;
@@ -902,36 +864,37 @@ const createReqParamsStore = (id: string) =>
           this.readTimeoutValue = readTimeoutValue;
         },
         async restoreTimeouts() {
+          console.log('restoreTimeouts called');
           this.useServerTimeout = false;
           this.useReqTimeout = false;
           this.useNodeTimeout = false;
           this.useReadTimeout = false;
-          const sto = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'timeout');
+          const sto = useSlideruleDefaults().getNestedDefault<number>('core', 'timeout');
           if(sto){
               this.setServerTimeout(sto);
           } else {
-              console.warn('No default server timeout found, setting to fallback default of 601 seconds');
+              console.warn('restoreTimeouts: No default server timeout found, setting to fallback default of 601 seconds');
               this.setServerTimeout(601); // fallback default
           }
-          const nto = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'node_timeout');
+          const nto = useSlideruleDefaults().getNestedDefault<number>('core', 'node_timeout');
           if(nto){
               this.setNodeTimeout(nto);
           } else {
-              console.warn('No default node timeout found, setting to fallback default of 601 seconds');
+              console.warn('restoreTimeouts: No default node timeout found, setting to fallback default of 601 seconds');
               this.setNodeTimeout(601); // fallback default
           }
-          const rto = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'read_timeout');
+          const rto = useSlideruleDefaults().getNestedDefault<number>('core', 'read_timeout');
           if(rto){
               this.setReadTimeout(rto);
           } else {
-              console.warn('No default read timeout found, setting to fallback default of 601 seconds');
+              console.warn('restoreTimeouts: No default read timeout found, setting to fallback default of 601 seconds');
               this.setReadTimeout(601); // fallback default
           }
-          const rqto = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'rqst_timeout');
+          const rqto = useSlideruleDefaults().getNestedDefault<number>('core', 'rqst_timeout');
           if(rqto){
               this.setReqTimeout(rqto);
           } else {
-              console.warn('No default request timeout found, setting to fallback default of 601 seconds');
+              console.warn('restoreTimeouts: No default request timeout found, setting to fallback default of 601 seconds');
               this.setReqTimeout(601); // fallback default
           }
         },
@@ -965,15 +928,6 @@ const createReqParamsStore = (id: string) =>
         },
         setUseYAPCKnn(value:boolean) {
           this.usesYAPCKnn = value;
-          if(value){
-            const defaultKnn = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'yapc.knn');
-            if((defaultKnn !== undefined) && (defaultKnn !== null)){
-              this.setYAPCKnn(defaultKnn);
-            } else {
-              console.warn('No default knn found, setting to fallback default of 5');
-              this.setYAPCKnn(5); // fallback default
-            }
-          }
         },
         getYAPCKnn():number {
           return this.YAPCKnn;
@@ -986,15 +940,6 @@ const createReqParamsStore = (id: string) =>
         },
         setUseYAPCMinKnn(value:boolean) {
           this.usesYAPCMinKnn = value;
-          if(value){
-            const defaultMinKnn = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'yapc.min_knn');
-            if((defaultMinKnn !== undefined) && (defaultMinKnn !== null)){
-              this.setYAPCMinKnn(defaultMinKnn);
-            } else {
-              console.warn('No default min knn found, setting to fallback default of 5');
-              this.setYAPCMinKnn(5); // fallback default
-            }
-          }
         },
         getYAPCMinKnn():number {
           return this.YAPCMinKnn;
@@ -1013,30 +958,12 @@ const createReqParamsStore = (id: string) =>
         },
         setUsesYAPCWindowWidth(value:boolean) {
           this.usesYAPCWindowWidth = value;
-          if(value){
-            const defaultWidth = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'yapc.win_x');
-            if(defaultWidth !== undefined && defaultWidth !== null){
-              this.setYAPCWindowWidth(defaultWidth);
-            } else {
-              console.warn('No default window width found, setting to fallback default of 10');
-              this.setYAPCWindowWidth(15); // fallback default
-            }
-          }
         },
         getUsesYAPCWindowHeight() {
           return this.usesYAPCWindowHeight;
         },
         setUsesYAPCWindowHeight(value:boolean) {
           this.usesYAPCWindowHeight = value;
-          if(value){
-            const defaultHeight = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'yapc.win_h');
-            if(defaultHeight !== undefined && defaultHeight !== null){
-              this.setYAPCWindowHeight(defaultHeight);
-            } else {
-              console.warn('No default window height found, setting to fallback default of 10');
-              this.setYAPCWindowHeight(6); // fallback default
-            }
-          }
         },
         getYAPCWindowWidth() {
           return this.YAPCWindowWidth;
@@ -1137,39 +1064,18 @@ const createReqParamsStore = (id: string) =>
         },
         setUseMaxIterations(useMaxIterations:boolean) {
             this.useMaxIterations = useMaxIterations;
-            const defaultMaxIterations = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'maxi');
-            if((defaultMaxIterations !== undefined) && (defaultMaxIterations !== null)){
-              this.setMaxIterations(defaultMaxIterations);
-            } else {
-              console.warn('No default max iterations found for mission', this.missionValue, 'setting to fallback default of 5');
-              this.setMaxIterations(5); // fallback default
-            }
         },
         getUseMaxRobustDispersion(): boolean {
           return this.useMaxRobustDispersion;
         },
         setUseMaxRobustDispersion(useRobustDispersion:boolean) {
             this.useMaxRobustDispersion = useRobustDispersion;
-            const defaultSigmaRmax = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'sigma_r_max');
-            if((defaultSigmaRmax !== undefined) && (defaultSigmaRmax !== null)){
-              this.setSigmaRmax(defaultSigmaRmax);
-            } else {
-              console.warn('No default sigma_r_max found for mission', this.missionValue, 'setting to fallback default of 10.0');
-              this.setSigmaRmax(10.0); // fallback default
-            }
         },
         getUseMinWindowHeight(): boolean {
           return this.useMinWindowHeight;
         },
         setUseMinWindowHeight(useMinWindowHeight:boolean) {
             this.useMinWindowHeight = useMinWindowHeight;
-            const defaultMinWindowHeight = useSlideruleDefaults().getNestedMissionDefault<number>(this.missionValue, 'H_min_win');
-            if((defaultMinWindowHeight !== undefined) && (defaultMinWindowHeight !== null)){
-              this.setMinWindowHeight(defaultMinWindowHeight);
-            } else {
-              console.warn('No default min window height found for mission', this.missionValue, 'setting to fallback default of 0.5');
-              this.setMinWindowHeight(3.0); // fallback default
-            }
         },
         setPoly(poly: SrRegion| null) {
           this.poly = poly;

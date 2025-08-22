@@ -82,16 +82,26 @@
             type: [String, Number],
             default: '12rem'
         },
+        defaultValue: {
+            type: Number,
+            default: 0
+        },
+        currentCheckboxValue: {
+            type: Boolean,
+            default: false
+        }
     });
-
+    const combinedLabel = computed(() => {
+        return `${props.label} ${props.checkBoxLabel ? `(${props.checkBoxLabel})` : ''}`;
+    }); 
     const innerModelValue = computed({
         get() {
             const value = props.getValue();
-            //console.log('SrSwitchedSlider:', props.label, 'get:', value);
+            //console.log('SrSwitchedSliderInput:', combinedLabel.value, 'get:', value);
             return value; // calling the getter function
         },
         set(value) {
-            //console.log('SrSwithcedSlider:', props.label, 'set:', value)
+            //console.log('SrSwitchedSliderInput:', combinedLabel.value, 'set:', value)
             props.setValue(value); // calling the setter function
         }
     });
@@ -100,25 +110,37 @@
     const computedCheckboxValue = computed({
         get() {
             const value = props.getCheckboxValue();
-            //console.log('SrSwitchedSlider:', props.checkBoxLabel, 'get:', value);
+            //console.log('SrSwitchedSliderInput ccv:', combinedLabel.value, 'get:', value);
             return value; // calling the getter function
         },
         set(value) {
-            //console.log('SrSwithcedSlider:', props.checkBoxLabel, 'set:', value)
+            //console.log('SrSwitchedSliderInput ccv:', combinedLabel.value, 'set:', value)
             props.setCheckboxValue(value); // calling the setter function
         }
     });
 
-    //const computedCheckboxValue = ref(false);
-    // const handleChange = (event: any) => {
-    //     console.log(`SrSwitchedSliderInput ${props.checkBoxLabel} ${props.label} checked?: ${event.target.checked}`);
-    //     computedCheckboxValue.value = event.target.checked;
-    //     emit('update:selected', event.target.checked);
-    // }
-
     onMounted(() => {
-        //console.log('Mounted SrSwitchedSliderInput:', props.label, 'insensitive:', props.insensitive);  
-    });
+        //console.log('Mounted SrSwitchedSliderInput:', combinedLabel.value, 'insensitive:', props.insensitive);
+        // Initialize the slider value based on the checkbox state
+        const currentCheckboxValue = props.currentCheckboxValue;
+        const defaultValue = props.defaultValue;
+        //console.log('SrSwitchedSliderInput:', combinedLabel.value,'currentCheckboxValue:', currentCheckboxValue, 'defaultValue:', defaultValue);
+        if(!currentCheckboxValue) {// 'use' is falsey
+            if( defaultValue === undefined || defaultValue === null || defaultValue < props.min) {
+                console.error('SrSwitchedSliderInput:', combinedLabel.value, 'defaultValue is undefined or null, or < min:',props.defaultValue);
+            }
+            if(props.defaultValue >= props.min) {
+                props.setValue(defaultValue);
+                //console.log('SrSwitchedSliderInput:', combinedLabel.value, 'setValue:', props.defaultValue);
+                innerModelValue.value = defaultValue;
+            }
+        } else {
+            const value = props.getValue();
+            //console.log('SrSwitchedSliderInput:', combinedLabel.value, 'value:', value);
+            innerModelValue.value = value;
+        }
+       props.setCheckboxValue(currentCheckboxValue);
+});
 </script>
 
 <style scoped>

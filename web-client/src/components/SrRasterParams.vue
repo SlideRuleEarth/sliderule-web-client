@@ -60,13 +60,15 @@
                 <SrCalendar 
                     label="T0" 
                     v-model="rasterParamsStore.t0"
+                    :defaultValue="rasterParamsStore.t0"
                     :insensitive="!rasterParamsStore.useTimeFilter"
                     :getValue="rasterParamsStore.getT0"
                     :setValue="rasterParamsStore.setT0"
                 />
                 <SrCalendar 
                     label="T1" 
-                    v-model="rasterParamsStore.t1" 
+                    v-model="rasterParamsStore.t1"
+                    :defaultValue="rasterParamsStore.t1"
                     :insensitive="!rasterParamsStore.useTimeFilter"
                     :getValue="rasterParamsStore.getT1"
                     :setValue="rasterParamsStore.setT1"
@@ -83,6 +85,7 @@
             <SrCalendar 
                 label="Closest" 
                 v-model="rasterParamsStore.closestTime"
+                :defaultValue="rasterParamsStore.closestTime"
                 :insensitive="!rasterParamsStore.useClosetTime"
                 :getValue="rasterParamsStore.getClosestTime"
                 :setValue="rasterParamsStore.setClosestTime" 
