@@ -8,10 +8,10 @@ import { useFieldNameStore } from '@/stores/fieldNameStore';
 import { useSrToastStore } from '@/stores/srToastStore';
 import { useDeck3DConfigStore } from '@/stores/deck3DConfigStore';
 import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
-import { getVerticalScaleRatio } from '@/utils/deckAxes';
 import { OrbitView, OrbitController } from '@deck.gl/core';
 import { ref,type Ref } from 'vue';
 import { Deck } from '@deck.gl/core';
+import proj4 from 'proj4';
 
 // import log from '@probe.gl/log';
 // log.level = 1;  // 0 = silent, 1 = minimal, 2 = verbose
@@ -19,7 +19,6 @@ import { Deck } from '@deck.gl/core';
 import { toRaw, isProxy } from 'vue';
 import { formatTime } from '@/utils/formatUtils';
 
-const toast = useSrToastStore();
 const deck3DConfigStore = useDeck3DConfigStore();
 const elevationStore = useElevationColorMapStore();
 const fieldStore = useFieldNameStore();
@@ -35,6 +34,18 @@ const deckInstance: Ref<Deck<OrbitView[]> | null> = ref(null);
 let cachedRawData: any[] = [];
 let lastLoadedReqId: number | null = null;
 
+
+// helper: pick a local metric CRS (UTM or polar)
+function pickLocalMetricCRS(lat: number, lon: number): string {
+    const absLat = Math.abs(lat);
+    if (absLat >= 83) {
+        // near poles: use polar stereographic
+        return lat >= 0 ? 'EPSG:3413' : 'EPSG:3031';
+    }
+    const zone = Math.floor((lon + 180) / 6) + 1;
+    return lat >= 0 ? `EPSG:326${String(zone).padStart(2, '0')}` // WGS84 / UTM N
+                    : `EPSG:327${String(zone).padStart(2, '0')}`; // WGS84 / UTM S
+}
 
 
 /**
@@ -75,8 +86,6 @@ function computeCentroid(position: [number, number, number][]) {
     }
     console.log('Centroid:', deck3DConfigStore.centroid);
 }
-
-
 
 
 function initDeckIfNeeded(deckContainer: Ref<HTMLDivElement | null>): boolean {
@@ -254,23 +263,6 @@ export async function loadAndCachePointCloudData(reqId: number) {
                         elevMax = Math.max(elevMax, elev);
                     }
                 }
-
-                // Only call if we have valid ranges
-                if (
-                    elevMin !== Infinity && elevMax !== -Infinity &&
-                    latMin !== Infinity && latMax !== -Infinity &&
-                    lonMin !== Infinity && lonMax !== -Infinity
-                ) {
-                    const vsr = getVerticalScaleRatio(
-                        elevMin, elevMax, latMin, latMax, lonMin, lonMax
-                    );
-                    console.log(
-                        `Vertical scale ratio for reqId ${reqId}: ${vsr.toFixed(2)}x`
-                    );
-                    deck3DConfigStore.verticalScaleRatio = vsr;
-                } else {
-                    console.warn('Unable to compute vertical scale ratio: invalid bounds');
-                }
             }
 
 
@@ -292,12 +284,11 @@ export async function loadAndCachePointCloudData(reqId: number) {
  * This is safe to call frequently (e.g., from debounced UI handlers).
  */
 export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
-    if(!deckContainer || !deckContainer.value) {
+    if (!deckContainer || !deckContainer.value) {
         console.warn('Deck container is null or undefined');
         return;
     }
     if (!initDeckIfNeeded(deckContainer)) return;
-    
 
     const deck3DConfigStore = useDeck3DConfigStore();
     const elevationStore = useElevationColorMapStore();
@@ -309,11 +300,21 @@ export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
         return;
     }
 
-    // --- All your fast, in-memory data processing logic ---
+    // --- helpers ---
+    const pickLocalMetricCRS = (lat: number, lon: number): string => {
+        const absLat = Math.abs(lat);
+        if (absLat >= 83) return lat >= 0 ? 'EPSG:3413' : 'EPSG:3031'; // polar stereo
+        const zone = Math.floor((lon + 180) / 6) + 1;
+        return lat >= 0
+            ? `EPSG:326${String(zone).padStart(2, '0')}` // UTM north
+            : `EPSG:327${String(zone).padStart(2, '0')}`; // UTM south
+    };
+
+    // --- fast, in-memory processing ---
     const heightField = fieldStore.getHFieldName(lastLoadedReqId);
 
     const elevations = cachedRawData.map(d => d[heightField]).sort((a, b) => a - b);
-    // ... all your min/max/range/percentile calculations using `cachedRawData` ...
+
     const colorMin = getPercentile(elevations, deck3DConfigStore.minColorPercent);
     const colorMax = getPercentile(elevations, deck3DConfigStore.maxColorPercent);
     const colorRange = Math.max(1e-6, colorMax - colorMin);
@@ -327,60 +328,86 @@ export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
     const elevMinData = getPercentile(elevations, minElDataPercent);
     const elevMaxData = getPercentile(elevations, maxElDataPercent);
 
+    // geographic bounds (degrees)
     const lonMin = Math.min(...cachedRawData.map(d => d[lonField]));
     const lonMax = Math.max(...cachedRawData.map(d => d[lonField]));
-
     const latMin = Math.min(...cachedRawData.map(d => d[latField]));
     const latMax = Math.max(...cachedRawData.map(d => d[latField]));
+    const lonMid = 0.5 * (lonMin + lonMax);
+    const latMid = 0.5 * (latMin + latMax);
 
-    const lonRange = Math.max(1e-6, lonMax - lonMin);
-    const latRange = Math.max(1e-6, latMax - latMin);
+    // choose a local metric CRS
+    const dstCrs = pickLocalMetricCRS(latMid, lonMid);
+
+    // project SW/NE to meters → extents
+    const [Emin, Nmin] = proj4('EPSG:4326', dstCrs, [lonMin, latMin]);
+    const [Emax, Nmax] = proj4('EPSG:4326', dstCrs, [lonMax, latMax]);
+
+    const Erange = Math.max(1e-6, Emax - Emin);
+    const Nrange = Math.max(1e-6, Nmax - Nmin);
+
+    // ---- Longest-axis scaling ----
+    // The longest ground span maps to deck3DConfigStore.scale; the other axis shrinks proportionally.
+    const targetScale = deck3DConfigStore.scale; // your "max side" length in world units
+    const longestRange = Math.max(Erange, Nrange);
+    const metersToWorld = targetScale / longestRange;
+
+    const scaleX = Erange * metersToWorld; // <= targetScale
+    const scaleY = Nrange * metersToWorld; // <= targetScale
+    const scaleZ = Math.max(scaleX, scaleY); // keep Z axis length comparable
 
     elevationStore.updateElevationColorMapValues();
     const rgbaArray = elevationStore.elevationColorMap;
 
-    // Map cached data to point cloud format
+    // Map cached data → world coords
     const pointCloudData = cachedRawData
-    .filter(d => {
-        const height = d[heightField];
-        return height >= elevMinData && height <= elevMaxData;
-    })
-    .map(d => {
-        const x = deck3DConfigStore.scale * (d[lonField] - lonMin) / lonRange;
-        const y = deck3DConfigStore.scale * (d[latField] - latMin) / latRange;
+        .filter(d => {
+            const h = d[heightField];
+            return h >= elevMinData && h <= elevMaxData;
+        })
+        .map(d => {
+            const [E, N] = proj4('EPSG:4326', dstCrs, [d[lonField], d[latField]]);
+            // origin = SW corner → same framing; uniform metersToWorld keeps aspect ratio
+            const x = metersToWorld * (E - Emin); // East
+            const y = metersToWorld * (N - Nmin); // North
 
-        const z = (deck3DConfigStore.verticalExaggeration/deck3DConfigStore.verticalScaleRatio) *
-                deck3DConfigStore.scale *
+            // Z uses your percentile window; scale by scaleZ so ticks match the Z axis length
+            const z =
+                (deck3DConfigStore.verticalExaggeration / deck3DConfigStore.verticalScaleRatio) *
+                scaleZ *
                 (d[heightField] - elevMinScale) / elevRangeScale;
 
-        // But color is computed using clamped-to-percentile range
-        const colorZ = Math.max(colorMin, Math.min(colorMax, d[heightField]));
-        const colorNorm = (colorZ - colorMin) / colorRange;
-        const index = Math.floor(colorNorm * (rgbaArray.length - 1));
-        const rawColor = rgbaArray[Math.max(0, Math.min(index, rgbaArray.length - 1))] ?? [255, 255, 255, 1];
+            // color unchanged
+            const colorZ = Math.max(colorMin, Math.min(colorMax, d[heightField]));
+            const colorNorm = (colorZ - colorMin) / colorRange;
+            const index = Math.floor(colorNorm * (rgbaArray.length - 1));
+            const rawColor =
+                rgbaArray[Math.max(0, Math.min(index, rgbaArray.length - 1))] ??
+                [255, 255, 255, 1];
 
-        const color = [
-            Math.round(rawColor[0]),
-            Math.round(rawColor[1]),
-            Math.round(rawColor[2]),
-            Math.round(rawColor[3] * 255),
-        ];
+            const color = [
+                Math.round(rawColor[0]),
+                Math.round(rawColor[1]),
+                Math.round(rawColor[2]),
+                Math.round(rawColor[3] * 255),
+            ];
 
-        return {
-            position: [x, y, z] as [number, number, number],
-            color,
-            lat: d[latField],
-            lon: d[lonField],
-            elevation: d[heightField],
-            cycle: d['cycle'],
-            time: d[timeField] ?? null, // Handle time field if available
-        };
-    });
+            return {
+                position: [x, y, z] as [number, number, number],
+                color,
+                lat: d[latField],
+                lon: d[lonField],
+                elevation: d[heightField],
+                cycle: d['cycle'],
+                time: d[timeField] ?? null,
+            };
+        });
+
     computeCentroid(pointCloudData.map(p => p.position));
-    
+
     // --- Layer creation ---
     const layer = new PointCloudLayer({
-        id: 'point-cloud-layer', // <-- STABLE ID IS CRITICAL FOR PERFORMANCE
+        id: 'point-cloud-layer',
         data: pointCloudData,
         getPosition: d => d.position,
         getColor: d => d.color,
@@ -388,30 +415,30 @@ export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
         opacity: 0.95,
         pickable: true,
     });
-    
+
     const layers: Layer<any>[] = [layer];
-    
+
     if (deck3DConfigStore.showAxes) {
-        // ... your axes creation logic ...
-        layers.push(...createAxesAndLabels(
-                    100, 
-                    'East',
-                    'North',
-                    'Elev (m)',
-                    [255, 255, 255], // text color
-                    [200, 200, 200], // line color
-                    5,               // font size
-                    1,               // line width
-                    elevMinScale,
-                    elevMaxScale,
-                    latMin,
-                    latMax,
-                    lonMin,
-                    lonMax,
-        ));
+        layers.push(
+            ...createAxesAndLabels(
+                /* scaleX */ scaleX,
+                /* scaleY */ scaleY,
+                /* scaleZ */ scaleZ,
+                'East',
+                'North',
+                'Elev (m)',
+                [255, 255, 255],   // text color
+                [200, 200, 200],   // line color
+                5,                 // font size
+                1,                 // line width
+                elevMinScale,
+                elevMaxScale,
+                /* N meters */ Nmin, Nmax,
+                /* E meters */ Emin, Emax   // pass meter extents
+            )
+        );
     }
-    
-    // --- Update Deck ---
+
     requestAnimationFrame(() => {
         deckInstance.value?.setProps({ layers });
     });
