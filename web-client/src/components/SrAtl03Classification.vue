@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import SrMultiSelectNumber from '@/components/SrMultiSelectNumber.vue';
 import SrCheckbox from '@/components/SrCheckbox.vue';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
 import SrSurfaceRefType from '@/components/SrSurfaceRefType.vue';
@@ -18,7 +17,7 @@ const reqParamsStore = useReqParamsStore();
                 label="Atl03 Classification"
                 labelFontSize="large"
                 tooltipText="A set of photon classification values that are designed to identify signal photons for different surface types with specified confidence" 
-                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#icesat-2-request-fields"
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/icesat2.html#native-atl03-photon-classification"
                 v-model="reqParamsStore.enableAtl03Classification"
                 :defaultValue="reqParamsStore.enableAtl03Classification"
             />

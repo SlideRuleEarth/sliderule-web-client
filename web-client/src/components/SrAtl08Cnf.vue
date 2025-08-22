@@ -15,7 +15,7 @@ const reqParamsStore = useReqParamsStore();
                 labelFontSize="large"
                 v-model="reqParamsStore.enableAtl08Classification"
                 tooltipText="If ATL08 classification parameters are specified, the ATL08 (vegetation height) files corresponding to the ATL03 files are queried for the more advanced classification scheme available in those files. Photons are then selected based on the classification values specified. Note that srt=0 (land) and cnf=0 (no native filtering) should be specified to allow all ATL08 photons to be used."
-                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#icesat-2-request-fields"
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/icesat2.html#atl08-classification"
              />
         </div>
         <SrMultiSelectText
