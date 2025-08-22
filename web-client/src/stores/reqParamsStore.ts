@@ -21,6 +21,8 @@ import {
   atl24_class_ph_Options,
   OnOffOptions,
   geoLocationOptions,
+  signalConfidenceNumberOptions,
+  qualityPHOptions,
 } from '@/types/SrStaticOptions';
 
 export function getDefaultReqParamsState(): SrReqParamsState {
@@ -73,8 +75,14 @@ export function getDefaultReqParamsState(): SrReqParamsState {
       windowValue: 3.0,
       enableAtl03Classification: false,
       surfaceReferenceType: [surfaceReferenceTypeOptions[0]] as SrMultiSelectNumberItem[],
-      signalConfidenceNumber: [] as number[],
-      qualityPHNumber: [0] as number[],
+      signalConfidence:[
+                    signalConfidenceNumberOptions[2],
+                    signalConfidenceNumberOptions[3],
+                    signalConfidenceNumberOptions[4],
+                    signalConfidenceNumberOptions[5],
+                    signalConfidenceNumberOptions[6],
+                ],
+      qualityPH: [qualityPHOptions[0]] as SrMultiSelectNumberItem[],
       enableAtl08Classification: false,
       atl08LandType: [] as string[],
       distanceIn: distanceInOptions[0], // { label: 'meters', value: 'meters' },
@@ -229,8 +237,13 @@ const createReqParamsStore = (id: string) =>
             } else {
                 console.error('presetForScatterPlotOverlay: no poly for parentReqId:', parentReqId);
             }
-            //this.setSrt([-1]);
-            this.signalConfidenceNumber = [0,1,2,3,4];
+            this.signalConfidence = [
+              signalConfidenceNumberOptions[2],
+              signalConfidenceNumberOptions[3],
+              signalConfidenceNumberOptions[4],
+              signalConfidenceNumberOptions[5],
+              signalConfidenceNumberOptions[6],
+            ];
             if(parentApi === 'atl24x'){
               this.enableAtl24Classification = true;
               this.enableAtl08Classification = false;
@@ -440,8 +453,8 @@ const createReqParamsStore = (id: string) =>
               req.atl13_fields = this.atl13_fields;
             }
           }
-          if(this.signalConfidenceNumber.length>0){
-            req.cnf = this.signalConfidenceNumber;
+          if(this.signalConfidence.length>0){
+            req.cnf = this.signalConfidence.map(item => item.value);
           }
 
           if(this.missionValue === 'ICESat-2') {
@@ -531,8 +544,8 @@ const createReqParamsStore = (id: string) =>
             }
           }
           if(this.enableAtl03Classification) {
-            if(this.qualityPHNumber.length>0){
-              req.quality_ph = this.qualityPHNumber;
+            if(this.qualityPH.length>0){
+              req.quality_ph = this.qualityPH.map(item => item.value);
             }
           }
 

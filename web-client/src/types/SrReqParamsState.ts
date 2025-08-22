@@ -61,8 +61,8 @@ export interface SrReqParamsState {
     windowValue: number;    
     enableAtl03Classification: boolean;
     surfaceReferenceType: SrMultiSelectNumberItem[];
-    signalConfidenceNumber: number[];
-    qualityPHNumber: number[];
+    signalConfidence: SrMultiSelectNumberItem[];
+    qualityPH: SrMultiSelectNumberItem[];
     enableAtl08Classification: boolean;
     atl08LandType: string[];
     distanceIn: SrMenuItem;

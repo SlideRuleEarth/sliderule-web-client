@@ -2,15 +2,18 @@
     <div class="sr-menu-label-wrapper">
         <SrLabelInfoIconButton
             :label="label"
-            :insensitive="insensitive"
         />
-        <MultiSelect  
+        <MultiSelect class="sr-multi-selector"
             v-model="localSurfaceRefType"
-            :options="surfaceReferenceTypeOptions"
+            placeholder="Select ..."
             optionLabel="name"
             optionsValue="value"
-            :placeholder="label"
-            class="sr-multi-selector"
+            :insensitive="props.insensitive"
+            label="Surface Reference Type"
+            ariaLabel="Surface Reference Type"
+            :options="surfaceReferenceTypeOptions"
+            :maxSelectedLabels="1"
+            size="small"
             :disabled="props.insensitive"
         />
     </div>

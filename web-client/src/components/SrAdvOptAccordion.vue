@@ -9,7 +9,7 @@ import { useReqParamsStore } from '@/stores/reqParamsStore';
 import { computed } from 'vue';
 
 const SrYAPC = defineAsyncComponent(() => import('@/components/SrYAPC.vue'));
-const SrAtl03Cnf = defineAsyncComponent(() => import('@/components/SrAtl03Cnf.vue'));
+const SrAtl03Classification = defineAsyncComponent(() => import('@/components/SrAtl03Classification.vue'));
 const SrAtl08Cnf = defineAsyncComponent(() => import('@/components/SrAtl08Cnf.vue'));
 const SrExtents = defineAsyncComponent(() => import('@/components/SrExtents.vue'));
 const SrAncillaryFieldEditor = defineAsyncComponent(() => import('@/components/SrAncillaryFieldEditor.vue'));
@@ -77,7 +77,7 @@ const fieldsHeader = computed(() => {
                 <AccordionPanel value="3"  v-if="mission==='ICESat-2'" >
                     <AccordionHeader>Photon Selection</AccordionHeader>
                     <AccordionContent v-if="isExpanded(3)">
-                        <SrAtl03Cnf />
+                        <SrAtl03Classification />
                         <SrAtl08Cnf />
                         <SrYAPC />
                     </AccordionContent>
