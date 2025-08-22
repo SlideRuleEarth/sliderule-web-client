@@ -1,11 +1,15 @@
 <script setup lang="ts">
-import SrMultiSelectNumber from '@/components/SrMultiSelectNumber.vue';
+import SrMultiSelectText from '@/components/SrMultiSelectText.vue';
 import SrCheckbox from '@/components/SrCheckbox.vue';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
 import SrSurfaceRefType from '@/components/SrSurfaceRefType.vue';
-import { signalConfidenceNumberOptions, qualityPHOptions } from '@/types/SrStaticOptions'
+import { signalConfidenceTextOptions, qualityPHTextOptions } from '@/types/SrStaticOptions'
+import { useSlideruleDefaults } from '@/stores/defaultsStore';
+
 const reqParamsStore = useReqParamsStore();
 
+const defaultSignalConfidence = useSlideruleDefaults().getNestedMissionDefault<number[]>(reqParamsStore.missionValue, 'cnf');
+const defaultQualityPH = useSlideruleDefaults().getNestedMissionDefault<number[]>(reqParamsStore.missionValue, 'quality_ph');
 
 </script>
 
@@ -25,28 +29,22 @@ const reqParamsStore = useReqParamsStore();
             <SrSurfaceRefType
                 :insensitive="!reqParamsStore.enableAtl03Classification"
             />
-            <SrMultiSelectNumber
+            <SrMultiSelectText
                 :insensitive="!reqParamsStore.enableAtl03Classification"
                 label="Signal Confidence"
                 ariaLabel="Signal Confidence"
-                :menuOptions="signalConfidenceNumberOptions"
-                :default="[
-                    signalConfidenceNumberOptions[2],
-                    signalConfidenceNumberOptions[3],
-                    signalConfidenceNumberOptions[4],
-                    signalConfidenceNumberOptions[5],
-                    signalConfidenceNumberOptions[6],
-                ]"
-                @update:value="reqParamsStore.signalConfidenceNumber = $event"
+                :menuOptions="signalConfidenceTextOptions"
+                :defaultValue="defaultSignalConfidence"
+                @update:value="reqParamsStore.signalConfidenceText = $event"
             />            
-            <SrMultiSelectNumber
+            <SrMultiSelectText
                 :insensitive="!reqParamsStore.enableAtl03Classification"
                 label="Quality PH"
                 placeholder="Select Quality PH"
                 ariaLabel="Quality PH"
-                :menuOptions="qualityPHOptions"
-                :default="[qualityPHOptions[0]]"
-                @update:value="reqParamsStore.qualityPHNumber = $event"
+                :menuOptions="qualityPHTextOptions"
+                :defaultValue="defaultQualityPH"
+                @update:value="reqParamsStore.qualityPHText = $event"
             />  
         </div>
     </div>

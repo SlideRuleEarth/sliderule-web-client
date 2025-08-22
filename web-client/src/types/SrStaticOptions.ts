@@ -14,29 +14,52 @@ import type {
 export const missionItems=['ICESat-2','GEDI'];
 export const iceSat2APIsItems =  ['atl06p','atl06sp','atl03x','atl03vp','atl08p','atl24x','atl13x'];
 export const gediAPIsItems = ['gedi01bp','gedi02ap','gedi04ap'];
-export const surfaceReferenceTypeOptions = [
-          { name: 'Dynamic', value: -1 },
-          { name: 'Land', value: 0 },
-          { name: 'Ocean', value: 1 },
-          { name: 'Sea Ice', value: 2 },
-          { name: 'Land Ice', value: 3 },
-          { name: 'Inland Water', value: 4 },
-    ] as SrMultiSelectNumberItem[];
-export const signalConfidenceNumberOptions = [
-          { name: 'Possible TEP', value: -2 },
-          { name: 'Not Considered', value: -1 },
-          { name: 'Background', value: 0 },
-          { name: 'Within 10m', value: 1 },
-          { name: 'Low', value: 2 },
-          { name: 'Medium', value: 3 },
-          { name: 'High', value: 4 },
-    ] as SrMultiSelectNumberItem[];
-export const qualityPHOptions = [
-            { name: 'Nominal', value: 0 },
-            { name: 'Possible Afterpulse', value: 1 },
-            { name: 'Possible Impulse Response Effect', value: 2 },
-            { name: 'Possible TEP', value: 3 },
-    ] as SrMultiSelectNumberItem[];
+// export const surfaceReferenceTypeOptions = [
+//           { name: 'Dynamic', value: -1 },
+//           { name: 'Land', value: 0 },
+//           { name: 'Ocean', value: 1 },
+//           { name: 'Sea Ice', value: 2 },
+//           { name: 'Land Ice', value: 3 },
+//           { name: 'Inland Water', value: 4 },
+//     ] as SrMultiSelectNumberItem[];
+export const surfaceReferenceTypeTextOptions = [
+          { name: 'Dynamic', value: 'dynamic' },
+          { name: 'Land', value: 'land' },
+          { name: 'Ocean', value: 'ocean' },
+          { name: 'Sea Ice', value: 'sea_ice' },
+          { name: 'Land Ice', value: 'land_ice' },
+          { name: 'Inland Water', value: 'inland_water' },
+    ] as SrMultiSelectTextItem[];
+// export const signalConfidenceNumberOptions = [
+//           { name: 'Possible TEP', value: -2 },
+//           { name: 'Not Considered', value: -1 },
+//           { name: 'Background', value: 0 },
+//           { name: 'Within 10m', value: 1 },
+//           { name: 'Low', value: 2 },
+//           { name: 'Medium', value: 3 },
+//           { name: 'High', value: 4 },
+//     ] as SrMultiSelectNumberItem[];
+export const signalConfidenceTextOptions = [
+          { name: 'Possible TEP', value: 'atl03_tep' },
+          { name: 'Not Considered', value: 'atl03_not_considered' },
+          { name: 'Background', value: 'atl03_background' },
+          { name: 'Within 10m', value: 'atl03_within_10m' },
+          { name: 'Low', value: 'atl03_low' },
+          { name: 'Medium', value: 'atl03_medium' },
+          { name: 'High', value: 'atl03_high' },
+    ] as SrMultiSelectTextItem[];
+// export const qualityPHOptions = [
+//             { name: 'Nominal', value: 0 },
+//             { name: 'Possible Afterpulse', value: 1 },
+//             { name: 'Possible Impulse Response Effect', value: 2 },
+//             { name: 'Possible TEP', value: 3 },
+//     ] as SrMultiSelectNumberItem[];
+export const qualityPHTextOptions = [
+            { name: 'Nominal', value: 'atl03_quality_nominal' },
+            { name: 'Possible Afterpulse', value: 'atl03_quality_afterpulse' },
+            { name: 'Possible Impulse Response Effect', value: 'atl03_quality_impulse_response' },
+            { name: 'Possible TEP', value: 'atl03_quality_tep' },
+    ] as SrMultiSelectTextItem[];
 export const atl08LandTypeOptions = [
           { name: 'Noise', value: 'atl08_noise' },
           { name: 'Ground', value: 'atl08_ground' },

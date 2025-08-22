@@ -9,7 +9,7 @@
             class="sr-multi-selector" 
             :disabled="props.insensitive" 
             :maxSelectedLabels="1"
-            size="small"ß
+            size="small"
         /> 
     </div>
 </template>  
@@ -19,8 +19,6 @@
     import MultiSelect from 'primevue/multiselect';
     import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
     import type { SrMultiSelectNumberItem } from '@/types/SrTypes';
-
-
 
     const props = defineProps({
         label: {
@@ -39,14 +37,14 @@
             type: Array as () => SrMultiSelectNumberItem[],
             default: () => []
         },
-        value: {
-            type: Array as () => SrMultiSelectNumberItem[],
-            default: () => []
-        },
-        names: {
-            type: Array as () => string[],
-            default: () => []
-        },
+        // value: {
+        //     type: Array as () => SrMultiSelectNumberItem[],
+        //     default: () => []
+        // },
+        // names: {
+        //     type: Array as () => string[],
+        //     default: () => []
+        // },
         insensitive: {
             type: Boolean,
             default: false

@@ -7,14 +7,14 @@ import { convertTimeFormat } from '@/utils/parmUtils';
 import { db } from '@/db/SlideRuleDb';
 import { convexHull } from "@/composables/SrTurfUtils";
 import { useGlobalChartStore } from '@/stores/globalChartStore';
-import { type ApiName, isValidAPI,type SrMultiSelectNumberItem } from '@/types/SrTypes'
+import { type ApiName, isValidAPI,type SrMultiSelectTextItem } from '@/types/SrTypes'
 import { type Icesat2ConfigYapc } from '@/types/slideruleDefaultsInterfaces'
 import { useSlideruleDefaults } from '@/stores/defaultsStore';
 import { useGeoJsonStore } from './geoJsonStore';
 import { useRasterParamsStore } from '@/stores/rasterParamsStore';
 import { 
   distanceInOptions,
-  surfaceReferenceTypeOptions,
+  surfaceReferenceTypeTextOptions,
   awsRegionOptions,
   iceSat2APIsItems,
   gediAPIsItems,
@@ -72,9 +72,9 @@ export function getDefaultReqParamsState(): SrReqParamsState {
       PE_CountValue: 10,
       windowValue: 3.0,
       enableAtl03Classification: false,
-      surfaceReferenceType: [surfaceReferenceTypeOptions[0]] as SrMultiSelectNumberItem[],
-      signalConfidenceNumber: [] as number[],
-      qualityPHNumber: [0] as number[],
+      surfaceReferenceType: [] as SrMultiSelectTextItem[],
+      signalConfidenceText: [] as string[],
+      qualityPHText: [] as string[],
       enableAtl08Classification: false,
       atl08LandType: [] as string[],
       distanceIn: distanceInOptions[0], // { label: 'meters', value: 'meters' },
@@ -229,8 +229,7 @@ const createReqParamsStore = (id: string) =>
             } else {
                 console.error('presetForScatterPlotOverlay: no poly for parentReqId:', parentReqId);
             }
-            //this.setSrt([-1]);
-            this.signalConfidenceNumber = [0,1,2,3,4];
+            this.signalConfidenceText = ['atl03_background','atl03_within_10m','atl03_low','atl03_medium','atl03_high'];
             if(parentApi === 'atl24x'){
               this.enableAtl24Classification = true;
               this.enableAtl08Classification = false;
@@ -392,8 +391,8 @@ const createReqParamsStore = (id: string) =>
           } else {
             if(this.missionValue === 'ICESat-2') {
               if(this.enableAtl03Classification) {
-                if (this.surfaceReferenceType.length===1 &&  this.surfaceReferenceType[0].value===-1){
-                  req.srt = -1; // and not [-1]
+                if (this.surfaceReferenceType.length===1 &&  this.surfaceReferenceType[0].value==='dynamic'){
+                  req.srt = 'dynamic'; // and not [-1]
                 } else {
                   if(this.surfaceReferenceType.length>=1){
                     req.srt = this.getSrt();
@@ -440,8 +439,8 @@ const createReqParamsStore = (id: string) =>
               req.atl13_fields = this.atl13_fields;
             }
           }
-          if(this.signalConfidenceNumber.length>0){
-            req.cnf = this.signalConfidenceNumber;
+          if(this.signalConfidenceText.length>0){
+            req.cnf = this.signalConfidenceText;
           }
 
           if(this.missionValue === 'ICESat-2') {
@@ -531,8 +530,8 @@ const createReqParamsStore = (id: string) =>
             }
           }
           if(this.enableAtl03Classification) {
-            if(this.qualityPHNumber.length>0){
-              req.quality_ph = this.qualityPHNumber;
+            if(this.qualityPHText.length>0){
+              req.quality_ph = this.qualityPHText;
             }
           }
 
@@ -588,13 +587,13 @@ const createReqParamsStore = (id: string) =>
           }
           return req;
         }, ///////////////////////////       
-        getSrt(): number[] {
+        getSrt(): string[] {
           return this.surfaceReferenceType.map(item => item.value);
         },
-        getSurfaceReferenceType(name: string): number {
-          const option = surfaceReferenceTypeOptions.find(option => option.name === name);
-          return option ? option.value : -1;
-        },
+        // getSurfaceReferenceType(name: string): number {
+        //   const option = surfaceReferenceTypeOptions.find(option => option.name === name);
+        //   return option ? option.value : -1;
+        // },
         getWorkerThreadTimeout(): number {
           let timeout = 600000; // 10 minutes
           if(this.getReqTimeout()>0){

@@ -2,7 +2,7 @@
 import { geojsonPolygonToSrRegion } from '@/utils/geojsonToSrRegion';
 import { mapGtStringsToSrListNumberItems } from '@/utils/parmUtils';
 import { coerceToNumberArray } from '@/utils/coerceUtils';
-import { surfaceReferenceTypeOptions } from '@/types/SrStaticOptions';
+import { surfaceReferenceTypeTextOptions } from '@/types/SrStaticOptions';
 import { convexHull,calculatePolygonArea } from "@/composables/SrTurfUtils";
 
 export function applyParsedJsonToStores(
@@ -70,7 +70,7 @@ export function applyParsedJsonToStores(
         console.log('Parsing srt values:', data.srt);
     }
     if (data.srt !== undefined) {
-        let values: number[] = [];
+        let values: (number | string)[] = [];
         if (Array.isArray(data.srt)) {
             values = (data.srt as (string | number)[])
                 .map(v => typeof v === 'string' ? parseInt(v, 10) : v)
@@ -80,7 +80,7 @@ export function applyParsedJsonToStores(
         }
         console.log('Parsed srt values:', values);
         if (values.length > 0) {
-            store.surfaceReferenceType = surfaceReferenceTypeOptions.filter(opt => values.includes(opt.value));
+            store.surfaceReferenceType = surfaceReferenceTypeTextOptions.filter(opt => values.includes(opt.value));
             store.enableAtl03Classification = true;
         } else {
             store.surfaceReferenceType = [];

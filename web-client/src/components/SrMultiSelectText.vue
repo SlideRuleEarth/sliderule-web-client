@@ -1,15 +1,15 @@
 <template>
     <div class="sr-menu-label-wrapper">
-        <SrLabelInfoIconButton v-if="label" :label="label" :tooltipText="tooltipText" :tooltipUrl="tooltipUrl" :insensitive="insensitive"/>
+        <SrLabelInfoIconButton v-if="label != ''" :label="label" :tooltipText="tooltipText" :tooltipUrl="tooltipUrl" :insensitive="insensitive"/>
         <MultiSelect 
             v-model="selectedMenuItems" 
-            :options="menuOptions" 
+            :options="props.menuOptions" 
             optionLabel="name" 
-            :placeholder="menuPlaceholder" 
+            :placeholder="props.menuPlaceholder" 
             class="sr-multi-selector" 
             :disabled="insensitive" 
             :maxSelectedLabels="1"
-            size="small"ß
+            size="small"
         /> 
     </div>
 </template>
@@ -19,8 +19,6 @@ import { ref, onMounted, watch } from 'vue';
 import MultiSelect from 'primevue/multiselect';
 import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
 import type { SrMultiSelectTextItem } from '@/types/SrTypes';
-
-
 
 const props = defineProps({
     label: {
@@ -51,26 +49,36 @@ const props = defineProps({
         type: String,
         default: ''
     },
-    modelValue: {
-        type: Array as () => String[],
-        default: () => []
-    },
+
 });
 
 const selectedMenuItems = ref<SrMultiSelectTextItem[]>(props.default);
-const emit = defineEmits(['update:modelValue']);
+const emit = defineEmits(['update:value']);
+
+watch(selectedMenuItems, (newValue) => {
+    //console.log('MultiMenu:', props.label, 'selected:', newValue);
+    if (newValue) {
+        const values = newValue.map(item => item.value);
+        emit('update:value', values);
+    } else {
+        console.error(`Watch: ${props.label} No selected items?`);
+    }
+    //console.log(`${props.label} Selected Items: `, selectedMenuItems.value);
+});
 
 onMounted(() => {
-    const values = selectedMenuItems.value.map(item => item.value);
-    emit('update:modelValue', values);
+    selectedMenuItems.value = props.default;
+    if (selectedMenuItems.value) {
+        const values = selectedMenuItems.value.map(item => item.value);
+        emit('update:value', values);
+        //console.log('onMounted:', props.label, 'values:', values, 'Selected Items:', selectedMenuItems.value);
+    } else {
+        console.error(`onMounted: ${props.label} No selected items?`);
+    }    
     //console.log('onMounted:', props.label, 'values:', values, 'Selected Items:', selectedMenuItems.value);
 });
 
-watch(() => selectedMenuItems.value, (newVal, oldVal) => {
-    const values = newVal.map(item => item.value);
-    emit('update:modelValue', values);
-    //console.log('watch:', props.label, 'values:', values, 'Selected Items:', selectedMenuItems.value);
-});
+
 </script>
 
 <style scoped>

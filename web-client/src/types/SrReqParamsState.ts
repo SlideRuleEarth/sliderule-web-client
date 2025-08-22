@@ -60,9 +60,9 @@ export interface SrReqParamsState {
     PE_CountValue: number;
     windowValue: number;    
     enableAtl03Classification: boolean;
-    surfaceReferenceType: SrMultiSelectNumberItem[];
-    signalConfidenceNumber: number[];
-    qualityPHNumber: number[];
+    surfaceReferenceType: SrMultiSelectTextItem[];
+    signalConfidenceText: string[];
+    qualityPHText: string[];
     enableAtl08Classification: boolean;
     atl08LandType: string[];
     distanceIn: SrMenuItem;

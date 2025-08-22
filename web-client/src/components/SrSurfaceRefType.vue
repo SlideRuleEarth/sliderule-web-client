@@ -3,6 +3,8 @@
         <SrLabelInfoIconButton
             :label="label"
             :insensitive="insensitive"
+            tooltipText="Surface Reference Type"
+            tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/icesat2.html#native-atl03-photon-classification"
         />
         <MultiSelect  
             v-model="localSurfaceRefType"
@@ -12,6 +14,8 @@
             :placeholder="label"
             class="sr-multi-selector"
             :disabled="props.insensitive"
+            :maxSelectedLabels="1"
+            size="small"
         />
     </div>
 </template>
@@ -22,11 +26,8 @@ import MultiSelect from 'primevue/multiselect';
 import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
 import { useReqParamsStore } from '../stores/reqParamsStore';
 import { surfaceReferenceTypeOptions } from '@/types/SrStaticOptions';
+import type { SrMultiSelectTextItem } from '@/types/SrTypes';
 
-export interface SrMultiSelectNumberItem {
-    name: string;
-    value: number;
-}
 
 const label = "Surface Reference Type";
 
@@ -39,7 +40,7 @@ const props = defineProps({
     },
 });
 
-const localSurfaceRefType = computed<SrMultiSelectNumberItem[]>({
+const localSurfaceRefType = computed<SrMultiSelectTextItem[]>({
     get() {
         return reqParamsStore.surfaceReferenceType;
     },
@@ -53,17 +54,17 @@ const localSurfaceRefType = computed<SrMultiSelectNumberItem[]>({
     //     }
     // }
     set(newValue) {
-        const hasDynamic = newValue.some(v => v.value === -1);
-        const hasOthers = newValue.some(v => v.value !== -1);
+        const hasDynamic = newValue.some(v => v.value === 'dynamic');
+        const hasOthers = newValue.some(v => v.value !== 'dynamic');
 
-        let cleanValue: SrMultiSelectNumberItem[];
+        let cleanValue: SrMultiSelectTextItem[];
 
         if (hasDynamic && hasOthers) {
             // Only keep dynamic if it was the most recent selection
             const lastSelected = newValue[newValue.length - 1];
-            cleanValue = lastSelected.value === -1
+            cleanValue = lastSelected.value === 'dynamic'
                 ? [lastSelected]
-                : newValue.filter(v => v.value !== -1);
+                : newValue.filter(v => v.value !== 'dynamic');
         } else {
             cleanValue = [...newValue];
         }

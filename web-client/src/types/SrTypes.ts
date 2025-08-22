@@ -184,7 +184,7 @@ export interface SrPhoReal {
 export interface AtlReqParams {
     phoreal?: SrPhoReal;
     asset?: string;
-    cnf?: number[];
+    cnf?: string[];
     ats?: number;
     cnt?: number;
     len?: number;
