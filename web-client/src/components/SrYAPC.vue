@@ -33,7 +33,7 @@ onMounted(async () => {
           :defaultValue="defaultEnableYAPC()"
           label="YAPC" 
           tooltipText="The experimental YAPC (Yet Another Photon Classifier) photon-classification scheme." 
-          tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#yapc" 
+          tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/icesat2.html#yapc-classification" 
           labelFontSize="large"
       />
     </div>

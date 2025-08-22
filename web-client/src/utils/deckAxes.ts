@@ -1,9 +1,9 @@
 import { LineLayer, TextLayer } from '@deck.gl/layers';
 import { COORDINATE_SYSTEM, type Layer } from '@deck.gl/core';
-import proj4 from 'proj4';
 import { useDeck3DConfigStore } from '@/stores/deck3DConfigStore';
 
 const deck3DConfigStore = useDeck3DConfigStore();
+
 type TickLine = {
     source: [number, number, number];
     target: [number, number, number];
@@ -16,44 +16,14 @@ type TickLabel = {
     color: [number, number, number];
 };
 
-// Helper to compute UTM proj string
-function getUtmProjString(lat: number, lon: number): string {
-    const zone = Math.floor((lon + 180) / 6) + 1;
-    const hemisphere = lat >= 0 ? 'north' : 'south';
-    return `+proj=utm +zone=${zone} +${hemisphere} +datum=WGS84 +units=m +no_defs`;
-}
-
-export function getVerticalScaleRatio(
-    elevMin: number,
-    elevMax: number,
-    latMin: number,
-    latMax: number,
-    lonMin: number,
-    lonMax: number
-): number {
-    const projFrom = 'EPSG:4326';
-    const projTo = getUtmProjString(latMin, lonMin);
-
-    const [xOrigin, yOrigin] = proj4(projFrom, projTo, [lonMin, latMin]);
-    const [xMax, _yIgnore] = proj4(projFrom, projTo, [lonMax, latMin]);
-    const [_xIgnore, yMax] = proj4(projFrom, projTo, [lonMin, latMax]);
-    const xRange = xMax - xOrigin;
-    const yRange = yMax - yOrigin;
-    const zRange = elevMax - elevMin;
-
-    if (zRange === 0) {
-        return Infinity; // or throw an error if you prefer
-    }
-
-    // Common convention: use average horizontal range
-    const horizontalRange = (xRange + yRange) / 2;
-    const verticalScaleRatio = horizontalRange / zRange;
-
-    return verticalScaleRatio;
-}
-
+/**
+ * New signature: scales per axis (world units) + meter extents for XY.
+ * xMinMeters/xMaxMeters are Emin/Emax; yMinMeters/yMaxMeters are Nmin/Nmax.
+ */
 export function createAxesAndLabels(
-    scale: number,
+    scaleX: number,
+    scaleY: number,
+    scaleZ: number,
     xLabel: string = 'X',
     yLabel: string = 'Y',
     zLabel: string = 'Z',
@@ -63,75 +33,56 @@ export function createAxesAndLabels(
     lineWidth: number = 1,
     elevMin: number,
     elevMax: number,
-    latMin: number,
-    latMax: number,
-    lonMin: number,
-    lonMax: number,
+    yMinMeters: number,
+    yMaxMeters: number,
+    xMinMeters: number,
+    xMaxMeters: number
 ): Layer<any>[] {
-    const vsr = getVerticalScaleRatio(
-        elevMin,
-        elevMax,
-        latMin,
-        latMax,
-        lonMin,
-        lonMax
-    );
+    const xRangeMeters = xMaxMeters - xMinMeters;
+    const yRangeMeters = yMaxMeters - yMinMeters;
+
     const origin: [number, number, number] = [0, 0, 0];
-    const projFrom = 'EPSG:4326';
-    const projTo = getUtmProjString(latMin, lonMin);
 
-    const [xOrigin, yOrigin] = proj4(projFrom, projTo, [lonMin, latMin]);
-    const [xMax, _yIgnore] = proj4(projFrom, projTo, [lonMax, latMin]);
-    const [_xIgnore, yMax] = proj4(projFrom, projTo, [lonMin, latMax]);
-    const xRange = xMax - xOrigin;
-    const yRange = yMax - yOrigin;
-
-    const tickInterval = scale / 10;
-    const tickLength = scale * 0.04;
+    // Use a consistent visual size for ticks/text based on the longest axis
+    const axisMax = Math.max(scaleX, scaleY, scaleZ);
+    const tickIntervalZ = scaleZ / 10;
+    const tickLength = axisMax * 0.04;
 
     const ticks: TickLine[] = [];
     const tickLabels: TickLabel[] = [];
 
-    const xTicks = [scale / 2, scale];
-    const yTicks = [scale / 2, scale];
-
+    // X ticks at mid and end
+    const xTicks = [scaleX / 2, scaleX];
     xTicks.forEach(i => {
-        const xMeter = (i / scale) * xRange;
+        const xMeters = (i / scaleX) * xRangeMeters;
         ticks.push({ source: [i, -tickLength, 0], target: [i, tickLength, 0], color: axisLineColor });
-        tickLabels.push({
-            position: [i, -2 * tickLength, 0],
-            text: `${xMeter.toFixed(0)} m`,
-            color: labelTextColor
-        });
+        tickLabels.push({ position: [i, -2 * tickLength, 0], text: `${xMeters.toFixed(0)} m`, color: labelTextColor });
     });
 
+    // Y ticks at mid and end
+    const yTicks = [scaleY / 2, scaleY];
     yTicks.forEach(i => {
-        const yMeter = (i / scale) * yRange;
+        const yMeters = (i / scaleY) * yRangeMeters;
         ticks.push({ source: [-tickLength, i, 0], target: [tickLength, i, 0], color: axisLineColor });
-        tickLabels.push({
-            position: [-2 * tickLength, i, 0],
-            text: `${yMeter.toFixed(0)} m`,
-            color: labelTextColor
-        });
+        tickLabels.push({ position: [-2 * tickLength, i, 0], text: `${yMeters.toFixed(0)} m`, color: labelTextColor });
     });
+
+    // Z ticks (convert back to real elevation values)
     const scaleFactor = deck3DConfigStore.verticalExaggeration / deck3DConfigStore.verticalScaleRatio;
-    for (let i = tickInterval; i < scale; i += tickInterval) {
+    for (let i = tickIntervalZ; i < scaleZ; i += tickIntervalZ) {
         ticks.push({ source: [0, -tickLength, i], target: [0, tickLength, i], color: axisLineColor });
 
-        let zTickLabel = i.toFixed(1);
-        if (elevMin !== undefined && elevMax !== undefined) {
-            const realZ = elevMin + (i / (scale * scaleFactor)) * (elevMax - elevMin);
-            zTickLabel = realZ.toFixed(0);
-        }
-        tickLabels.push({ position: [0, -2 * tickLength, i], text: zTickLabel, color: labelTextColor });
+        const realZ = elevMin + (i / (scaleZ * scaleFactor)) * (elevMax - elevMin);
+        tickLabels.push({ position: [0, -2 * tickLength, i], text: `${realZ.toFixed(0)} m`, color: labelTextColor });
     }
 
+    // Axis lines
     const axes = new LineLayer({
         id: 'axis-lines',
         data: [
-            { source: origin, target: [scale, 0, 0], color: axisLineColor },
-            { source: origin, target: [0, scale, 0], color: axisLineColor },
-            { source: origin, target: [0, 0, scale], color: axisLineColor }
+            { source: origin, target: [scaleX, 0, 0], color: axisLineColor }, // X
+            { source: origin, target: [0, scaleY, 0], color: axisLineColor }, // Y
+            { source: origin, target: [0, 0, scaleZ], color: axisLineColor }  // Z
         ],
         getSourcePosition: d => d.source,
         getTargetPosition: d => d.target,
@@ -140,8 +91,8 @@ export function createAxesAndLabels(
         coordinateSystem: COORDINATE_SYSTEM.CARTESIAN,
         pickable: false,
         updateTriggers: {
-            getSourcePosition: [scale],
-            getTargetPosition: [scale],
+            getSourcePosition: [scaleX, scaleY, scaleZ],
+            getTargetPosition: [scaleX, scaleY, scaleZ],
             getColor: [axisLineColor],
             getWidth: [lineWidth]
         }
@@ -172,15 +123,16 @@ export function createAxesAndLabels(
         billboard: true
     });
 
-    const xylabelOffset = scale * 0.10;
-    const zlabelOffset = scale * 0.07;
+    // Axis labels (offsets relative to longest axis for consistent look)
+    const xylabelOffset = axisMax * 0.10;
+    const zlabelOffset = axisMax * 0.07;
 
     const labels = new TextLayer({
         id: 'axis-labels',
         data: [
-            { position: [scale + xylabelOffset, 0, 0], text: xLabel, color: labelTextColor },
-            { position: [0, scale + xylabelOffset, 0], text: yLabel, color: labelTextColor },
-            { position: [0, 0, scale + zlabelOffset], text: zLabel, color: labelTextColor }
+            { position: [scaleX + xylabelOffset, 0, 0], text: xLabel, color: labelTextColor },
+            { position: [0, scaleY + xylabelOffset, 0], text: yLabel, color: labelTextColor },
+            { position: [0, 0, scaleZ + zlabelOffset], text: zLabel, color: labelTextColor }
         ],
         getPosition: d => d.position,
         getText: d => d.text,
@@ -190,7 +142,7 @@ export function createAxesAndLabels(
         getTextAnchor: 'middle',
         getAlignmentBaseline: 'center',
         coordinateSystem: COORDINATE_SYSTEM.CARTESIAN,
-        billboard: true,
+        billboard: true
     });
 
     return [axes, labels, tickLines, tickText];

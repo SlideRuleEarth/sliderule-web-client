@@ -80,7 +80,7 @@ const GtsSelection = (gts:SrListNumberItem[]) => {
                 label="Granule Selection"
                 labelFontSize="large"
                 tooltipText="Granules are the smallest unit of data that can be independently accessed, processed, and analyzed." 
-                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/dataframe.html#granule"
+                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/xseries.html#granule"
             />
         </div>
         <div class="sr-granule-tracks-beams-div"> 
