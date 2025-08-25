@@ -320,26 +320,185 @@ export const getColsForRgtYatcFromFile = async (
     }
 };
 
-export const duckDbReadAndUpdateElevationData = async (req_id: number,layerName:string): Promise<ElevationDataItem | null> => {
+// ─────────────────────────────────────────────────────────────────────────────
+// Representative point picker (top (rgt,cycle,spot) by count → single row)
+// ─────────────────────────────────────────────────────────────────────────────
+type RepresentativeStrategy = "median_x_atc" | "strongest";
+
+/**
+ * Returns a single representative point from the (rgt, cycle, spot) combo
+ * with the highest count of valid rows under dynamic, data‑driven filters.
+ *
+ * - Uses FieldNameStore to resolve generic column names (rgt/cycle/spot/lat/lon/height).
+ * - Applies NOT isnan(...) only to numeric columns that actually exist.
+ * - Median is computed along x-axis preferring: x_atc → segment_dist → time.
+ */
+export async function getRepresentativeElevationPointForReq(
+  req_id: number,
+  strategy: RepresentativeStrategy = "median_x_atc"
+): Promise<ElevationDataItem | null> {
+  const start = performance.now();
+  try {
+    const fileName = await indexedDb.getFilename(req_id);
+    const duckDbClient = await createDuckDbClient();
+    await duckDbClient.insertOpfsParquet(fileName);
+
+    // Resolve canonical field names for this req
+    const fns = useFieldNameStore();
+    const lat = fns.getLatFieldName(req_id);
+    const lon = fns.getLonFieldName(req_id);
+    const h   = fns.getHFieldName(req_id);
+
+    // ICESat-2 generics (works across missions you support)
+    const rgtCol   = fns.getUniqueTrkFieldName(req_id);       // "rgt" for ATL06*, etc.
+    const cycleCol = fns.getUniqueOrbitIdFieldName(req_id);   // "cycle"
+    const spotCol  = fns.getUniqueSpotIdFieldName(req_id);    // "spot" / "gt"
+
+    // Discover available columns to keep this robust (ATL06p vs ATL24 vs GEDI)
+    const allCols = await duckDbClient.queryForColNames(fileName);
+    const has = (c: string) => allCols.includes(c);
+
+    // Choose an x-axis for median ordering
+    const xAxis =
+      (has("x_atc") ? "x_atc" :
+      (has("segment_dist") ? "segment_dist" :
+      (has("time") ? "time" : h))); // fallback to height if needed
+
+    // Optional “quality” columns you mentioned; use only if present
+    const maybeCols = [
+      "rms_misfit",
+      "h_sigma",
+      "n_fit_photons",
+      "dh_fit_dx",
+      "pflags",
+      "w_surface_window_final",
+      "y_atc",
+      cycleCol,
+      lat,
+      lon,
+      rgtCol,
+      spotCol
+    ].filter(Boolean) as string[];
+
+    // Build isnan filters only for numeric columns we actually have
+    const colTypes = await duckDbClient.queryColumnTypes(fileName);
+    const typeOf = (c: string) => colTypes.find(t => t.name === c)?.type ?? "UNKNOWN";
+    const isFloaty = (t: string) => ["FLOAT", "DOUBLE", "REAL", "DECIMAL"].some(s => t.includes(s));
+    const numericCols = [h, ...maybeCols, xAxis].filter(c => !!c && isFloaty(typeOf(c)));
+    const existsNumeric = numericCols.filter(has);
+
+    const esc = duckDbClient.escape;
+    const isnanFilters = existsNumeric.map(c => `NOT isnan(${esc(c)})`);
+
+    // Also ensure the grouping keys exist
+    const groupCols = [rgtCol, cycleCol, spotCol].filter(has);
+    if (groupCols.length !== 3) {
+      console.warn("getRepresentativeElevationPointForReq: missing grouping columns", { rgtCol, cycleCol, spotCol });
+      return null;
+    }
+
+    // Build SELECT list — include all chart‑relevant cols if present
+    const selectCols = [
+      "x_atc","h_mean","rms_misfit","h_sigma","n_fit_photons","dh_fit_dx",
+      "pflags","w_surface_window_final","y_atc","cycle","latitude","longitude",
+      "time", rgtCol, cycleCol, spotCol, lat, lon, h, xAxis
+    ]
+      .filter(Boolean)
+      .filter((v, i, a) => a.indexOf(v) === i) // dedupe
+      .filter(has)
+      .map(c => esc(c))
+      .join(", ");
+
+    // Base CTE with dynamic filters
+    const baseCTE = `
+      WITH filtered AS (
+        SELECT *
+        FROM '${fileName}'
+        ${isnanFilters.length ? `WHERE ${isnanFilters.join(" AND ")}` : ""}
+      ),
+      top_combo AS (
+        SELECT ${esc(rgtCol)} AS rgt, ${esc(cycleCol)} AS cycle, ${esc(spotCol)} AS spot
+        FROM filtered
+        GROUP BY ${esc(rgtCol)}, ${esc(cycleCol)}, ${esc(spotCol)}
+        ORDER BY COUNT(*) DESC
+        LIMIT 1
+      )
+    `;
+
+    // Final selection depends on strategy
+    const sql =
+      strategy === "strongest" && has("n_fit_photons")
+        ? `
+          ${baseCTE}
+          SELECT ${selectCols}
+          FROM filtered f
+          JOIN top_combo tc
+            ON f.${esc(rgtCol)} = tc.rgt
+           AND f.${esc(cycleCol)} = tc.cycle
+           AND f.${esc(spotCol)} = tc.spot
+          ORDER BY f.${esc("n_fit_photons")} DESC, f.${esc(xAxis)} ASC
+          LIMIT 1;
+        `
+        : `
+          ${baseCTE},
+          ranked AS (
+            SELECT f.*,
+                   ROW_NUMBER() OVER (
+                     PARTITION BY f.${esc(rgtCol)}, f.${esc(cycleCol)}, f.${esc(spotCol)}
+                     ORDER BY f.${esc(xAxis)}
+                   ) AS rn,
+                   COUNT(*) OVER (
+                     PARTITION BY f.${esc(rgtCol)}, f.${esc(cycleCol)}, f.${esc(spotCol)}
+                   ) AS cnt
+            FROM filtered f
+            JOIN top_combo tc
+              ON f.${esc(rgtCol)} = tc.rgt
+             AND f.${esc(cycleCol)} = tc.cycle
+             AND f.${esc(spotCol)} = tc.spot
+          )
+          SELECT ${selectCols}
+          FROM ranked
+          WHERE rn = CEIL(cnt / 2.0)
+          LIMIT 1;
+        `;
+
+    const q = await duckDbClient.query(sql);
+    for await (const chunk of q.readRows()) {
+      if (chunk.length > 0) {
+        // Your ElevationDataItem is indexable, so we can just return the row.
+        return chunk[0] as ElevationDataItem;
+      }
+    }
+    return null;
+  } catch (err) {
+    console.error("getRepresentativeElevationPointForReq error:", err);
+    return null;
+  } finally {
+    console.log("getRepresentativeElevationPointForReq took", (performance.now() - start).toFixed(1), "ms");
+  }
+}
+
+
+export const duckDbReadAndUpdateElevationData = async (req_id: number, layerName: string): Promise<ElevationDataItem | null> => {
     console.log('duckDbReadAndUpdateElevationData req_id:', req_id);
-    const startTime = performance.now(); // Start time
+    const startTime = performance.now();
 
     let firstRec: ElevationDataItem | null = null;
     let numRows = 0;
     let srViewName = await indexedDb.getSrViewName(req_id);
-    
+
     if (!srViewName || srViewName === '' || srViewName === 'Global') {
         srViewName = 'Global Mercator Esri';
         console.error(`HACK ALERT!! inserting srViewName:${srViewName} for reqId:${req_id}`);
     }
 
     const projName = srViews.value[srViewName].projectionName;
-    
+
     if (!req_id) {
         console.error('duckDbReadAndUpdateElevationData Bad req_id:', req_id);
         return null;
     }
-    
+
     const pntData = useAnalysisMapStore().getPntDataByReqId(req_id.toString());
     pntData.isLoading = true;
 
@@ -348,23 +507,37 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number,layerName:
             console.error('duckDbReadAndUpdateElevationData req_id:', req_id, ' status is error SKIPPING!');
             return null;
         }
-        const mission = useFieldNameStore().getMissionForReqId(req_id);
 
         const duckDbClient = await createDuckDbClient();
         const filename = await indexedDb.getFilename(req_id);
         await duckDbClient.insertOpfsParquet(filename);
 
+        // ─────────────────────────────────────────────────────────
+        // NEW: pick representative point from top (rgt,cycle,spot)
+        //      default: median by x-axis (falls back internally)
+        //      alternative: pass "strongest"
+        // ─────────────────────────────────────────────────────────
+        try {
+            const rep = await getRepresentativeElevationPointForReq(req_id, "median_x_atc");
+            if (rep) {
+                firstRec = rep;  // <- set early; we still build/render the layer from chunks below
+            }
+        } catch (e) {
+            console.warn('Representative point selection failed; will fall back to first clickable row:', e);
+        }
+
         let rows: ElevationDataItem[] = [];
         let positions: SrPosition[] = []; // Precompute positions
-        const pntData = useAnalysisMapStore().getPntDataByReqId(req_id.toString());
-        pntData.totalPnts = 0;
-        pntData.currentPnts = 0;
+        const pntDataLocal = useAnalysisMapStore().getPntDataByReqId(req_id.toString());
+        pntDataLocal.totalPnts = 0;
+        pntDataLocal.currentPnts = 0;
+
         try {
             const sample_fraction = await computeSamplingRate(req_id);
             const result = await duckDbClient.queryChunkSampled(`SELECT * FROM read_parquet('${filename}')`, sample_fraction);
 
             if (result.totalRows) {
-                pntData.totalPnts =result.totalRows;
+                pntDataLocal.totalPnts = result.totalRows;
             } else if (result.schema === undefined) {
                 console.warn('duckDbReadAndUpdateElevationData totalRows and schema are undefined result:', result);
             }
@@ -375,24 +548,23 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number,layerName:
             if (!done && value) {
                 rows = value as ElevationDataItem[];
                 numRows = rows.length;
-                pntData.currentPnts = numRows;
-                //console.log('duckDbReadAndUpdateElevationData rows:', rows);
-                // **Find the first valid elevation point**
-                firstRec = rows.find(isClickable) || null;
-                if(!firstRec){
-                    console.warn('duckDbReadAndUpdateElevationData find(isClickable) firstRec is null');
-                    if(rows.length > 0) {
+                pntDataLocal.currentPnts = numRows;
+
+                // Fallback if representative point was not found
+                if (!firstRec) {
+                    firstRec = rows.find(isClickable) || null;
+                    if (!firstRec && rows.length > 0) {
                         firstRec = rows[0];
                     }
                 }
+
                 if (firstRec) {
-                    // Precompute position data for all rows
                     const lat_fieldname = useFieldNameStore().getLatFieldName(req_id);
                     const lon_fieldname = useFieldNameStore().getLonFieldName(req_id);
                     positions = rows.map(d => [
                         d[lon_fieldname],
                         d[lat_fieldname],
-                        0 // always make this 0 so the tracks are flat
+                        0 // keep tracks flat
                     ] as SrPosition);
                 } else {
                     console.warn(`No valid elevation points found in ${numRows} rows.`);
@@ -413,14 +585,12 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number,layerName:
 
             if (summary?.extHMean) {
                 useCurReqSumStore().setSummary({
-                    req_id: req_id,
+                    req_id,
                     extLatLon: summary.extLatLon,
                     extHMean: summary.extHMean,
                     numPoints: summary.numPoints
                 });
-                //console.log('duckDbReadAndUpdateElevationData',height_fieldname,'positions:', positions);
                 updateDeckLayerWithObject(layerName, rows, summary.extHMean, height_fieldname, positions, projName);
-                
             } else {
                 console.error('duckDbReadAndUpdateElevationData summary is undefined');
             }
@@ -431,9 +601,9 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number,layerName:
         console.error('duckDbReadAndUpdateElevationData error:', error);
         throw error;
     } finally {
-        const pntData = useAnalysisMapStore().getPntDataByReqId(req_id.toString());
-        pntData.isLoading = false;
-        const endTime = performance.now(); // End time
+        const pntDataFinal = useAnalysisMapStore().getPntDataByReqId(req_id.toString());
+        pntDataFinal.isLoading = false;
+        const endTime = performance.now();
         console.log(`duckDbReadAndUpdateElevationData for ${req_id} took ${endTime - startTime} milliseconds.`);
         return { firstRec, numRows };
     }
