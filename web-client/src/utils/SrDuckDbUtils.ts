@@ -320,22 +320,8 @@ export const getColsForRgtYatcFromFile = async (
     }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Representative point picker (top (rgt,cycle,spot) by count → single row)
-// ─────────────────────────────────────────────────────────────────────────────
-type RepresentativeStrategy = "median_x_atc" | "strongest";
-
-/**
- * Returns a single representative point from the (rgt, cycle, spot) combo
- * with the highest count of valid rows under dynamic, data‑driven filters.
- *
- * - Uses FieldNameStore to resolve generic column names (rgt/cycle/spot/lat/lon/height).
- * - Applies NOT isnan(...) only to numeric columns that actually exist.
- * - Median is computed along x-axis preferring: x_atc → segment_dist → time.
- */
 export async function getRepresentativeElevationPointForReq(
-  req_id: number,
-  strategy: RepresentativeStrategy = "median_x_atc"
+  req_id: number
 ): Promise<ElevationDataItem | null> {
   const start = performance.now();
   try {
@@ -343,138 +329,44 @@ export async function getRepresentativeElevationPointForReq(
     const duckDbClient = await createDuckDbClient();
     await duckDbClient.insertOpfsParquet(fileName);
 
-    // Resolve canonical field names for this req
     const fns = useFieldNameStore();
-    const lat = fns.getLatFieldName(req_id);
-    const lon = fns.getLonFieldName(req_id);
-    const h   = fns.getHFieldName(req_id);
-
-    // ICESat-2 generics (works across missions you support)
-    const rgtCol   = fns.getUniqueTrkFieldName(req_id);       // "rgt" for ATL06*, etc.
-    const cycleCol = fns.getUniqueOrbitIdFieldName(req_id);   // "cycle"
-    const spotCol  = fns.getUniqueSpotIdFieldName(req_id);    // "spot" / "gt"
-
-    // Discover available columns to keep this robust (ATL06p vs ATL24 vs GEDI)
-    const allCols = await duckDbClient.queryForColNames(fileName);
-    const has = (c: string) => allCols.includes(c);
-
-    // Choose an x-axis for median ordering
-    const xAxis =
-      (has("x_atc") ? "x_atc" :
-      (has("segment_dist") ? "segment_dist" :
-      (has("time") ? "time" : h))); // fallback to height if needed
-
-    // Optional “quality” columns you mentioned; use only if present
-    const maybeCols = [
-      "rms_misfit",
-      "h_sigma",
-      "n_fit_photons",
-      "dh_fit_dx",
-      "pflags",
-      "w_surface_window_final",
-      "y_atc",
-      cycleCol,
-      lat,
-      lon,
-      rgtCol,
-      spotCol
-    ].filter(Boolean) as string[];
-
-    // Build isnan filters only for numeric columns we actually have
-    const colTypes = await duckDbClient.queryColumnTypes(fileName);
-    const typeOf = (c: string) => colTypes.find(t => t.name === c)?.type ?? "UNKNOWN";
-    const isFloaty = (t: string) => ["FLOAT", "DOUBLE", "REAL", "DECIMAL"].some(s => t.includes(s));
-    const numericCols = [h, ...maybeCols, xAxis].filter(c => !!c && isFloaty(typeOf(c)));
-    const existsNumeric = numericCols.filter(has);
+    const rgtCol   = fns.getUniqueTrkFieldName(req_id);
+    const cycleCol = fns.getUniqueOrbitIdFieldName(req_id);
+    const spotCol  = fns.getUniqueSpotIdFieldName(req_id);
 
     const esc = duckDbClient.escape;
-    const isnanFilters = existsNumeric.map(c => `NOT isnan(${esc(c)})`);
 
-    // Also ensure the grouping keys exist
-    const groupCols = [rgtCol, cycleCol, spotCol].filter(has);
-    if (groupCols.length !== 3) {
-      console.warn("getRepresentativeElevationPointForReq: missing grouping columns", { rgtCol, cycleCol, spotCol });
-      return null;
-    }
-
-    // Build SELECT list — include all chart‑relevant cols if present
-    const selectCols = [
-      "x_atc","h_mean","rms_misfit","h_sigma","n_fit_photons","dh_fit_dx",
-      "pflags","w_surface_window_final","y_atc","cycle","latitude","longitude",
-      "time", rgtCol, cycleCol, spotCol, lat, lon, h, xAxis
-    ]
-      .filter(Boolean)
-      .filter((v, i, a) => a.indexOf(v) === i) // dedupe
-      .filter(has)
-      .map(c => esc(c))
-      .join(", ");
-
-    // Base CTE with dynamic filters
-    const baseCTE = `
-      WITH filtered AS (
-        SELECT *
-        FROM '${fileName}'
-        ${isnanFilters.length ? `WHERE ${isnanFilters.join(" AND ")}` : ""}
-      ),
-      top_combo AS (
+    const sql = `
+      WITH top_combo AS (
         SELECT ${esc(rgtCol)} AS rgt, ${esc(cycleCol)} AS cycle, ${esc(spotCol)} AS spot
-        FROM filtered
+        FROM '${fileName}'
         GROUP BY ${esc(rgtCol)}, ${esc(cycleCol)}, ${esc(spotCol)}
         ORDER BY COUNT(*) DESC
         LIMIT 1
       )
+      SELECT t.*
+      FROM '${fileName}' t
+      JOIN top_combo tc
+        ON t.${esc(rgtCol)} = tc.rgt
+       AND t.${esc(cycleCol)} = tc.cycle
+       AND t.${esc(spotCol)} = tc.spot
+      LIMIT 1;
     `;
-
-    // Final selection depends on strategy
-    const sql =
-      strategy === "strongest" && has("n_fit_photons")
-        ? `
-          ${baseCTE}
-          SELECT ${selectCols}
-          FROM filtered f
-          JOIN top_combo tc
-            ON f.${esc(rgtCol)} = tc.rgt
-           AND f.${esc(cycleCol)} = tc.cycle
-           AND f.${esc(spotCol)} = tc.spot
-          ORDER BY f.${esc("n_fit_photons")} DESC, f.${esc(xAxis)} ASC
-          LIMIT 1;
-        `
-        : `
-          ${baseCTE},
-          ranked AS (
-            SELECT f.*,
-                   ROW_NUMBER() OVER (
-                     PARTITION BY f.${esc(rgtCol)}, f.${esc(cycleCol)}, f.${esc(spotCol)}
-                     ORDER BY f.${esc(xAxis)}
-                   ) AS rn,
-                   COUNT(*) OVER (
-                     PARTITION BY f.${esc(rgtCol)}, f.${esc(cycleCol)}, f.${esc(spotCol)}
-                   ) AS cnt
-            FROM filtered f
-            JOIN top_combo tc
-              ON f.${esc(rgtCol)} = tc.rgt
-             AND f.${esc(cycleCol)} = tc.cycle
-             AND f.${esc(spotCol)} = tc.spot
-          )
-          SELECT ${selectCols}
-          FROM ranked
-          WHERE rn = CEIL(cnt / 2.0)
-          LIMIT 1;
-        `;
 
     const q = await duckDbClient.query(sql);
     for await (const chunk of q.readRows()) {
-      if (chunk.length > 0) {
-        // Your ElevationDataItem is indexable, so we can just return the row.
-        return chunk[0] as ElevationDataItem;
-      }
+      if (chunk.length > 0) return chunk[0] as ElevationDataItem;
     }
     return null;
   } catch (err) {
     console.error("getRepresentativeElevationPointForReq error:", err);
     return null;
   } finally {
-    console.log("getRepresentativeElevationPointForReq took", (performance.now() - start).toFixed(1), "ms");
+    console.log(
+      "getRepresentativeElevationPointForReq took",
+      (performance.now() - start).toFixed(1),
+      "ms"
+    );
   }
 }
 
@@ -518,7 +410,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number, layerName
         //      alternative: pass "strongest"
         // ─────────────────────────────────────────────────────────
         try {
-            const rep = await getRepresentativeElevationPointForReq(req_id, "median_x_atc");
+            const rep = await getRepresentativeElevationPointForReq(req_id);
             if (rep) {
                 firstRec = rep;  // <- set early; we still build/render the layer from chunks below
             }
