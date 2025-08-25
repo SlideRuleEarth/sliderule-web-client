@@ -320,26 +320,77 @@ export const getColsForRgtYatcFromFile = async (
     }
 };
 
-export const duckDbReadAndUpdateElevationData = async (req_id: number,layerName:string): Promise<ElevationDataItem | null> => {
+export async function getRepresentativeElevationPointForReq(
+  req_id: number
+): Promise<ElevationDataItem | null> {
+  const start = performance.now();
+  try {
+    const fileName = await indexedDb.getFilename(req_id);
+    const duckDbClient = await createDuckDbClient();
+    await duckDbClient.insertOpfsParquet(fileName);
+
+    const fns = useFieldNameStore();
+    const rgtCol   = fns.getUniqueTrkFieldName(req_id);
+    const cycleCol = fns.getUniqueOrbitIdFieldName(req_id);
+    const spotCol  = fns.getUniqueSpotIdFieldName(req_id);
+
+    const esc = duckDbClient.escape;
+
+    const sql = `
+      WITH top_combo AS (
+        SELECT ${esc(rgtCol)} AS rgt, ${esc(cycleCol)} AS cycle, ${esc(spotCol)} AS spot
+        FROM '${fileName}'
+        GROUP BY ${esc(rgtCol)}, ${esc(cycleCol)}, ${esc(spotCol)}
+        ORDER BY COUNT(*) DESC
+        LIMIT 1
+      )
+      SELECT t.*
+      FROM '${fileName}' t
+      JOIN top_combo tc
+        ON t.${esc(rgtCol)} = tc.rgt
+       AND t.${esc(cycleCol)} = tc.cycle
+       AND t.${esc(spotCol)} = tc.spot
+      LIMIT 1;
+    `;
+
+    const q = await duckDbClient.query(sql);
+    for await (const chunk of q.readRows()) {
+      if (chunk.length > 0) return chunk[0] as ElevationDataItem;
+    }
+    return null;
+  } catch (err) {
+    console.error("getRepresentativeElevationPointForReq error:", err);
+    return null;
+  } finally {
+    console.log(
+      "getRepresentativeElevationPointForReq took",
+      (performance.now() - start).toFixed(1),
+      "ms"
+    );
+  }
+}
+
+
+export const duckDbReadAndUpdateElevationData = async (req_id: number, layerName: string): Promise<ElevationDataItem | null> => {
     console.log('duckDbReadAndUpdateElevationData req_id:', req_id);
-    const startTime = performance.now(); // Start time
+    const startTime = performance.now();
 
     let firstRec: ElevationDataItem | null = null;
     let numRows = 0;
     let srViewName = await indexedDb.getSrViewName(req_id);
-    
+
     if (!srViewName || srViewName === '' || srViewName === 'Global') {
         srViewName = 'Global Mercator Esri';
         console.error(`HACK ALERT!! inserting srViewName:${srViewName} for reqId:${req_id}`);
     }
 
     const projName = srViews.value[srViewName].projectionName;
-    
+
     if (!req_id) {
         console.error('duckDbReadAndUpdateElevationData Bad req_id:', req_id);
         return null;
     }
-    
+
     const pntData = useAnalysisMapStore().getPntDataByReqId(req_id.toString());
     pntData.isLoading = true;
 
@@ -348,23 +399,37 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number,layerName:
             console.error('duckDbReadAndUpdateElevationData req_id:', req_id, ' status is error SKIPPING!');
             return null;
         }
-        const mission = useFieldNameStore().getMissionForReqId(req_id);
 
         const duckDbClient = await createDuckDbClient();
         const filename = await indexedDb.getFilename(req_id);
         await duckDbClient.insertOpfsParquet(filename);
 
+        // ─────────────────────────────────────────────────────────
+        // NEW: pick representative point from top (rgt,cycle,spot)
+        //      default: median by x-axis (falls back internally)
+        //      alternative: pass "strongest"
+        // ─────────────────────────────────────────────────────────
+        try {
+            const rep = await getRepresentativeElevationPointForReq(req_id);
+            if (rep) {
+                firstRec = rep;  // <- set early; we still build/render the layer from chunks below
+            }
+        } catch (e) {
+            console.warn('Representative point selection failed; will fall back to first clickable row:', e);
+        }
+
         let rows: ElevationDataItem[] = [];
         let positions: SrPosition[] = []; // Precompute positions
-        const pntData = useAnalysisMapStore().getPntDataByReqId(req_id.toString());
-        pntData.totalPnts = 0;
-        pntData.currentPnts = 0;
+        const pntDataLocal = useAnalysisMapStore().getPntDataByReqId(req_id.toString());
+        pntDataLocal.totalPnts = 0;
+        pntDataLocal.currentPnts = 0;
+
         try {
             const sample_fraction = await computeSamplingRate(req_id);
             const result = await duckDbClient.queryChunkSampled(`SELECT * FROM read_parquet('${filename}')`, sample_fraction);
 
             if (result.totalRows) {
-                pntData.totalPnts =result.totalRows;
+                pntDataLocal.totalPnts = result.totalRows;
             } else if (result.schema === undefined) {
                 console.warn('duckDbReadAndUpdateElevationData totalRows and schema are undefined result:', result);
             }
@@ -375,24 +440,23 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number,layerName:
             if (!done && value) {
                 rows = value as ElevationDataItem[];
                 numRows = rows.length;
-                pntData.currentPnts = numRows;
-                //console.log('duckDbReadAndUpdateElevationData rows:', rows);
-                // **Find the first valid elevation point**
-                firstRec = rows.find(isClickable) || null;
-                if(!firstRec){
-                    console.warn('duckDbReadAndUpdateElevationData find(isClickable) firstRec is null');
-                    if(rows.length > 0) {
+                pntDataLocal.currentPnts = numRows;
+
+                // Fallback if representative point was not found
+                if (!firstRec) {
+                    firstRec = rows.find(isClickable) || null;
+                    if (!firstRec && rows.length > 0) {
                         firstRec = rows[0];
                     }
                 }
+
                 if (firstRec) {
-                    // Precompute position data for all rows
                     const lat_fieldname = useFieldNameStore().getLatFieldName(req_id);
                     const lon_fieldname = useFieldNameStore().getLonFieldName(req_id);
                     positions = rows.map(d => [
                         d[lon_fieldname],
                         d[lat_fieldname],
-                        0 // always make this 0 so the tracks are flat
+                        0 // keep tracks flat
                     ] as SrPosition);
                 } else {
                     console.warn(`No valid elevation points found in ${numRows} rows.`);
@@ -413,14 +477,12 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number,layerName:
 
             if (summary?.extHMean) {
                 useCurReqSumStore().setSummary({
-                    req_id: req_id,
+                    req_id,
                     extLatLon: summary.extLatLon,
                     extHMean: summary.extHMean,
                     numPoints: summary.numPoints
                 });
-                //console.log('duckDbReadAndUpdateElevationData',height_fieldname,'positions:', positions);
                 updateDeckLayerWithObject(layerName, rows, summary.extHMean, height_fieldname, positions, projName);
-                
             } else {
                 console.error('duckDbReadAndUpdateElevationData summary is undefined');
             }
@@ -431,9 +493,9 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number,layerName:
         console.error('duckDbReadAndUpdateElevationData error:', error);
         throw error;
     } finally {
-        const pntData = useAnalysisMapStore().getPntDataByReqId(req_id.toString());
-        pntData.isLoading = false;
-        const endTime = performance.now(); // End time
+        const pntDataFinal = useAnalysisMapStore().getPntDataByReqId(req_id.toString());
+        pntDataFinal.isLoading = false;
+        const endTime = performance.now();
         console.log(`duckDbReadAndUpdateElevationData for ${req_id} took ${endTime - startTime} milliseconds.`);
         return { firstRec, numRows };
     }
