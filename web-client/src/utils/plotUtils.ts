@@ -2,7 +2,7 @@ import { useChartStore } from "@/stores/chartStore";
 import { useGlobalChartStore } from "@/stores/globalChartStore";
 import { db as indexedDb } from "@/db/SlideRuleDb";
 import { fetchScatterData,setDataOrder,getAtl06SlopeSegments } from "@/utils/SrDuckDbUtils";
-import { type EChartsOption, type LegendComponentOption, type ScatterSeriesOption, type EChartsType, number } from 'echarts';
+import { type EChartsOption, type LegendComponentOption } from 'echarts';
 import { createWhereClause } from "./spotUtils";
 import type { ECharts } from 'echarts/core';
 import { duckDbReadAndUpdateSelectedLayer } from '@/utils/SrDuckDbUtils';
@@ -19,11 +19,10 @@ import { useAtl03CnfColorMapStore } from "@/stores/atl03CnfColorMapStore";
 import { useAtl08ClassColorMapStore } from "@/stores/atl08ClassColorMapStore";
 import { useAtl24ClassColorMapStore } from "@/stores/atl24ClassColorMapStore";
 import { formatKeyValuePair } from '@/utils/formatUtils';
-import { SELECTED_LAYER_NAME_PREFIX,type MinMax, type MinMaxLowHigh, type AtlReqParams } from "@/types/SrTypes";
+import { SELECTED_LAYER_NAME_PREFIX, type MinMaxLowHigh, type AtlReqParams } from "@/types/SrTypes";
 import { useSymbolStore } from "@/stores/symbolStore";
 import { useFieldNameStore } from "@/stores/fieldNameStore";
 import { createDuckDbClient } from "@/utils/SrDuckDb";
-import { useReqParamsStore } from "@/stores/reqParamsStore";
 
 export const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<string[]> }>({});
 export const yDataSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
@@ -119,7 +118,6 @@ export function initializeColorEncoding(reqId:number,parentFuncStr?:string) {
 export function initDataBindingsToChartStore(reqIds: string[]) {
     //console.log('initDataBindingsToChartStore:', reqIds);
     const chartStore = useChartStore();
-    const globalChartStore = useGlobalChartStore();
     reqIds.forEach((reqId) => {
         if (!(reqId in yDataBindingsReactive)) {
             yDataBindingsReactive[reqId] = computed({

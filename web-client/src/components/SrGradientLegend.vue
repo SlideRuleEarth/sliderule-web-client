@@ -23,6 +23,7 @@ import { useChartStore } from '@/stores/chartStore';
 import { computed, watch } from 'vue';
 import { useGradientColorMapStore } from '@/stores/gradientColorMapStore';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
+import { useActiveTabStore } from '@/stores/activeTabStore';
 
 // Props definition
 const props = withDefaults(
@@ -41,11 +42,18 @@ const props = withDefaults(
 const chartStore = useChartStore();
 const globalChartStore = useGlobalChartStore();
 const gradientColorMapStore =  useGradientColorMapStore(props.reqIdStr);
-
+const activeTabStore = useActiveTabStore();
 const computedDisplayGradient = computed(() => {
   return (  chartStore.getMinValue(props.reqIdStr, props.data_key) !== null && chartStore.getMaxValue(props.reqIdStr, props.data_key) !== null);
 });
 
+const isTimeSeries = computed(() => {
+    if(activeTabStore.activeTabLabel === 'Time Series'){
+        return true;
+    } else {
+        return false;
+    }
+});
 
 const useSelectedMinMax = computed(() => {
     return chartStore.stateByReqId[props.reqIdStr]?.useSelectedMinMax;
@@ -53,20 +61,28 @@ const useSelectedMinMax = computed(() => {
 
 const minValue = computed(() => {
   let min;
-  if(useSelectedMinMax.value){
-    min = chartStore.getLow(props.reqIdStr, props.data_key);
-  } else {
-    min = globalChartStore.getLow(props.data_key);
+  if(isTimeSeries){
+      min = chartStore.getMinValue(props.reqIdStr, props.data_key);
+    } else {
+    if(useSelectedMinMax.value){
+      min = chartStore.getLow(props.reqIdStr, props.data_key);
+    } else {
+      min = globalChartStore.getLow(props.data_key);
+    }
   }
   return (min !== null && min !== undefined) ? parseFloat(min.toFixed(1)) : '?';
 });
 
 const maxValue = computed(() => {
   let max;
-  if(useSelectedMinMax.value){
-    max = chartStore.getHigh(props.reqIdStr, props.data_key);
+  if(isTimeSeries){
+    max = chartStore.getMaxValue(props.reqIdStr, props.data_key);
   } else {
-    max = globalChartStore.getHigh(props.data_key);
+    if(useSelectedMinMax.value){
+      max = chartStore.getHigh(props.reqIdStr, props.data_key);
+    } else {
+      max = globalChartStore.getHigh(props.data_key);
+    }
   }
   return (max !== null && max !== undefined) ? parseFloat(max.toFixed(1)) : '?';
 });
