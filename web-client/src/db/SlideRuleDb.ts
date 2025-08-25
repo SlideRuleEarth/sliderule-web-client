@@ -805,7 +805,7 @@ export class SlideRuleDexie extends Dexie {
             throw error;
         } finally {
             const endTime = performance.now(); // End time
-            console.log(`SlideRuleDb.getFilename |${fn}| for ${reqId} took ${endTime - startTime} milliseconds.`);
+            //console.log(`SlideRuleDb.getFilename |${fn}| for ${reqId} took ${endTime - startTime} milliseconds.`);
         }
         return fn;
     }

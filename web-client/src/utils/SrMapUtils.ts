@@ -776,7 +776,7 @@ export function createDeckLayer(
     };
 
     const layer = new ScatterplotLayer(layerProps as any);
-    console.log(`createDeckLayer took ${performance.now() - startTime} ms.`);
+    //console.log(`createDeckLayer took ${performance.now() - startTime} ms.`);
     return layer;
 }
 

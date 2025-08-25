@@ -69,12 +69,12 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     },
     getSelectedOverlayedReqIds() {
       const selectedOverlayedReqIds = this.selectedOverlayedReqIds;
-      console.log('getSelectedOverlayedReqIds:', selectedOverlayedReqIds, 'length:', selectedOverlayedReqIds.length);
+      //console.log('getSelectedOverlayedReqIds:', selectedOverlayedReqIds, 'length:', selectedOverlayedReqIds.length);
       return selectedOverlayedReqIds;
     },
     setSelectedOverlayedReqIds(selectedOverlayedReqIds: number[]) {
-      console.log('setSelectedOverlayedReqIds old:',this.selectedOverlayedReqIds,'new:', selectedOverlayedReqIds);
-      console.log('setSelectedOverlayedReqIds old len:',this.selectedOverlayedReqIds.length,'new len:', selectedOverlayedReqIds.length);
+      //console.log('setSelectedOverlayedReqIds old:',this.selectedOverlayedReqIds,'new:', selectedOverlayedReqIds);
+      //console.log('setSelectedOverlayedReqIds old len:',this.selectedOverlayedReqIds.length,'new len:', selectedOverlayedReqIds.length);
       this.selectedOverlayedReqIds = selectedOverlayedReqIds;
     },
     appendToSelectedOverlayedReqIds(reqId: number) {

@@ -594,10 +594,10 @@ async function getSeriesFor(reqIdStr:string,isOverlay=false) : Promise<SrScatter
     const existingColumns = await duckDbClient.queryForColNames(fileName);
     const all_y = chartStore.getYDataOptions(reqIdStr);
     const y = all_y.filter(col => existingColumns.includes(col));
-    console.log('all_y:', all_y);
-    console.log('existingColumns:', existingColumns);
-    console.log('Filtered y:', y);
-    console.log('getSeriesFor Using y:',y);
+    // console.log('all_y:', all_y);
+    // console.log('existingColumns:', existingColumns);
+    // console.log('Filtered y:', y);
+    // console.log('getSeriesFor Using y:',y);
     if(y.length != all_y.length){
         console.warn(`getSeriesFor ${reqIdStr} y length mismatch: all_y.length=${all_y.length}, existingColumns.length=${existingColumns.length}, y.length=${y.length}`);
     }

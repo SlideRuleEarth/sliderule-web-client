@@ -1,4 +1,3 @@
-import { type ElevationDataItem } from '@/utils/SrMapUtils';
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 
