@@ -49,9 +49,9 @@
     });
     const tooltipRef = ref();
     const showParmsDialog = ref(false);
+    let reqParamsStore: ReturnType<typeof useReqParamsStore>;
     const curAPI = computed(() => reqParamsStore.getCurAPIStr());
   
-    let reqParamsStore;
     if(props.isForPhotonCloud) {
         reqParamsStore = useAutoReqParamsStore();
     } else {

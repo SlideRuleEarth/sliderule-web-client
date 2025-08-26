@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref,computed } from 'vue';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
+import { useSlideruleDefaults } from '@/stores/defaultsStore';
+import { type SrPhoreal } from '@/types/slideruleDefaultsInterfaces';
+import { onMounted } from 'vue';
 
 const reqParameterStore = useReqParamsStore();
 const selectedBox = ref<number | null>(null);
@@ -17,6 +20,7 @@ const boxes = computed(() => [
   { id: 9, name: "GEDI Geolocated Waveforms", description: "For raw waveform returns", image: "/SrGround.webp" },
 ]);
 
+
 const selectBox = (boxId: number) => {
   selectedBox.value = boxId;
   const selectedBoxInfo = boxes.value.find(box => box.id === boxId);
@@ -32,7 +36,8 @@ const selectBox = (boxId: number) => {
       case 'ICESat-2 Surface Elevations':
         reqParameterStore.reset();
         reqParameterStore.setMissionValue('ICESat-2');
-        reqParameterStore.setIceSat2API('atl06p');
+        reqParameterStore.setIceSat2API('atl03x-surface');
+        reqParameterStore.setUseSurfaceFitAlgorithm(true);
         reqParameterStore.setAsset('icesat2');
         break;
       case 'ICESat-2 Land Ice Sheet':
@@ -44,7 +49,8 @@ const selectBox = (boxId: number) => {
       case 'ICESat-2 Canopy Heights':
         reqParameterStore.reset();
         reqParameterStore.setMissionValue('ICESat-2');
-        reqParameterStore.setIceSat2API('atl08p');
+        reqParameterStore.setIceSat2API('atl03x-phoreal');
+        reqParameterStore.enablePhoREAL = true;
         reqParameterStore.setAsset('icesat2');
         break;
       case 'ICESat-2 Coastal Bathymetry':
@@ -103,6 +109,12 @@ const selectBox = (boxId: number) => {
   }
   //console.log("GenUserOptions selection complete. AFTER reqParameterStore.poly:", reqParameterStore.poly);
 };
+let defaultPhoreal = {} as SrPhoreal;
+
+onMounted(() => {
+    defaultPhoreal = useSlideruleDefaults().getNestedMissionDefault('ICESat-2', 'phoreal') as SrPhoreal;
+    console.log('Default PhoREAL:', defaultPhoreal);
+});
 </script>
 
 <template>

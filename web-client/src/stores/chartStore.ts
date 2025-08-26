@@ -284,13 +284,13 @@ export const useChartStore = defineStore('chartStore', {
             this.ensureState(reqIdStr);
             if (func.includes('atl03sp')) {
                 this.setXDataForChart(reqIdStr,'x_atc');
-            } else if (func.includes('atl03x')) {
-                this.setXDataForChart(reqIdStr,'x_atc');
             } else if (func.includes('atl03vp')) {
                 this.setXDataForChart(reqIdStr,'segment_dist_x');
-            } else if (func.includes('atl06')) {
+            } else if ((func.includes('atl06') || func.includes('atl03x-surface'))) {
                 this.setXDataForChart(reqIdStr,'x_atc');
-            } else if (func.includes('atl08')) {
+            } else if (func.includes('atl08') || func.includes('atl03x-phoreal')) {
+                this.setXDataForChart(reqIdStr,'x_atc');
+            } else if (func.includes('atl03x')) {
                 this.setXDataForChart(reqIdStr,'x_atc');
             } else if (func.includes('atl24')) {
                 this.setXDataForChart(reqIdStr,'x_atc');

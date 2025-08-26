@@ -101,6 +101,10 @@ export async function atlxx(func:string,atlxxReqParams: AtlxxReqParams, callback
         }
 
         if(sanityCheck){
+            if(func.includes('atl03x-')){
+                func = 'atl03x'; // strip -surface or -phoreal
+                console.log("atl03x-<variant> detected, server uses atl03x");
+            }
             const result = await core.source(func, atlxxReqParams, true, callbacks);
             console.log("atlxx result: ", result);
             return result as core.Sr_Results_type;

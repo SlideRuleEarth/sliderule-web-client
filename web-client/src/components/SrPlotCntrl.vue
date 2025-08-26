@@ -184,7 +184,7 @@ const shouldDisplayGradientColorLegend = computed(() => {
             if(selectedColorEncodeData !== 'atl08_class' && selectedColorEncodeData !== 'atl24_class' && selectedColorEncodeData !== 'atl03_cnf'){
                 should = true;
             }
-        } else if(func.includes('atl06') || func.includes('atl08') || func.includes('atl24')){
+        } else if(func.includes('atl06') || func.includes('atl03x-surface') || func.includes('atl03x-phoreal') || func.includes('atl08') || func.includes('atl24')){
             if(selectedColorEncodeData !== 'solid'){
                 should = true;
             }

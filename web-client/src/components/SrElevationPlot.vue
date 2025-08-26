@@ -715,7 +715,10 @@ watch(() => atlChartFilterStore.showSlopeLines, async (newValue) => {
             <SrCustomTooltip ref="tooltipRef" id="'elevationPlotTooltip'"/>
             <div 
                 class="sr-run-control" 
-                v-if="mission==='ICESat-2' && !recTreeStore.selectedApi?.includes('atl03')"
+                    v-if="(mission==='ICESat-2' && 
+                        !(recTreeStore.selectedApi === 'atl03x') &&
+                        !(recTreeStore.selectedApi === 'atl03sp') &&
+                        !(recTreeStore.selectedApi === 'atl03vp'))"
             >
                 <div
                     @mouseover="tooltipRef.showTooltip($event, photonCloudBtnTooltip)"
@@ -736,16 +739,16 @@ watch(() => atlChartFilterStore.showSlopeLines, async (newValue) => {
                     >
                     </ToggleButton>
                 </div>
-                <div v-if="recTreeStore.selectedApi.includes('atl06')" class="slope-checkbox-group">
+                <div v-if="(recTreeStore.selectedApi.includes('atl06') || recTreeStore.selectedApi.includes('atl03x-surface'))" class="slope-checkbox-group">
                     <Checkbox
-                        v-if="(recTreeStore.selectedApi.includes('atl06'))" 
+                        v-if="((recTreeStore.selectedApi.includes('atl06')|| recTreeStore.selectedApi.includes('atl03x-surface')))" 
                         v-model="atlChartFilterStore.showSlopeLines"
                         binary
                         inputId="sslCheckbox"
                         size="small"
                         :tooltipText="'Show linear fit for each segment'"
                     />
-                    <label  v-if="(recTreeStore.selectedApi.includes('atl06'))"  for="sslCheckbox" class="sr-checkbox-label">Show linear fit for each segment</label>
+                    <label  v-if="((recTreeStore.selectedApi.includes('atl06')) || (recTreeStore.selectedApi.includes('atl03x-surface')))"  for="sslCheckbox" class="sr-checkbox-label">Show linear fit for each segment</label>
                 </div>
                 <SrRunControl 
                     :includeAdvToggle="false"
@@ -766,8 +769,11 @@ watch(() => atlChartFilterStore.showSlopeLines, async (newValue) => {
                     </div>
                     <div class="sr-multiselect-col-req">
                         <SrReqDisplay
-                            v-if="( (atlChartFilterStore.selectedOverlayedReqIds.length === 0) && 
-                                    (!recTreeStore.selectedApi.includes('atl03')) && (mission === 'ICESat-2'))"
+                            v-if="((mission === 'ICESat-2') && 
+                                    (atlChartFilterStore.selectedOverlayedReqIds.length === 0) && 
+                                    !(recTreeStore.selectedApi === 'atl03x') && 
+                                    !(recTreeStore.selectedApi === 'atl03sp') && 
+                                    !(recTreeStore.selectedApi === 'atl03vp'))"
                             label='Show Photon Cloud Req Params'
                             :isForPhotonCloud="true"
                             :tooltipText="'The params that will be used for the Photon Cloud overlay'"
