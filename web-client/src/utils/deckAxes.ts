@@ -1,8 +1,5 @@
 import { LineLayer, TextLayer } from '@deck.gl/layers';
 import { COORDINATE_SYSTEM, type Layer } from '@deck.gl/core';
-import { useDeck3DConfigStore } from '@/stores/deck3DConfigStore';
-
-const deck3DConfigStore = useDeck3DConfigStore();
 
 type TickLine = {
     source: [number, number, number];
@@ -17,7 +14,7 @@ type TickLabel = {
 };
 
 /**
- * New signature: scales per axis (world units) + meter extents for XY.
+ * Scales per axis (world units) + meter extents for XY.
  * xMinMeters/xMaxMeters are Emin/Emax; yMinMeters/yMaxMeters are Nmin/Nmax.
  */
 export function createAxesAndLabels(
@@ -43,7 +40,7 @@ export function createAxesAndLabels(
 
     const origin: [number, number, number] = [0, 0, 0];
 
-    // Use a consistent visual size for ticks/text based on the longest axis
+    // Consistent visual sizes based on the longest axis
     const axisMax = Math.max(scaleX, scaleY, scaleZ);
     const tickIntervalZ = scaleZ / 10;
     const tickLength = axisMax * 0.04;
@@ -67,13 +64,15 @@ export function createAxesAndLabels(
         tickLabels.push({ position: [-2 * tickLength, i, 0], text: `${yMeters.toFixed(0)} m`, color: labelTextColor });
     });
 
-    // Z ticks (convert back to real elevation values)
-    const scaleFactor = deck3DConfigStore.verticalExaggeration / deck3DConfigStore.verticalScaleRatio;
-    for (let i = tickIntervalZ; i < scaleZ; i += tickIntervalZ) {
-        ticks.push({ source: [0, -tickLength, i], target: [0, tickLength, i], color: axisLineColor });
+    // Z ticks (linear inversion of your z mapping; verticalScaleRatio is 1)
+    const zRangeMeters = Math.max(1e-6, elevMax - elevMin);
+    if (scaleZ > 1e-9) {
+        for (let i = tickIntervalZ; i < scaleZ; i += tickIntervalZ) {
+            ticks.push({ source: [0, -tickLength, i], target: [0, tickLength, i], color: axisLineColor });
 
-        const realZ = elevMin + (i / (scaleZ * scaleFactor)) * (elevMax - elevMin);
-        tickLabels.push({ position: [0, -2 * tickLength, i], text: `${realZ.toFixed(0)} m`, color: labelTextColor });
+            const realZ = elevMin + (i / scaleZ) * zRangeMeters;
+            tickLabels.push({ position: [0, -2 * tickLength, i], text: `${realZ.toFixed(0)} m`, color: labelTextColor });
+        }
     }
 
     // Axis lines
@@ -123,7 +122,7 @@ export function createAxesAndLabels(
         billboard: true
     });
 
-    // Axis labels (offsets relative to longest axis for consistent look)
+    // Axis labels (offsets relative to longest axis)
     const xylabelOffset = axisMax * 0.10;
     const zlabelOffset = axisMax * 0.07;
 
