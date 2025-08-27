@@ -14,13 +14,13 @@ const defaultsStore = useSlideruleDefaults();
 const reqParamsStore = useReqParamsStore();
 let defaultPhoreal = {} as SrPhoreal;
 const geoLocationLabelClass = computed(() => {
-    return reqParamsStore.enablePhoREAL
+    return reqParamsStore.getEnablePhoReal()
         ? "form-label"
         : "form-label form-label--disabled";
 });
 onMounted(() => {
     defaultPhoreal = defaultsStore.getNestedMissionDefault('ICESat-2', 'phoreal') as SrPhoreal;
-    console.log('Default PhoREAL:', defaultPhoreal);
+    console.log('Default PhoReal:', defaultPhoreal);
     reqParamsStore.phoRealGeoLocation = defaultPhoreal['geoloc'];
     reqParamsStore.phoRealBinSize = defaultPhoreal['binsize'];
     reqParamsStore.usePhoRealAbsoluteHeights = defaultPhoreal['use_abs_h'];
@@ -32,7 +32,7 @@ onMounted(() => {
     <div>
         <div class="sr-phoreal-top-header">
             <SrCheckbox
-                v-model="reqParamsStore.enablePhoREAL"
+                v-model="reqParamsStore.enablePhoReal"
                 label="PhoREAL Veg Density"
                 labelFontSize='large'
                 tooltipText='PhoREAL Veg Density Parameters:provides vegetation statistics over custom-length ATL03 photon segments'
@@ -49,7 +49,7 @@ onMounted(() => {
                     binary
                     v-model="reqParamsStore.usePhoRealBinSize"
                     size="small"
-                    :disabled="!reqParamsStore.enablePhoREAL"
+                    :disabled="!reqParamsStore.getEnablePhoReal()"
                 />
                 <SrSwitchedSliderInput
                     label="Bin Size"
@@ -60,7 +60,7 @@ onMounted(() => {
                     size="small"
                     :sliderWidth="'12rem'"
                     :default="defaultPhoreal['binsize'] ?? 1"
-                    :insensitive="!reqParamsStore.enablePhoREAL"
+                    :insensitive="!reqParamsStore.getEnablePhoReal()"
                 />
             </div>
             <div class="sr-parm-row">
@@ -68,7 +68,7 @@ onMounted(() => {
                     binary
                     v-model="reqParamsStore.usePhoRealGeoLocation"
                     size="small"
-                    :disabled="!reqParamsStore.enablePhoREAL"
+                    :disabled="!reqParamsStore.getEnablePhoReal()"
                 />
                 <label :class="geoLocationLabelClass">
                     Geo Location
@@ -80,14 +80,14 @@ onMounted(() => {
                     class="select"
                     size="small"
                     :default="defaultPhoreal['geoloc']"
-                    :disabled="!reqParamsStore.enablePhoREAL"
+                    :disabled="!reqParamsStore.getEnablePhoReal()"
                 />
             </div>
             <div class="checkbox-group">
                 <SrCheckbox
                     label="Use Absolute Heights"
                     v-model="reqParamsStore.usePhoRealAbsoluteHeights"
-                    :insensitive="!reqParamsStore.enablePhoREAL"
+                    :insensitive="!reqParamsStore.getEnablePhoReal()"
                 />
                 <!-- TODO: re-enable when Send Waveforms is available in analysis -->
                 <SrCheckbox
@@ -101,7 +101,7 @@ onMounted(() => {
                     label="Use ABoVE Classifier"
                     v-model="reqParamsStore.usePhoRealABoVEClassifier"
                     :toolTipText="'ABoVE Classifier'"
-                    :insensitive="!reqParamsStore.enablePhoREAL"
+                    :insensitive="!reqParamsStore.getEnablePhoReal()"
                 />
             </div>
         </div>

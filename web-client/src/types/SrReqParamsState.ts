@@ -135,7 +135,7 @@ export interface SrReqParamsState {
     gedi_fields: string[];
     useAtl13RefId: boolean;
     atl13: Atl13;
-    enablePhoREAL: boolean;
+    enablePhoReal: boolean;
     usePhoRealBinSize: boolean;
     phoRealBinSize: number;
     usePhoRealGeoLocation: boolean;

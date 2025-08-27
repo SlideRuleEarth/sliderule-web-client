@@ -14,9 +14,9 @@ function getHFieldNameForAPIStr(funcStr: string): string {
         case 'atl06sp': return 'h_li';
         case 'atl03vp': return 'segment_ph_cnt';
         case 'atl03sp': return 'height';
-        case 'atl03x': return 'height';
         case 'atl03x-surface': return 'h_mean';
         case 'atl03x-phoreal': return 'h_mean_canopy';
+        case 'atl03x': return 'height';
         case 'atl08p': return 'h_mean_canopy';
         case 'atl24x': return 'ortho_h';
         case 'gedi02ap': return curGedi2apElevationField.value;

@@ -220,7 +220,7 @@ export class DuckDBClient {
       await conn.close();
       const endTime = performance.now(); // End time
       const duration = endTime - startTime; // Duration in milliseconds
-      console.log(`getTotalRowCount:${totalRows} took ${duration} milliseconds for query: ${query}`);
+      //console.log(`getTotalRowCount:${totalRows} took ${duration} milliseconds for query: ${query}`);
     }
   }
   
@@ -306,7 +306,7 @@ export class DuckDBClient {
       throw err;
     } finally {
       await conn.close();
-      console.log(`queryForColNames took ${performance.now() - start} ms`);
+      //console.log(`queryForColNames took ${performance.now() - start} ms`);
     }
   }
 
@@ -342,7 +342,7 @@ async insertOpfsParquet(name: string,folder:string='SlideRule'): Promise<void> {
     try {
       // Check if the file is already loaded
       if (await this.isParquetLoaded(name)) {
-        console.log(`insertOpfsParquet File ${name} is already loaded.`);
+        //console.log(`insertOpfsParquet File ${name} is already loaded.`);
         return;
       }
   
@@ -353,7 +353,7 @@ async insertOpfsParquet(name: string,folder:string='SlideRule'): Promise<void> {
       const fileHandle = await directoryHandle.getFileHandle(name, { create: false });
       const file = await fileHandle.getFile();
   
-      console.log('insertOpfsParquet file:',file,'file.size:', file.size);
+      //console.log('insertOpfsParquet file:',file,'file.size:', file.size);
       if (file.size === 0) {
         console.warn(`insertOpfsParquet empty file?: ${name}`);
       }
@@ -366,7 +366,7 @@ async insertOpfsParquet(name: string,folder:string='SlideRule'): Promise<void> {
       } catch (error: any) {
         if ('File already registered' in error) {
           isRegistered = true;
-          console.log('insertOpfsParquet File already registered');
+          //console.log('insertOpfsParquet File already registered');
         } else {
           console.error('insertOpfsParquet registerFileURL error:', error);
           throw error;
@@ -375,7 +375,7 @@ async insertOpfsParquet(name: string,folder:string='SlideRule'): Promise<void> {
   
       const conn = await duckDB.connect();
       await conn.query(`CREATE OR REPLACE VIEW '${name}' AS SELECT * FROM parquet_scan('${name}')`);
-      console.log('insertOpfsParquet view created for name:', name);
+      //console.log('insertOpfsParquet view created for name:', name);
   
       if (!isRegistered) {
         this._filesInDb.add(name);
@@ -434,7 +434,7 @@ async getJsonMetaDataForKey(
                             try {
                                 const parsedOther = JSON.parse(valueString);
                                 const otherMetadata = JSON.stringify(parsedOther, null, 2);
-                                console.log(`getJsonMetaDataForKey Other Formatted ${keyString} Metadata:`, otherMetadata);
+                                //console.log(`getJsonMetaDataForKey Other Formatted ${keyString} Metadata:`, otherMetadata);
                             } catch (parseError) {
                                 console.error(`getJsonMetaDataForKey Error parsing JSON of ${keyString} metadata:`, parseError);
                             }
@@ -469,20 +469,15 @@ async getJsonMetaDataForKey(
 
     async getServerReqFromMetaData(parquetFilePath: string): Promise<string | undefined> {
       const thisMetaData = await this.getJsonMetaDataForKey('sliderule', parquetFilePath, true);
-      console.log('getServerReqFromMetaData thisMetaData:', thisMetaData);
-      console.log('getServerReqFromMetaData thisMetaData.formattedMetadata:', thisMetaData.formattedMetadata);
-      console.log('getServerReqFromMetaData thisMetaData.parsedMetadata:', thisMetaData.parsedMetadata);
-      if (thisMetaData.parsedMetadata) {
-        if (thisMetaData.parsedMetadata.recordinfo) {
-          console.log('getServerReqFromMetaData thisMetaData.parsedMetadata.recordinfo:', thisMetaData.parsedMetadata.recordinfo);
-        } else {
-          console.warn(`getServerReqFromMetaData: thisMetaData.parsedMetadata recordinfo key not found in metadata for ${parquetFilePath}`);
-        }
-      } else {
+      // console.log('getServerReqFromMetaData thisMetaData:', thisMetaData);
+      // console.log('getServerReqFromMetaData thisMetaData.formattedMetadata:', thisMetaData.formattedMetadata);
+      // console.log('getServerReqFromMetaData thisMetaData.parsedMetadata:', thisMetaData.parsedMetadata);
+      if (!thisMetaData.parsedMetadata) {
         console.warn(`getServerReqFromMetaData: No parsed metadata found for ${parquetFilePath}`);
       }
-      // Return the formatted metadata
-
+      if(!thisMetaData.formattedMetadata) {
+        console.warn(`getServerReqFromMetaData: No formatted metadata found for ${parquetFilePath}`);
+      }
       return thisMetaData.formattedMetadata;
     }
 

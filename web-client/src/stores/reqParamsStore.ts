@@ -96,7 +96,7 @@ export function getDefaultReqParamsState(): SrReqParamsState {
       useMinWindowHeight: false,
       maxRobustDispersion: -1,
       useMaxRobustDispersion: false,
-      enablePhoREAL: false,
+      enablePhoReal: false,
       usePhoRealGeoLocation: false,
       phoRealGeoLocation: geoLocationOptions[0], // 'mean'
       usePhoRealBinSize: false,
@@ -218,7 +218,7 @@ const createReqParamsStore = (id: string) =>
       getDefaultReqParamsState(),
     actions: {
         reset() {
-          console.log('resetting reqParamsStore');
+          console.trace('resetting reqParamsStore');
           this.$patch(getDefaultReqParamsState() as any);
         },
         async presetForScatterPlotOverlay(parentReqId: number) { //TBD HACK when svr params is fixed it will include rgt. so use that instead of this
@@ -353,7 +353,7 @@ const createReqParamsStore = (id: string) =>
             console.error('getAtlReqParams: mission not recognized:', this.missionValue);
           }
           if((this.iceSat2SelectedAPI==='atl08p') || (this.iceSat2SelectedAPI.includes('atl03'))){
-            if(this.enablePhoREAL) {
+            if(this.getEnablePhoReal()) {
               req.phoreal = {}; // atl08p requires phoreal even if not used
             
               if(this.usePhoRealGeoLocation){ 
@@ -466,7 +466,7 @@ const createReqParamsStore = (id: string) =>
           }
 
           if(this.missionValue === 'ICESat-2') {
-            if(this.useSurfaceFitAlgorithm){
+            if(this.getUseSurfaceFitAlgorithm()){
               req.fit = {} as SrSurfaceFit;
               if(this.getUseMaxIterations()){
                 req.fit.maxi = this.getMaxIterations();
@@ -805,6 +805,18 @@ const createReqParamsStore = (id: string) =>
         },
         setUseSurfaceFitAlgorithm(useSurfaceFitAlgorithm:boolean) {
           this.useSurfaceFitAlgorithm = useSurfaceFitAlgorithm;
+          if(useSurfaceFitAlgorithm){
+            this.enablePhoReal = false;
+          }
+        },
+        setEnablePhoReal(enable:boolean) {
+          this.enablePhoReal = enable;
+          if(enable){
+            this.useSurfaceFitAlgorithm = false;
+          }
+        },
+        getEnablePhoReal(): boolean {
+          return this.enablePhoReal;
         },
         getSigmaRmax(): number {
           return this.maxRobustDispersion;
