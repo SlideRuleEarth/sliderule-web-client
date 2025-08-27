@@ -283,6 +283,8 @@ export async function loadAndCachePointCloudData(reqId: number) {
  * [FAST] Uses the cached data to regenerate and render layers.
  * This is safe to call frequently (e.g., from debounced UI handlers).
  */
+// add at top if not already present
+
 export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
     if (!deckContainer || !deckContainer.value) {
         console.warn('Deck container is null or undefined');
@@ -299,6 +301,9 @@ export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
         deckInstance.value?.setProps({ layers: [] });
         return;
     }
+
+    // Ensure ratio = 1 for isotropic XYZ (exaggeration handled separately)
+    deck3DConfigStore.verticalScaleRatio = 1;
 
     // --- helpers ---
     const pickLocalMetricCRS = (lat: number, lon: number): string => {
@@ -322,7 +327,6 @@ export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
     const [minElScalePercent, maxElScalePercent] = deck3DConfigStore.elScaleRange;
     const elevMinScale = getPercentile(elevations, minElScalePercent);
     const elevMaxScale = getPercentile(elevations, maxElScalePercent);
-    const elevRangeScale = Math.max(1e-6, elevMaxScale - elevMinScale);
 
     const [minElDataPercent, maxElDataPercent] = deck3DConfigStore.elDataRange;
     const elevMinData = getPercentile(elevations, minElDataPercent);
@@ -346,15 +350,19 @@ export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
     const Erange = Math.max(1e-6, Emax - Emin);
     const Nrange = Math.max(1e-6, Nmax - Nmin);
 
-    // ---- Longest-axis scaling ----
-    // The longest ground span maps to deck3DConfigStore.scale; the other axis shrinks proportionally.
-    const targetScale = deck3DConfigStore.scale; // your "max side" length in world units
+    // ---- Longest-axis scaling (XY) ----
+    const targetScale = deck3DConfigStore.scale;   // length of the longest side in world units
     const longestRange = Math.max(Erange, Nrange);
-    const metersToWorld = targetScale / longestRange;
+    const metersToWorld = targetScale / longestRange; // COMMON factor for X and Y
 
-    const scaleX = Erange * metersToWorld; // <= targetScale
-    const scaleY = Nrange * metersToWorld; // <= targetScale
-    const scaleZ = Math.max(scaleX, scaleY); // keep Z axis length comparable
+    const scaleX = Erange * metersToWorld;  // ≤ targetScale
+    const scaleY = Nrange * metersToWorld;  // ≤ targetScale
+
+    // ---- Isotropic Z (meters → world) ----
+    const h0 = elevMinScale; // base plane for Z (matches percentile window)
+    const zRangeMeters = Math.max(1e-6, (elevMaxScale - elevMinScale));
+    const zToWorld = metersToWorld * deck3DConfigStore.verticalExaggeration;
+    const scaleZ = zToWorld * zRangeMeters; // Z axis length to pass to axes
 
     elevationStore.updateElevationColorMapValues();
     const rgbaArray = elevationStore.elevationColorMap;
@@ -368,14 +376,9 @@ export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
         .map(d => {
             const [E, N] = proj4('EPSG:4326', dstCrs, [d[lonField], d[latField]]);
             // origin = SW corner → same framing; uniform metersToWorld keeps aspect ratio
-            const x = metersToWorld * (E - Emin); // East
-            const y = metersToWorld * (N - Nmin); // North
-
-            // Z uses your percentile window; scale by scaleZ so ticks match the Z axis length
-            const z =
-                (deck3DConfigStore.verticalExaggeration / deck3DConfigStore.verticalScaleRatio) *
-                scaleZ *
-                (d[heightField] - elevMinScale) / elevRangeScale;
+            const x = metersToWorld * (E - Emin); // East (m → world)
+            const y = metersToWorld * (N - Nmin); // North (m → world)
+            const z = zToWorld * (d[heightField] - h0); // Up  (m → world), isotropic with XY
 
             // color unchanged
             const colorZ = Math.max(colorMin, Math.min(colorMax, d[heightField]));
@@ -434,7 +437,7 @@ export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
                 elevMinScale,
                 elevMaxScale,
                 /* N meters */ Nmin, Nmax,
-                /* E meters */ Emin, Emax   // pass meter extents
+                /* E meters */ Emin, Emax
             )
         );
     }

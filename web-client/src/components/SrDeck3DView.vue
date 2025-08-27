@@ -41,7 +41,7 @@
                 size="small"
                 :step="computedStepSize"
                 :min="1"
-                :max="deck3DConfigStore.verticalScaleRatio+1"
+                :max="1000000"
                 showButtons
                 :defaultValue="deck3DConfigStore.verticalExaggeration"
                 :decimalPlaces="1"
@@ -139,7 +139,6 @@ onMounted(async () => {
     if (elevationStore.elevationColorMap.length > 0) {
         //console.log('onMounted calling loadAndCachePointCloudData');
         await loadAndCachePointCloudData(reqId.value);
-        deck3DConfigStore.verticalExaggeration = Math.round(deck3DConfigStore.verticalScaleRatio / 2 * 2) / 2;
         debouncedRender(localDeckContainer); // Use the fast, debounced renderer
     } else {
         console.error('No color Gradient');
