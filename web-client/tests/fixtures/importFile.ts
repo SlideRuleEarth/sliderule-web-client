@@ -10,7 +10,7 @@ export const test = skipIntroTest.extend<{
         await pageAfterTour.getByRole('button', { name: 'Records' }).click();
         await pageAfterTour.getByRole('button', { name: 'Import' }).click();
 
-        const fileName = 'atl06_TestParquetFile_001.parquet';
+        const fileName = 'atl03x-surface_TestParquetFile_001.parquet';
 
         if (browserName === 'webkit') {
             console.warn('[WebKit] Fetching and injecting file into OPFS from static test server');

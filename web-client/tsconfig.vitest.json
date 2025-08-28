@@ -1,26 +1,39 @@
 {
-  "extends": "./tsconfig.json",
-  "references": [{ "path": "./tsconfig.app.json" }],  // <-- tell TS that src/** lives here
   "compilerOptions": {
-    "composite": true,
-    "target": "ES2022",
+    "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "lib": ["ES2022", "DOM"],
-    "types": ["vite/client", "node"], 
+
     "strict": true,
-    "forceConsistentCasingInFileNames": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+
+    "noEmit": true,
+    "emitDeclarationOnly": false,
+
+    "types": ["vitest/globals", "vite/client", "vue"],
+
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"],
+      "vue-shim": ["./vue-shim.d.ts"]
     }
   },
   "include": [
+    "env.d.ts",
+    "sliderule.d.ts",
+    "vue-shim.d.ts",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.vue",
     "tests/**/*.ts",
     "tests/**/*.tsx",
-    "vitest.config.ts",
-    "vitest.workspace.ts",
-    "vite.config.ts"
+    "tests/**/*.vue"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    ".vite",
+    "coverage"
+  ]
 }

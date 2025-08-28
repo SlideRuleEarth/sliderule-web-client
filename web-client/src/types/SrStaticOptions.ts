@@ -12,7 +12,7 @@ import type {
 } from '@/types/SrTypes';
 
 export const missionItems=['ICESat-2','GEDI'];
-export const iceSat2APIsItems =  ['atl06p','atl06sp','atl03x','atl03vp','atl08p','atl24x','atl13x'];
+export const iceSat2APIsItems =  ['atl06p','atl06sp','atl03x','atl03x-surface','atl03x-phoreal','atl03vp','atl08p','atl24x','atl13x'];
 export const gediAPIsItems = ['gedi01bp','gedi02ap','gedi04ap'];
 export const surfaceReferenceTypeOptions = [
           { name: 'Dynamic', value: -1 },

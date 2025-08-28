@@ -41,7 +41,7 @@ test('draw rectangle and run SlideRule', async ({ pageAfterTour }) => {
     await page.waitForURL('**/analyze/1', { timeout: 180000 });
 
     await expect(
-        page.getByLabel('1 - atl06p', { exact: true }).getByLabel('h_mean', { exact: true })
+        page.getByLabel('1 - atl03x-surface', { exact: true }).getByLabel('h_mean', { exact: true })
     ).toMatchAriaSnapshot(`- combobox "h_mean"`);
 });
 

@@ -71,12 +71,12 @@ export interface CreConfig {
   sliderule_version: string;
 }
 
-export interface BathyConfigPhoreal {
+export interface SrPhoreal {
+  above_classifier: boolean;
+  binsize: number;
   geoloc: string;
   use_abs_h: boolean;
   send_waveform: boolean;
-  binsize: number;
-  above_classifier: boolean;
 }
 
 export interface BathyConfigFit {
@@ -189,7 +189,7 @@ export interface BathyConfigRefraction {
 export interface BathyConfig {
   cnf: string[];
   atl08_class: any[];
-  phoreal: BathyConfigPhoreal;
+  phoreal: SrPhoreal;
   min_geoid_delta: number;
   srt: string;
   points_in_polygon: number;

@@ -620,9 +620,9 @@ async function getSeriesFor(reqIdStr:string,isOverlay=false) : Promise<SrScatter
                 seriesData = await getSeriesForAtl03vp(reqIdStr, fileName, x, y);
             } else if(func==='atl03x'){
                 seriesData = await getSeriesForAtl03x(reqIdStr, fileName, x, y, minXToUse);
-            } else if(func.includes('atl06')){
+            } else if((func.includes('atl06') || func.includes('atl03x-surface'))){
                 seriesData = await getSeriesForAtl06(reqIdStr, fileName, x, y);
-            } else if(func.includes('atl08')){
+            } else if(func.includes('atl08') || func.includes('atl03x-phoreal')){
                 seriesData = await getSeriesForAtl08(reqIdStr, fileName, x, y);
             } else if(func.includes('atl24')){
                 seriesData = await getSeriesForAtl24(reqIdStr, fileName, x, y);
@@ -1420,7 +1420,7 @@ export async function initSymbolSize(req_id: number):Promise<number>{
     const chartStore = useChartStore();
     const symbolStore = useSymbolStore(); 
     const func = await indexedDb.getFunc(req_id);//must use db
-    if (func.includes('atl03sp') || func.includes('atl03x')) {
+    if ((func ==='atl03sp') || (func === 'atl03x') || (func === 'atl03vp') ){
         //symbolStore.size[reqIdStr] = (plotConfig?.defaultAtl03spSymbolSize  ?? 1);
         symbolStore.setSize(reqIdStr, (plotConfig?.defaultAtl03spSymbolSize  ?? 1));
     } else if (func.includes('atl03vp')) {

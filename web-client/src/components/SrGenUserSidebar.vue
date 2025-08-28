@@ -2,6 +2,7 @@
     import SrReqDisplay from "./SrReqDisplay.vue";
     import { useMapStore } from "@/stores/mapStore";
     import { onMounted,defineAsyncComponent } from "vue";
+    import { useSlideruleDefaults } from "@/stores/defaultsStore";
     const SrGenUserPresets = defineAsyncComponent(() => import('./SrGenUserPresets.vue'));
 
     onMounted(() => {
@@ -15,7 +16,7 @@
         <div class="sr-gen-user-wrapper">
             <SrReqDisplay />
         </div>
-        <SrGenUserPresets />
+        <SrGenUserPresets v-if = "useSlideruleDefaults().fetched" />
     </div>
 </template>
 

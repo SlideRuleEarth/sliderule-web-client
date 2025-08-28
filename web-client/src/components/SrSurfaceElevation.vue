@@ -4,7 +4,7 @@ import SrSwitchedSliderInput from '@/components/SrSwitchedSliderInput.vue';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
 import { onMounted } from 'vue';
 import { useSlideruleDefaults } from '@/stores/defaultsStore';
-import SrLabelInfoIconButton from '@/components/SrLabelInfoIconButton.vue';
+import SrCheckbox from '@/components/SrCheckbox.vue';
 
 const reqParamsStore = useReqParamsStore();
 
@@ -38,10 +38,13 @@ onMounted(async () => {
 <template>
     <div class="sr-surface-elevation-container">
         <div class="sr-surface-elevation-header">
-            <SrLabelInfoIconButton 
+            <SrCheckbox 
                 label="Surface Elevation Algorithm" 
+                labelFontSize="large"
+                v-model="reqParamsStore.useSurfaceFitAlgorithm"
                 tooltipText="Surface Fit parameters for the algorithm" 
                 tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/xseries.html#surface-fit" 
+                :defaultValue="reqParamsStore.getUseSurfaceFitAlgorithm()"
             />
         </div>
         <div class="sr-surface-elevation-body">
@@ -60,6 +63,7 @@ onMounted(async () => {
                 :sliderMax="10"
                 :decimalPlaces="0"
                 tooltipText="maxi: The maximum number of iterations, not including initial least-squares-fit selection"
+                :insensitive="!reqParamsStore.getUseSurfaceFitAlgorithm()"
             />
             <SrSwitchedSliderInput
                 v-model="reqParamsStore.minWindowHeight"
@@ -76,6 +80,7 @@ onMounted(async () => {
                 :sliderMax="20"
                 :decimalPlaces="0"
                 tooltipText="H_min_win: The minimum height to which the refined photon-selection window is allowed to shrink, in meters"
+                :insensitive="!reqParamsStore.getUseSurfaceFitAlgorithm()"
             />
             <SrSwitchedSliderInput
                 v-model="reqParamsStore.maxRobustDispersion"
@@ -90,6 +95,7 @@ onMounted(async () => {
                 :max="200"
                 :decimalPlaces="0"
                 tooltipText="sigma_r_max: The maximum robust dispersion in meters"
+                :insensitive="!reqParamsStore.getUseSurfaceFitAlgorithm()"
             />
         </div>
     </div>

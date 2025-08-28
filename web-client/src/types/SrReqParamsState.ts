@@ -71,6 +71,7 @@ export interface SrReqParamsState {
     alongTrackSpread: number;
     useMinimumPhotonCount: boolean;
     minimumPhotonCount: number;
+    useSurfaceFitAlgorithm: boolean;
     maxIterations: number;
     useMaxIterations: boolean;
     minWindowHeight: number;
@@ -134,6 +135,7 @@ export interface SrReqParamsState {
     gedi_fields: string[];
     useAtl13RefId: boolean;
     atl13: Atl13;
+    enablePhoReal: boolean;
     usePhoRealBinSize: boolean;
     phoRealBinSize: number;
     usePhoRealGeoLocation: boolean;

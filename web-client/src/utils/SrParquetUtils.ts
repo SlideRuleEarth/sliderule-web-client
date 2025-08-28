@@ -222,11 +222,12 @@ export function addTimestampToFilename(filename: string): string {
 }
 
 export function getApiFromFilename(filename: string): { func: string } {
-    // This function extracts the API from a filename that looks like:
-    // <atlxxx>_<anything>.parquet
-
-    // Regular expression to match the required pattern
-    const regex = /^(atl[0-9]{2}[a-z]*)_/i;
+    // Matches patterns like:
+    // atl03x_foo.parquet
+    // atl03x-phoreal_bar.parquet
+    // atl03x-surface_baz.parquet
+    console.log(`getApiFromFilename Fallback->Extracting API from filename: ${filename}`);
+    const regex = /^(atl[0-9]{2}[a-z]*(?:-(?:phoreal|surface))?)_/i;
 
     const match = filename.match(regex);
     if (match && match[1]) {
@@ -235,6 +236,7 @@ export function getApiFromFilename(filename: string): { func: string } {
 
     throw new Error(`Unable to extract API function from filename: ${filename}`);
 }
+
 
 // export function elIsLoaded():boolean {
 //    return (
