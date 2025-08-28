@@ -8,8 +8,9 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.54.1",
-    "@types/node": "^24.0.15",
-    "serve": "^14.2.4"
+    "@types/node": "^24.3.0",
+    "serve": "^14.2.4",
+    "vue": "^3.5.20"
   },
   "scripts": {
     "test:local": "ENV=local npx playwright test",

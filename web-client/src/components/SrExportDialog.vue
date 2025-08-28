@@ -138,7 +138,15 @@ watch(visible, async (val) => {
 });
 
 const handleExport = async () => {
-    if (!props.reqId || !selectedFormat.value) return;
+    if (!props.reqId || !selectedFormat.value) {
+        console.warn('[Export] handleExport called with invalid state — ignored');
+        return;
+    }
+    // 👇 prevent double invocation due to re-renders / rapid clicks in tests
+    if (exporting.value) {
+        console.warn('[Export] handleExport called while exporting — ignored');
+        return;
+    }
 
     exporting.value = true;
     useSrParquetCfgStore().setSelectedExportFormat(selectedFormat.value);
@@ -392,6 +400,8 @@ async function exportCsvStreamed(fileName: string) {
     // header
     const header = columns.map(col => (col === 'srcid' ? 'granule' : col));
     const writer = wb.getWriter();
+    //console.log('[CSV] writing header:', header.join(','));
+
     await writer.write(encoder.encode(header.join(',') + '\n'));
 
     const srcIdStore = useSrcIdTblStore();
@@ -410,6 +420,7 @@ async function exportCsvStreamed(fileName: string) {
 
         const bytes = encoder.encode(lines);
         await writer.ready;          // backpressure
+        //console.log('[CSV] writing batch of rows:', rows.length);
         await writer.write(bytes);
     }
 
