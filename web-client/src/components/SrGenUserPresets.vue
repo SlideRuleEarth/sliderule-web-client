@@ -94,7 +94,8 @@ const selectBox = (boxId: number) => {
     // console.log("GenUserOptions selection complete. BEFORE reqParameterStore.poly:", reqParameterStore.poly);
     // console.log("GenUserOptions selection complete. BEFORE reqParameterStore.missionValue:", reqParameterStore.missionValue);
     // console.log("GenUserOptions selection complete. BEFORE reqParameterStore.iceSat2SelectedAPI:", reqParameterStore.iceSat2SelectedAPI);
-    if(reqParameterStore.getMissionValue() != 'ICESat-2' || reqParameterStore.getIceSat2API() != 'atl13x'){
+    if(!((reqParameterStore.getIceSat2API() == 'atl13x') &&
+        (reqParameterStore.getMissionValue() == 'ICESat-2'))){
       reqParameterStore.setPoly(savedPoly);
       reqParameterStore.setConvexHull(savedConvexHull);
     } else {

@@ -105,8 +105,8 @@ export function getDefaultReqParamsState(): SrReqParamsState {
       usePhoRealSendWaveforms: false,
       usePhoRealABoVEClassifier: false,
       gediBeams: [0, 1, 2, 3, 5, 6, 8, 11] as number[],
-      degradeFlag: true,
-      l2QualityFlag: true,
+      degradeFlag: false,
+      l2QualityFlag: false,
       l4QualityFlag: false,
       surfaceFlag: false,
       fileOutput: true,
@@ -337,12 +337,13 @@ const createReqParamsStore = (id: string) =>
               this.setAsset('icesat2');
             }
           } else if (this.missionValue === 'GEDI') {
-            console.log('GEDI API:', this.gediSelectedAPI);
+            //console.log('GEDI API:', this.gediSelectedAPI);
             if(this.gediSelectedAPI === 'gedi01bp') {
               this.setAsset('gedil1b');
             } else if(this.gediSelectedAPI === 'gedi02ap') {
               this.setAsset('gedil2a');
             } else if(this.gediSelectedAPI === 'gedi04ap') {
+              //console.log('GEDI API:', this.gediSelectedAPI);
               this.setAsset('gedil4a');
             }
             if(this.gedi_fields.length>0) {
@@ -426,10 +427,9 @@ const createReqParamsStore = (id: string) =>
               }
             }
           }
-          if(!this.iceSat2SelectedAPI.includes('x')){
-            req.asset = this.getAsset();
-          }
 
+          req.asset = this.getAsset();
+          //console.log('getAtlReqParams: req.asset:', req.asset);
           if(this.iceSat2SelectedAPI.includes('atl03')){ 
             if(this.atl03_geo_fields.length>0) {
               req.atl03_geo_fields = this.atl03_geo_fields;
@@ -459,7 +459,6 @@ const createReqParamsStore = (id: string) =>
             if(this.atl13.name && this.atl13.name.length>0) {
               req.atl13.name = this.atl13.name;
             }
-
             if(this.atl13_fields.length>0) {
               req.atl13_fields = this.atl13_fields;
             }
