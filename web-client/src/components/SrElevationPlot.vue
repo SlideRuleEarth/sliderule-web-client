@@ -264,12 +264,23 @@ const shouldDisplayAtl24Colors = computed(() => {
     return shouldDisplay;
 });
 
+// Safely resolve the current color-encode key (fallback to 'solid')
 const computedDataKey = computed(() => {
-    return chartStore.stateByReqId[recTreeStore.selectedReqIdStr].selectedColorEncodeData;
+  const key = selectedReqIdStr.value;
+  if (!key) return 'solid';
+  // Prefer the store getter (it can guard internally)
+  return chartStore.getSelectedColorEncodeData(key) ?? 'solid';
 });
 
+// Safely read useSelectedMinMax (fallback to false)
+// Prefer startingReqId if provided, otherwise fall back to the selected one
 const useSelectedMinMax = computed(() => {
-    return chartStore.stateByReqId[props.startingReqId.toString()]?.useSelectedMinMax;
+  const key =
+    props.startingReqId && props.startingReqId > 0
+      ? String(props.startingReqId)
+      : selectedReqIdStr.value;
+
+  return chartStore.stateByReqId?.[key]?.useSelectedMinMax ?? false;
 });
 
 const shouldDisplayMainGradient = computed(() => {
@@ -365,6 +376,12 @@ const handleChartFinished = () => {
         console.warn('handleChartFinished - chartWrapperRef is null');
     }
 };
+
+// Normalize the currently selected reqId ('' when not ready yet)
+const selectedReqIdStr = computed(() => {
+  const id = recTreeStore.selectedReqId;
+  return id && id > 0 ? String(id) : '';
+});
 
 
 async function initPlot(){

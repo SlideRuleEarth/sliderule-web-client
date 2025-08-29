@@ -19,7 +19,7 @@ import { useAtl03CnfColorMapStore } from "@/stores/atl03CnfColorMapStore";
 import { useAtl08ClassColorMapStore } from "@/stores/atl08ClassColorMapStore";
 import { useAtl24ClassColorMapStore } from "@/stores/atl24ClassColorMapStore";
 import { formatKeyValuePair } from '@/utils/formatUtils';
-import { SELECTED_LAYER_NAME_PREFIX, type MinMaxLowHigh, type AtlReqParams } from "@/types/SrTypes";
+import { SELECTED_LAYER_NAME_PREFIX, type MinMaxLowHigh, type AtlReqParams, type SrSvrParmsUsed } from "@/types/SrTypes";
 import { useSymbolStore } from "@/stores/symbolStore";
 import { useFieldNameStore } from "@/stores/fieldNameStore";
 import { createDuckDbClient } from "@/utils/SrDuckDb";
@@ -796,27 +796,31 @@ export async function getScatterOptions(req_id:number): Promise<any> {
                     if(useAtlChartFilterStore().showSlopeLines){
                         //console.log(`getSeriesFor ${reqIdStr} showSlopeLines is true, adding slope lines`);
                         const minX = chartStore.getRawMinX(reqIdStr); // Use *raw* min, not normalized
-                        const parameters = chartStore.getParameters(reqIdStr);
-                        //console.log(`getScatterOptions ${reqIdStr} CURRENT parms:`, parameters);
-                        const segmentLength = parameters.parms.len;
-                        const whereClause = chartStore.getWhereClause(reqIdStr);
-                        //console.log(`getScatterOptions ${reqIdStr} minX: ${minX} segmentLength: ${segmentLength} whereClause: ${whereClause}`);
-                        const slopeLines = await getAtl06SlopeSegments(reqIdStr, fileName, x, useFieldNameStore().getHFieldName(req_id), 'dh_fit_dx', segmentLength, whereClause, minX);
-                        //console.log(`getSeriesFor ${reqIdStr} slopeLines (${slopeLines.length}):`, slopeLines);
-                        const slopeLineItems = slopeLines.map(seg => [seg[0][0], seg[0][1], seg[1][0], seg[1][1]]);
-                        if(slopeLineItems && slopeLineItems.length > 0){
-                            slopeSeries = {
-                                type: 'custom',
-                                name: 'dh_fit_dx Slope',
-                                coordinateSystem: 'cartesian2d',
-                                data: slopeLineItems,
-                                renderItem: slopeRenderItem,
-                                z: 11
-                            };
-                           
-                            //console.log(`getSeriesFor ${reqIdStr} adding slopeLines series:`, slopeSeries);
+                        const svr_params = await indexedDb.getSvrParams(req_id) as SrSvrParmsUsed;
+                        if(svr_params){
+                            //console.log(`getScatterOptions ${reqIdStr} CURRENT parms:`, svr_params);
+                            const segmentLength = svr_params?.len;
+                            const whereClause = chartStore.getWhereClause(reqIdStr);
+                            //console.log(`getScatterOptions ${reqIdStr} minX: ${minX} segmentLength: ${segmentLength} whereClause: ${whereClause}`);
+                            const slopeLines = await getAtl06SlopeSegments(reqIdStr, fileName, x, useFieldNameStore().getHFieldName(req_id), 'dh_fit_dx', segmentLength, whereClause, minX);
+                            //console.log(`getSeriesFor ${reqIdStr} slopeLines (${slopeLines.length}):`, slopeLines);
+                            const slopeLineItems = slopeLines.map(seg => [seg[0][0], seg[0][1], seg[1][0], seg[1][1]]);
+                            if(slopeLineItems && slopeLineItems.length > 0){
+                                slopeSeries = {
+                                    type: 'custom',
+                                    name: 'dh_fit_dx Slope',
+                                    coordinateSystem: 'cartesian2d',
+                                    data: slopeLineItems,
+                                    renderItem: slopeRenderItem,
+                                    z: 11
+                                };
+                            
+                                //console.log(`getSeriesFor ${reqIdStr} adding slopeLines series:`, slopeSeries);
+                            } else {
+                                console.warn(`getSeriesFor ${reqIdStr} showSlopeLines is true but no slope lines found`);
+                            }
                         } else {
-                            console.warn(`getSeriesFor ${reqIdStr} showSlopeLines is true but no slope lines found`);
+                            console.warn(`getSeriesFor ${reqIdStr} showSlopeLines is true but no svr_params found`);
                         }
                     }
                 } else {

@@ -170,6 +170,7 @@ const customUploader = async (event: any) => {
                 : metaRaw;
             //console.log('customUploader metaObj:', metaObj);
             srReqRec.func = metaObj?.endpoint;
+            srReqRec.parameters = metaObj?.request;
             if (!srReqRec.func) {
                 const api = getApiFromFilename(opfsFile.name);
                 srReqRec.func = api.func;

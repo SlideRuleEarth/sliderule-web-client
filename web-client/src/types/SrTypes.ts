@@ -80,6 +80,7 @@ export interface Region {
     recordinfo?: RecordInfo;
     atl24?: {};
     atl08?: {};
+    len: number;
   }
   
   export interface SrMetaData {
