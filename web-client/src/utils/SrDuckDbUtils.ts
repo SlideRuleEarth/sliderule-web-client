@@ -96,6 +96,7 @@ async function _duckDbReadOrCacheSummary(req_id: number): Promise<SrRequestSumma
 
     try {
         const height_fieldname = useFieldNameStore().getHFieldName(req_id);
+        //console.log('_duckDbReadOrCacheSummary req_id:', req_id,'hfn:',height_fieldname);
         const lat_fieldname = useFieldNameStore().getLatFieldName(req_id);
         const lon_fieldname = useFieldNameStore().getLonFieldName(req_id);
         const filename = await indexedDb.getFilename(req_id);
