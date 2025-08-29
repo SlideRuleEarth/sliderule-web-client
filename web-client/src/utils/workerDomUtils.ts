@@ -20,6 +20,7 @@ import { callPlotUpdateDebounced,updateWhereClauseAndXData } from '@/utils/plotU
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useServerStateStore } from '@/stores/serverStateStore';
 import { useGeoJsonStore } from '@/stores/geoJsonStore';
+import type { AtlxxReqParams } from '@/types/SrTypes';
 
 const consoleStore = useSrSvrConsoleStore();
 const sysConfigStore = useSysConfigStore();
@@ -419,9 +420,15 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
 
             if (reqParamsStore.getMissionValue() === 'ICESat-2') {
                 if (reqParamsStore.getIceSat2API()) {
-                    console.log('runSlideRuleClicked IceSat2API:', reqParamsStore.getIceSat2API());
-                    srReqRec.func = reqParamsStore.getIceSat2API();
-                    srReqRec.parameters = reqParamsStore.getAtlxxReqParams(srReqRec.req_id);
+                    srReqRec.parameters = reqParamsStore.getAtlxxReqParams(srReqRec.req_id) as AtlxxReqParams;
+                    if((reqParamsStore.getIceSat2API() === 'atl03') && (srReqRec.parameters?.parms?.fit)){
+                        srReqRec.func = 'atl03x-fit';
+                    } else if ((reqParamsStore.getIceSat2API() === 'atl03') && (srReqRec.parameters?.parms?.phoreal)) {
+                        srReqRec.func = 'atl03x-phoreal';
+                    } else {
+                        srReqRec.func = reqParamsStore.getIceSat2API();
+                    }
+                    //console.log('runSlideRuleClicked IceSat2API:', reqParamsStore.getIceSat2API(), ' srReqRec.func:', srReqRec.func);
                     const fileName = srReqRec.parameters?.parms?.output?.path;
                     srReqRec.file = fileName;
                     //console.log('runSlideRuleClicked will create fileName:', fileName, srReqRec);

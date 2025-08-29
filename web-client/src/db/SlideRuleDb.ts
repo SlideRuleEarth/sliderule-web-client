@@ -889,7 +889,7 @@ export class SlideRuleDexie extends Dexie {
     }
 
 
-    async getSvrParams(req_id:number): Promise<SrSvrParmsUsed|NullReqParams> {
+    async getSvrParams(req_id:number): Promise<SrSvrParmsUsed|NullReqParams|SrSvrParmsPolyOnly> {
         try {
             const request = await this.requests.get(req_id);
             if (request) {

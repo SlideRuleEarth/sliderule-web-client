@@ -7,6 +7,7 @@ const curGedi2apElFieldOptions = ref(['elevation_lm','elevation_hr']);
 const curGedi2apElevationField = ref('elevation_lm'); 
 
 function getHFieldNameForAPIStr(funcStr: string): string {
+    //console.log('getHFieldNameForAPIStr',funcStr);
     switch (funcStr) {
         case 'atl06': return 'h_mean';
         case 'atl06p': return 'h_mean';
@@ -24,8 +25,8 @@ function getHFieldNameForAPIStr(funcStr: string): string {
         case 'gedi01bp': return 'elevation_start';
         case 'atl13x': return 'ht_ortho'; 
         default:
-            console.trace(`Unknown height fieldname for API: ${funcStr} in getHFieldName`);
-            throw new Error(`Unknown height fieldname for API: ${funcStr} in getHFieldName`);
+            console.trace(`Unknown height fieldname for API: ${funcStr} in getHFieldNameForAPIStr`);
+            throw new Error(`Unknown height fieldname for API: ${funcStr} in getHFieldNameForAPIStr`);
     }
 }
 
@@ -85,7 +86,7 @@ function getDefaultElOptions(reqId:number): string[] {
             break;
         default:
             console.error('Unknown funcStr:',funcStr)
-            //throw new Error(`Unknown height fieldname for API: ${funcStr} in getHFieldName`);
+            //throw new Error(`Unknown height fieldname for API: ${funcStr} in getDefaultElOptions`);
             break;
     }
     const fieldNames = useChartStore().getElevationDataOptions(reqId.toString())
@@ -209,18 +210,22 @@ export const useFieldNameStore = defineStore('fieldNameStore', () => {
     ): string {
         if (cache[reqId]) return cache[reqId];
         const funcStr = recTreeStore.findApiForReqId(reqId);
+        //console.log(`getCachedValue called for reqId ${reqId}, funcStr: ${funcStr}`);
         try {
             const field = getField(funcStr);
             cache[reqId] = field;
+            //console.log(`Cached field name for reqId:${reqId} funcStr:${funcStr} : ${field}`);
             return field;
         } catch (error) {
-            console.error(`Field name lookup error for reqId ${reqId}:`, error);
+            console.error(`Field name lookup error for reqId ${reqId} funcStr: ${funcStr}:`, error);
             throw error;
         }
     }
 
     function getHFieldName(reqId: number): string {
-        return getCachedValue(hFieldCache.value, reqId, getHFieldNameForAPIStr);
+        const fn = getCachedValue(hFieldCache.value, reqId, getHFieldNameForAPIStr);
+        //console.log('getHFieldName', fn,'for reqId:', reqId);
+        return fn;
     }
 
     function getLatFieldName(reqId: number): string {

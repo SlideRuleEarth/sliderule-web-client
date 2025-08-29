@@ -224,6 +224,7 @@ const createReqParamsStore = (id: string) =>
         async presetForScatterPlotOverlay(parentReqId: number) { //TBD HACK when svr params is fixed it will include rgt. so use that instead of this
             // set things the user may have changed in this routine
             const parentApi = await db.getFunc(parentReqId);
+            this.setUseSurfaceFitAlgorithm(false);  // turn off surface fit
             this.setMissionValue("ICESat-2");
             this.setIceSat2API("atl03x");
             this.setEnableGranuleSelection(true);//tracks and beams
