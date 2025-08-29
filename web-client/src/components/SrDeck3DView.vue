@@ -102,12 +102,12 @@ async function handleToggleAxes() {
 }
 
 async function handlePointSizeChange() {
-    console.log('Point Size Changed:', deck3DConfigStore.pointSize);
+    //console.log('Point Size Changed:', deck3DConfigStore.pointSize);
     debouncedRender(localDeckContainer); // Use the fast, debounced renderer
 }
 
 async function handleVerticalExaggerationChange() {
-    console.log('Vertical exaggeration changed:', deck3DConfigStore.verticalExaggeration);
+    //console.log('Vertical exaggeration changed:', deck3DConfigStore.verticalExaggeration);
     debouncedRender(localDeckContainer); // Use the fast, debounced renderer
 }
 

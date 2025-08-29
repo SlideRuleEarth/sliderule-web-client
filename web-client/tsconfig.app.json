@@ -9,9 +9,9 @@
     "types": ["vite/client", "vue"],
     "strict": true,
     "esModuleInterop": true,
-    "noEmit": false,               // <-- override the base (it sets noEmit: true)
-    "declaration": true,           // <-- OK for referenced projects
-    "emitDeclarationOnly": true,   // <-- don’t emit JS, just d.ts when/if you run tsc -b
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
     "allowJs": true,
     "checkJs": true,
     "baseUrl": ".",

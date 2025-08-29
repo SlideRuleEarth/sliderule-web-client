@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref,computed } from 'vue';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
+import { useSlideruleDefaults } from '@/stores/defaultsStore';
+import { type SrPhoreal } from '@/types/slideruleDefaultsInterfaces';
+import { onMounted } from 'vue';
 
 const reqParameterStore = useReqParamsStore();
 const selectedBox = ref<number | null>(null);
@@ -17,6 +20,7 @@ const boxes = computed(() => [
   { id: 9, name: "GEDI Geolocated Waveforms", description: "For raw waveform returns", image: "/SrGround.webp" },
 ]);
 
+
 const selectBox = (boxId: number) => {
   selectedBox.value = boxId;
   const selectedBoxInfo = boxes.value.find(box => box.id === boxId);
@@ -24,37 +28,39 @@ const selectBox = (boxId: number) => {
     console.error("GenUserOptions Unknown selection.");
     return;
   }
+  // initial setup
+  let savedPoly = reqParameterStore.poly;
+  let savedConvexHull = reqParameterStore.convexHull;
+  reqParameterStore.reset();
+  reqParameterStore.setUseSurfaceFitAlgorithm(false);
+  reqParameterStore.setEnablePhoReal(false);
+
   if (selectedBoxInfo?.name) {
     console.log(`${selectedBoxInfo.name} box selected.`);
-    let savedPoly = reqParameterStore.poly;
-    let savedConvexHull = reqParameterStore.convexHull;
     switch (selectedBoxInfo.name) {
       case 'ICESat-2 Surface Elevations':
-        reqParameterStore.reset();
         reqParameterStore.setMissionValue('ICESat-2');
-        reqParameterStore.setIceSat2API('atl06p');
+        reqParameterStore.setIceSat2API('atl03x-surface');
+        reqParameterStore.setUseSurfaceFitAlgorithm(true);
         reqParameterStore.setAsset('icesat2');
         break;
       case 'ICESat-2 Land Ice Sheet':
-        reqParameterStore.reset();
         reqParameterStore.setMissionValue('ICESat-2');
         reqParameterStore.setIceSat2API('atl06sp');
         reqParameterStore.setAsset('icesat2-atl06');
         break;
       case 'ICESat-2 Canopy Heights':
-        reqParameterStore.reset();
         reqParameterStore.setMissionValue('ICESat-2');
-        reqParameterStore.setIceSat2API('atl08p');
+        reqParameterStore.setIceSat2API('atl03x-phoreal');
+        reqParameterStore.setEnablePhoReal(true);
         reqParameterStore.setAsset('icesat2');
         break;
       case 'ICESat-2 Coastal Bathymetry':
-        reqParameterStore.reset();
         reqParameterStore.setMissionValue('ICESat-2');
         reqParameterStore.setIceSat2API('atl24x');
         reqParameterStore.setAsset('icesat2');
         break;
       case 'ICESat-2 Geolocated Photons':
-        reqParameterStore.reset();
         reqParameterStore.setMissionValue('ICESat-2');
         reqParameterStore.setIceSat2API('atl03x');
         reqParameterStore.setAsset('icesat2');
@@ -62,25 +68,21 @@ const selectBox = (boxId: number) => {
       case 'ICESat-2 Inland Bodies of Water':
         //console.log("ICESat-2 Inland Bodies of Water selected.");
         // This is a special case, it uses the atl13x API
-        reqParameterStore.reset();
         reqParameterStore.setMissionValue('ICESat-2');
         reqParameterStore.setIceSat2API('atl13x');
         reqParameterStore.setAsset('icesat2');
         break;
       case 'GEDI Biomass Density':
-        reqParameterStore.reset();
         reqParameterStore.setMissionValue('GEDI');
         reqParameterStore.setGediAPI('gedi04ap');
         reqParameterStore.setAsset('gedil4a');
         break;
       case 'GEDI Elevations w/Canopy':
-        reqParameterStore.reset();
         reqParameterStore.setMissionValue('GEDI');
         reqParameterStore.setGediAPI('gedi02ap');
         reqParameterStore.setAsset('gedil2a');
         break;
       case 'GEDI Geolocated Waveforms':
-        reqParameterStore.reset();
         reqParameterStore.setMissionValue('GEDI');
         reqParameterStore.setGediAPI('gedi01bp');
         reqParameterStore.setAsset('gedil1b');
@@ -92,7 +94,8 @@ const selectBox = (boxId: number) => {
     // console.log("GenUserOptions selection complete. BEFORE reqParameterStore.poly:", reqParameterStore.poly);
     // console.log("GenUserOptions selection complete. BEFORE reqParameterStore.missionValue:", reqParameterStore.missionValue);
     // console.log("GenUserOptions selection complete. BEFORE reqParameterStore.iceSat2SelectedAPI:", reqParameterStore.iceSat2SelectedAPI);
-    if(reqParameterStore.getMissionValue() != 'ICESat-2' || reqParameterStore.getIceSat2API() != 'atl13x'){
+    if(!((reqParameterStore.getIceSat2API() == 'atl13x') &&
+        (reqParameterStore.getMissionValue() == 'ICESat-2'))){
       reqParameterStore.setPoly(savedPoly);
       reqParameterStore.setConvexHull(savedConvexHull);
     } else {
@@ -103,6 +106,12 @@ const selectBox = (boxId: number) => {
   }
   //console.log("GenUserOptions selection complete. AFTER reqParameterStore.poly:", reqParameterStore.poly);
 };
+let defaultPhoreal = {} as SrPhoreal;
+
+onMounted(() => {
+    defaultPhoreal = useSlideruleDefaults().getNestedMissionDefault('ICESat-2', 'phoreal') as SrPhoreal;
+    console.log('Default PhoReal:', defaultPhoreal);
+});
 </script>
 
 <template>

@@ -88,13 +88,13 @@ const fieldsHeader = computed(() => {
                         <SrExtents />
                     </AccordionContent>
                 </AccordionPanel>
-                <AccordionPanel value="5" v-if="mission==='ICESat-2' && props.iceSat2SelectedAPI.includes('atl06')"  > 
+                <AccordionPanel value="5" v-if="mission==='ICESat-2' && (props.iceSat2SelectedAPI.includes('atl06') || props.iceSat2SelectedAPI.includes('atl03x-surface'))"  >
                     <AccordionHeader>Surface Elevation</AccordionHeader>
                     <AccordionContent  v-if="isExpanded(5)">
                         <SrSurfaceElevation />
                     </AccordionContent>
                 </AccordionPanel>
-                <AccordionPanel value="6" v-if="mission==='ICESat-2' && props.iceSat2SelectedAPI.includes('atl08')" >
+                <AccordionPanel value="6" v-if="mission==='ICESat-2' && (props.iceSat2SelectedAPI.includes('atl08') || props.iceSat2SelectedAPI.includes('atl03x-phoreal'))" >
                     <AccordionHeader>PhoREAL Veg Density Alg</AccordionHeader>
                     <AccordionContent v-if="isExpanded(6)">
                         <SrVegDensity />

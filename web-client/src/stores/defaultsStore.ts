@@ -40,7 +40,7 @@ export const useSlideruleDefaults = defineStore('slideruleDefaults', () => {
     // --- 2. SYNCHRONOUS GETTERS ---
     function getNestedDefault<T = unknown>(apiKey: string, nestedPath: string): T | null {
         const validKeys: (keyof SlideRuleDefaults)[] = ['core', 'icesat2', 'cre', 'gedi', 'swot', 'bathy'];
-        if (!defaults.value) throw new Error('Defaults not yet loaded');
+        if (!defaults.value) throw new Error('getNestedDefault - Defaults not yet loaded');
         if (!validKeys.includes(apiKey as keyof SlideRuleDefaults)) {
             console.warn(`Invalid API key: ${apiKey}`);
             return null;
@@ -90,7 +90,7 @@ export const useSlideruleDefaults = defineStore('slideruleDefaults', () => {
     }
 
     function getDefaults(): SlideRuleDefaults | null {
-        if (!defaults.value) throw new Error('Defaults not yet loaded')
+        if (!defaults.value) throw new Error('getDefaults - Defaults not yet loaded')
         return defaults.value
     }
 

@@ -56,6 +56,15 @@ import { useSrcIdTblStore } from '@/stores/srcIdTblStore';
 
 declare function showSaveFilePicker(options?: SaveFilePickerOptions): Promise<FileSystemFileHandle>;
 
+type WriterBundle = {
+  writable?: WritableStream<Uint8Array>;
+  writer?: WritableStreamDefaultWriter<Uint8Array>;
+  getWriter: () => WritableStreamDefaultWriter<Uint8Array>; // lazy
+  close: () => Promise<void>;
+  abort: (reason?: any) => Promise<void>;
+};
+
+
 interface SaveFilePickerOptions {
     suggestedName?: string;
     types?: FilePickerAcceptType[];
@@ -108,7 +117,6 @@ watch(visible, (val) => emit('update:modelValue', val));
 onMounted(() => {
     const saved = useSrParquetCfgStore().getSelectedExportFormat();
     if (saved === 'csv' || saved === 'parquet' || saved === 'geoparquet') {
-          0
         selectedFormat.value = saved;
     }
 });
@@ -130,7 +138,15 @@ watch(visible, async (val) => {
 });
 
 const handleExport = async () => {
-    if (!props.reqId || !selectedFormat.value) return;
+    if (!props.reqId || !selectedFormat.value) {
+        console.warn('[Export] handleExport called with invalid state — ignored');
+        return;
+    }
+    // 👇 prevent double invocation due to re-renders / rapid clicks in tests
+    if (exporting.value) {
+        console.warn('[Export] handleExport called while exporting — ignored');
+        return;
+    }
 
     exporting.value = true;
     useSrParquetCfgStore().setSelectedExportFormat(selectedFormat.value);
@@ -181,138 +197,193 @@ function safeCsvCell(val: any): string {
     return JSON.stringify(val);
 }
 
-function createObjectUrlStream(mimeType: string, suggestedName: string) {
-    const chunks: Uint8Array[] = [];
-
-    const writable = new WritableStream<Uint8Array>({
-        write(chunk) {
-            chunks.push(chunk);
+function wrapFsWritable(fs: FileSystemWritableFileStream): WritableStream<Uint8Array> {
+    return new WritableStream<Uint8Array>({
+        async write(chunk) {
+            // ensure ArrayBuffer (not SharedArrayBuffer)
+            await fs.write(chunk.slice());
         },
-        close() {
-            const blob = new Blob(chunks, { type: mimeType });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = suggestedName;
-            document.body.appendChild(a);
-            a.click();
-            setTimeout(() => {
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            }, 1000);
-        },
-        abort(reason) {
-            console.error('Stream aborted:', reason);
-        }
+        close: () => fs.close(),
+        abort: (reason) => fs.abort?.(reason)
     });
-
-    const writer = writable.getWriter();
-    return { writable, writer };  
 }
 
-async function getWritableFileStream(
-    suggestedName: string,
-    mimeType: string
-): Promise<WritableStreamDefaultWriter<Uint8Array> | null> {
-    const w = window as any;
+function createObjectUrlStream(mimeType: string, suggestedName: string, maxBytes = 200 * 1024 * 1024): WriterBundle {
+  let bytes = 0;
+  const chunks: BlobPart[] = [];
 
-    const canUseFilePicker = typeof w.showSaveFilePicker !== 'undefined' && typeof w.FileSystemWritableFileStream !== 'undefined';
+  const writable = new WritableStream<Uint8Array>({
+    write(chunk) {
+      bytes += chunk.byteLength;
+      if (bytes > maxBytes) throw new Error(`Download too large for in-memory fallback (${Math.round(bytes/1e6)} MB)`);
+      chunks.push(chunk.slice()); // ensure ArrayBuffer-backed
+    },
+    close() {
+      const blob = new Blob(chunks, { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = Object.assign(document.createElement('a'), { href: url, download: suggestedName });
+      a.click();
+      URL.revokeObjectURL(url);
+    },
+    abort(reason) { console.error('Stream aborted:', reason); }
+  });
 
-    if (canUseFilePicker) {
-        try {
-            const picker = await w.showSaveFilePicker({
-                suggestedName,
-                types: [{ description: mimeType, accept: { [mimeType]: [`.${suggestedName.split('.').pop()}`] } }],
-            });
+  let writerRef: WritableStreamDefaultWriter<Uint8Array> | undefined;
 
-            if (picker && typeof picker.createWritable === 'function') {
-                const writable = await picker.createWritable();
-                return writable.getWriter();
-            } else {
-                console.warn('showSaveFilePicker picker returned without createWritable. Falling back to download.');
-            }
-        } catch (err: any) {
-            if (err.name === 'AbortError') {
-                console.warn('File picker was cancelled');
-                return null;
-            }
-            console.warn('showSaveFilePicker failed, falling back to download:', err);
-        }
+  return {
+    writable,
+    getWriter: () => (writerRef ??= writable.getWriter()),
+    writer: undefined,
+    close: async () => { if (writerRef) await writerRef.close(); },
+    abort: async (r?: any) => { if (writerRef) await writerRef.abort(r); }
+  };
+}
+
+function buildFilePickerTypes(suggestedName: string, mimeType: string): FilePickerAcceptType[] {
+    const ext = (suggestedName.split('.').pop() || '').toLowerCase();
+
+    // Detect GeoParquet by name; your code uses `${fileName}_GEO.parquet`
+    const isParquet = ext === 'parquet';
+    const isGeoParquet = isParquet && /geo|_geo/i.test(suggestedName);
+
+    if (mimeType === 'text/csv' || ext === 'csv') {
+        return [{
+            description: 'CSV file',
+            accept: { 'text/csv': ['.csv'] }
+        }];
     }
 
-    // fallback
-    const { writer } = createObjectUrlStream(mimeType, suggestedName);
-    return writer;
+    if (isGeoParquet) {
+        // No widely adopted official MIME; octet-stream is fine
+        return [{
+            description: 'GeoParquet file',
+            accept: { 'application/octet-stream': ['.parquet'] }
+        }];
+    }
+
+    if (isParquet) {
+        return [{
+            description: 'Parquet file',
+            accept: { 'application/octet-stream': ['.parquet'] }
+        }];
+    }
+
+    // Fallback: use what you passed in
+    return [{
+        description: mimeType,
+        accept: { [mimeType]: [ext ? `.${ext}` : ''] }
+    }];
 }
 
+async function getWritableFileStream(suggestedName: string, mimeType: string): Promise<WriterBundle | null> {
+  const w = window as any;
+  const canUseFilePicker = typeof w.showSaveFilePicker !== 'undefined' && typeof w.FileSystemWritableFileStream !== 'undefined';
+
+  if (canUseFilePicker) {
+    try {
+      const picker = await w.showSaveFilePicker({
+        suggestedName,
+        types: buildFilePickerTypes(suggestedName, mimeType),
+      });
+
+      const fsWritable: FileSystemWritableFileStream = await picker.createWritable();
+      const safeWritable = wrapFsWritable(fsWritable);
+
+      let writerRef: WritableStreamDefaultWriter<Uint8Array> | undefined;
+
+      return {
+        writable: safeWritable,
+        writer: undefined,
+        getWriter: () => (writerRef ??= safeWritable.getWriter()),
+        close: async () => { if (writerRef) await writerRef.close(); /* pipeTo closes automatically */ },
+        abort: async (r?: any) => { if (writerRef) await writerRef.abort(r); }
+      };
+    } catch (err: any) {
+      if (err.name === 'AbortError') return null;
+      console.warn('showSaveFilePicker failed, falling back to download:', err);
+    }
+  }
+
+  // Fallback (memory-bound) with lazy writer
+  return createObjectUrlStream(mimeType, suggestedName);
+}
 
 async function exportParquet(fileName: string): Promise<boolean> {
     console.log('exportParquet fileName:', fileName);
+
     const opfsRoot = await navigator.storage.getDirectory();
-    const folderName = 'SlideRule';
-    const directoryHandle = await opfsRoot.getDirectoryHandle(folderName, { create: false });
-    const fileHandle = await directoryHandle.getFileHandle(fileName, { create: false });
-    const file = await fileHandle.getFile();
+    const directoryHandle = await opfsRoot.getDirectoryHandle('SlideRule');
+    const fileHandle = await directoryHandle.getFileHandle(fileName);
+    const srcFile = await fileHandle.getFile();
 
-    const blob = new Blob([await file.arrayBuffer()], { type: 'application/octet-stream' });
+    const wb = await getWritableFileStream(fileName, 'application/octet-stream');
+    if (!wb) return false;
 
-    const writer = await getWritableFileStream(fileName, 'application/octet-stream');
-    if (!writer) return false;
-
-    await writer.write(new Uint8Array(await blob.arrayBuffer()));
-    await writer.close();
-    return true;
+    try {
+        if (wb.writable && typeof srcFile.stream === 'function') {
+            // zero-copy(ish) path
+            await srcFile.stream().pipeTo(wb.writable);
+        } else {
+            // manual loop
+            // exportParquet manual loop branch
+            const reader = srcFile.stream().getReader();
+            const writer = wb.getWriter();
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                if (value) {
+                    await writer.ready;
+                    await writer.write(value.slice());
+                }
+            }
+            await writer.close();
+        }
+        return true;
+    } catch (err) {
+        console.error('Stream copy failed:', err);
+        try { await wb.abort(err); } catch {}
+        return false;
+    }
 }
 
 async function exportGeoParquet(fileName: string) : Promise<boolean>  {
-    const urlOptions = await getFetchUrlAndOptions(props.reqId, true, true);
-    const url = urlOptions.url;
-    const options = urlOptions.options;
-    console.log('exportGeoParquet url:', url, 'options:', options, 'reqId:', props.reqId, 'fileName:', fileName);
-    toast.add({
-            severity: 'info',
-            summary: 'New Request to Server',
-            detail: `A new request to the server will be made to "export" as GeoParquet. New file:${fileName}_GEO.parquet`,
-        });
+    const { url, options } = await getFetchUrlAndOptions(props.reqId, true, true);
 
-    const writer = await getWritableFileStream(`${fileName}_GEO.parquet`, 'application/octet-stream');
-    if (!writer) return false;
-    let ret = false;
+    const wb = await getWritableFileStream(`${fileName}_GEO.parquet`, 'application/octet-stream');
+    if (!wb) return false;
+
     try {
         const response = await fetch(url, {
             method: 'POST',
             body: options.body,
-            headers: {
-                'Content-Type': 'application/json',
-                ...(options.headers || {}),
-            },
+            headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
         });
 
-        if (!response.ok || !response.body) {
-            throw new Error(`Export failed with status ${response.status}`);
+        if (!response.ok || !response.body) throw new Error(`Export failed with status ${response.status}`);
+
+        if (wb.writable) {
+            // 🚀 Fast path: let the streams connect directly
+            await response.body.pipeTo(wb.writable);
+        } else {
+            // fallback: manual loop (same as version 1)
+            // exportGeoParquet manual loop branch
+            const reader = response.body.getReader();
+            const writer = wb.getWriter();
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                if (value) {
+                    await writer.ready;
+                    await writer.write(value.slice());
+                }
+            }
+            await writer.close();
         }
-
-        const reader = response.body.getReader();
-
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            if (value) await writer.write(value);
-        }
-
-        await writer.close();
-        ret = true;
-    } catch (error) {
-        console.error('Failed to fetch and save GeoParquet:', error);
-        toast.add({
-            severity: 'error',
-            summary: 'Export Error',
-            detail: error instanceof Error ? error.message : 'Unknown error',
-            life: 5000,
-        });
-        await writer.abort();
+        return true;
+    } catch (err) {
+        await wb.abort(err);
+        return false;
     }
-    return ret;
 }
 
 async function exportCsvStreamed(fileName: string) {
@@ -322,34 +393,35 @@ async function exportCsvStreamed(fileName: string) {
     const columns = headerCols.value;
     const encoder = new TextEncoder();
     const { readRows } = await duck.query(`SELECT * FROM "${fileName}"`);
-    console.log(`Exporting ${fileName} with columns:`, columns, 'and row count:', rowCount.value);
-    const writer = await getWritableFileStream(`${fileName}.csv`, 'text/csv');
-    if (!writer) return false;
 
-    // 🔁 Rename 'srcid' to 'granule' in header
+    const wb = await getWritableFileStream(`${fileName}.csv`, 'text/csv');
+    if (!wb) return false;
+
+    // header
     const header = columns.map(col => (col === 'srcid' ? 'granule' : col));
+    const writer = wb.getWriter();
+    //console.log('[CSV] writing header:', header.join(','));
+
     await writer.write(encoder.encode(header.join(',') + '\n'));
 
     const srcIdStore = useSrcIdTblStore();
     srcIdStore.setSrcIdTblWithFileName(fileName);
-    const lookup = srcIdStore.sourceTable;
-    if (!lookup) {
-        console.warn('Source ID lookup table is empty or not initialized.');
-    }
+    const lookup = srcIdStore.sourceTable || {};
+
     for await (const rows of readRows(1000)) {
-        const chunk = rows.map(row => {
-            const processedRow = columns.map(col => {
+        const lines = rows.map(row => {
+            const processed = columns.map(col => {
                 let val = row[col];
-                if (col === 'srcid') {
-                    val = lookup[val] ?? `unknown_srcid_${val}`;
-                }
+                if (col === 'srcid') val = lookup[val] ?? `unknown_srcid_${val}`;
                 return safeCsvCell(val);
             });
-            return processedRow.join(',');
+            return processed.join(',');
         }).join('\n') + '\n';
 
-        await writer.write(encoder.encode(chunk));
-        await new Promise(r => setTimeout(r, 0));
+        const bytes = encoder.encode(lines);
+        await writer.ready;          // backpressure
+        //console.log('[CSV] writing batch of rows:', rows.length);
+        await writer.write(bytes);
     }
 
     await writer.close();

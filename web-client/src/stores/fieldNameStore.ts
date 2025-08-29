@@ -14,6 +14,8 @@ function getHFieldNameForAPIStr(funcStr: string): string {
         case 'atl06sp': return 'h_li';
         case 'atl03vp': return 'segment_ph_cnt';
         case 'atl03sp': return 'height';
+        case 'atl03x-surface': return 'h_mean';
+        case 'atl03x-phoreal': return 'h_mean_canopy';
         case 'atl03x': return 'height';
         case 'atl08p': return 'h_mean_canopy';
         case 'atl24x': return 'ortho_h';
@@ -54,6 +56,7 @@ function getDefaultElOptions(reqId:number): string[] {
     switch (funcStr) {
         case 'atl06':
         case 'atl06p':
+        case 'atl03x-surface':
             options = ['h_mean','rms_misfit','h_sigma','n_fit_photons','dh_fit_dx','pflags','w_surface_window_final','y_atc','cycle'];
             break;
         case 'atl06s':
@@ -66,7 +69,9 @@ function getDefaultElOptions(reqId:number): string[] {
             break;
         case 'atl03x':  options = ['height','atl03_cnf','y_atc','cycle','srcid','yapc_score'];
             break;
-        case 'atl08p':  options = ['h_mean_canopy','h_max_canopy','h_te_median','cycle'];
+        case 'atl08p':
+        case 'atl03x-phoreal':
+            options = ['h_mean_canopy','h_max_canopy','h_te_median','cycle'];
             break;
         case 'atl24x':  options = ['ortho_h','confidence','class_ph','y_atc','cycle','srcid'];
             break;

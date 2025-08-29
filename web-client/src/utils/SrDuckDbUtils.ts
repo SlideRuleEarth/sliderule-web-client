@@ -13,10 +13,9 @@ import type { MinMaxLowHigh, SrListNumberItem } from '@/types/SrTypes';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { isClickable } from '@/utils/SrMapUtils'
 import { createWhereClause } from '@/utils/spotUtils';
-import { type SrPosition, EL_LAYER_NAME_PREFIX, SELECTED_LAYER_NAME_PREFIX } from '@/types/SrTypes';
+import { type SrPosition} from '@/types/SrTypes';
 import { useAnalysisMapStore } from '@/stores/analysisMapStore';
 import { useFieldNameStore } from '@/stores/fieldNameStore';
-import { type MinMax } from '@/types/SrTypes';
 
 
 interface SummaryRowData {
@@ -665,7 +664,7 @@ export async function duckDbLoadOpfsParquetFile(fileName: string): Promise<any> 
         const endTime = performance.now(); // End time
         console.log(`duckDbLoadOpfsParquetFile took ${endTime - startTime} milliseconds.`);
     }
-    console.log('duckDbLoadOpfsParquetFile serverReq:', serverReq);
+    //console.log('duckDbLoadOpfsParquetFile serverReq:', serverReq);
     return serverReq;   
 }
 

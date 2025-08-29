@@ -180,7 +180,7 @@ onMounted(async () => {
 
     const defaultsStore = useSlideruleDefaults();
     await defaultsStore.fetchDefaults();
-
+    console.log('App onMounted - Defaults loaded');
     const reqId = await recTreeStore.updateRecMenu('from App');
     initChartStore();
     if ((reqId <= 0) && (recTreeStore.allReqIds.length > 0)) {

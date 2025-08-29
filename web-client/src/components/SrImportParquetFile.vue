@@ -121,13 +121,23 @@ const customUploader = async (event: any) => {
         await duckDbClient.insertOpfsParquet(newFilename, 'SlideRule');
 
         const metadata = await duckDbClient.getAllParquetMetadata(opfsFile.name);
-        console.log('customUploader metadata:', metadata);
+        //console.log('customUploader metadata:', metadata);
 
         if (!metadata || !('sliderule' in metadata)) {
             toast.add({
                 severity: 'error',
                 summary: 'Invalid File Format',
                 detail: 'The selected file does not contain SlideRule metadata and cannot be imported.',
+                life: 5000
+            });
+            await directoryHandle.removeEntry(opfsFile.name);
+            return;
+        }
+        if (!('meta' in metadata)) {
+            toast.add({
+                severity: 'warn',
+                summary: 'Incomplete File Format',
+                detail: 'The selected file does not contain SlideRule "meta" field in the metadata and may not be able to be imported. Will try filename fallback.',
                 life: 5000
             });
             await directoryHandle.removeEntry(opfsFile.name);
@@ -154,18 +164,27 @@ const customUploader = async (event: any) => {
 
 
         try {
-            const slideruleRaw = metadata.sliderule;
-            const slideruleObj = typeof slideruleRaw === 'string'
-                ? JSON.parse(slideruleRaw)
-                : slideruleRaw;
-
-            srReqRec.func = slideruleObj?.server?.rqst?.endpoint;
+            const metaRaw = metadata.meta;
+            const metaObj = typeof metaRaw === 'string'
+                ? JSON.parse(metaRaw)
+                : metaRaw;
+            //console.log('customUploader metaObj:', metaObj);
+            srReqRec.func = metaObj?.endpoint;
             if (!srReqRec.func) {
                 const api = getApiFromFilename(opfsFile.name);
                 srReqRec.func = api.func;
             }
             if (!srReqRec.func) {
                 throw new Error('Function not found in SlideRule metadata and fallback to filename failed');
+            }
+            const hasFit = metaObj?.request?.fit;
+            const hasPhoReal = metaObj?.request?.phoreal;
+            //append suffixes if present
+            if (hasFit) {
+                srReqRec.func += '-surface';
+            }
+            if (hasPhoReal) {
+                srReqRec.func += '-phoreal';
             }
         } catch (e) {
             toast.add({

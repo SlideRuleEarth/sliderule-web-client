@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { type SrReqParamsState } from '@/types/SrReqParamsState';
-import type { AtlReqParams, AtlxxReqParams, SrRegion, OutputFormat, SrPhoReal } from '@/types/SrTypes';
+import type { AtlReqParams, AtlxxReqParams, SrRegion, OutputFormat, SrPhoReal, SrSurfaceFit } from '@/types/SrTypes';
 import { type SrListNumberItem, type Atl13, type Atl13Coord } from '@/types/SrTypes';
 import { calculatePolygonArea } from "@/composables/SrTurfUtils";
 import { convertTimeFormat } from '@/utils/parmUtils';
@@ -28,7 +28,7 @@ import {
 export function getDefaultReqParamsState(): SrReqParamsState {
   return {
       missionValue: 'ICESat-2' as string,
-      iceSat2SelectedAPI: 'atl06p' as string,
+      iceSat2SelectedAPI: 'atl03x-surface' as string,
       gediSelectedAPI: 'gedi01bp' as string,
       using_worker: false,
       asset: 'icesat2',
@@ -89,12 +89,14 @@ export function getDefaultReqParamsState(): SrReqParamsState {
       alongTrackSpread: -1.0,
       useMinimumPhotonCount: false,
       minimumPhotonCount: -1,
+      useSurfaceFitAlgorithm: true, // start with this on
       maxIterations: -1,
       useMaxIterations: false,
       minWindowHeight: -1.0,
       useMinWindowHeight: false,
       maxRobustDispersion: -1,
       useMaxRobustDispersion: false,
+      enablePhoReal: false,
       usePhoRealGeoLocation: false,
       phoRealGeoLocation: geoLocationOptions[0], // 'mean'
       usePhoRealBinSize: false,
@@ -103,8 +105,8 @@ export function getDefaultReqParamsState(): SrReqParamsState {
       usePhoRealSendWaveforms: false,
       usePhoRealABoVEClassifier: false,
       gediBeams: [0, 1, 2, 3, 5, 6, 8, 11] as number[],
-      degradeFlag: true,
-      l2QualityFlag: true,
+      degradeFlag: false,
+      l2QualityFlag: false,
       l4QualityFlag: false,
       surfaceFlag: false,
       fileOutput: true,
@@ -216,7 +218,7 @@ const createReqParamsStore = (id: string) =>
       getDefaultReqParamsState(),
     actions: {
         reset() {
-          console.log('resetting reqParamsStore');
+          console.trace('resetting reqParamsStore');
           this.$patch(getDefaultReqParamsState() as any);
         },
         async presetForScatterPlotOverlay(parentReqId: number) { //TBD HACK when svr params is fixed it will include rgt. so use that instead of this
@@ -335,12 +337,13 @@ const createReqParamsStore = (id: string) =>
               this.setAsset('icesat2');
             }
           } else if (this.missionValue === 'GEDI') {
-            console.log('GEDI API:', this.gediSelectedAPI);
+            //console.log('GEDI API:', this.gediSelectedAPI);
             if(this.gediSelectedAPI === 'gedi01bp') {
               this.setAsset('gedil1b');
             } else if(this.gediSelectedAPI === 'gedi02ap') {
               this.setAsset('gedil2a');
             } else if(this.gediSelectedAPI === 'gedi04ap') {
+              //console.log('GEDI API:', this.gediSelectedAPI);
               this.setAsset('gedil4a');
             }
             if(this.gedi_fields.length>0) {
@@ -350,23 +353,28 @@ const createReqParamsStore = (id: string) =>
           } else {
             console.error('getAtlReqParams: mission not recognized:', this.missionValue);
           }
-          if(this.iceSat2SelectedAPI==='atl08p') {
-            req.phoreal = {}; // atl08p requires phoreal even if not used
-            if(this.usePhoRealGeoLocation){ 
-              req.phoreal.geoloc = this.phoRealGeoLocation;
+          if((this.iceSat2SelectedAPI==='atl08p') || (this.iceSat2SelectedAPI.includes('atl03'))){
+            if(this.getEnablePhoReal()) {
+              req.phoreal = {}; // atl08p requires phoreal even if not used
+            
+              if(this.usePhoRealGeoLocation){ 
+                req.phoreal.geoloc = this.phoRealGeoLocation;
+              }
+              if(this.usePhoRealBinSize){
+                req.phoreal.binsize = this.phoRealBinSize;
+              }
+              if(this.usePhoRealABoVEClassifier){
+                req.phoreal.above_classifier = true;
+              }
+              if(this.usePhoRealAbsoluteHeights){
+                req.phoreal.use_abs_h = true;
+              }
+              if(this.usePhoRealSendWaveforms){
+                req.phoreal.send_waveform = true;
+              }
             }
-            if(this.usePhoRealBinSize){
-              req.phoreal.binsize = this.phoRealBinSize;
-            }
-            if(this.usePhoRealABoVEClassifier){
-              req.phoreal.above_classifier = true;
-            }
-            if(this.usePhoRealAbsoluteHeights){
-              req.phoreal.use_abs_h = true;
-            }
-            if(this.usePhoRealSendWaveforms){
-              req.phoreal.send_waveform = true;
-            }
+          }
+          if(this.iceSat2SelectedAPI==='atl08p'){
             if(this.atl08AncillaryFields.length>0){
               req.anc_fields = (req.anc_fields ?? []).concat(this.atl08AncillaryFields);
             }
@@ -410,13 +418,18 @@ const createReqParamsStore = (id: string) =>
                     req.srt = this.getSrt();
                   }
                 }
+                if(this.qualityPH.length>0){
+                  req.quality_ph = this.qualityPH.map(item => item.value);
+                }
+                if(this.signalConfidence.length>0){
+                  req.cnf = this.signalConfidence.map(item => item.value);
+                }
               }
             }
           }
-          if(!this.iceSat2SelectedAPI.includes('x')){
-            req.asset = this.getAsset();
-          }
 
+          req.asset = this.getAsset();
+          //console.log('getAtlReqParams: req.asset:', req.asset);
           if(this.iceSat2SelectedAPI.includes('atl03')){ 
             if(this.atl03_geo_fields.length>0) {
               req.atl03_geo_fields = this.atl03_geo_fields;
@@ -428,12 +441,12 @@ const createReqParamsStore = (id: string) =>
               req.atl03_ph_fields = this.atl03_ph_fields;
             }
           }
-          if(this.iceSat2SelectedAPI.includes('atl06')){ 
+          if((this.iceSat2SelectedAPI.includes('atl06') || this.iceSat2SelectedAPI.includes('atl03x-surface'))){ 
             if(this.atl06_fields.length>0) {
               req.atl06_fields = this.atl06_fields;
             }
           }
-          if(this.iceSat2SelectedAPI.includes('atl08')){ 
+          if(this.iceSat2SelectedAPI.includes('atl08') || this.iceSat2SelectedAPI.includes('atl03x-phoreal')){ 
             if(this.atl08_fields.length>0) {
               req.atl08_fields = this.atl08_fields;
             }
@@ -446,26 +459,24 @@ const createReqParamsStore = (id: string) =>
             if(this.atl13.name && this.atl13.name.length>0) {
               req.atl13.name = this.atl13.name;
             }
-
             if(this.atl13_fields.length>0) {
               req.atl13_fields = this.atl13_fields;
             }
           }
-          if(this.signalConfidence.length>0){
-            req.cnf = this.signalConfidence.map(item => item.value);
-          }
 
           if(this.missionValue === 'ICESat-2') {
-            if(this.getUseMaxRobustDispersion()){//maxRobustDispersion
-                req.sigma_r_max = this.getSigmaRmax();
+            if(this.getUseSurfaceFitAlgorithm()){
+              req.fit = {} as SrSurfaceFit;
+              if(this.getUseMaxIterations()){
+                req.fit.maxi = this.getMaxIterations();
+              }
+              if(this.getUseMinWindowHeight()){
+                req.fit.h_win = this.getMinWindowHeight();
+              }
+              if(this.getUseMaxRobustDispersion()){
+                req.fit.sigma_r = this.getSigmaRmax();
+              }
             }
-            if(this.getUseMaxIterations()){
-              req.maxi = this.getMaxIterations();
-            }
-            if(this.getUseMinWindowHeight()){
-              req.H_min_win = this.getMinWindowHeight();
-            }
-            
             if(this.useLength){
               req.len = this.getLengthValue();
             }
@@ -542,9 +553,6 @@ const createReqParamsStore = (id: string) =>
             }
           }
           if(this.enableAtl03Classification) {
-            if(this.qualityPH.length>0){
-              req.quality_ph = this.qualityPH.map(item => item.value);
-            }
           }
 
           if(this.enableAtl08Classification) {
@@ -790,6 +798,24 @@ const createReqParamsStore = (id: string) =>
         },
         setStepValue(stepValue:number) {
           this.stepValue = stepValue;
+        },
+        getUseSurfaceFitAlgorithm(): boolean {
+          return this.useSurfaceFitAlgorithm;
+        },
+        setUseSurfaceFitAlgorithm(useSurfaceFitAlgorithm:boolean) {
+          this.useSurfaceFitAlgorithm = useSurfaceFitAlgorithm;
+          if(useSurfaceFitAlgorithm){
+            this.enablePhoReal = false;
+          }
+        },
+        setEnablePhoReal(enable:boolean) {
+          this.enablePhoReal = enable;
+          if(enable){
+            this.useSurfaceFitAlgorithm = false;
+          }
+        },
+        getEnablePhoReal(): boolean {
+          return this.enablePhoReal;
         },
         getSigmaRmax(): number {
           return this.maxRobustDispersion;
