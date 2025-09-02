@@ -31,7 +31,7 @@ export function getDefaultReqParamsState(): SrReqParamsState {
       iceSat2SelectedAPI: 'atl03x-surface' as string,
       gediSelectedAPI: 'gedi01bp' as string,
       using_worker: false,
-      asset: 'icesat2',
+      asset: '',
       isArrowStream: false,
       isFeatherStream: false,
       rasterizePolyCellSize: 0.01,
@@ -429,7 +429,6 @@ const createReqParamsStore = (id: string) =>
             }
           }
 
-          req.asset = this.getAsset();
           //console.log('getAtlReqParams: req.asset:', req.asset);
           if(this.iceSat2SelectedAPI.includes('atl03')){ 
             if(this.atl03_geo_fields.length>0) {
@@ -441,6 +440,9 @@ const createReqParamsStore = (id: string) =>
             if(this.atl03_ph_fields.length>0) {
               req.atl03_ph_fields = this.atl03_ph_fields;
             }
+          }
+          if(this.iceSat2SelectedAPI.includes('atl06') || this.iceSat2SelectedAPI.includes('atl08')){
+            req.asset = this.getAsset();
           }
           if((this.iceSat2SelectedAPI.includes('atl06') || this.iceSat2SelectedAPI.includes('atl03x-surface'))){ 
             if(this.atl06_fields.length>0) {
@@ -485,6 +487,7 @@ const createReqParamsStore = (id: string) =>
               req.res = this.getStepValue();
             }
           } else if(this.missionValue === 'GEDI') {
+            req.asset = this.getAsset();
             if(this.degradeFlag){
               req.degrade = true;
             }

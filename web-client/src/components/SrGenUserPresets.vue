@@ -42,7 +42,6 @@ const selectBox = (boxId: number) => {
         reqParameterStore.setMissionValue('ICESat-2');
         reqParameterStore.setIceSat2API('atl03x-surface');
         reqParameterStore.setUseSurfaceFitAlgorithm(true);
-        reqParameterStore.setAsset('icesat2');
         break;
       case 'ICESat-2 Land Ice Sheet':
         reqParameterStore.setMissionValue('ICESat-2');
@@ -53,24 +52,20 @@ const selectBox = (boxId: number) => {
         reqParameterStore.setMissionValue('ICESat-2');
         reqParameterStore.setIceSat2API('atl03x-phoreal');
         reqParameterStore.setEnablePhoReal(true);
-        reqParameterStore.setAsset('icesat2');
         break;
       case 'ICESat-2 Coastal Bathymetry':
         reqParameterStore.setMissionValue('ICESat-2');
         reqParameterStore.setIceSat2API('atl24x');
-        reqParameterStore.setAsset('icesat2');
         break;
       case 'ICESat-2 Geolocated Photons':
         reqParameterStore.setMissionValue('ICESat-2');
         reqParameterStore.setIceSat2API('atl03x');
-        reqParameterStore.setAsset('icesat2');
         break;
       case 'ICESat-2 Inland Bodies of Water':
         //console.log("ICESat-2 Inland Bodies of Water selected.");
         // This is a special case, it uses the atl13x API
         reqParameterStore.setMissionValue('ICESat-2');
         reqParameterStore.setIceSat2API('atl13x');
-        reqParameterStore.setAsset('icesat2');
         break;
       case 'GEDI Biomass Density':
         reqParameterStore.setMissionValue('GEDI');
