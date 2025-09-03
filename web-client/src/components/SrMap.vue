@@ -6,55 +6,72 @@
     import { useProjectionNames } from "@/composables/SrProjections";
     import { srProjections } from "@/composables/SrProjections";
     import proj4 from 'proj4';
-    import { register } from 'ol/proj/proj4';
+    import { register } from 'ol/proj/proj4.js';
     import 'ol-geocoder/dist/ol-geocoder.min.css';
     import { useMapStore } from "@/stores/mapStore";
     import { useGeoCoderStore } from '@/stores/geoCoderStore';
     import { get as getProjection } from 'ol/proj.js';
     import { addLayersForCurrentView } from "@/composables/SrLayers";
-    import { Layer } from 'ol/layer';
+    import { Layer } from 'ol/layer.js';
     import { useWmsCap } from "@/composables/useWmsCap";
-    import { Feature } from 'ol';
-    import type { FeatureLike } from 'ol/Feature';
-    import type Geometry from 'ol/geom/Geometry';
-    import { Polygon as OlPolygon } from 'ol/geom';
-    import { DragBox as DragBoxType } from 'ol/interaction';
-    import { Draw as DrawType } from 'ol/interaction';
-    import { Vector as VectorSource } from 'ol/source';
-    import { fromExtent }  from 'ol/geom/Polygon';
-    import { Stroke, Style, Fill } from 'ol/style';
+    import Feature from 'ol/Feature.js';
+    import type { FeatureLike } from 'ol/Feature.js';
+    import type Geometry from 'ol/geom/Geometry.js';
+    import DragBox from 'ol/interaction/DragBox.js';
+    import Draw from 'ol/interaction/Draw.js';
+    import VectorSource from 'ol/source/Vector.js';
+    import { Stroke, Style, Fill } from 'ol/style.js';
     import { clearPolyCoords, clearReqGeoJsonData, drawGeoJson, enableTagDisplay, disableTagDisplay, saveMapZoomState, renderRequestPolygon, canRestoreZoomCenter, assignStyleFunctionToPinLayer } from "@/utils/SrMapUtils";
     import { onActivated } from "vue";
     import { onDeactivated } from "vue";
     import type { Ref } from "vue";
     import { checkAreaOfConvexHullWarning,updateSrViewName,renderReqPin } from "@/utils/SrMapUtils";
-    import { toLonLat } from 'ol/proj';
+    import { toLonLat } from 'ol/proj.js';
     import { useReqParamsStore } from "@/stores/reqParamsStore";
     import { convexHull, isClockwise } from "@/composables/SrTurfUtils";
-    import { type Coordinate } from "ol/coordinate";
+    import { type Coordinate } from "ol/coordinate.js";
     import { hullColor, type SrRegion } from '@/types/SrTypes'
-    import { format } from 'ol/coordinate';
+    import { format } from 'ol/coordinate.js';
     import SrViewControl from "./SrViewControl.vue";
     import SrBaseLayerControl from "./SrBaseLayerControl.vue";
     import SrDrawControl from "@/components/SrDrawControl.vue";
     import { Map, MapControls } from "vue3-openlayers";
     import { useRequestsStore } from "@/stores/requestsStore";
-    import VectorLayer from "ol/layer/Vector";
+    import VectorLayer from "ol/layer/Vector.js";
     import { useDebugStore } from "@/stores/debugStore";
     import { updateMapView } from "@/utils/SrMapUtils";
     import { renderSvrReqPoly,renderSvrReqRegionMask,zoomOutToFullMap,renderSvrReqPin} from "@/utils/SrMapUtils";
     import router from '@/router/index.js';
     import { useRecTreeStore } from "@/stores/recTreeStore";
     import SrFeatureMenuOverlay from "@/components/SrFeatureMenuOverlay.vue";
-    import type { Source } from 'ol/source';
-    import type LayerRenderer  from 'ol/renderer/Layer';
+    import type { Source } from 'ol/source.js';
+    import type LayerRenderer  from 'ol/renderer/Layer.js';
     import SrCustomTooltip from "@/components//SrCustomTooltip.vue";
     import SrDropPinControl from "@/components//SrDropPinControl.vue";
     import SrUploadRegionControl from "@/components/SrUploadRegionControl.vue";
-    import Point from 'ol/geom/Point';
+    import Point from 'ol/geom/Point.js';
     import { readShapefileToOlFeatures } from "@/composables/useReadShapefiles";
     import { useGeoJsonStore } from "@/stores/geoJsonStore";
-    
+    import OlOverlay from 'ol/Overlay.js';
+    import type Overlay from 'ol/Overlay';
+    import { getArea as geodesicArea } from 'ol/sphere.js';
+    import Polygon, { fromExtent as polygonFromExtent } from 'ol/geom/Polygon.js';
+    import { unByKey } from 'ol/Observable.js';
+
+
+
+    const dragAreaEl = document.createElement('div');
+    dragAreaEl.className = 'ol-measure-hud';
+    const dragAreaOverlay = ref<Overlay | null>(null);
+    let polyGeomChangeKey: any = null;
+
+    function formatArea(m2: number): string {
+        if (!isFinite(m2)) return '';
+        if (m2 < 1e6) return `${m2.toFixed(0)} m²`;
+        const km2 = m2 / 1e6;
+        return `${km2.toFixed(km2 < 10 ? 2 : 1)} km²`;
+    }
+
     const defaultBathymetryFeatures: Ref<Feature<Geometry>[] | null> = ref(null);
     const showBathymetryFeatures = computed(() => {
         return ((reqParamsStore.missionValue === 'ICESat-2') && (reqParamsStore.iceSat2SelectedAPI === 'atl24x'));
@@ -103,7 +120,7 @@
     const mapStore = useMapStore();
     const controls = ref([]);
     const toast = useToast();
-    const dragBox = new DragBoxType();
+    const dragBox = new DragBox();
     const drawVectorSource = new VectorSource({wrapX: false});
     const drawVectorLayer = new VectorLayer({
         source: drawVectorSource,
@@ -135,7 +152,7 @@
     });
 
     // Set a custom property, like 'name'
-    const drawPolygon = new DrawType({
+    const drawPolygon = new Draw({
         source: drawVectorSource,
         type: 'Polygon',
         style: new Style({
@@ -199,6 +216,44 @@
         }),
     });
 
+    dragBox.on('boxstart', () => {
+        // show empty HUD near the starting corner
+        const geom = dragBox.getGeometry();
+        if (!geom) return;
+        const extent = geom.getExtent();
+        // position at the current top-right corner
+        const pos: [number, number] = [extent[2], extent[3]];
+        dragAreaEl.textContent = '';
+        dragAreaOverlay.value?.setPosition(pos);
+    });
+
+    dragBox.on('boxdrag', () => {
+        const map = mapRef.value?.map;
+        const geom = dragBox.getGeometry();
+        if (!map || !geom) return;
+
+        // 1) Current extent
+        const extent = geom.getExtent();
+
+        // 2) Build a polygon from the extent in the *map’s projection*
+        //const poly = Polygon.fromExtent(extent);
+        const poly = polygonFromExtent(extent);
+
+        // 3) Geodesic area (meters²), sphere-corrected using the map projection
+        const m2 = geodesicArea(poly, { projection: map.getView().getProjection() });
+        dragAreaEl.textContent = formatArea(Math.abs(m2));
+
+        // 4) Move HUD to the box’s top-right corner so it stays out of the box
+        const pos: [number, number] = [extent[2], extent[3]];
+        dragAreaOverlay.value?.setPosition(pos);
+    });
+
+    
+        // your existing code…
+        // …
+        // hide the HUD now that the final tag is drawn via your existing path
+    
+
     dragBox.on('boxend', function() {
         //console.log("dragBox.on boxend");
         isDrawing.value = true;
@@ -251,7 +306,8 @@
         const vectorSource = vectorLayer?.getSource();
         if(vectorSource){
             // Create a rectangle feature using the extent
-            let boxFeature = new Feature(fromExtent(extent));
+            //let boxFeature = new Feature(fromExtent(extent));
+            let boxFeature = new Feature(polygonFromExtent(extent));
             // Apply the style to the feature
             boxFeature.setStyle(boxStyle); 
             //console.log("dragBox.on boxend boxFeature tag:",tag);
@@ -284,6 +340,7 @@
         if (srDrawControlRef.value) {
             srDrawControlRef.value.resetPicked();
         }
+        dragAreaOverlay.value?.setPosition(undefined);
     });
 
     // Function to toggle the Draw interaction.
@@ -310,6 +367,30 @@
         map?.addInteraction(drawPolygon);
         //console.log("enableDrawPolygon");
     }
+    // Show live area while drawing a polygon
+    drawPolygon.on('drawstart', (evt) => {
+        const map = mapRef.value?.map;
+        const feature = evt.feature;
+
+        // clear + show HUD
+        dragAreaEl.textContent = '';
+        dragAreaOverlay.value?.setPosition(undefined);
+
+        polyGeomChangeKey = feature.getGeometry()?.on('change', () => {
+            const geom = feature.getGeometry() as Polygon;
+            if (!map || !geom) return;
+
+            // geodesic area in m² using current view projection
+            const m2 = Math.abs(geodesicArea(geom, { projection: map.getView().getProjection() }));
+            dragAreaEl.textContent = formatArea(m2);
+
+            // position HUD near the latest vertex (fallback: interior of polygon)
+            const rings = geom.getCoordinates();
+            const last = rings?.[0]?.[rings[0].length - 1];
+            const pos = last ?? geom.getInteriorPoint().getCoordinates();
+            dragAreaOverlay.value?.setPosition(pos as [number, number]);
+        });
+    });
 
     drawPolygon.on('drawend', function(event) {
         //console.log("drawend:", event);
@@ -325,7 +406,7 @@
                 feature.setStyle(polygonStyle);
                 //console.log("feature:", feature);
                 // Get the geometry of the feature
-                const geometry = feature.getGeometry() as OlPolygon;
+                const geometry = feature.getGeometry() as Polygon;
                 //console.log("geometry:", geometry);
                 // Check if the geometry is a polygon
                 if (geometry && geometry.getType() === 'Polygon') {
@@ -423,6 +504,14 @@
         } else {
             console.error("Error:vectorLayer is null");
         }
+
+        // stop listening + hide HUD (your existing tagging UI will take over)
+        if (polyGeomChangeKey) {
+            unByKey(polyGeomChangeKey);
+            polyGeomChangeKey = null;
+        }
+        dragAreaOverlay.value?.setPosition(undefined);
+
         isDrawing.value = false;
         const records = getLayerByName("Records Layer");
         if (map && records && wasRecordsLayerVisible.value) {
@@ -673,6 +762,14 @@
                 //   const plink = mapStore.plink as any;
                 //   map.addControl(plink);
                 // }
+
+                dragAreaOverlay.value = new OlOverlay({
+                    element: dragAreaEl,
+                    offset: [8, -8],
+                    positioning: 'bottom-left',
+                    stopEvent: false,
+                });
+                map.addOverlay(dragAreaOverlay.value as unknown as import('ol/Overlay').default);
                 await updateReqMapView("SrMap onMounted",canRestoreZoomCenter(map));
                 map.getView().on('change:resolution', () => {
                     //const zoom = map.getView().getZoom();
@@ -1441,6 +1538,20 @@
 
   /* Whatever defaults you want: padding, shadow, etc. */
   padding: 0.25rem;
+}
+
+:deep(.ol-measure-hud) {
+  font: 700 0.9rem/1.4 var(--p-font-family, system-ui, sans-serif);
+  padding: 0.35rem 0.6rem;
+  background: rgba(0,0,0,0.85);
+  color: #ffeb3b;
+  border: 2px solid #fff;
+  border-radius: 6px;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+  /* if something upstream sets opacity, force full */
+  opacity: 1;
 }
 
 

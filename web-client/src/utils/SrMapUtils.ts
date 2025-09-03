@@ -866,7 +866,8 @@ export function swapLongLatToLatLong(coordString: string): string {
 export function checkAreaOfConvexHullWarning(): boolean {
     const currentApi = useReqParamsStore().getCurAPIObj();
     if (currentApi) {
-        const limit = useAreaThresholdsStore().getAreaWarningThreshold(currentApi)
+        const limit = useAreaThresholdsStore().getAreaWarningThreshold(currentApi);
+        console.log(`checkAreaOfConvexHullWarning: currentApi: ${currentApi} limit: ${limit} area: ${useReqParamsStore().getAreaOfConvexHull()}`);
         if (useReqParamsStore().getAreaOfConvexHull() > limit) {
             const msg = `The area of the convex hull might be too large (${useReqParamsStore().getFormattedAreaOfConvexHull()}).\n Please zoom in and then select a smaller area (try < ${useAreaThresholdsStore().getAreaWarningThreshold(currentApi)} km²).`;
             if (!useAdvancedModeStore().getAdvanced()) {
@@ -889,6 +890,7 @@ export function checkAreaOfConvexHullError(): { ok: boolean, msg?: string } {
     }
     if (currentApi) {
         const limit = useAreaThresholdsStore().getAreaErrorThreshold(currentApi)
+        console.log(`checkAreaOfConvexHullError: currentApi: ${currentApi} limit: ${limit} area: ${useReqParamsStore().getAreaOfConvexHull()}`);
         if (useReqParamsStore().getAreaOfConvexHull() > limit) {
             const msg = `The area of the convex hull is too large (${useReqParamsStore().getFormattedAreaOfConvexHull()}).\n Please zoom in and then select a smaller area  < ${limit} km²).`;
             if (!useAdvancedModeStore().getAdvanced()) {
