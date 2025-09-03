@@ -12,6 +12,8 @@ export const useAreaThresholdsStore = defineStore('areaThresholdStore', () => {
         atl03sp: 350,
         atl03x: 350,
         atl03vp: 350,
+        'atl03x-surface': 20000,
+        'atl03x-phoreal': 10000,
         atl13x: 10000,
         atl24x:  1000,
         gedi01bp: 200,
@@ -21,12 +23,14 @@ export const useAreaThresholdsStore = defineStore('areaThresholdStore', () => {
     const areaErrorThresholdFallback = ref<number>(350)
 
     const areaWarningThreshold = ref<Record<ApiName, number>>({
-        atl06p: 5000,
+        atl06p: 10000,
         atl06sp: 5000,
         atl08p: 5000,
         atl03sp: 100,
         atl03x: 100,
         atl03vp: 100,
+        'atl03x-surface': 15000,
+        'atl03x-phoreal': 7500,
         atl13x: 10000,
         atl24x:  750,
         gedi01bp: 100,
