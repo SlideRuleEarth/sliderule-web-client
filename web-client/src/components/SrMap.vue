@@ -56,12 +56,14 @@
     import type Overlay from 'ol/Overlay';
     import { getArea as geodesicArea } from 'ol/sphere.js';
     import Polygon, { fromExtent as polygonFromExtent } from 'ol/geom/Polygon.js';
+    import { unByKey } from 'ol/Observable.js';
 
 
 
     const dragAreaEl = document.createElement('div');
     dragAreaEl.className = 'ol-measure-hud';
     const dragAreaOverlay = ref<Overlay | null>(null);
+    let polyGeomChangeKey: any = null;
 
     function formatArea(m2: number): string {
         if (!isFinite(m2)) return '';
@@ -365,6 +367,30 @@
         map?.addInteraction(drawPolygon);
         //console.log("enableDrawPolygon");
     }
+    // Show live area while drawing a polygon
+    drawPolygon.on('drawstart', (evt) => {
+        const map = mapRef.value?.map;
+        const feature = evt.feature;
+
+        // clear + show HUD
+        dragAreaEl.textContent = '';
+        dragAreaOverlay.value?.setPosition(undefined);
+
+        polyGeomChangeKey = feature.getGeometry()?.on('change', () => {
+            const geom = feature.getGeometry() as Polygon;
+            if (!map || !geom) return;
+
+            // geodesic area in m² using current view projection
+            const m2 = Math.abs(geodesicArea(geom, { projection: map.getView().getProjection() }));
+            dragAreaEl.textContent = formatArea(m2);
+
+            // position HUD near the latest vertex (fallback: interior of polygon)
+            const rings = geom.getCoordinates();
+            const last = rings?.[0]?.[rings[0].length - 1];
+            const pos = last ?? geom.getInteriorPoint().getCoordinates();
+            dragAreaOverlay.value?.setPosition(pos as [number, number]);
+        });
+    });
 
     drawPolygon.on('drawend', function(event) {
         //console.log("drawend:", event);
@@ -478,6 +504,14 @@
         } else {
             console.error("Error:vectorLayer is null");
         }
+
+        // stop listening + hide HUD (your existing tagging UI will take over)
+        if (polyGeomChangeKey) {
+            unByKey(polyGeomChangeKey);
+            polyGeomChangeKey = null;
+        }
+        dragAreaOverlay.value?.setPosition(undefined);
+
         isDrawing.value = false;
         const records = getLayerByName("Records Layer");
         if (map && records && wasRecordsLayerVisible.value) {
