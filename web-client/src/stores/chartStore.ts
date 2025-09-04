@@ -241,9 +241,9 @@ export const useChartStore = defineStore('chartStore', {
             //console.log('setYDataOptions reqIdStr:',reqIdStr, ' yData:',yDataOptions, ' state yData:',this.stateByReqId[reqIdStr].yDataOptions);
         },
         getColorEncodeOptionsForFunc(reqIdStr: string,func: string): string[] {
-            if(func.includes('atl03sp')) {
+            if(func === 'atl03sp') {
                 return this.getYDataOptions(reqIdStr);
-            } else if(func.includes('atl03x')) {
+            } else if(func === 'atl03x') {
                 return this.getYDataOptions(reqIdStr);
             } else {
                 const ret = ['solid'];
