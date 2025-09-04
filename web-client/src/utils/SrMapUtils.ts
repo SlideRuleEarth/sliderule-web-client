@@ -1085,15 +1085,15 @@ export function renderRequestPolygon(
     } else {
         coordinates = originalCoordinates;
     }
-
+    const api = useRecTreeStore().findApiForReqId(reqId);
     const polygon = new OlPolygon([coordinates]);
     const feature = new Feature({ geometry: polygon, req_id: (reqId > 0) ? reqId : null });
     if (color === 'red') {
         feature.setStyle(createRedReqPolygonStyle());
-        feature.setId(`Record:${reqId}`);
+        feature.setId(`Record:${reqId}-${api}`);
     } else {
         feature.setStyle(createBlueReqPolygonStyle(reqId.toString()));
-        feature.setId(`Record:${reqId}`);
+        feature.setId(`Record:${reqId}-${api}`);
     }
     vectorSource.addFeature(feature);
 

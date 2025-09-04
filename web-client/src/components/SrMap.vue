@@ -58,6 +58,9 @@
     import Polygon, { fromExtent as polygonFromExtent } from 'ol/geom/Polygon.js';
     import { unByKey } from 'ol/Observable.js';
 
+    import type { SelectPayload, MiniFeature } from '@/components/SrFeatureTreeNode.vue';
+    import OLFeature from 'ol/Feature.js';
+
 
 
     const dragAreaEl = document.createElement('div');
@@ -81,11 +84,29 @@
     const tooltipRef = ref();
  
     const wasRecordsLayerVisible = ref(false);
-    const isDrawing = ref(false);
+        const isDrawing = ref(false);
 
-    function onFeatureMenuSelect(feature: Feature<Geometry>) {
-        onFeatureClick([feature]); // Use your existing handler logic
-        featureMenuOverlayRef.value.hideMenu();
+    function unwrapClusterToArray(item: MiniFeature): FeatureLike[] {
+        const inner = item.get?.('features');
+        return Array.isArray(inner) && inner.length ? (inner as FeatureLike[]) : [item as unknown as FeatureLike];
+    }
+    function toVectorFeatures(arr: FeatureLike[]): Feature<Geometry>[] {
+        return arr.filter((f): f is Feature<Geometry> => f instanceof OLFeature);
+    }
+
+    function onFeatureMenuSelect(payload: SelectPayload) {
+        if (payload.kind === 'record') {
+            // Do what your Analysis menu does: e.g. navigate/select/zoom
+            router.push(`/analyze/${payload.reqId}`);
+            featureMenuOverlayRef.value?.hideMenu();
+            return;
+        }
+
+        // kind === 'feature'
+        const likes = unwrapClusterToArray(payload.feature);
+        const vectors = toVectorFeatures(likes);
+        if (vectors.length) onFeatureClick(vectors); // your existing handler
+        featureMenuOverlayRef.value?.hideMenu();
     }
 
     const reqParamsStore = useReqParamsStore();
