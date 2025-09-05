@@ -203,7 +203,7 @@ function safeCsvCell(val: any): string {
 
     // 2) TypedArrays (Float64Array, Int32Array, etc.)
     if (ArrayBuffer.isView(val) && !(val instanceof DataView)) {
-        const s = JSON.stringify(Array.from(val as ArrayLike<number>));
+        const s = JSON.stringify(Array.from(val as unknown as Iterable<number>));
         return `"${s.replace(/"/g, '""')}"`;
     }
 
