@@ -298,7 +298,7 @@ function parseCompletionPercentage(message: string): number | null {
     return null; // Return null if the message does not match the expected format or total is zero
 }
 
-async function runFetchToFileWorker(srReqRec:SrRequestRecord){
+async function runFetchToFileWorker(srReqRec:SrRequestRecord) : Promise<void> {
     try{
         console.log('runFetchToFileWorker srReqRec:',srReqRec);
         if(srReqRec.req_id){
@@ -435,7 +435,7 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
                     if (srViewKey.value) {
                         srReqRec.start_time = new Date();
                         srReqRec.end_time = new Date();
-                        runFetchToFileWorker(srReqRec);
+                        await runFetchToFileWorker(srReqRec);
                     }
                 } else {
                     console.error('runSlideRuleClicked IceSat2API was undefined');
@@ -453,7 +453,7 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
                     if (srViewKey.value) {
                         srReqRec.start_time = new Date();
                         srReqRec.end_time = new Date();
-                        runFetchToFileWorker(srReqRec);
+                        await runFetchToFileWorker(srReqRec);
                     }
                 } else {
                     console.error('runSlideRuleClicked GediAPI was undefined');
