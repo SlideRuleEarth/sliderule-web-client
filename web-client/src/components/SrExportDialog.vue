@@ -194,8 +194,40 @@ const handleExport = async () => {
 function safeCsvCell(val: any): string {
     if (val === null || val === undefined) return '""';
     if (typeof val === 'bigint') return `"${val.toString()}"`;
-    return JSON.stringify(val);
+
+    // 1) Plain JS arrays
+    if (Array.isArray(val)) {
+        const s = JSON.stringify(val);
+        return `"${s.replace(/"/g, '""')}"`;
+    }
+
+    // 2) TypedArrays (Float64Array, Int32Array, etc.)
+    if (ArrayBuffer.isView(val) && !(val instanceof DataView)) {
+        const s = JSON.stringify(Array.from(val as ArrayLike<number>));
+        return `"${s.replace(/"/g, '""')}"`;
+    }
+
+    // 3) Arrow vectors or similar objects exposing .toArray()
+    if (val && typeof val === 'object' && typeof val.toArray === 'function') {
+        const s = JSON.stringify(Array.from(val.toArray()));
+        return `"${s.replace(/"/g, '""')}"`;
+    }
+
+    // 4) Strings that already look like JSON arrays
+    if (typeof val === 'string' && val.startsWith('[') && val.endsWith(']')) {
+        return `"${val.replace(/"/g, '""')}"`;
+    }
+
+    // 5) Default: JSON.stringify (preserves your current behavior for scalars/strings)
+    //    BUT if it looks like an array after stringifying, still wrap it.
+    const s = JSON.stringify(val);
+    if (s.startsWith('[') && s.endsWith(']')) {
+        return `"${s.replace(/"/g, '""')}"`;
+    }
+
+    return s;
 }
+
 
 function wrapFsWritable(fs: FileSystemWritableFileStream): WritableStream<Uint8Array> {
     return new WritableStream<Uint8Array>({
