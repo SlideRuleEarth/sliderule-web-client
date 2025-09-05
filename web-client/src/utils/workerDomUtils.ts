@@ -21,8 +21,7 @@ import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useServerStateStore } from '@/stores/serverStateStore';
 import { useGeoJsonStore } from '@/stores/geoJsonStore';
 import type { AtlxxReqParams } from '@/types/SrTypes';
-import { useSrcIdTblStore } from '@/stores/srcIdTblStore';
-import { calculatePolygonArea } from '@/composables/SrTurfUtils';
+import { updateNumGranulesInRecord, updateAreaInRecord } from '@/utils/SrParquetUtils'
 
 const consoleStore = useSrSvrConsoleStore();
 const sysConfigStore = useSysConfigStore();
@@ -32,7 +31,6 @@ const requestsStore = useRequestsStore();
 const atlChartFilterStore = useAtlChartFilterStore();
 const chartStore = useChartStore();
 const serverStateStore = useServerStateStore();
-const srcIdTblStore = useSrcIdTblStore();
 
 let worker: Worker | null = null;
 let workerTimeoutHandle: TimeoutHandle | null = null; // Handle for the timeout to clear it when necessary
@@ -194,12 +192,8 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
                             console.error('handleWorkerMsg opfs_ready newReqId:',newReqId,' does not match workerMsg.req_id:',workerMsg.req_id);
                         }
                     }
-                    await srcIdTblStore.setSourceTbl(workerMsg.req_id);
-                    const uniqueGranules = srcIdTblStore.getUniqueSourceCount();
-                    const poly = await db.getSvrReqPoly(workerMsg.req_id);
-                    const area = calculatePolygonArea(poly);
-                    console.log('Unique granules count:', uniqueGranules,' Area of polygon:', area);
-                    await db.updateRequestRecord( {req_id:workerMsg.req_id, num_gran: uniqueGranules, area_of_poly: area });
+                    await updateAreaInRecord(workerMsg.req_id);
+                    await updateNumGranulesInRecord(workerMsg.req_id);
                 } catch (error) {
                     const emsg = `Error loading file,reading metadata or creating/updating polyhash for req_id:${workerMsg.req_id}`;
                     console.error('handleWorkerMsg opfs_ready error:',error,emsg);

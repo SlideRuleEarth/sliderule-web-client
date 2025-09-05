@@ -162,6 +162,7 @@ const handleFileImported = async (reqId: string) => {
 
 
 onMounted(async () => {
+    await requestsStore.cleanupAllRequests();
     requestsStore.watchReqTable();
     treeNodes.value = await requestsStore.getTreeTableNodes(onlySuccess.value);
     //console.log('treeNodes.value:', treeNodes.value);
@@ -263,7 +264,7 @@ onUnmounted(() => {
 
         <Column field="cnt" header="Count">
             <template #body="slotProps">
-                {{ new Intl.NumberFormat().format(parseInt(String(slotProps.node.data.cnt))) }}
+                {{ new Intl.NumberFormat().format(parseInt(slotProps.node.data.cnt)) }}
             </template>
         </Column>
         <Column field="num_bytes" header="Size">

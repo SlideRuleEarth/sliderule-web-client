@@ -166,7 +166,7 @@ export function drawGeoJson(
     const format = new GeoJSON();
     let features: Feature[] = [];
     try {
-        console.log('Parsing GeoJSON data:', geoJsonString);
+        //console.log('Parsing GeoJSON data:', geoJsonString);
 
         const normalized = unwrapGeoJson(geoJsonData);
 
@@ -1236,7 +1236,7 @@ export async function renderSvrReqPin(
     }
 
     const endTime = performance.now();
-    console.log(`renderSvrReqPin took ${endTime - startTime} milliseconds.`);
+    //console.log(`renderSvrReqPin took ${endTime - startTime} milliseconds.`);
     return coord;
 }
 
@@ -1513,11 +1513,11 @@ export async function updateMapAndPlot(withHighlight: boolean = true): Promise<v
 
 export function getBoundingExtentFromFeatures(features: Feature<Geometry>[]): Extent | undefined {
     // Debug log feature types and extents
-    features.forEach((feature, idx) => {
-        const geom = feature.getGeometry();
-        console.log(`Feature[${idx}] type:`, geom?.getType());
-        console.log(`Feature[${idx}] extent:`, geom?.getExtent());
-    });
+    // features.forEach((feature, idx) => {
+    //     const geom = feature.getGeometry();
+    //     console.log(`Feature[${idx}] type:`, geom?.getType());
+    //     console.log(`Feature[${idx}] extent:`, geom?.getExtent());
+    // });
 
     // Helper to extract all raw coordinates from any geometry
 

@@ -29,14 +29,19 @@ export const useSrcIdTblStore = defineStore('srcIdTblStore', () => {
         return setSrcIdTblWithFileName(fileName);
     }
 
-    function getUniqueSourceCount(): number {
+    async function getUniqueSourceCount(req_id: number): Promise<number> {
+        await setSourceTbl(req_id);
         return new Set(sourceTable.value).size;
+    }
+
+    async function getSourceTblForFile(fileName: string): Promise<string[]> {
+        await setSrcIdTblWithFileName(fileName);
+        return sourceTable.value;
     }
 
     return {
         sourceTable,
         getUniqueSourceCount,
-        setSourceTbl,
-        setSrcIdTblWithFileName,
+        getSourceTblForFile,
     };
 });
