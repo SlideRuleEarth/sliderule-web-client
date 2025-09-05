@@ -126,7 +126,8 @@ onMounted(() => {
     const api = recTreeStore.findApiForReqId(props.reqId);
     console.log('SrPlotConfig onMounted api:', api);
     if(api.includes('x')) {
-        srcIdTblStore.setSourceTbl(props.reqId);
+        // This sets the source table for the given request ID so tooltip uses granule name
+        srcIdTblStore.getUniqueSourceCount(props.reqId); 
     }
 });
 

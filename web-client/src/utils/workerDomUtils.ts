@@ -21,6 +21,7 @@ import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useServerStateStore } from '@/stores/serverStateStore';
 import { useGeoJsonStore } from '@/stores/geoJsonStore';
 import type { AtlxxReqParams } from '@/types/SrTypes';
+import { updateNumGranulesInRecord, updateAreaInRecord } from '@/utils/SrParquetUtils'
 
 const consoleStore = useSrSvrConsoleStore();
 const sysConfigStore = useSysConfigStore();
@@ -191,6 +192,8 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
                             console.error('handleWorkerMsg opfs_ready newReqId:',newReqId,' does not match workerMsg.req_id:',workerMsg.req_id);
                         }
                     }
+                    await updateAreaInRecord(workerMsg.req_id);
+                    await updateNumGranulesInRecord(workerMsg.req_id);
                 } catch (error) {
                     const emsg = `Error loading file,reading metadata or creating/updating polyhash for req_id:${workerMsg.req_id}`;
                     console.error('handleWorkerMsg opfs_ready error:',error,emsg);
@@ -298,7 +301,7 @@ function parseCompletionPercentage(message: string): number | null {
     return null; // Return null if the message does not match the expected format or total is zero
 }
 
-async function runFetchToFileWorker(srReqRec:SrRequestRecord){
+async function runFetchToFileWorker(srReqRec:SrRequestRecord) : Promise<void> {
     try{
         console.log('runFetchToFileWorker srReqRec:',srReqRec);
         if(srReqRec.req_id){
@@ -435,7 +438,7 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
                     if (srViewKey.value) {
                         srReqRec.start_time = new Date();
                         srReqRec.end_time = new Date();
-                        runFetchToFileWorker(srReqRec);
+                        await runFetchToFileWorker(srReqRec);
                     }
                 } else {
                     console.error('runSlideRuleClicked IceSat2API was undefined');
@@ -453,7 +456,7 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
                     if (srViewKey.value) {
                         srReqRec.start_time = new Date();
                         srReqRec.end_time = new Date();
-                        runFetchToFileWorker(srReqRec);
+                        await runFetchToFileWorker(srReqRec);
                     }
                 } else {
                     console.error('runSlideRuleClicked GediAPI was undefined');

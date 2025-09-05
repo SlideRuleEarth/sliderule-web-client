@@ -162,6 +162,7 @@ const handleFileImported = async (reqId: string) => {
 
 
 onMounted(async () => {
+    await requestsStore.cleanupAllRequests();
     requestsStore.watchReqTable();
     treeNodes.value = await requestsStore.getTreeTableNodes(onlySuccess.value);
     //console.log('treeNodes.value:', treeNodes.value);
@@ -263,12 +264,32 @@ onUnmounted(() => {
 
         <Column field="cnt" header="Count">
             <template #body="slotProps">
-                {{ new Intl.NumberFormat().format(parseInt(String(slotProps.node.data.cnt))) }}
+                {{ new Intl.NumberFormat().format(parseInt(slotProps.node.data.cnt)) }}
             </template>
         </Column>
         <Column field="num_bytes" header="Size">
             <template #body="slotProps">
                 {{ formatBytes(slotProps.node.data.num_bytes) }}
+            </template>
+        </Column>
+        <Column field="num_gran" header="# Granules">
+            <template #body="slotProps">
+                <span v-if="slotProps.node.data.num_gran > 0">
+                    {{ new Intl.NumberFormat().format(slotProps.node.data.num_gran) }}
+                </span>
+                <span v-else>—</span>
+            </template>
+        </Column>
+
+        <Column field="area_of_poly" header="Area">
+            <template #body="slotProps">
+                <span v-if="Number.isFinite(slotProps.node.data.area_of_poly)">
+                    {{
+                      (slotProps.node.data.area_of_poly)
+                        .toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                    }} km²
+                </span>
+                <span v-else>—</span>
             </template>
         </Column>
         <Column field="elapsed_time" header="Elapsed Time" style="width: 10%" />

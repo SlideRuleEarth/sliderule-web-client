@@ -43,6 +43,8 @@ export interface SrRequestRecord {
     num_bytes?: number; // number of bytes
     description?: string; // description
     srViewName?: string;
+    num_gran?: number;       // number of granules involved in the request
+    area_of_poly?: number;   // area (e.g., km^2) of the request polygon (if any)
 }
 
 export interface SrRequestSummary {
@@ -1244,17 +1246,26 @@ export class SlideRuleDexie extends Dexie {
         }
     }
 
-    // async updateSummary(summary: SrRequestSummary): Promise<void> {
-    //     try {
-    //         //console.log(`Updating summary for req_id ${summary.req_id} with:`, summary);
-    //         await this.summary.put( summary );
-    //         //console.log(`Summary updated for req_id ${summary.req_id}.`);
-    //     } catch (error) {
-    //         console.error(`Failed to update summary for req_id ${summary.req_id}:`, error);
-    //         throw error; // Rethrowing the error for further handling if needed
-    //     }
-    // }
+    async getNumGran(req_id: number): Promise<number> {
+        try {
+            const request = await this.requests.get(req_id);
+            return request?.num_gran ?? 0;
+        } catch (error) {
+            console.error(`getNumGran failed for req_id ${req_id}:`, error);
+            return 0;
+        }
+    }
 
+    async getAreaOfPoly(req_id: number): Promise<number> {
+        try {
+            const request = await this.requests.get(req_id);
+            return request?.area_of_poly ?? 0;
+        } catch (error) {
+            console.error(`getAreaOfPoly failed for req_id ${req_id}:`, error);
+            return 0;
+        }
+    }
+    
     async addNewSummary(summary: SrRequestSummary): Promise<void> {
         try {
             console.log(`Adding summary for req_id ${summary.req_id} with:`, summary);

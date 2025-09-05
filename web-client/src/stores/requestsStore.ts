@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia';
-import { db, DEFAULT_DESCRIPTION, type SrRequestRecord } from '@/db/SlideRuleDb';
+import { db, type SrRequestRecord } from '@/db/SlideRuleDb';
 import {type  NullReqParams } from '@/types/SrTypes';
 import { liveQuery } from 'dexie';
 import type { SrMenuNumberItem } from "@/types/SrTypes";
 import { findParam } from '@/utils/parmUtils';
 import { useSrToastStore } from './srToastStore';
 import type { TreeNode } from 'primevue/treenode';
+import { updateNumGranulesInRecord, updateAreaInRecord } from '@/utils/SrParquetUtils';
 
 export const useRequestsStore = defineStore('requests', {
   state: () => ({
@@ -321,8 +322,13 @@ export const useRequestsStore = defineStore('requests', {
               status: child.data.status,
               func: child.data.func,
               description: child.data.description ?? '(No description)',
+
+              // 🔽 normalize numeric fields here
               cnt: child.data.cnt,
-              num_bytes: child.data.num_bytes,
+              num_bytes: child.data.num_bytes != null ? Number(child.data.num_bytes) : undefined,
+              num_gran: child.data.num_gran != null ? Number(child.data.num_gran) : undefined,
+              area_of_poly: child.data.area_of_poly != null ? Number(child.data.area_of_poly) : undefined,
+
               elapsed_time: child.data.elapsed_time,
               parameters: child.data.parameters,
               svr_parms: child.data.svr_parms,
@@ -333,9 +339,70 @@ export const useRequestsStore = defineStore('requests', {
       }
     
       return buildTree(undefined);
-    }
+    },
     
-    // ...    
-  }
+    /**
+     * Backfill/cleanup a single request record if it's a successful "*x" run
+     * but is missing derived fields (area_of_poly, num_gran).
+     */
+    async cleanupRequest(reqId: number): Promise<{ updatedArea: boolean; updatedGranules: boolean }> {
+      const srRecord = await db.table('requests').get(reqId) as SrRequestRecord | undefined;
 
+      let updatedArea = false;
+      let updatedGranules = false;
+
+      if (srRecord && srRecord.status === 'success' && srRecord.func?.toLowerCase().includes('x')) {
+        // area_of_poly needs update?
+        const areaMissing =
+          srRecord.area_of_poly == null ||
+          Number.isNaN(Number(srRecord.area_of_poly));
+
+        if (areaMissing) {
+          await updateAreaInRecord(reqId);   // <-- uses SrParquetUtils
+          updatedArea = true;
+        }
+
+        // num_gran needs update?
+        const granMissing =
+          srRecord.num_gran == null ||
+          Number.isNaN(Number(srRecord.num_gran));
+
+        if (granMissing) {
+          await updateNumGranulesInRecord(reqId);  // <-- uses SrParquetUtils
+          updatedGranules = true;
+        }
+
+        if (updatedArea || updatedGranules) {
+          await this.fetchReqs(); // refresh in-memory state
+        }
+      }
+
+      return { updatedArea, updatedGranules };
+    },
+
+    /**
+     * Sweep all requests and run cleanup on each one. Returns a summary.
+     */
+    async cleanupAllRequests(): Promise<{
+      totalChecked: number;
+      totalUpdatedArea: number;
+      totalUpdatedGranules: number;
+    }> {
+      const ids = await this.fetchReqIds();
+      let totalUpdatedArea = 0;
+      let totalUpdatedGranules = 0;
+
+      for (const id of ids) {
+        const { updatedArea, updatedGranules } = await this.cleanupRequest(id);
+        if (updatedArea) totalUpdatedArea++;
+        if (updatedGranules) totalUpdatedGranules++;
+      }
+
+      return {
+        totalChecked: ids.length,
+        totalUpdatedArea,
+        totalUpdatedGranules
+      };
+    },
+  }
 });
