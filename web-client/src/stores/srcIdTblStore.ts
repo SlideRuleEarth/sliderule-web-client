@@ -29,8 +29,13 @@ export const useSrcIdTblStore = defineStore('srcIdTblStore', () => {
         return setSrcIdTblWithFileName(fileName);
     }
 
+    function getUniqueSourceCount(): number {
+        return new Set(sourceTable.value).size;
+    }
+
     return {
         sourceTable,
+        getUniqueSourceCount,
         setSourceTbl,
         setSrcIdTblWithFileName,
     };

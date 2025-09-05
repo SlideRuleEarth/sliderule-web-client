@@ -271,6 +271,26 @@ onUnmounted(() => {
                 {{ formatBytes(slotProps.node.data.num_bytes) }}
             </template>
         </Column>
+        <Column field="num_gran" header="# Granules">
+            <template #body="slotProps">
+                <span v-if="slotProps.node.data.num_gran > 0">
+                    {{ new Intl.NumberFormat().format(slotProps.node.data.num_gran) }}
+                </span>
+                <span v-else>—</span>
+            </template>
+        </Column>
+
+        <Column field="area_of_poly" header="Area">
+            <template #body="slotProps">
+                <span v-if="Number.isFinite(slotProps.node.data.area_of_poly)">
+                    {{
+                      (slotProps.node.data.area_of_poly)
+                        .toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                    }} km²
+                </span>
+                <span v-else>—</span>
+            </template>
+        </Column>
         <Column field="elapsed_time" header="Elapsed Time" style="width: 10%" />
         <Column field="Actions" header="" class="sr-export">
             <template #header>

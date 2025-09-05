@@ -321,8 +321,13 @@ export const useRequestsStore = defineStore('requests', {
               status: child.data.status,
               func: child.data.func,
               description: child.data.description ?? '(No description)',
-              cnt: child.data.cnt,
-              num_bytes: child.data.num_bytes,
+
+              // 🔽 normalize numeric fields here
+              cnt: child.data.cnt != null ? Number(child.data.cnt) : undefined,
+              num_bytes: child.data.num_bytes != null ? Number(child.data.num_bytes) : undefined,
+              num_gran: child.data.num_gran != null ? Number(child.data.num_gran) : undefined,
+              area_of_poly: child.data.area_of_poly != null ? Number(child.data.area_of_poly) : undefined,
+
               elapsed_time: child.data.elapsed_time,
               parameters: child.data.parameters,
               svr_parms: child.data.svr_parms,
