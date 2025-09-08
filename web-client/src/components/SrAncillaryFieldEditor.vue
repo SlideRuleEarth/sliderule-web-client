@@ -4,7 +4,7 @@
             <SrLabelInfoIconButton 
                 :label="label" 
                 tooltipText="ancillary fields to add to the response dataframe" 
-                tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/how_tos/ancillary_fields.html#including-an-ancillary-field-in-an-atl06p-request" 
+                :tooltipUrl="computedUrl"
                 labelFontSize="large"
             />            
             <div class="sr-ancillary-input-row">
@@ -36,7 +36,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref,computed } from 'vue';
 import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
 import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
@@ -49,7 +49,15 @@ const props = defineProps<{
 const emit = defineEmits<{
     (e: 'update:modelValue', value: string[]): void;
 }>();
-
+const computedUrl = computed(() => {
+    if(props.label?.includes('atl06')) {
+        return `https://slideruleearth.io/web/rtd/user_guide/how_tos/ancillary_fields.html#including-an-ancillary-field-in-an-atl06p-request`;
+    } else if (props.label?.includes('atl03 Corr')) {
+        return `https://slideruleearth.io/web/rtd/user_guide/how_tos/ancillary_fields.html#including-an-ancillary-field-in-an-atl03sp-request`;
+    } else {
+        return `https://slideruleearth.io/web/rtd/user_guide/how_tos/ancillary_fields.html#including-ancillary-fields`;
+    }
+});
 const newField = ref('');
 
 function addField() {

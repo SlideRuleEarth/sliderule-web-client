@@ -99,7 +99,7 @@
                     label="Catalog" 
                     labelFontSize='large'
                     tooltipText='geojson formatted stac query response (obtained through the sliderule.earthdata.stac Python API)' 
-                    tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
+                    tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/raster_sampling.html#providing-your-own-catalog"
                 />
                 <TextArea  
                     v-model="rasterParamsStore.catalog" 
@@ -121,7 +121,7 @@
                     :menuOptions="rasterParamsStore.bandOptions" 
                     :default="[rasterParamsStore.bandOptions[0]]"
                     tooltipText="List of bands to read out of the raster, or a predefined algorithm that combines bands for a given dataset"
-                    tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/SlideRule.html#raster-sampling"
+                    tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/raster_sampling.html#parameters"
                 />
             </div>
         </div>
