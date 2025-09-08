@@ -199,22 +199,38 @@ export const computeSamplingRate = async(req_id:number): Promise<number> => {
     return sample_fraction;
 }
 
+function isScalarNumericDuckType(type: string): boolean {
+    const T = type.toUpperCase();
+    // reject containers
+    if (T.includes('LIST') || T.includes('[]') || T.startsWith('STRUCT') || T.startsWith('MAP') || T.startsWith('UNION')) {
+        return false;
+    }
+    // allow numeric scalars
+    return /^(TINYINT|SMALLINT|INTEGER|BIGINT|HUGEINT|UTINYINT|USMALLINT|UINTEGER|UBIGINT|REAL|FLOAT|DOUBLE|DECIMAL)/.test(T);
+}
+
 export async function prepareDbForReqId(reqId: number): Promise<void> {
-    const startTime = performance.now(); // Start time
-    try{
+    const startTime = performance.now();
+    try {
         const fileName = await indexedDb.getFilename(reqId);
-        //console.log(`prepareDbForReqId for ${reqId} fileName:${fileName}`);
         const duckDbClient = await createDuckDbClient();
         await duckDbClient.insertOpfsParquet(fileName);
-        const colNames = await duckDbClient.queryForColNames(fileName);
+
+        // Get typed columns and keep only scalar numerics (no arrays/lists)
+        const colTypes = await duckDbClient.queryColumnTypes(fileName);
+        const scalarNumericCols = colTypes
+            .filter(c => isScalarNumericDuckType(c.type))
+            .map(c => c.name);
+
         await updateAllFilterOptions(reqId);
-        //console.trace(`prepareDbForReqId reqId:${reqId} colNames:`, colNames);
-        setElevationDataOptionsFromFieldNames(reqId.toString(), colNames);
+        //console.trace(`prepareDbForReqId reqId:${reqId} colNames:`, scalarNumericCols);
+        // Use filtered names so arrays never reach the chart store
+        setElevationDataOptionsFromFieldNames(reqId.toString(), scalarNumericCols);
     } catch (error) {
         console.error('prepareDbForReqId error:', error);
         throw error;
-    } finally {                                                                    
-        const endTime = performance.now(); // End time
+    } finally {
+        const endTime = performance.now();
         console.log(`prepareDbForReqId for ${reqId} took ${endTime - startTime} milliseconds.`);
     }
 }
