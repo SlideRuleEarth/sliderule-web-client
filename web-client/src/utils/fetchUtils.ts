@@ -6,37 +6,41 @@ import { Buffer } from 'buffer/';
 // System Configuration
 //
 const sysConfigStore = useSysConfigStore();
-const jwtStore = useJwtStore();
 export function forceGeoParquet(inputReqParms: any): any {
-    console.log('forceGeoParquet:', inputReqParms, 'inputReqParms.parms.output:', inputReqParms.parms.output);
-    if (
-        inputReqParms &&
-        typeof inputReqParms === 'object' &&
-        inputReqParms.parms &&
-        typeof inputReqParms.parms === 'object' &&
-        inputReqParms.parms.output &&
-        typeof inputReqParms.parms.output === 'object'
-    ) {
-        inputReqParms.parms.output.as_geo = true;
+    //There are different shapes for legacy atl06 and atl03x-surface
+    console.log('forceGeoParquet:', inputReqParms, 'inputReqParms:', inputReqParms);
+
+    if(inputReqParms.as_geo !== undefined){
+        inputReqParms.as_geo = true;
     } else {
-        console.error('Invalid inputReqParms structure?:', inputReqParms);
+        if (inputReqParms.parms){
+            if(inputReqParms.parms.output){
+                inputReqParms.parms.output.as_geo = true;
+            } else {
+                console.warn('forceGeoParquet: unrecognized shape for inputReqParms:', inputReqParms);
+            }
+        } else {
+            console.warn('forceGeoParquet: unrecognized shape for inputReqParms:', inputReqParms);
+        }
     }
-    console.log('forceGeoParquet:', inputReqParms, 'as_geo:', inputReqParms.parms.output.as_geo);
+    console.log('forceGeoParquet:', inputReqParms);
     return inputReqParms;
 }
 
 export async function getFetchUrlAndOptions(
     reqid: number,
-    isArrowFetch: boolean = false,
     forceAsGeo: boolean = false
 ): Promise<{ url: string; options: RequestInit }> {
-    const api = await db.getFunc(reqid);
+    let api = await db.getFunc(reqid);
+    if((api === 'atl03x-surface') || (api === 'atl03x-phoreal')){
+        api = 'atl03x';
+    }
     let parm = await db.getReqParams(reqid);
     if(forceAsGeo){
         parm = forceGeoParquet(parm);
     }
     const host = sysConfigStore.getOrganization() && (sysConfigStore.getOrganization() + '.' + sysConfigStore.getDomain()) || sysConfigStore.getDomain();
-    const api_path = isArrowFetch ? 'arrow/' + api : 'source/api';
+    const api_path = `source/${api}`;
     const url = 'https://' + host + '/' + api_path;
     //console.log('source url:', url);
     // Setup Request Options

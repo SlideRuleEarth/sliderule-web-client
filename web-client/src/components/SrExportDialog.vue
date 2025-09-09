@@ -212,12 +212,13 @@ async function exportParquet(fileName: string): Promise<boolean> {
 }
 
 async function exportGeoParquet(fileName: string) : Promise<boolean>  {
-    const { url, options } = await getFetchUrlAndOptions(props.reqId, true, true);
+    const { url, options } = await getFetchUrlAndOptions(props.reqId,true);
 
     const wb = await getWritableFileStream(`${fileName}_GEO.parquet`, 'application/octet-stream');
     if (!wb) return false;
 
     try {
+        console.log('Fetching GeoParquet export:', url, options);
         const response = await fetch(url, {
             method: 'POST',
             body: options.body,
