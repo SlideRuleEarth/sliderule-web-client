@@ -236,7 +236,9 @@ const createReqParamsStore = (id: string) =>
                 this.setConvexHull(convexHull(poly));
                 this.setAreaOfConvexHull(calculatePolygonArea(poly));
             } else {
+              if(parentApi !== 'atl13x'){
                 console.error('presetForScatterPlotOverlay: no poly for parentReqId:', parentReqId);
+              }
             }
             this.signalConfidence = [
               signalConfidenceNumberOptions[2],

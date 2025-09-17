@@ -2,6 +2,7 @@ import { SC_FORWARD,SC_BACKWARD } from '@/sliderule/icesat2';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useFieldNameStore } from '@/stores/fieldNameStore';
+import { useActiveTabStore } from '@/stores/activeTabStore';
 const SPOT_1 = 1;
 const SPOT_2 = 2;
 const SPOT_3 = 3;
@@ -169,7 +170,7 @@ export function getScOrientFromSpotAndGt(spot:number, gt:number){
 export function getSqlForSpot(spot:number){
     const d= getDetailsFromSpotNumber(spot);
     const sqlStr = `((sc_orient = ${d[0].sc_orient}) AND (track = ${d[0].track}) AND (pair = ${d[0].pair})) OR ((sc_orient = ${d[1].sc_orient}) AND (track = ${d[1].track}) AND (pair = ${d[1].pair}))`;
-    //console.log('getSqlForSpot: spot:', spot, 'sqlStr:', sqlStr);
+    console.log('getSqlForSpot: spot:', spot, 'sqlStr:', sqlStr);
     return sqlStr;
 }
 
@@ -216,6 +217,13 @@ export function createWhereClause(reqId:number){
             }
             if(use_y_atc_filter && y_atc_is_valid && (selected_y_atc !== undefined)){
                 whereStr = whereStr + ` AND (y_atc BETWEEN ${selected_y_atc - y_atc_margin} AND ${selected_y_atc + y_atc_margin})`;
+            }
+        }
+    } else if ((func === 'atl13x') && useActiveTabStore().isActiveTabTimeSeries){
+        if(cycles.length > 0) {
+            whereStr = `WHERE ${uofn} IN (${cycles.join(', ')})`;
+            if (spots.length > 0) {
+                whereStr = whereStr + ` AND ${usfn} IN (${spots.join(', ')})`;
             }
         }
     } else if ((func === 'atl03vp') || (func.includes('atl06')) || (func.includes('atl08')) || (func.includes('x')) || (func.includes('gedi0'))) {

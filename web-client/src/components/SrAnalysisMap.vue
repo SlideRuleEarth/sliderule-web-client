@@ -72,11 +72,21 @@
     const activeTabStore = useActiveTabStore();
     const controls = ref([]);
     const tooltipRef = ref<InstanceType<typeof SrCustomTooltip> | null>(null);
-
     // true whenever the active tab is _not_ “3‑D View”
     const isNot3DView = computed(() => 
         !activeTabStore.isActiveTabLabel('3-D View')
-    )
+    );
+
+    const hasOffPointFilter = computed(() => {
+        return ((recTreeStore.selectedApi === 'atl13x') ?
+             activeTabStore.isElevationPlot && useFieldNameStore().getMissionForReqId(props.selectedReqId)==='ICESat-2' : isNot3DView.value
+        );
+    });
+
+    const hasLinkToElevationPlot = computed(() => {
+        return activeTabStore.isElevationPlot;
+    });
+
     const recordsVectorSource = new VectorSource({wrapX: false});
     const recordsLayer = new VectorLayer({
         source: recordsVectorSource,
@@ -115,9 +125,7 @@
             return `${loadStateStr.value} Record:${recTreeStore.selectedReqIdStr} - ${recTreeStore.selectedApi} (${currentRowsFormatted} pnts)`;
         }
     });
-    const showHighlight = computed(() => {
-        return (isNot3DView.value && useFieldNameStore().getMissionForReqId(props.selectedReqId)==='ICESat-2');     
-    }); 
+
     const offFilterTooltip = computed(() => {
         if(atlChartFilterStore.showPhotonCloud){
             return 'This is disabled when Show Photon Cloud is enabled';
@@ -193,7 +201,7 @@
             return;
         }
         mapStore.setSelectedView(viewObj.view); // Set the selected view in the map store
-        const selectedView = mapStore.getSelectedView(); // Get the selected view
+        //const selectedView = mapStore.getSelectedView(); // Get the selected view
         //console.log(`SrAnalysisMap onMounted: selected view is ${selectedView} with srViewName: ${srViewName}`);
         
         if(viewObj.baseLayerName){
@@ -402,12 +410,12 @@
                         useSrToastStore().warn('There are no data points in this region', 'Click Request then increase the area of the polygon',10000);
                         map.addLayer(recordsLayer);
                         //dumpMapLayers(map,'SrAnalysisMap');
-                        const poly = renderSvrReqPoly(map,props.selectedReqId,"Records Layer",true);
+                        renderSvrReqPoly(map,props.selectedReqId,"Records Layer",true);
                     }
                     deckStore.clearDeckInstance(); // Clear any existing instance first
                     createDeckInstance(map); 
                     addDeckLayerToMap(map);
-                    await updateMapAndPlot(showHighlight.value);
+                    await updateMapAndPlot(hasLinkToElevationPlot.value);
                 } else {
                     console.error("SrMap Error: srViewKey is null");
                 }
@@ -503,7 +511,7 @@
                 @baselayer-control-created="handleBaseLayerControlCreated" 
                 @update-baselayer="handleUpdateBaseLayer" 
             />
-            <SrLocationFinder v-if="locationFinderReady && mapRef?.map" :map="mapRef.map" />
+            <SrLocationFinder v-if="hasLinkToElevationPlot && locationFinderReady && mapRef?.map" :map="mapRef.map" />
 
         </Map.OlMap>
         <div class="sr-tooltip-style">
@@ -529,7 +537,7 @@
             @mouseleave="analysisMapStore.tooltipRef.hideTooltip()"
         >
             <Checkbox
-                v-show="isNot3DView" 
+                v-show="hasOffPointFilter" 
                 v-model="globalChartStore.use_y_atc_filter" 
                 binary 
                 inputId="enable-off-filter"
@@ -538,7 +546,7 @@
                 :disabled="atlChartFilterStore.showPhotonCloud"
             />               
             <label
-                v-show="isNot3DView" 
+                v-show="hasOffPointFilter" 
                 for="enable-off-filter" 
                 class="sr-check-label">Off Pointing Filter
             </label>
@@ -548,14 +556,14 @@
             @mouseleave="analysisMapStore.tooltipRef.hideTooltip"
         >
             <Checkbox
-                v-show="isNot3DView" 
+                v-show="hasLinkToElevationPlot" 
                 v-model="globalChartStore.enableLocationFinder" 
                 binary 
                 inputId="enable-location-finder"
                 size="small"
             />               
             <label 
-                v-show="isNot3DView"
+                v-show="hasLinkToElevationPlot"
                 for="enable-location-finder" 
                 class="sr-check-label">Link to Elevation Plot
             </label>

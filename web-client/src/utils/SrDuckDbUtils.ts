@@ -520,7 +520,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number, layerName
 type Position = [number, number, number];
 
 export const duckDbReadAndUpdateSelectedLayer = async (
-    req_id: number, layerName:string, chunkSize: number = 10000, maxNumPnts = 10000
+    req_id: number, layerName:string
 ) => {
     console.log('duckDbReadAndUpdateSelectedLayer req_id:', req_id);
     if (req_id === undefined || req_id === null || req_id === 0) {
@@ -1234,7 +1234,7 @@ export async function fetchScatterData(
             .join(', ');
 
         let mainQuery = `SELECT ${allColumns} \nFROM '${fileName}'\n${finalWhereClause}`;
-
+        //console.log('fetchScatterData mainQuery:', mainQuery);
         useChartStore().setQuerySql(reqIdStr, mainQuery);
         const totalRowCnt = await duckDbClient.getTotalRowCount(mainQuery);
         //console.log('fetchScatterData totalRowCnt:', totalRowCnt, ' typeof:', typeof totalRowCnt);
@@ -1403,7 +1403,6 @@ export async function getAllColumnMinMax(
  * @returns An array of line segments, each defined by two endpoints [[x1, y
  */
 export async function getAtl06SlopeSegments(
-    reqIdStr: string,
     fileName: string,
     xField: string,
     yField: string,

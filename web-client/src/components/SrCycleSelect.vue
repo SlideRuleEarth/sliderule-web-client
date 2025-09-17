@@ -75,7 +75,7 @@ onMounted(() => {
     console.log('SrCycleSelect component mounted');
 });
 
-function handleValueChange(value) {
+function handleValueChange(value:any) {
     console.log('SrFilterCntrl handleValueChange:', value);
     const reqId = recTreeStore.selectedReqIdStr;
     if (reqId) {
