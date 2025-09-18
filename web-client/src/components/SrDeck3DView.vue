@@ -10,14 +10,19 @@
             rounded
             @click="handleToggleAxes"
         />
-        <Button 
-            label="Update View"
-            icon="pi pi-refresh"
-            class="sr-glow-button"
-            variant = text
-            rounded
-            @click="handleUpdateClick"
-        />
+        <div>
+            <label class="sr-y-data-label":for="`srYColEncode3D-overlayed-${recTreeStore.selectedReqIdStr}`">Point Color</label>
+            <Select
+                class="sr-select-col-encode-data"
+                v-model="yColorEncodeSelectedReactive[recTreeStore.selectedReqIdStr]"
+                :options="chartStore.getColorEncodeOptionsForFunc(recTreeStore.selectedReqIdStr,computedFunc)"
+                @change="handleColorEncodeSelectionChange"
+                placeholder="Encode Color with"
+                :id="`srYColEncode3D-overlayed-${recTreeStore.selectedReqIdStr}`"
+                size="small"
+            >
+            </Select>
+        </div>
         <div>
             <label class="sr-pnt-sz-label" for="pointSizeId">Point Size</label>
             <InputNumber
@@ -65,12 +70,17 @@ import Button from 'primevue/button';
 import { InputNumber } from 'primevue';
 import { finalizeDeck,loadAndCachePointCloudData, updateFovy } from '@/utils/deck3DPlotUtils';
 import { debouncedRender } from '@/utils/SrDebounce';
+import { yColorEncodeSelectedReactive } from '@/utils/plotUtils';
+import Select from 'primevue/select';
+import { useChartStore } from '@/stores/chartStore'; 
 
 const recTreeStore = useRecTreeStore();
+const chartStore = useChartStore();
 const toast = useSrToastStore();
 const deck3DConfigStore = useDeck3DConfigStore();
 const reqId = computed(() => recTreeStore.selectedReqId);
 const elevationStore = useElevationColorMapStore();
+const computedFunc = computed(() => recTreeStore.selectedApi);
 
 const localDeckContainer = ref<HTMLDivElement | null>(null);
 const computedStepSize = computed(() => {
@@ -90,8 +100,8 @@ const computedStepSize = computed(() => {
 });
 
 
-async function handleUpdateClick() {
-    console.log('Update View Clicked');
+async function handleColorEncodeSelectionChange() {
+    console.log('handleColorEncodeSelectionChange');
     await loadAndCachePointCloudData(reqId.value);
     debouncedRender(localDeckContainer); // Use the fast, debounced renderer
 }
@@ -190,6 +200,12 @@ watch(() => deck3DConfigStore.fovy, (newFov) => {
     display: flex;
     flex-direction: row;
 }
+.sr-y-data-label{
+    font-size: small;
+    margin-right: 0.2rem;
+    align-items: center;
+    justify-content: center;
+}
 .sr-pnt-sz-label{
     font-size: small;
     margin-right: 0.2rem;
@@ -198,7 +214,6 @@ watch(() => deck3DConfigStore.fovy, (newFov) => {
 }
 .sr-vert-exag-label{
     font-size: small;
-    margin-left: 0.5rem;
     margin-right: 0.2rem;
     align-items: center;
     justify-content: center;

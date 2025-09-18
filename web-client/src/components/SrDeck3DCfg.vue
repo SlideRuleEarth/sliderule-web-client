@@ -63,7 +63,16 @@
               @input="handleChange"
             />
           </div>
-        </section>
+          <div class="config-item-centered">
+            <Button 
+                label="Update View"
+                icon="pi pi-refresh"
+                class="sr-glow-button"
+                variant = text
+                rounded
+                @click="handleChange"
+            />
+          </div>        </section>
         <section class="config-section">
           <h4>Live View State</h4>
           <div class="config-item">
@@ -134,7 +143,8 @@
   import SrCustomTooltip from '@/components/SrCustomTooltip.vue'
   import { useRecTreeStore } from '@/stores/recTreeStore';
   import { loadAndCachePointCloudData } from '@/utils/deck3DPlotUtils';
-  import { debouncedRender } from '@/utils/SrDebounce'; 
+  import { debouncedRender } from '@/utils/SrDebounce';
+  import Button from 'primevue/button';
 
   const recTreeStore = useRecTreeStore();
   const deck3DConfigStore = useDeck3DConfigStore();
@@ -142,7 +152,7 @@
   const deckContainerStored = computed(() => deck3DConfigStore.deckContainer);
   const reqId = computed(() => recTreeStore.selectedReqId);
   const tooltipRef = ref();
-  const store = useDeck3DConfigStore()
+  const store = useDeck3DConfigStore();
 
 
   async function handleChange() {
@@ -180,6 +190,12 @@
   .config-item {
     display: flex;
     align-items: center;
+    margin-bottom: 0.75rem;
+  }
+    .config-item-centered {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     margin-bottom: 0.75rem;
   }
 
