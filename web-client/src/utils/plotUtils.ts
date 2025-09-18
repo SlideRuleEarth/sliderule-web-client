@@ -24,6 +24,7 @@ import { useFieldNameStore } from "@/stores/fieldNameStore";
 import { createDuckDbClient } from "@/utils/SrDuckDb";
 import { useActiveTabStore } from "@/stores/activeTabStore";
 import { useDeckStore } from "@/stores/deckStore";
+import { SC_BACKWARD,SC_FORWARD } from "@/sliderule/icesat2";
 
 export const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<string[]> }>({});
 export const yDataSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
@@ -1459,5 +1460,18 @@ export async function updateWhereClauseAndXData(req_id: number) {
         }
     } catch (error) {
         console.warn('updateWhereClauseAndXData Failed to update selected request:', error);
+    }
+}
+export function checkAndSetFilterForAtl13xTimeSeries() {
+    console.log('checkAndSetFilterForAtl13xTimeSeries called');
+    if(useActiveTabStore().isActiveTabTimeSeries){
+        if(useRecTreeStore().selectedApi === 'atl13x'){
+            const globalChartStore = useGlobalChartStore();
+            globalChartStore.set_use_y_atc_filter(false);
+            globalChartStore.setSpots([1,2,3,4,5,6]);
+            globalChartStore.setScOrients([SC_BACKWARD, SC_FORWARD]);
+            selectedCyclesReactive.value = globalChartStore.getCycleOptions().map(option => option.value); // Select all cycles
+            console.log('checkAndSetFilterForAtl13xTimeSeries Setting use_y_atc_filter false, Spots to [1,2,3,4,5,6], Cycles to all');
+        }
     }
 }

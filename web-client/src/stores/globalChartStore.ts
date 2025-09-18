@@ -371,7 +371,11 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     function getHigh(column: string): number {
         return allColumnMinMaxValues.value[column]?.high ?? undefined;
     }
-    
+
+    function set_use_y_atc_filter(value: boolean) {
+        use_y_atc_filter.value = value;
+    }
+
     return {
         fontSize,
         getCycleOptions,
@@ -427,6 +431,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         setSelectedElevationRec,
         getSelectedElevationRec,
         use_y_atc_filter,
+        set_use_y_atc_filter,
         selected_y_atc,
         y_atc_is_valid,
         y_atc_margin,

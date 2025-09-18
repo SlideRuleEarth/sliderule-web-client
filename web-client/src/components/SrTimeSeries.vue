@@ -7,8 +7,9 @@ import VChart, { THEME_KEY } from "vue-echarts";
 import { provide, watch, onMounted, ref, computed, nextTick } from "vue";
 import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { useChartStore } from "@/stores/chartStore";
-import { callPlotUpdateDebounced, initializeColorEncoding } from "@/utils/plotUtils";
+import { callPlotUpdateDebounced, initializeColorEncoding, checkAndSetFilterForAtl13xTimeSeries } from "@/utils/plotUtils";
 import { useRecTreeStore } from "@/stores/recTreeStore";
+import { useActiveTabStore } from "@/stores/activeTabStore";
 import SrPlotCntrl from "@/components/SrPlotCntrl.vue";
 import SrGradientLegend from "@/components/SrGradientLegend.vue";
 import { useGlobalChartStore } from "@/stores/globalChartStore";
@@ -29,6 +30,7 @@ const props = defineProps({
 const chartStore = useChartStore();
 const globalChartStore = useGlobalChartStore();
 const atlChartFilterStore = useAtlChartFilterStore();
+const activeTabStore = useActiveTabStore();
 const recTreeStore = useRecTreeStore();
 const fieldNameStore = useFieldNameStore();
 const loadingComponent = ref(true);
@@ -66,6 +68,12 @@ const cyclesLabel = computed(() => {
         return 'Cycles';
     }
 });
+
+const computedApi = computed(() => recTreeStore.selectedApi);
+
+const notAtl13xTimeSeries = computed(() =>
+    (computedApi.value === 'atl13x') ? ((activeTabStore.isActiveTabTimeSeries) ?  false : true) : true
+);
 
 const initGradientPosition = () => {
   const thisChartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
@@ -171,6 +179,7 @@ onMounted(async () => {
         shouldDisplayGradient.value = true;
         await nextTick(); // Ensures Vue has completed the DOM rendering
         initGradientPosition();
+        checkAndSetFilterForAtl13xTimeSeries();
     } catch (error) {
             console.error('Error during onMounted initialization:', error);
     } finally {
@@ -183,6 +192,7 @@ watch(() => recTreeStore.selectedReqId, async (newReqId) => {
     console.log('SrTimeSeries watch reqId changed:', newReqId);
     if (newReqId && newReqId > 0) {
         // this is just to preset certain values that the user never changes
+        checkAndSetFilterForAtl13xTimeSeries();
         await callPlotUpdateDebounced('from SrTimeSeries watch recTreeStore.selectedReqId');
     }
 });
@@ -193,6 +203,7 @@ watch(() => plotRef.value, async (newPlotRef) => {
         console.warn('SrTimeSeries watch plotRef changed:', newPlotRef);
         atlChartFilterStore.setPlotRef(plotRef.value);
         if(chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length > 0){
+            checkAndSetFilterForAtl13xTimeSeries();
             await callPlotUpdateDebounced('from SrTimeSeries watch plotRef.value');
         } else {
             console.warn('SrTimeSeries watch plotRef.value - no Y data selected');
@@ -229,6 +240,7 @@ watch(() => {
             console.warn(`Skipped updateThePlot for watch selected Y data - Loading component is still active`);
         }       
         if(needPlotUpdate){
+            checkAndSetFilterForAtl13xTimeSeries();
             await callPlotUpdateDebounced('from watch selected Y data changed');
         }
     } else {
@@ -262,7 +274,7 @@ watch(() => {
             </div>
             <div class="sr-cycles-legend-panel">
                 <SrCycleSelect :label="cyclesLabel"/>
-                <SrSimpleYatcCntrl v-if="(mission==='ICESat-2')"/>
+                <SrSimpleYatcCntrl v-if="(mission==='ICESat-2' && notAtl13xTimeSeries)"/>
                 <div class="sr-legends-panel">
                     <Dialog
                         v-if="(chartWrapperRef !== undefined)"
