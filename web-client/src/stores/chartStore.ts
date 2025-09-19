@@ -265,7 +265,7 @@ export const useChartStore = defineStore('chartStore', {
             this.ensureState(reqIdStr);
             const selectedColorEncodeData = this.stateByReqId[reqIdStr].selectedColorEncodeData;
             //console.log('getSelectedColorEncodeData reqIdStr:',reqIdStr, ' selectedColorEncodeData:',selectedColorEncodeData);
-            return selectedColorEncodeData;
+            return selectedColorEncodeData??'solid';
         },
         setSelectedColorEncodeData(reqIdStr: string, newVal: string) {
             this.ensureState(reqIdStr);

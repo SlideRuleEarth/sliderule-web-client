@@ -290,7 +290,6 @@ watch(() => {
                             <SrGradientLegend
                                 class="chart-overlay"
                                 v-if = "(computedDataKey!='solid')"
-                                :reqIdStr="recTreeStore.selectedReqIdStr" 
                                 :data_key="computedDataKey" 
                                 :transparentBackground="true" 
                             />

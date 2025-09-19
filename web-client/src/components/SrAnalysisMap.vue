@@ -35,6 +35,7 @@
     import { OL_DECK_LAYER_NAME } from '@/types/SrTypes';
     import { useAnalysisMapStore } from "@/stores/analysisMapStore";
     import { useGlobalChartStore } from "@/stores/globalChartStore";
+    import { useDeck3DConfigStore } from "@/stores/deck3DConfigStore";
     import { updatePlotAndSelectedTrackMapLayer } from '@/utils/plotUtils';
     import { setCyclesGtsSpotsFromFileUsingRgtYatc,updateSrViewName } from "@/utils/SrMapUtils";
     import Checkbox from 'primevue/checkbox';
@@ -64,6 +65,7 @@
     const requestsStore = useRequestsStore();
     const recTreeStore = useRecTreeStore();
     const deckStore = useDeckStore();
+    const deck3DConfigStore = useDeck3DConfigStore();
     const srParquetCfgStore = useSrParquetCfgStore();
     const analysisMapStore = useAnalysisMapStore();
     const globalChartStore = useGlobalChartStore();
@@ -151,6 +153,12 @@
         if(newReqId !== oldReqId){
             if(newReqId > 0){
                 globalChartStore.setAllColumnMinMaxValues({}); // reset all min/max values
+                if(recTreeStore.selectedApi === 'atl13x'){
+                    deck3DConfigStore.verticalExaggeration = 1000; // default for atl13x
+                } else {
+                    deck3DConfigStore.verticalExaggeration = 1; // default for other data
+                }
+
                 await updateAnalysisMapView('watch selectedReqId');
             } else {
                 console.error("Error: SrAnalysisMap selectedReqId is 0?");

@@ -38,6 +38,7 @@
         </div>
         <div class="sr-elrng3d-panel">
             <SrElRng3D v-if="shouldDisplay3DView" />
+            <SrCycleSelect v-if="shouldDisplayCycleSelect" />
         </div>
     </div>
 </template>
@@ -54,18 +55,21 @@
     import { useRecTreeStore } from '@/stores/recTreeStore';
     import { useActiveTabStore } from '@/stores/activeTabStore';
     import { useGlobalChartStore } from '@/stores/globalChartStore';
+    import { useChartStore } from '@/stores/chartStore';
     import { useFieldNameStore } from '@/stores/fieldNameStore';
     import { useRoute } from 'vue-router';
     import SrTimeSeries from '@/components/SrTimeSeries.vue';
     import SrDeck3DView from '@/components/SrDeck3DView.vue';
     import SrElRng3D from '@/components/SrElRng3D.vue';
+    import SrCycleSelect from './SrCycleSelect.vue';
+
 
     const route = useRoute();
     const recTreeStore = useRecTreeStore();
     const activeTabStore = useActiveTabStore();
     const globalChartStore = useGlobalChartStore();
     const fieldNameStore = useFieldNameStore();
-
+    const chartStore = useChartStore();
 
     // The reqId from the route
     const reqId = computed(() => Number(route.params.id) || 0);
@@ -106,6 +110,15 @@
             recTreeStore.allReqIds.includes(reqId.value)
         );
     });
+
+    const shouldDisplayCycleSelect = computed(() => {
+        if((reqId.value <= 0  ) || !recTreeStore.selectedReqIdStr) {
+            return false;
+        }
+        const selectedColorEncodeData = chartStore.getSelectedColorEncodeData(recTreeStore.selectedReqIdStr);
+        return shouldDisplay3DView.value && selectedColorEncodeData === 'cycle';
+    });
+
     onMounted(async () => {
         console.log('onMounted for SrAnalysis with reqId:', reqId.value);
         activeTabStore.setActiveTab('0');
@@ -144,10 +157,31 @@
 }
 
 .sr-elrng3d-panel {
-    flex: 0 1 5%;
+    flex: 0 1 15%;
     display: flex;
     align-items: center;
     justify-content:flex-start;
     height: 60%;
 }
+
+/* SrCycleSelect no-wrap + ellipsize */
+:deep(.p-listbox),
+:deep(.p-listbox .p-listbox-list),
+:deep(.p-listbox .p-listbox-item),
+:deep(.p-listbox .p-listbox-header) {
+  white-space: nowrap;
+}
+
+:deep(.p-listbox .p-listbox-item) {
+  overflow: hidden;
+  text-overflow: ellipsis; /* if an item is still too long */
+}
+
+/* optional: make the header (“Cycles (1)”) stay on one line */
+:deep(.p-listbox .p-listbox-header .p-listbox-header-label) {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 </style>

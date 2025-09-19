@@ -786,7 +786,8 @@ export function updateDeckLayerWithObject(
     extHMean: ExtHMean,
     heightFieldName: string,
     positions: SrPosition[],
-    projName: string
+    projName: string,
+    deleteSelectedLayer: boolean = false
 ): void {
     //const startTime = performance.now();
     //console.log(`updateDeckLayerWithObject ${name} startTime:`, startTime);

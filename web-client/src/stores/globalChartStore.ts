@@ -375,6 +375,9 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     function set_use_y_atc_filter(value: boolean) {
         use_y_atc_filter.value = value;
     }
+    function selectAllCycleOptions(){
+        setSelectedCycleOptions(getCycleOptions());
+    }
 
     return {
         fontSize,
@@ -382,6 +385,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         getCycleOptionsValues,
         setCycleOptions,
         findCycleOption,
+        selectAllCycleOptions,
         cycleOptions,
         setCycles,
         getCycles,

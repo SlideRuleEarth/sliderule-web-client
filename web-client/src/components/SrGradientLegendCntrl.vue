@@ -18,7 +18,6 @@
                 />
             </div>
             <SrGradientLegend
-                :reqIdStr="props.req_id.toString()" 
                 :data_key="props.data_key" 
                 :transparentBackground="true" 
             />
