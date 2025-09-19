@@ -68,14 +68,14 @@ async function filterCycles() {
 
 async function setAllCycles() {
     //console.log('setAllCycles:', selectedCyclesReactive.value);
-    selectedCyclesReactive.value = computedCycleOptions.value.map(option => option.value); // Select all cycles
+    globalChartStore.selectAllCycleOptions();
 }
 
 onMounted(() => {
     console.log('SrCycleSelect component mounted');
 });
 
-function handleValueChange(value) {
+function handleValueChange(value:any) {
     console.log('SrFilterCntrl handleValueChange:', value);
     const reqId = recTreeStore.selectedReqIdStr;
     if (reqId) {

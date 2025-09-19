@@ -319,12 +319,11 @@ const shouldDisplayMainSolidColorLegend = computed(() => {
     return ((computedDataKey.value === 'solid') && (!isAtl24WithPhotonCloud.value));
 });
 
-const overlayReqIdStr = computed(() => {
-    if(atlChartFilterStore.selectedOverlayedReqIds.length > 0){
-        return atlChartFilterStore.selectedOverlayedReqIds[0].toString();
-    }
-    return '';
+const reqIdStr = computed(() => {
+    return recTreeStore.selectedReqIdStr || '';
 });
+
+
 
 const computedOverlayDataKey = computed(() => {
     if(atlChartFilterStore.selectedOverlayedReqIds.length > 0){
@@ -626,7 +625,6 @@ watch(() => atlChartFilterStore.showSlopeLines, async (newValue) => {
                         <SrGradientLegend
                             class="chart-overlay"
                             v-if = "shouldDisplayMainGradient"
-                            :reqIdStr="recTreeStore.selectedReqIdStr" 
                             :data_key="computedDataKey" 
                             :transparentBackground="true" 
                         />
@@ -646,7 +644,7 @@ watch(() => atlChartFilterStore.showSlopeLines, async (newValue) => {
                             <SrSolidColorLegend
                                 class="chart-overlay"
                                 v-if = shouldDisplayMainSolidColorLegend
-                                :reqIdStr="recTreeStore.selectedReqIdStr" 
+                                :reqIdStr="reqIdStr" 
                                 :data_key="computedDataKey" 
                                 :transparentBackground="true" 
                             />
@@ -666,7 +664,7 @@ watch(() => atlChartFilterStore.showSlopeLines, async (newValue) => {
                             <SrGradientLegend
                                 class="chart-overlay"
                                 v-if = "shouldDisplayOverlayGradient"
-                                :reqIdStr="overlayReqIdStr" 
+                                :isOverlay="true"
                                 :data_key="computedOverlayDataKey" 
                                 :transparentBackground="true" 
                             />

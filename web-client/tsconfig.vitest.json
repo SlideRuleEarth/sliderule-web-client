@@ -11,7 +11,7 @@
     "noEmit": true,
     "emitDeclarationOnly": false,
 
-    "types": ["vitest/globals", "vite/client", "vue"],
+    "types": ["vitest/globals", "vite/client", "vue", "node"],
 
     "baseUrl": ".",
     "paths": {
@@ -20,6 +20,8 @@
     }
   },
   "include": [
+    "tests",
+    "src",
     "env.d.ts",
     "sliderule.d.ts",
     "vue-shim.d.ts",

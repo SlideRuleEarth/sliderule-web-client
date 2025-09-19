@@ -12,6 +12,8 @@ import { OrbitView, OrbitController } from '@deck.gl/core';
 import { ref,type Ref } from 'vue';
 import { Deck } from '@deck.gl/core';
 import proj4 from 'proj4';
+import { useRecTreeStore } from '@/stores/recTreeStore';
+import { useChartStore } from '@/stores/chartStore';
 
 // import log from '@probe.gl/log';
 // log.level = 1;  // 0 = silent, 1 = minimal, 2 = verbose
@@ -20,8 +22,9 @@ import { toRaw, isProxy } from 'vue';
 import { formatTime } from '@/utils/formatUtils';
 
 const deck3DConfigStore = useDeck3DConfigStore();
-const elevationStore = useElevationColorMapStore();
+const recTreeStore = useRecTreeStore();
 const fieldStore = useFieldNameStore();
+const chartStore = useChartStore();
 const viewId = 'main';
 
 let latField = '';
@@ -84,7 +87,7 @@ function computeCentroid(position: [number, number, number][]) {
     if (avg.every(Number.isFinite)) {
         deck3DConfigStore.centroid = avg as [number, number, number];
     }
-    console.log('Centroid:', deck3DConfigStore.centroid);
+    //console.log('Centroid:', deck3DConfigStore.centroid);
 }
 
 
@@ -149,17 +152,27 @@ function createDeck(container: HTMLDivElement) {
         },
         getTooltip: info => {
             if (!info.object) return null;
-            const { lat, lon, elevation, cycle, time } = info.object;
+            const {
+                lat, lon, elevation, cycle, time,
+                colorByLabel, colorByValue
+            } = info.object;
+
             const timeStr = time ? formatTime(time) : '?';
+            const colorByHtml =
+                colorByLabel
+                    ? `<strong>Color by:</strong> ${colorByLabel}${colorByValue !== null ? ` = ${colorByValue}` : ''}<br>`
+                    : '';
+
             return {
                 html: `
-                    <div>
-                        <strong>Longitude:</strong> ${lon?.toFixed(5)}<br>
-                        <strong>Latitude:</strong> ${lat?.toFixed(5)}<br>
-                        <strong>Elevation:</strong> ${elevation?.toFixed(2)} m <br>
-                        <strong>Cycle:</strong> ${cycle ?? '?'}<br>
-                        <strong>Time:</strong> ${timeStr ?? '?'}<br>
-                    </div>
+                <div>
+                    <strong>Longitude:</strong> ${lon?.toFixed(5)}<br>
+                    <strong>Latitude:</strong> ${lat?.toFixed(5)}<br>
+                    <strong>Elevation (Z):</strong> ${Number.isFinite(elevation) ? elevation.toFixed(2) : '?'} m<br>
+                    <strong>Cycle:</strong> ${cycle ?? '?'}<br>
+                    ${colorByHtml}
+                    <strong>Time:</strong> ${timeStr}<br>
+                </div>
                 `,
                 style: {
                     background: 'rgba(20, 20, 20, 0.85)',
@@ -169,7 +182,8 @@ function createDeck(container: HTMLDivElement) {
                     borderRadius: '4px'
                 }
             };
-        },        
+        },
+
         debug: deck3DConfigStore.debug,
     });
 }
@@ -305,29 +319,40 @@ export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
     // Ensure ratio = 1 for isotropic XYZ (exaggeration handled separately)
     deck3DConfigStore.verticalScaleRatio = 1;
 
-    // --- helpers ---
-    const pickLocalMetricCRS = (lat: number, lon: number): string => {
-        const absLat = Math.abs(lat);
-        if (absLat >= 83) return lat >= 0 ? 'EPSG:3413' : 'EPSG:3031'; // polar stereo
-        const zone = Math.floor((lon + 180) / 6) + 1;
-        return lat >= 0
-            ? `EPSG:326${String(zone).padStart(2, '0')}` // UTM north
-            : `EPSG:327${String(zone).padStart(2, '0')}`; // UTM south
-    };
 
     // --- fast, in-memory processing ---
-    const heightField = fieldStore.getHFieldName(lastLoadedReqId);
+    const selectedColorField = chartStore.getSelectedColorEncodeData(recTreeStore.selectedReqIdStr);
+    console.log('renderCachedData: selectedColorField:', selectedColorField, ' for reqId:', recTreeStore.selectedReqIdStr);
+    const zField = fieldStore.getHFieldName(lastLoadedReqId);
 
-    const elevations = cachedRawData.map(d => d[heightField]).sort((a, b) => a - b);
+    // helper
+    const isFiniteNumber = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 
-    const colorMin = getPercentile(elevations, deck3DConfigStore.minColorPercent);
-    const colorMax = getPercentile(elevations, deck3DConfigStore.maxColorPercent);
+    // Gather arrays once
+    const elevations = cachedRawData.map(d => d[zField]).filter(isFiniteNumber).sort((a, b) => a - b);
+
+    // choose color field (fallback to zField if not present or not numeric)
+    const hasColorField = selectedColorField && cachedRawData.some(d => isFiniteNumber(d[selectedColorField]));
+
+    const cField = hasColorField ? selectedColorField : zField;
+
+    // percentiles for COLOR scale come from the color values
+    const colorValues = cachedRawData.map((d:any) => d[cField]).filter(isFiniteNumber).sort((a, b) => a - b);
+
+    if (colorValues.length === 0) {
+        // fall back to elevations to avoid NaN ranges
+        colorValues.push(...elevations);
+    }
+    const colorMin = getPercentile(colorValues, deck3DConfigStore.minColorPercent);
+    const colorMax = getPercentile(colorValues, deck3DConfigStore.maxColorPercent);
     const colorRange = Math.max(1e-6, colorMax - colorMin);
-
+    console.log(`renderCachedData hasColorField: ${hasColorField}, color field: ${cField} [${colorMin.toFixed(2)}, ${colorMax.toFixed(2)}] based on ${colorValues.length} samples`);
+    // percentiles for Z scale still come from elevations
     const [minElScalePercent, maxElScalePercent] = deck3DConfigStore.elScaleRange;
     const elevMinScale = getPercentile(elevations, minElScalePercent);
     const elevMaxScale = getPercentile(elevations, maxElScalePercent);
 
+    // data window (filter) still based on elevations
     const [minElDataPercent, maxElDataPercent] = deck3DConfigStore.elDataRange;
     const elevMinData = getPercentile(elevations, minElDataPercent);
     const elevMaxData = getPercentile(elevations, maxElDataPercent);
@@ -370,40 +395,52 @@ export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
     // Map cached data → world coords
     const pointCloudData = cachedRawData
         .filter(d => {
-            const h = d[heightField];
-            return h >= elevMinData && h <= elevMaxData;
+            const h = d[zField];
+            return isFiniteNumber(h) && h >= elevMinData && h <= elevMaxData;
         })
         .map(d => {
             const [E, N] = proj4('EPSG:4326', dstCrs, [d[lonField], d[latField]]);
             // origin = SW corner → same framing; uniform metersToWorld keeps aspect ratio
             const x = metersToWorld * (E - Emin); // East (m → world)
             const y = metersToWorld * (N - Nmin); // North (m → world)
-            const z = zToWorld * (d[heightField] - h0); // Up  (m → world), isotropic with XY
+            const z = zToWorld * ((d[zField] as number) - h0); // Up
 
-            // color unchanged
-            const colorZ = Math.max(colorMin, Math.min(colorMax, d[heightField]));
-            const colorNorm = (colorZ - colorMin) / colorRange;
-            const index = Math.floor(colorNorm * (rgbaArray.length - 1));
-            const rawColor =
-                rgbaArray[Math.max(0, Math.min(index, rgbaArray.length - 1))] ??
-                [255, 255, 255, 1];
-
+            // --- COLOR from cField (fallback handled above) ---
+            const rawVal = d[cField] as number;
+            const colorVal = Math.max(colorMin, Math.min(colorMax, rawVal));
+            const colorNorm = (colorVal - colorMin) / colorRange;
+            const idx = Math.floor(colorNorm * (rgbaArray.length - 1));
+            const rawColor = rgbaArray[Math.max(0, Math.min(idx, rgbaArray.length - 1))] ?? [255, 255, 255, 1];
             const color = [
                 Math.round(rawColor[0]),
                 Math.round(rawColor[1]),
                 Math.round(rawColor[2]),
                 Math.round(rawColor[3] * 255),
             ];
+            // Build a single "color-by" descriptor.
+            // We *always* show Elevation and Cycle lines separately in the tooltip.
+            // If color-by is Elevation or Cycle, we just show the label (no duplicate value).
+            const colorByLabel = cField === zField ? 'Elevation'
+                            : cField === 'cycle' ? 'Cycle'
+                            : cField;
+
+            const colorByValue =
+                cField === zField || cField === 'cycle'
+                    ? null
+                    : (isFiniteNumber(rawVal) ? rawVal : null);
 
             return {
                 position: [x, y, z] as [number, number, number],
                 color,
                 lat: d[latField],
                 lon: d[lonField],
-                elevation: d[heightField],
-                cycle: d['cycle'],
+                elevation: d[zField],
+                cycle: d['cycle'] ?? null,
                 time: d[timeField] ?? null,
+                colorByLabel,
+                colorByValue,
             };
+
         });
 
     computeCentroid(pointCloudData.map(p => p.position));

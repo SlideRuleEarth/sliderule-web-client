@@ -2,13 +2,13 @@
   "files": [],
   "references": [
     { "path": "./tsconfig.node.json" },
-    { "path": "./tsconfig.app.json" }
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.vitest.json" }
   ],
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
-      "vue-shim": ["./vue-shim.d.ts"]
     },
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,

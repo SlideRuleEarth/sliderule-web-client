@@ -1,5 +1,7 @@
 <template>
-    <div ref="localDeckContainer" class="deck-canvas">    
+    <div class = "deck-view-container">
+        <div ref="localDeckContainer" class="deck-canvas">    
+        </div>
     </div>
     <div class="sr-3d-cntrl">
         <Button 
@@ -10,14 +12,24 @@
             rounded
             @click="handleToggleAxes"
         />
-        <Button 
-            label="Update View"
-            icon="pi pi-refresh"
-            class="sr-glow-button"
-            variant = text
-            rounded
-            @click="handleUpdateClick"
-        />
+        <div>
+            <label class="sr-y-data-label":for="`srYColEncode3D-overlayed-${recTreeStore.selectedReqIdStr}`">Point Color</label>
+            <Select
+                class="sr-select-col-encode-data"
+                v-model="yColorEncodeSelectedReactive[recTreeStore.selectedReqIdStr]"
+                :options="chartStore.getColorEncodeOptionsForFunc(recTreeStore.selectedReqIdStr,computedFunc)"
+                @change="handleColorEncodeSelectionChange"
+                placeholder="Encode Color with"
+                :id="`srYColEncode3D-overlayed-${recTreeStore.selectedReqIdStr}`"
+                size="small"
+            >
+            </Select>
+            <SrGradientLegend
+                class="chart-overlay"
+                :data_key="computedDataKey" 
+                :transparentBackground="true" 
+            />
+        </div>
         <div>
             <label class="sr-pnt-sz-label" for="pointSizeId">Point Size</label>
             <InputNumber
@@ -55,6 +67,7 @@
 
 <script setup lang="ts">
 import { onMounted, nextTick, computed, watch, ref, onUnmounted } from 'vue';
+import SrGradientLegend from "@/components/SrGradientLegend.vue";
 import { useSrToastStore } from '@/stores/srToastStore';
 import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
 import { useRecTreeStore } from '@/stores/recTreeStore';
@@ -65,14 +78,27 @@ import Button from 'primevue/button';
 import { InputNumber } from 'primevue';
 import { finalizeDeck,loadAndCachePointCloudData, updateFovy } from '@/utils/deck3DPlotUtils';
 import { debouncedRender } from '@/utils/SrDebounce';
+import { yColorEncodeSelectedReactive } from '@/utils/plotUtils';
+import Select from 'primevue/select';
+import { useChartStore } from '@/stores/chartStore'; 
+import { useGlobalChartStore } from '@/stores/globalChartStore';
 
 const recTreeStore = useRecTreeStore();
+const chartStore = useChartStore();
+const globalChartStore = useGlobalChartStore();
 const toast = useSrToastStore();
 const deck3DConfigStore = useDeck3DConfigStore();
 const reqId = computed(() => recTreeStore.selectedReqId);
 const elevationStore = useElevationColorMapStore();
-
+const computedFunc = computed(() => recTreeStore.selectedApi);
+const computedDataKey = computed(() => {
+    const key = recTreeStore.selectedReqIdStr;
+    if (!key) return 'solid';
+    // Prefer the store getter (it can guard internally)
+    return chartStore.getSelectedColorEncodeData(key) ?? 'solid';
+});
 const localDeckContainer = ref<HTMLDivElement | null>(null);
+
 const computedStepSize = computed(() => {
     if (deck3DConfigStore.verticalScaleRatio > 1000) {
         // If the vertical scale ratio is very large, increase the step size for better control
@@ -90,8 +116,9 @@ const computedStepSize = computed(() => {
 });
 
 
-async function handleUpdateClick() {
-    console.log('Update View Clicked');
+
+async function handleColorEncodeSelectionChange() {
+    console.log('handleColorEncodeSelectionChange');
     await loadAndCachePointCloudData(reqId.value);
     debouncedRender(localDeckContainer); // Use the fast, debounced renderer
 }
@@ -113,9 +140,18 @@ async function handleVerticalExaggerationChange() {
 
 
 onMounted(async () => {
+    console.log('onMounted SrDeck3DView reqId:', reqId.value, 'computedDataKey:', computedDataKey.value);
     updateMapAndPlot(false);
     await nextTick(); // ensures DOM is updated
     elevationStore.updateElevationColorMapValues();
+    if(computedFunc.value === 'atl13x'){
+        deck3DConfigStore.verticalExaggeration = 1000; // default for atl13x
+        globalChartStore.selectAllCycleOptions();
+        console.log('onMounted atl13x selectAllCycleOptions:', globalChartStore.selectedCycleOptions);
+        chartStore.setSelectedColorEncodeData(recTreeStore.selectedReqIdStr, 'cycle');
+    } else {
+        deck3DConfigStore.verticalExaggeration = 1; // default for other data
+    }
     await nextTick(); // makes sure the gradient is available
     //console.log('onMounted Centroid:', deck3DConfigStore.centroid);
     const { width, height } = localDeckContainer.value!.getBoundingClientRect();
@@ -144,7 +180,7 @@ onMounted(async () => {
         console.error('No color Gradient');
         toast.error('No color Gradient', 'Skipping point cloud due to missing gradient.');
     }
-    toast.info('3D view', 'Drag to rotate, scroll to zoom. Hold the shift key and drag to pan.');
+    toast.info('3D view', 'Drag to rotate, scroll to zoom. Hold the shift key and drag to pan.', 30000);
 });
 
 onUnmounted(() => {
@@ -186,9 +222,18 @@ watch(() => deck3DConfigStore.fovy, (newFov) => {
     width: 7rem;
 }
 
+
+
+
 .sr-3d-cntrl {
     display: flex;
     flex-direction: row;
+}
+.sr-y-data-label{
+    font-size: small;
+    margin-right: 0.2rem;
+    align-items: center;
+    justify-content: center;
 }
 .sr-pnt-sz-label{
     font-size: small;
@@ -198,7 +243,6 @@ watch(() => deck3DConfigStore.fovy, (newFov) => {
 }
 .sr-vert-exag-label{
     font-size: small;
-    margin-left: 0.5rem;
     margin-right: 0.2rem;
     align-items: center;
     justify-content: center;

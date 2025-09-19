@@ -786,9 +786,10 @@ export function updateDeckLayerWithObject(
     extHMean: ExtHMean,
     heightFieldName: string,
     positions: SrPosition[],
-    projName: string
+    projName: string,
+    deleteSelectedLayer: boolean = false
 ): void {
-    const startTime = performance.now();
+    //const startTime = performance.now();
     //console.log(`updateDeckLayerWithObject ${name} startTime:`, startTime);
     try {
         if (useDeckStore().getDeckInstance()) {
@@ -801,7 +802,7 @@ export function updateDeckLayerWithObject(
     } catch (error) {
         console.error(`updateDeckLayerWithObject ${name}  Error updating elevation layer:`, error);
     } finally {
-        const endTime = performance.now();
+        //const endTime = performance.now();
         //console.log(`updateDeckLayerWithObject ${name} took ${endTime - startTime} milliseconds. endTime:`, endTime);
     }
 }

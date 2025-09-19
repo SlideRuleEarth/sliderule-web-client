@@ -12,7 +12,6 @@ import type { WritableComputedRef } from "vue";
 import { reactive, computed } from 'vue';
 import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { useRecTreeStore } from "@/stores/recTreeStore";
-import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import { useRequestsStore } from "@/stores/requestsStore";
 import { useGradientColorMapStore } from "@/stores/gradientColorMapStore";
 import { useAtl03CnfColorMapStore } from "@/stores/atl03CnfColorMapStore";
@@ -23,6 +22,9 @@ import { SELECTED_LAYER_NAME_PREFIX, type MinMaxLowHigh, type AtlReqParams, type
 import { useSymbolStore } from "@/stores/symbolStore";
 import { useFieldNameStore } from "@/stores/fieldNameStore";
 import { createDuckDbClient } from "@/utils/SrDuckDb";
+import { useActiveTabStore } from "@/stores/activeTabStore";
+import { useDeckStore } from "@/stores/deckStore";
+import { SC_BACKWARD,SC_FORWARD } from "@/sliderule/icesat2";
 
 export const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<string[]> }>({});
 export const yDataSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
@@ -720,9 +722,7 @@ export async function initChartStoreFor(reqId:number) : Promise<boolean>{
 export async function initChartStore() {
     const startTime = performance.now(); 
     const recTreeStore = useRecTreeStore();
-    const chartStore = useChartStore();
     for (const reqIdItem of recTreeStore.reqIdMenuItems) {
-        const reqIdStr = reqIdItem.value.toString();
         const reqId = Number(reqIdItem.value);
         const status = await initChartStoreFor(reqId);
         if(!status){
@@ -802,7 +802,7 @@ export async function getScatterOptions(req_id:number): Promise<any> {
                             const segmentLength = svr_params?.len;
                             const whereClause = chartStore.getWhereClause(reqIdStr);
                             //console.log(`getScatterOptions ${reqIdStr} minX: ${minX} segmentLength: ${segmentLength} whereClause: ${whereClause}`);
-                            const slopeLines = await getAtl06SlopeSegments(reqIdStr, fileName, x, useFieldNameStore().getHFieldName(req_id), 'dh_fit_dx', segmentLength, whereClause, minX);
+                            const slopeLines = await getAtl06SlopeSegments(fileName, x, useFieldNameStore().getHFieldName(req_id), 'dh_fit_dx', segmentLength, whereClause, minX);
                             //console.log(`getSeriesFor ${reqIdStr} slopeLines (${slopeLines.length}):`, slopeLines);
                             const slopeLineItems = slopeLines.map(seg => [seg[0][0], seg[0][1], seg[1][0], seg[1][1]]);
                             if(slopeLineItems && slopeLineItems.length > 0){
@@ -1361,7 +1361,6 @@ export async function updatePlotAndSelectedTrackMapLayer(msg:string){
     const startTime = performance.now(); 
     console.log('updatePlotAndSelectedTrackMapLayer called for:',msg);
     const recTreeStore = useRecTreeStore();
-    const mission = useFieldNameStore().getMissionForReqId(recTreeStore.selectedReqId);
     const globalChartStore = useGlobalChartStore();
     if( (globalChartStore.getRgt() >= 0) &&
         (globalChartStore.getCycles().length > 0) &&
@@ -1369,9 +1368,12 @@ export async function updatePlotAndSelectedTrackMapLayer(msg:string){
     ){
         //TBD  Can these be done in parallel?
         await refreshScatterPlot(msg);
-        const maxNumPnts = useSrParquetCfgStore().getMaxNumPntsToDisplay();
-        const chunkSize = useSrParquetCfgStore().getChunkSizeToRead();
-        await duckDbReadAndUpdateSelectedLayer(recTreeStore.selectedReqId,SELECTED_LAYER_NAME_PREFIX,chunkSize,maxNumPnts);       
+        if((recTreeStore.selectedApi != 'atl13x') ||
+            ((recTreeStore.selectedApi === 'atl13x') && !useActiveTabStore().isActiveTabTimeSeries)){
+            await duckDbReadAndUpdateSelectedLayer(recTreeStore.selectedReqId,SELECTED_LAYER_NAME_PREFIX); 
+        } else {
+            useDeckStore().deleteSelectedLayer();
+        }      
     } else {
         console.warn('updatePlotAndSelectedTrackMapLayer Need Rgts, Cycles, and Spots values selected');
         console.warn('updatePlotAndSelectedTrackMapLayer Rgt:', globalChartStore.getRgt());
@@ -1439,7 +1441,6 @@ export async function initSymbolSize(req_id: number):Promise<number>{
 
 export async function updateWhereClauseAndXData(req_id: number) {
     //console.log('updateWhereClauseAndXData req_id:', req_id);
-    const reqIdStr = req_id.toString();
     if (req_id <= 0) {
         console.warn(`updateWhereClauseAndXData Invalid request ID:${req_id}`);
         return;
@@ -1459,5 +1460,18 @@ export async function updateWhereClauseAndXData(req_id: number) {
         }
     } catch (error) {
         console.warn('updateWhereClauseAndXData Failed to update selected request:', error);
+    }
+}
+export function checkAndSetFilterForAtl13xTimeSeries() {
+    console.log('checkAndSetFilterForAtl13xTimeSeries called');
+    if(useActiveTabStore().isActiveTabTimeSeries){
+        if(useRecTreeStore().selectedApi === 'atl13x'){
+            const globalChartStore = useGlobalChartStore();
+            globalChartStore.set_use_y_atc_filter(false);
+            globalChartStore.setSpots([1,2,3,4,5,6]);
+            globalChartStore.setScOrients([SC_BACKWARD, SC_FORWARD]);
+            selectedCyclesReactive.value = globalChartStore.getCycleOptions().map(option => option.value); // Select all cycles
+            console.log('checkAndSetFilterForAtl13xTimeSeries Setting use_y_atc_filter false, Spots to [1,2,3,4,5,6], Cycles to all');
+        }
     }
 }
