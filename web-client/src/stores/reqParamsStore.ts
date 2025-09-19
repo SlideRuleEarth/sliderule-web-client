@@ -240,6 +240,7 @@ const createReqParamsStore = (id: string) =>
                 console.error('presetForScatterPlotOverlay: no poly for parentReqId:', parentReqId);
               }
             }
+            this.enableAtl03Classification = true;
             this.signalConfidence = [
               signalConfidenceNumberOptions[2],
               signalConfidenceNumberOptions[3],
