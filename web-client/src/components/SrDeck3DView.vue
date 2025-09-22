@@ -36,12 +36,13 @@
                 v-model="deck3DConfigStore.pointSize"
                 inputId="pointSizeId"
                 size="small"
-                :step="0.5"
+                :step="0.1"
                 :min="0.1"
-                :max="10"
+                :max="10.0"
+                :minFractionDigits="0" 
+                :maxFractionDigits="1"
                 showButtons
                 :defaultValue="deck3DConfigStore.pointSize"
-                :decimalPlaces=0
                 @value-change="handlePointSizeChange"
             />
         </div>
@@ -56,7 +57,6 @@
                 :max="1000000"
                 showButtons
                 :defaultValue="deck3DConfigStore.verticalExaggeration"
-                :decimalPlaces="1"
                 @value-change="handleVerticalExaggerationChange"
             />
         </div>
@@ -228,6 +228,7 @@ watch(() => deck3DConfigStore.fovy, (newFov) => {
 .sr-3d-cntrl {
     display: flex;
     flex-direction: row;
+    justify-content: space-evenly;
 }
 .sr-y-data-label{
     font-size: small;
