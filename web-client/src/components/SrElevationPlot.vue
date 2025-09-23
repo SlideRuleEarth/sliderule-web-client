@@ -324,8 +324,6 @@ const reqIdStr = computed(() => {
     return recTreeStore.selectedReqIdStr || '';
 });
 
-const recId = computed(() => recTreeStore.selectedReqId);
-
 
 const computedOverlayDataKey = computed(() => {
     if(atlChartFilterStore.selectedOverlayedReqIds.length > 0){
@@ -627,7 +625,7 @@ watch(() => atlChartFilterStore.showSlopeLines, async (newValue) => {
                         <SrGradientLegend
                             class="chart-overlay"
                             v-if = "shouldDisplayMainGradient"
-                            :recId="recId" 
+                            :reqId="reqId" 
                             :transparentBackground="true" 
                         />
                     </template>
@@ -667,7 +665,7 @@ watch(() => atlChartFilterStore.showSlopeLines, async (newValue) => {
                                 class="chart-overlay"
                                 v-if = "shouldDisplayOverlayGradient"
                                 :isOverlay="true"
-                                :recId="recId" 
+                                :reqId="reqId" 
                                 :transparentBackground="true" 
                             />
                         </template>
@@ -776,8 +774,8 @@ watch(() => atlChartFilterStore.showSlopeLines, async (newValue) => {
 
                 <div class= "sr-multiselect-col">
                     <SrPlotCntrl
-                        v-if="((recId > 0) && (!isAtl24WithPhotonCloud))"
-                        :reqId="recId" 
+                        v-if="((reqId > 0) && (!isAtl24WithPhotonCloud))"
+                        :reqId="reqId" 
                     />
                 </div>
                 <div class="sr-multiselect-col">
