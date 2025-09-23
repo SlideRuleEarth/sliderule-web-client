@@ -60,5 +60,6 @@ export const useActiveTabStore = defineStore('activeTabStore', () => {
         isActiveTabTimeSeries,
         isActiveTabLabel,
         isElevationPlot,
+        isActiveTab3D,
     };
 });

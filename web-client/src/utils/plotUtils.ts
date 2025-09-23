@@ -1423,7 +1423,6 @@ export const findReqMenuLabel = (reqId:number) => {
 export async function initSymbolSize(req_id: number):Promise<number>{
     const reqIdStr = req_id.toString();
     const plotConfig = await indexedDb.getPlotConfig();
-    const chartStore = useChartStore();
     const symbolStore = useSymbolStore(); 
     const func = await indexedDb.getFunc(req_id);//must use db
     if ((func ==='atl03sp') || (func === 'atl03x') || (func === 'atl03vp') ){
@@ -1463,7 +1462,7 @@ export async function updateWhereClauseAndXData(req_id: number) {
     }
 }
 export function checkAndSetFilterForAtl13xTimeSeries() {
-    console.log('checkAndSetFilterForAtl13xTimeSeries called');
+    //console.log('checkAndSetFilterForAtl13xTimeSeries called');
     if(useActiveTabStore().isActiveTabTimeSeries){
         if(useRecTreeStore().selectedApi === 'atl13x'){
             const globalChartStore = useGlobalChartStore();
@@ -1474,20 +1473,20 @@ export function checkAndSetFilterForAtl13xTimeSeries() {
             const reqIdStr = useRecTreeStore().selectedReqIdStr;
             chartStore.setUseSelectedMinMax(reqIdStr, false);
             selectedCyclesReactive.value = globalChartStore.getCycleOptions().map(option => option.value); // Select all cycles
-            console.log('checkAndSetFilterForAtl13xTimeSeries Setting use_y_atc_filter false, Spots to [1,2,3,4,5,6], Cycles to all');
+            //console.log('checkAndSetFilterForAtl13xTimeSeries Setting use_y_atc_filter false, Spots to [1,2,3,4,5,6], Cycles to all');
         }
     }
 }
 
 export function checkAndSetFilterFor3D() {
-    console.log('checkAndSetFilterFor3D called');
+    //console.log('checkAndSetFilterFor3D called');
     const globalChartStore = useGlobalChartStore();
     if(useActiveTabStore().isActiveTab3D){
         if(useRecTreeStore().selectedApi === 'atl13x'){
             globalChartStore.set_use_y_atc_filter(false);
             globalChartStore.setSpots([1,2,3,4,5,6]);
             globalChartStore.setScOrients([SC_BACKWARD, SC_FORWARD]);
-            console.log('checkAndSetFilterForAtl13xTimeSeries Setting use_y_atc_filter false, Spots to [1,2,3,4,5,6], Cycles to all');
+            //console.log('checkAndSetFilterForAtl13xTimeSeries Setting use_y_atc_filter false, Spots to [1,2,3,4,5,6], Cycles to all');
         }
         useChartStore().setUseSelectedMinMax(useRecTreeStore().selectedReqIdStr, false);
         selectedCyclesReactive.value = globalChartStore.getCycleOptions().map(option => option.value); // Select all cycles
