@@ -31,7 +31,7 @@ export const yDataSelectedReactive = reactive<{ [key: string]: WritableComputedR
 export const yColorEncodeSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
 export const solidColorSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
 export const showYDataMenuReactive = reactive<{ [key: string]: WritableComputedRef<boolean> }>({});
-export const showUseSelectedMinMaxReactive = reactive<{ [key: string]: WritableComputedRef<boolean> }>({});
+export const useSelectedMinMaxReactive = reactive<{ [key: string]: WritableComputedRef<boolean> }>({});
 
 
 export const selectedCyclesReactive = computed({
@@ -151,8 +151,8 @@ export function initDataBindingsToChartStore(reqIds: string[]) {
                 set: (value: boolean) => chartStore.setShowYDataMenu(reqId, value),
             });
         }
-        if(!(reqId in showUseSelectedMinMaxReactive)){
-            showUseSelectedMinMaxReactive[reqId] = computed({
+        if(!(reqId in useSelectedMinMaxReactive)){
+            useSelectedMinMaxReactive[reqId] = computed({
                 get: () => chartStore.getUseSelectedMinMax(reqId),
                 set: (value: boolean) => chartStore.setUseSelectedMinMax(reqId, value),
             });
@@ -1470,8 +1470,26 @@ export function checkAndSetFilterForAtl13xTimeSeries() {
             globalChartStore.set_use_y_atc_filter(false);
             globalChartStore.setSpots([1,2,3,4,5,6]);
             globalChartStore.setScOrients([SC_BACKWARD, SC_FORWARD]);
+            const chartStore = useChartStore();
+            const reqIdStr = useRecTreeStore().selectedReqIdStr;
+            chartStore.setUseSelectedMinMax(reqIdStr, false);
             selectedCyclesReactive.value = globalChartStore.getCycleOptions().map(option => option.value); // Select all cycles
             console.log('checkAndSetFilterForAtl13xTimeSeries Setting use_y_atc_filter false, Spots to [1,2,3,4,5,6], Cycles to all');
         }
+    }
+}
+
+export function checkAndSetFilterFor3D() {
+    console.log('checkAndSetFilterFor3D called');
+    const globalChartStore = useGlobalChartStore();
+    if(useActiveTabStore().isActiveTab3D){
+        if(useRecTreeStore().selectedApi === 'atl13x'){
+            globalChartStore.set_use_y_atc_filter(false);
+            globalChartStore.setSpots([1,2,3,4,5,6]);
+            globalChartStore.setScOrients([SC_BACKWARD, SC_FORWARD]);
+            console.log('checkAndSetFilterForAtl13xTimeSeries Setting use_y_atc_filter false, Spots to [1,2,3,4,5,6], Cycles to all');
+        }
+        useChartStore().setUseSelectedMinMax(useRecTreeStore().selectedReqIdStr, false);
+        selectedCyclesReactive.value = globalChartStore.getCycleOptions().map(option => option.value); // Select all cycles
     }
 }

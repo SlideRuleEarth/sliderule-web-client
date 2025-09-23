@@ -8,7 +8,7 @@ import { refreshScatterPlot, updatePlotAndSelectedTrackMapLayer } from "@/utils/
 import { useChartStore } from '@/stores/chartStore';
 import { onMounted, computed, watch } from "vue";
 import SrCheckbox from "./SrCheckbox.vue";
-import { yDataBindingsReactive,findReqMenuLabel,showYDataMenuReactive,showUseSelectedMinMaxReactive } from "@/utils/plotUtils";
+import { yDataBindingsReactive,findReqMenuLabel,showYDataMenuReactive,useSelectedMinMaxReactive } from "@/utils/plotUtils";
 import { useRecTreeStore } from "@/stores/recTreeStore";
 import { useGlobalChartStore } from "@/stores/globalChartStore";
 import { useRequestsStore } from "@/stores/requestsStore";
@@ -179,7 +179,7 @@ watch(() => globalChartStore.enableLocationFinder, async (newVal, oldValue) => {
             label="Use selected track min/max for gradient legend"
             labelFontSize="small"
             tooltipText="Use the selected track min/max for legend instead of the global min/max"
-            v-model="showUseSelectedMinMaxReactive[computedReqIdStr]"
+            v-model="useSelectedMinMaxReactive[computedReqIdStr]"
             size="small" 
             @update:modelValue="onUseSelectedMinMaxChange"
 

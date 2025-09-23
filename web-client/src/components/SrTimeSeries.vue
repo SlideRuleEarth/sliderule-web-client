@@ -133,6 +133,7 @@ const initGradientPosition = () => {
   }
   
 };
+const reqId = computed(() => recTreeStore.selectedReqId);
 
 const computedDataKey = computed(() => {
     return chartStore.getSelectedColorEncodeData(recTreeStore.selectedReqIdStr);
@@ -290,7 +291,7 @@ watch(() => {
                             <SrGradientLegend
                                 class="chart-overlay"
                                 v-if = "(computedDataKey!='solid')"
-                                :data_key="computedDataKey" 
+                                :reqId="reqId" 
                                 :transparentBackground="true" 
                             />
                         </template>

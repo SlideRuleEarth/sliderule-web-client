@@ -215,11 +215,12 @@ const initOverlayLegendPosition = () => {
   }
   
 };
+const reqId = computed(() => recTreeStore.selectedReqId);
 
 
 const shouldDisplayAtl03Colors = computed(() => {
     let shouldDisplay = false;
-    if(recTreeStore.findApiForReqId(recTreeStore.selectedReqId).includes('atl03') &&
+    if(recTreeStore.findApiForReqId(reqId.value).includes('atl03') &&
         chartStore.getSelectedColorEncodeData(recTreeStore.selectedReqIdStr) === 'atl03_cnf'){
         shouldDisplay = true;
     } else {
@@ -234,7 +235,7 @@ const shouldDisplayAtl03Colors = computed(() => {
 });
 const shouldDisplayAtl08Colors = computed(() => {
     let shouldDisplay = false;
-    if(recTreeStore.findApiForReqId(recTreeStore.selectedReqId).includes('atl03') &&
+    if(recTreeStore.findApiForReqId(reqId.value).includes('atl03') &&
         chartStore.getSelectedColorEncodeData(recTreeStore.selectedReqIdStr) === 'atl08_class'){
         shouldDisplay = true;
     } else {
@@ -250,7 +251,7 @@ const shouldDisplayAtl08Colors = computed(() => {
 
 const shouldDisplayAtl24Colors = computed(() => {
     let shouldDisplay = false;
-    if(recTreeStore.findApiForReqId(recTreeStore.selectedReqId).includes('atl03') &&
+    if(recTreeStore.findApiForReqId(reqId.value).includes('atl03') &&
         chartStore.getSelectedColorEncodeData(recTreeStore.selectedReqIdStr) === 'atl24_class'){
         shouldDisplay = true;
     } else {
@@ -298,7 +299,7 @@ const shouldDisplayMainGradient = computed(() => {
 });
 
 const mission  = computed(() => {
-    return fieldNameStore.getMissionForReqId(recTreeStore.selectedReqId);
+    return fieldNameStore.getMissionForReqId(reqId.value);
 });
 
 const cyclesLabel = computed(() => {
@@ -323,6 +324,7 @@ const reqIdStr = computed(() => {
     return recTreeStore.selectedReqIdStr || '';
 });
 
+const recId = computed(() => recTreeStore.selectedReqId);
 
 
 const computedOverlayDataKey = computed(() => {
@@ -395,8 +397,8 @@ async function initPlot(){
         atlChartFilterStore.setMessage('Loading...');
         atlChartFilterStore.showPhotonCloud = false;
         atlChartFilterStore.setSelectedOverlayedReqIds([]);
-        const reqId = props.startingReqId;
-        if (reqId > 0) {
+        const sReqId = props.startingReqId;
+        if (sReqId > 0) {
             const selectedElRecord = globalChartStore.getSelectedElevationRec();
             //console.log('SrElevationPlot onMounted selectedElRecord:', selectedElRecord);
             if(selectedElRecord){
@@ -404,8 +406,8 @@ async function initPlot(){
             } else {
                 console.warn('SrElevationPlot onMounted - selectedElRecord is null, nothing to plot yet');
             }
-            initializeColorEncoding(reqId);
-            const parentReqId = recTreeStore.selectedReqId;
+            initializeColorEncoding(sReqId);
+            const parentReqId = sReqId;
             await useAutoReqParamsStore().presetForScatterPlotOverlay(parentReqId);
         } else {
             console.warn('reqId is undefined');
@@ -625,7 +627,7 @@ watch(() => atlChartFilterStore.showSlopeLines, async (newValue) => {
                         <SrGradientLegend
                             class="chart-overlay"
                             v-if = "shouldDisplayMainGradient"
-                            :data_key="computedDataKey" 
+                            :recId="recId" 
                             :transparentBackground="true" 
                         />
                     </template>
@@ -665,7 +667,7 @@ watch(() => atlChartFilterStore.showSlopeLines, async (newValue) => {
                                 class="chart-overlay"
                                 v-if = "shouldDisplayOverlayGradient"
                                 :isOverlay="true"
-                                :data_key="computedOverlayDataKey" 
+                                :recId="recId" 
                                 :transparentBackground="true" 
                             />
                         </template>
@@ -774,8 +776,8 @@ watch(() => atlChartFilterStore.showSlopeLines, async (newValue) => {
 
                 <div class= "sr-multiselect-col">
                     <SrPlotCntrl
-                        v-if="((recTreeStore.selectedReqId > 0) && (!isAtl24WithPhotonCloud))"
-                        :reqId="recTreeStore.selectedReqId" 
+                        v-if="((recId > 0) && (!isAtl24WithPhotonCloud))"
+                        :reqId="recId" 
                     />
                 </div>
                 <div class="sr-multiselect-col">

@@ -25,8 +25,9 @@
             >
             </Select>
             <SrGradientLegend
+                v-if="reqId > 0"
                 class="chart-overlay"
-                :data_key="computedDataKey" 
+                :reqId="reqId" 
                 :transparentBackground="true" 
             />
         </div>
@@ -82,6 +83,7 @@ import { yColorEncodeSelectedReactive } from '@/utils/plotUtils';
 import Select from 'primevue/select';
 import { useChartStore } from '@/stores/chartStore'; 
 import { useGlobalChartStore } from '@/stores/globalChartStore';
+import { checkAndSetFilterFor3D } from '@/utils/plotUtils';
 
 const recTreeStore = useRecTreeStore();
 const chartStore = useChartStore();
@@ -89,14 +91,10 @@ const globalChartStore = useGlobalChartStore();
 const toast = useSrToastStore();
 const deck3DConfigStore = useDeck3DConfigStore();
 const reqId = computed(() => recTreeStore.selectedReqId);
+const reqIdStr = computed(() => recTreeStore.selectedReqIdStr);
 const elevationStore = useElevationColorMapStore();
 const computedFunc = computed(() => recTreeStore.selectedApi);
-const computedDataKey = computed(() => {
-    const key = recTreeStore.selectedReqIdStr;
-    if (!key) return 'solid';
-    // Prefer the store getter (it can guard internally)
-    return chartStore.getSelectedColorEncodeData(key) ?? 'solid';
-});
+
 const localDeckContainer = ref<HTMLDivElement | null>(null);
 
 const computedStepSize = computed(() => {
@@ -140,11 +138,12 @@ async function handleVerticalExaggerationChange() {
 
 
 onMounted(async () => {
-    console.log('onMounted SrDeck3DView reqId:', reqId.value, 'computedDataKey:', computedDataKey.value);
+    //console.log('onMounted SrDeck3DView reqId:', reqId.value);
     updateMapAndPlot(false);
     await nextTick(); // ensures DOM is updated
     elevationStore.updateElevationColorMapValues();
     if(computedFunc.value === 'atl13x'){
+        checkAndSetFilterFor3D();
         deck3DConfigStore.verticalExaggeration = 1000; // default for atl13x
         globalChartStore.selectAllCycleOptions();
         console.log('onMounted atl13x selectAllCycleOptions:', globalChartStore.selectedCycleOptions);

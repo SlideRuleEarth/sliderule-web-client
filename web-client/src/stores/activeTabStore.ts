@@ -36,6 +36,10 @@ export const useActiveTabStore = defineStore('activeTabStore', () => {
     const isElevationPlot = computed(() => {
         return activeTab.value === '0';
     });
+
+    const isActiveTab3D = computed(() => {
+        return activeTab.value === '3';
+    });
     
     // Check if the active tab’s label matches the given string
     const isActiveTabLabel = (label: string): boolean => {
