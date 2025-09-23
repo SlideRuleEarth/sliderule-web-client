@@ -1,7 +1,7 @@
 <template>
     <SrFilterCntrlBase
         tooltipId="fltr_icesat2"
-        rgtLabel="Rgts"
+        rgtLabel="Rgt"
         :beamPatternComponent="SrBeamPattern"
         :showYAtc="true"
         :yAtcComponent="SrYatcFilterCntrl"
@@ -32,7 +32,7 @@ const details1 = computed(() => {
     const base = [
         `cycles: ${global.getCycles()}`,
         // include rgt only if not atl13x
-        (computedApi.value === 'atl13x') ? ((activeTabStore.isActiveTabTimeSeries) ?  'rgt: all' :`rgt: ${global.getRgt()}`) : `rgt: ${global.getRgt()}`,
+        (global.use_rgt_in_filter) ? `rgt: ${global.getRgt()}` : `rgt: all`,
         `spots: ${global.getSpots()}`,
         `beams: ${global.getGtLabels()}`,
         `tracks: ${global.getTracks()}`,

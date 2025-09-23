@@ -607,6 +607,7 @@ export function isClickable(d: ElevationDataItem): boolean {
 export async function processSelectedElPnt(d: ElevationDataItem): Promise<void> {
     const gcs = useGlobalChartStore();
     gcs.setSelectedElevationRec(d);
+    gcs.use_rgt_in_filter = true;
     const ttRef = useMapStore().tooltipRef;
     if (ttRef) {
         ttRef.hideTooltip();
@@ -697,11 +698,6 @@ export async function resetFilterRgtOptions(): Promise<void> {
     const globalChartStore = useGlobalChartStore();
     const rgtOptions = await getAllRgtOptionsInFile(useRecTreeStore().selectedReqId);
     globalChartStore.setRgtOptions(rgtOptions);
-}
-
-export async function resetFilter(): Promise<void> {
-    resetCycleOptions();
-    resetFilterRgtOptions();
 }
 
 export async function resetFilterUsingSelectedRec() {

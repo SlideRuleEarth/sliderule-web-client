@@ -16,8 +16,8 @@
                     <p class="sr-highlighted-track-details-1">{{ detailsLine1 }}</p>
                     <p v-if="detailsLine2" class="sr-highlighted-track-details-2">{{ detailsLine2 }}</p>
                 </div>
-
                 <Fieldset legend="Advanced Filter Control" class="sr-filter-panel" toggleable :collapsed="true">
+                    <SrWhereClause />
                     <div class="sr-cycles-legend-panel">
                         <Button
                             class="sr-reset-btn sr-glow-button"
@@ -25,26 +25,14 @@
                             variant="text"
                             rounded
                             label="Reset"
-                            @click="resetFilter"
+                            @click="handleValueChange"
                             size="small"
                         />
 
                         <div class="sr-select-boxes">
                             <div class="sr-rgt-y-atc">
                                 <div class="sr-select-box" v-if="notAtl13xTimeSeries">
-                                    <div class="sr-header">
-                                        <p class="sr-select-box-hdr">{{ rgtLabel }}</p>
-                                    </div>
-
-                                    <Listbox
-                                        class="sr-select-lists"
-                                        v-model="selectedRgtReactive"
-                                        optionLabel="label"
-                                        optionValue="value"
-                                        :multiple="false"
-                                        :options="computedRgtOptions"
-                                        @change="handleValueChange"
-                                    />
+                                    <SrRgtSelect :rgtLabel="rgtLabel" />
                                 </div>
                             </div>
 
@@ -79,17 +67,17 @@
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue';
 import { useRecTreeStore } from '@/stores/recTreeStore';
-import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { useActiveTabStore } from '@/stores/activeTabStore';
-import { resetFilter } from '@/utils/SrMapUtils';
-import { selectedRgtReactive, updatePlotAndSelectedTrackMapLayer } from '@/utils/plotUtils';
+import { resetFilterUsingSelectedRec } from '@/utils/SrMapUtils';
+import { updatePlotAndSelectedTrackMapLayer } from '@/utils/plotUtils';
+import SrRgtSelect from '@/components/SrRgtSelect.vue';
 
 import Button from 'primevue/button';
 import Fieldset from 'primevue/fieldset';
 import Card from 'primevue/card';
-import Listbox from 'primevue/listbox';
 import SrElTitleEdit from '@/components/SrElTitleEdit.vue';
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
+import SrWhereClause from '@/components/SrWhereClause.vue';
 
 // Props that control the small differences between ICESat-2 and GEDI
 const props = defineProps<{
@@ -105,11 +93,9 @@ const props = defineProps<{
 }>();
 
 const recTreeStore = useRecTreeStore();
-const globalChartStore = useGlobalChartStore();
 const activeTabStore = useActiveTabStore();
 const tooltipRef = ref();
 const computedApi = computed(() => recTreeStore.selectedApi);
-const computedRgtOptions = computed(() => globalChartStore.getRgtOptions());
 const notAtl13xTimeSeries = computed(() =>
     (computedApi.value === 'atl13x') ? ((activeTabStore.isActiveTabTimeSeries) ?  false : true) : true
 );
@@ -130,6 +116,7 @@ function handleValueChange(_: any) {
     const reqId = recTreeStore.selectedReqIdStr;
     if (reqId) {
         nextTick(() => {
+            resetFilterUsingSelectedRec();
             updatePlotAndSelectedTrackMapLayer('SrFilterCntrlBase:handleValueChange - RGT');
         });
     } else {

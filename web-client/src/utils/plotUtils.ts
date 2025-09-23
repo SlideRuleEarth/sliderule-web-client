@@ -17,6 +17,7 @@ import { useGradientColorMapStore } from "@/stores/gradientColorMapStore";
 import { useAtl03CnfColorMapStore } from "@/stores/atl03CnfColorMapStore";
 import { useAtl08ClassColorMapStore } from "@/stores/atl08ClassColorMapStore";
 import { useAtl24ClassColorMapStore } from "@/stores/atl24ClassColorMapStore";
+import { useDeck3DConfigStore } from "@/stores/deck3DConfigStore";
 import { formatKeyValuePair } from '@/utils/formatUtils';
 import { SELECTED_LAYER_NAME_PREFIX, type MinMaxLowHigh, type AtlReqParams, type SrSvrParmsUsed } from "@/types/SrTypes";
 import { useSymbolStore } from "@/stores/symbolStore";
@@ -25,6 +26,7 @@ import { createDuckDbClient } from "@/utils/SrDuckDb";
 import { useActiveTabStore } from "@/stores/activeTabStore";
 import { useDeckStore } from "@/stores/deckStore";
 import { SC_BACKWARD,SC_FORWARD } from "@/sliderule/icesat2";
+import { processSelectedElPnt } from "./SrMapUtils";
 
 export const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<string[]> }>({});
 export const yDataSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
@@ -1461,32 +1463,60 @@ export async function updateWhereClauseAndXData(req_id: number) {
         console.warn('updateWhereClauseAndXData Failed to update selected request:', error);
     }
 }
-export function checkAndSetFilterForAtl13xTimeSeries() {
+export async function checkAndSetFilterForAtl13xTimeSeries() {
     //console.log('checkAndSetFilterForAtl13xTimeSeries called');
     if(useActiveTabStore().isActiveTabTimeSeries){
+        const globalChartStore = useGlobalChartStore();
         if(useRecTreeStore().selectedApi === 'atl13x'){
-            const globalChartStore = useGlobalChartStore();
             globalChartStore.set_use_y_atc_filter(false);
             globalChartStore.setSpots([1,2,3,4,5,6]);
+            globalChartStore.use_rgt_in_filter = false;
             globalChartStore.setScOrients([SC_BACKWARD, SC_FORWARD]);
             const chartStore = useChartStore();
             const reqIdStr = useRecTreeStore().selectedReqIdStr;
             chartStore.setUseSelectedMinMax(reqIdStr, false);
             selectedCyclesReactive.value = globalChartStore.getCycleOptions().map(option => option.value); // Select all cycles
             //console.log('checkAndSetFilterForAtl13xTimeSeries Setting use_y_atc_filter false, Spots to [1,2,3,4,5,6], Cycles to all');
+        } else {
+            const selectedElRecord = globalChartStore.getSelectedElevationRec();
+            //console.log('SrElevationPlot onMounted selectedElRecord:', selectedElRecord);
+            if(selectedElRecord){
+                await processSelectedElPnt(selectedElRecord); // TBD maybe no await here to run in parallel?
+            } else {
+                console.warn('SrElevationPlot onMounted - selectedElRecord is null, nothing to plot yet');
+            }
         }
     }
 }
 
-export function checkAndSetFilterFor3D() {
+export async function checkAndSetFilterFor3D() {
     //console.log('checkAndSetFilterFor3D called');
     const globalChartStore = useGlobalChartStore();
+    const recTreeStore = useRecTreeStore();
+    const chartStore = useChartStore();
+    const deck3DConfigStore = useDeck3DConfigStore();
     if(useActiveTabStore().isActiveTab3D){
         if(useRecTreeStore().selectedApi === 'atl13x'){
+            deck3DConfigStore.verticalExaggeration = 1000; // default for atl13x
             globalChartStore.set_use_y_atc_filter(false);
             globalChartStore.setSpots([1,2,3,4,5,6]);
             globalChartStore.setScOrients([SC_BACKWARD, SC_FORWARD]);
+            globalChartStore.selectAllCycleOptions();
+            globalChartStore.use_rgt_in_filter = false;
+            //console.log('onMounted atl13x selectAllCycleOptions:', globalChartStore.selectedCycleOptions);
+            chartStore.setSelectedColorEncodeData(recTreeStore.selectedReqIdStr, 'cycle');
             //console.log('checkAndSetFilterForAtl13xTimeSeries Setting use_y_atc_filter false, Spots to [1,2,3,4,5,6], Cycles to all');
+        } else {
+            deck3DConfigStore.verticalExaggeration = 1; // default for other data
+            getDefaultColorEncoding(recTreeStore.selectedReqId);
+            const selectedElRecord = globalChartStore.getSelectedElevationRec();
+            //console.log('SrElevationPlot onMounted selectedElRecord:', selectedElRecord);
+            if(selectedElRecord){
+                await processSelectedElPnt(selectedElRecord); // TBD maybe no await here to run in parallel?
+            } else {
+                console.warn('SrElevationPlot onMounted - selectedElRecord is null, nothing to plot yet');
+            }
+
         }
         useChartStore().setUseSelectedMinMax(useRecTreeStore().selectedReqIdStr, false);
         selectedCyclesReactive.value = globalChartStore.getCycleOptions().map(option => option.value); // Select all cycles

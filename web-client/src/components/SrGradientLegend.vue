@@ -104,7 +104,7 @@ const minValue = computed(() => {
   let min: number | null | undefined;
 
   if (enc === 'cycle') {
-    min = chartStore.getMinValue(id, computedDataKey.value);
+    min = globalChartStore.getMinSelectedCycle();
   } else {
     min = useSelectedMinMax.value
       ? chartStore.getLow(id, computedDataKey.value)
@@ -121,7 +121,7 @@ const maxValue = computed(() => {
   let max: number | null | undefined;
 
   if (enc === 'cycle') {
-    max = chartStore.getMaxValue(id, computedDataKey.value);
+    max = globalChartStore.getMaxSelectedCycle();
   } else {
     max = useSelectedMinMax.value
       ? chartStore.getHigh(id, computedDataKey.value)

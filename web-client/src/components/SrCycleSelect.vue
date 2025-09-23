@@ -61,21 +61,7 @@ const props = defineProps<{
 
 const displayLabel = computed(() => props.label ?? 'Cycles');
 
-async function filterCycles() {
-    //console.log('filterCycles:', selectedCyclesReactive.value);
-    resetFilterCycleOptions();
-}
-
-async function setAllCycles() {
-    //console.log('setAllCycles:', selectedCyclesReactive.value);
-    globalChartStore.selectAllCycleOptions();
-}
-
-onMounted(() => {
-    console.log('SrCycleSelect component mounted');
-});
-
-function handleValueChange(value:any) {
+async function handleValueChange(value?:any): Promise<void> {
     console.log('SrFilterCntrl handleValueChange:', value);
     const reqId = recTreeStore.selectedReqIdStr;
     if (reqId) {
@@ -87,6 +73,23 @@ function handleValueChange(value:any) {
     }
     console.log('SrFilterCntrl handleValueChange:', value);
 }
+
+async function filterCycles() {
+    //console.log('filterCycles:', selectedCyclesReactive.value);
+    await resetFilterCycleOptions();
+    await handleValueChange();
+}
+
+async function setAllCycles() {
+    //console.log('setAllCycles:', selectedCyclesReactive.value);
+    globalChartStore.selectAllCycleOptions();
+    await handleValueChange();
+}
+
+onMounted(() => {
+    console.log('SrCycleSelect component mounted');
+});
+
 
 
 </script>
