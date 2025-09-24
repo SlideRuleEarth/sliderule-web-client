@@ -4,7 +4,7 @@ import type { MinMaxLowHigh, SrListNumberItem } from '@/types/SrTypes';
 import { gtsOptions, tracksOptions, pairOptions } from '@/utils/parmUtils';
 import { SC_FORWARD,SC_BACKWARD } from '@/sliderule/icesat2';
 import { getDetailsFromSpotNumber, getScOrientFromSpotAndGt } from '@/utils/spotUtils';
-import type { ElevationDataItem } from '@/utils/SrMapUtils';
+import { resetCycleOptions, type ElevationDataItem } from '@/utils/SrMapUtils';
 
 
 export const useGlobalChartStore = defineStore('globalChartStore', () => {
@@ -82,7 +82,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
             return;
         }
         selectedCycleOptions.value = cycleOptions;
-        //console.trace('setSelectedCycleOptions cycleOptions:', cycleOptions, ' selectedCycleOptions:', selectedCycleOptions.value);
+        //console.log('setSelectedCycleOptions cycleOptions:', cycleOptions, ' selectedCycleOptions:', selectedCycleOptions.value);
     }
 
     function getSelectedCycleOptions(): SrListNumberItem[] {
@@ -392,7 +392,9 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     function set_use_y_atc_filter(value: boolean) {
         use_y_atc_filter.value = value;
     }
-    function selectAllCycleOptions(){
+    async function selectAllCycleOptions(){
+        //console.log('selectAllCycleOptions called');
+        await resetCycleOptions();
         setSelectedCycleOptions(getCycleOptions());
     }
 

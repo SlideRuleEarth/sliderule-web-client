@@ -25,7 +25,7 @@ import InputNumber from 'primevue/inputnumber';
 import { setCyclesGtsSpotsFromFileUsingRgtYatc } from "@/utils/SrMapUtils";
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
-import { updatePlotAndSelectedTrackMapLayer } from "@/utils/plotUtils";
+import { callPlotUpdateDebounced } from "@/utils/plotUtils";
 import { ref } from 'vue';
 
 const globalChartStore = useGlobalChartStore();
@@ -41,7 +41,7 @@ async function handleModelValueChange(value: number) {
         console.warn('SrSimpleYatcFilterCntrl handleValueChange: value is undefined:', value);
     }
     await setCyclesGtsSpotsFromFileUsingRgtYatc();
-    await updatePlotAndSelectedTrackMapLayer("SrSimpleYatcCntrl");// no need to debounce
+    await callPlotUpdateDebounced("SrSimpleYatcCntrl");// no need to debounce
 }
 
 </script>

@@ -72,7 +72,7 @@ import SrGradientLegend from "@/components/SrGradientLegend.vue";
 import { useSrToastStore } from '@/stores/srToastStore';
 import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
 import { useRecTreeStore } from '@/stores/recTreeStore';
-import { updateMapAndPlot } from '@/utils/SrMapUtils';
+import { updateElevationMap } from '@/utils/SrMapUtils';
 import { useDeck3DConfigStore } from '@/stores/deck3DConfigStore';
 import SrDeck3DCfg from '@/components/SrDeck3DCfg.vue';
 import Button from 'primevue/button';
@@ -113,7 +113,6 @@ const computedStepSize = computed(() => {
 
 async function handleColorEncodeSelectionChange() {
     console.log('handleColorEncodeSelectionChange');
-    checkAndSetFilterFor3D();
     await loadAndCachePointCloudData(reqId.value);
     debouncedRender(localDeckContainer); // Use the fast, debounced renderer
 }
@@ -137,7 +136,7 @@ async function handleVerticalExaggerationChange() {
 
 onMounted(async () => {
     //console.log('onMounted SrDeck3DView reqId:', reqId.value);
-    updateMapAndPlot(false);
+    await updateElevationMap(reqId.value);
     await nextTick(); // ensures DOM is updated
     elevationStore.updateElevationColorMapValues();
     checkAndSetFilterFor3D();
@@ -179,7 +178,8 @@ onUnmounted(() => {
 
 watch(reqId, async (newVal, oldVal) => {
     if (newVal && newVal !== oldVal) {
-        updateMapAndPlot(false);
+        checkAndSetFilterFor3D();
+        await updateElevationMap(reqId.value);
         await loadAndCachePointCloudData(reqId.value);
         debouncedRender(localDeckContainer); // Use the fast, debounced renderer
     }

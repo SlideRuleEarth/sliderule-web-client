@@ -168,7 +168,7 @@ import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { SC_BACKWARD,SC_FORWARD } from '@/sliderule/icesat2';
 import { getGtsForSpotsAndScOrients,getDetailsFromSpotNumber } from '@/utils/spotUtils';
 import { GT1L,GT1R,GT2L,GT2R,GT3L,GT3R } from '@/utils/spotUtils';
-import { updatePlotAndSelectedTrackMapLayer } from "@/utils/plotUtils";
+import { callPlotUpdateDebounced } from "@/utils/plotUtils";
 
 const globalChartStore = useGlobalChartStore();
 
@@ -239,26 +239,26 @@ watch(() => globalChartStore.hasScForward, handleValueChange);
 
 /**
  * This method is called whenever SrSpotCheckbox emits `user-toggled`.
- * We wrap `updatePlotAndSelectedTrackMapLayer` in `nextTick` so that the watchers
+ * We wrap `callPlotUpdateDebounced` in `nextTick` so that the watchers
  * have already finished for this update cycle.
  */
 function onUserToggled(digit: number) {
   console.log('SrBeamPattern:onUserToggled spot digit:', digit)
-  nextTick(() => {
-    updatePlotAndSelectedTrackMapLayer("SrBeamPattern");
+  nextTick(async () => {
+    await callPlotUpdateDebounced("SrBeamPattern");
   })
 }
 
 
 /**
  * This method is called whenever Checkbox emits `change`.
- * We wrap `updatePlotAndSelectedTrackMapLayer` in `nextTick` so that the watchers
+ * We wrap `callPlotUpdateDebounced` in `nextTick` so that the watchers
  * have already finished for this update cycle.
  */
 function onUserToggledSc() {
     console.log('SrBeamPattern:onUserToggledSc');
-    nextTick(() => {
-        updatePlotAndSelectedTrackMapLayer("SrBeamPattern");
+    nextTick(async () => {
+        await callPlotUpdateDebounced("SrBeamPattern");
     })
 }
 </script>

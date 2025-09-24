@@ -10,7 +10,7 @@ import { provide, watch, onMounted, onUnmounted, ref, computed } from "vue";
 import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { useChartStore } from "@/stores/chartStore";
 import { useRequestsStore } from '@/stores/requestsStore';
-import { callPlotUpdateDebounced,getPhotonOverlayRunContext, initializeColorEncoding, initSymbolSize,updatePlotAndSelectedTrackMapLayer } from "@/utils/plotUtils";
+import { getPhotonOverlayRunContext, initializeColorEncoding, initSymbolSize,callPlotUpdateDebounced } from "@/utils/plotUtils";
 import SrRunControl from "@/components/SrRunControl.vue";
 import { processRunSlideRuleClicked } from  "@/utils/workerDomUtils";
 import { initDataBindingsToChartStore } from '@/utils/plotUtils';
@@ -437,14 +437,6 @@ onUnmounted(() => {
     console.log('SrElevationPlot onUnmounted');
 });
 
-watch(() => recTreeStore.selectedReqId, async (newReqId) => {
-    console.log('SrElevationPlot watch reqId changed:', newReqId);
-    if (newReqId && newReqId > 0) {
-        // this is just to preset certain values that the user never changes
-        await useAutoReqParamsStore().presetForScatterPlotOverlay(newReqId);
-        await callPlotUpdateDebounced('from SrElevationPlot watch recTreeStore.selectedReqId');
-    }
-});
 
 watch(() => plotRef.value, async (newValue,oldValue) => {
   if (!newValue){
@@ -531,7 +523,7 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                 chartStore.setSavedColorEncodeData(parentReqIdStr, sced);
                 chartStore.setSelectedColorEncodeData(parentReqIdStr, 'solid');
                 await prepareDbForReqId(runContext.reqId);            
-                await updatePlotAndSelectedTrackMapLayer('from watch atlChartFilterStore.showPhotonCloud TRUE');
+                await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud TRUE');
             }
             const msg = `Click 'Hide Photon Cloud Overlay' to remove highlighted track Photon Cloud data from the plot`;
             requestsStore.setConsoleMsg(msg);

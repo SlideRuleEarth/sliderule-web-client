@@ -33,7 +33,7 @@
 import { computed, nextTick } from "vue";
 import { useRecTreeStore } from "@/stores/recTreeStore";
 import { useGlobalChartStore } from "@/stores/globalChartStore";
-import { selectedRgtReactive, updatePlotAndSelectedTrackMapLayer } from "@/utils/plotUtils";
+import { selectedRgtReactive, callPlotUpdateDebounced } from "@/utils/plotUtils";
 
 import Listbox from "primevue/listbox";
 import Checkbox from "primevue/checkbox";
@@ -49,8 +49,8 @@ const computedRgtOptions = computed(() => globalChartStore.getRgtOptions());
 function handleValueChange(_: any) {
     const reqId = recTreeStore.selectedReqIdStr;
     if (reqId) {
-        nextTick(() => {
-            updatePlotAndSelectedTrackMapLayer("SrRgtFilter:handleValueChange - RGT");
+        nextTick(async () => {
+            await callPlotUpdateDebounced("SrRgtFilter:handleValueChange - RGT");
         });
     } else {
         console.warn("SrRgtFilter:handleValueChange - RGT reqId is undefined");

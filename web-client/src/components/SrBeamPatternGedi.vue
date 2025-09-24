@@ -100,7 +100,7 @@ import Panel from 'primevue/panel';
 import SrSpotCheckbox from '@/components/SrSpotCheckbox.vue';
 import { watch,nextTick } from 'vue';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
-import { updatePlotAndSelectedTrackMapLayer } from "@/utils/plotUtils";
+import { callPlotUpdateDebounced } from "@/utils/plotUtils";
 
 const globalChartStore = useGlobalChartStore();
 
@@ -139,13 +139,13 @@ watch(() => globalChartStore.selectedSpots, handleValueChange);
 
 /**
  * This method is called whenever SrSpotCheckbox emits `user-toggled`.
- * We wrap `updatePlotAndSelectedTrackMapLayer` in `nextTick` so that the watchers
+ * We wrap `callPlotUpdateDebounced` in `nextTick` so that the watchers
  * have already finished for this update cycle.
  */
 function onUserToggled(digit: number) {
   console.log('SrBeamPattern:onUserToggled spot digit:', digit)
-  nextTick(() => {
-    updatePlotAndSelectedTrackMapLayer("SrBeamPattern");
+  nextTick(async () => {
+    await callPlotUpdateDebounced("SrBeamPattern");
   })
 }
 

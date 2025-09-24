@@ -40,14 +40,13 @@ import {
 } from "@/utils/SrDuckDbUtils";
 import type { PickingInfo } from '@deck.gl/core';
 import type { MjolnirEvent } from 'mjolnir.js';
-import { clearPlot, updatePlotAndSelectedTrackMapLayer } from '@/utils/plotUtils';
+import { clearPlot, callPlotUpdateDebounced } from '@/utils/plotUtils';
 import { Polygon as OlPolygon } from 'ol/geom';
 import { db } from '@/db/SlideRuleDb';
 import type { Coordinate } from 'ol/coordinate';
 import type { SrRegion } from '@/types/SrTypes';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
-import { useActiveTabStore } from '@/stores/activeTabStore';
 import { useAreaThresholdsStore } from '@/stores/areaThresholdsStore';
 import { formatKeyValuePair } from '@/utils/formatUtils';
 import router from '@/router/index.js';
@@ -605,6 +604,7 @@ export function isClickable(d: ElevationDataItem): boolean {
 }
 
 export async function processSelectedElPnt(d: ElevationDataItem): Promise<void> {
+    //console.log('processSelectedElPnt called with:', d);
     const gcs = useGlobalChartStore();
     gcs.setSelectedElevationRec(d);
     gcs.use_rgt_in_filter = true;
@@ -672,7 +672,7 @@ export async function clicked(d: ElevationDataItem): Promise<void> {
     }
     await processSelectedElPnt(d);
     const msg = `clicked ${d}`;
-    await updatePlotAndSelectedTrackMapLayer(msg);
+    await callPlotUpdateDebounced(msg);
 }
 
 export async function syncAllCycleOptionsFromFile(): Promise<void> {
@@ -701,6 +701,7 @@ export async function resetFilterRgtOptions(): Promise<void> {
 }
 
 export async function resetFilterUsingSelectedRec() {
+    //console.log('resetFilterUsingSelectedRec called');
     const gcs = useGlobalChartStore();
     const selectedRec = gcs.getSelectedElevationRec();
     if (selectedRec) {
@@ -708,8 +709,8 @@ export async function resetFilterUsingSelectedRec() {
     } else {
         console.warn('resetFilterUsingSelectedRec: selectedRec is null');
     }
-    resetFilterCycleOptions();
-    resetFilterRgtOptions();
+    await resetFilterCycleOptions();
+    await resetFilterRgtOptions();
 }
 
 export function createDeckLayer(
@@ -1483,7 +1484,7 @@ export const updateElevationMap = async (req_id: number) => {
     console.log(`updateElevationMap took ${endTime - startTime} milliseconds.`);
 };
 
-export async function updateMapAndPlot(withHighlight: boolean = true): Promise<void> {
+export async function updateMapAndPlot(reason:string): Promise<void> {
     const startTime = performance.now();
     const atlChartFilterStore = useAtlChartFilterStore();
     const recTreeStore = useRecTreeStore();
@@ -1492,9 +1493,9 @@ export async function updateMapAndPlot(withHighlight: boolean = true): Promise<v
         if (req_id > 0) {
             atlChartFilterStore.setSelectedOverlayedReqIds([]);
             await updateElevationMap(req_id);
-            if (withHighlight) {
-                await updatePlotAndSelectedTrackMapLayer("updateMapAndPlot");
-            }
+            await callPlotUpdateDebounced(`updateMapAndPlot: ${reason}`);
+        } else {
+            console.error(`updateMapAndPlot Invalid req_id:${req_id}`);
         }
     } catch (error) {
         if (error instanceof Error) {

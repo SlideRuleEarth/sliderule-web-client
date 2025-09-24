@@ -69,7 +69,7 @@ import { computed, nextTick, ref } from 'vue';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useActiveTabStore } from '@/stores/activeTabStore';
 import { resetFilterUsingSelectedRec } from '@/utils/SrMapUtils';
-import { updatePlotAndSelectedTrackMapLayer } from '@/utils/plotUtils';
+import { callPlotUpdateDebounced } from '@/utils/plotUtils';
 import SrRgtSelect from '@/components/SrRgtSelect.vue';
 
 import Button from 'primevue/button';
@@ -115,9 +115,9 @@ function handleMouseLeave() {
 function handleValueChange(_: any) {
     const reqId = recTreeStore.selectedReqIdStr;
     if (reqId) {
-        nextTick(() => {
+        nextTick(async () => {
             resetFilterUsingSelectedRec();
-            updatePlotAndSelectedTrackMapLayer('SrFilterCntrlBase:handleValueChange - RGT');
+            await callPlotUpdateDebounced('SrFilterCntrlBase:handleValueChange - RGT');
         });
     } else {
         console.warn('SrFilterCntrlBase:handleValueChange - RGT reqId is undefined');

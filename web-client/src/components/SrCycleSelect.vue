@@ -44,7 +44,7 @@ import { computed, nextTick, onMounted } from 'vue';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
 import Button from 'primevue/button';
 import Listbox from 'primevue/listbox';
-import { selectedCyclesReactive, updatePlotAndSelectedTrackMapLayer } from "@/utils/plotUtils";
+import { selectedCyclesReactive, callPlotUpdateDebounced } from "@/utils/plotUtils";
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { resetFilterCycleOptions } from '@/utils/SrMapUtils';
 
@@ -65,8 +65,8 @@ async function handleValueChange(value?:any): Promise<void> {
     console.log('SrFilterCntrl handleValueChange:', value);
     const reqId = recTreeStore.selectedReqIdStr;
     if (reqId) {
-        nextTick(() => {
-            updatePlotAndSelectedTrackMapLayer("SrFilterCntrl:handleValueChange - RGT");
+        nextTick(async () => {
+            await callPlotUpdateDebounced("SrFilterCntrl:handleValueChange - RGT");
         })
     } else {
         console.warn('reqId is undefined');
@@ -82,7 +82,7 @@ async function filterCycles() {
 
 async function setAllCycles() {
     //console.log('setAllCycles:', selectedCyclesReactive.value);
-    globalChartStore.selectAllCycleOptions();
+    await globalChartStore.selectAllCycleOptions();
     await handleValueChange();
 }
 

@@ -4,7 +4,7 @@ import MultiSelect from "primevue/multiselect";
 import FloatLabel from "primevue/floatlabel";
 import Select from "primevue/select";
 import type { SelectChangeEvent } from "primevue/select";
-import { refreshScatterPlot, updatePlotAndSelectedTrackMapLayer } from "@/utils/plotUtils";
+import { refreshScatterPlot, callPlotUpdateDebounced } from "@/utils/plotUtils";
 import { useChartStore } from '@/stores/chartStore';
 import { onMounted, computed, watch } from "vue";
 import SrCheckbox from "./SrCheckbox.vue";
@@ -18,7 +18,6 @@ import { useActiveTabStore } from "@/stores/activeTabStore";
 import { useDeck3DConfigStore } from '@/stores/deck3DConfigStore';
 import { loadAndCachePointCloudData } from '@/utils/deck3DPlotUtils';
 import { renderCachedData } from '@/utils/deck3DPlotUtils';
-import { updateMapAndPlot } from '@/utils/SrMapUtils';
 import { useSrcIdTblStore } from "@/stores/srcIdTblStore";
 
 const globalChartStore = useGlobalChartStore();
@@ -68,23 +67,23 @@ const deckContainer = computed(() => deck3DConfigStore.deckContainer);
 
 async function onMainYDataSelectionChange(newValue: string[]) {
     console.log("Main Y Data changed:", newValue);
-    await updatePlotAndSelectedTrackMapLayer('from onMainYDataSelectionChange');
+    await callPlotUpdateDebounced('from onMainYDataSelectionChange');
 }
 
 async function onUseSelectedMinMaxChange(newValue: string[]) {
     console.log("Main Y Data changed:", newValue);
-    await updatePlotAndSelectedTrackMapLayer('from onUseSelectedMinMaxChange');
+    await callPlotUpdateDebounced('from onUseSelectedMinMaxChange');
 }
 
 
 async function handleGediFieldNameChange(event: SelectChangeEvent) {
     console.log("Gedi El Data changed:", event.value);
     if(activeTabStore.isActiveTabLabel('3-D View')){
-        await updateMapAndPlot(false);       
+        await callPlotUpdateDebounced('from handleGediFieldNameChange');
         await loadAndCachePointCloudData(props.reqId);
         renderCachedData(deckContainer);
     } else if(activeTabStore.isActiveTabLabel('Elevation Plot')) {
-        await updatePlotAndSelectedTrackMapLayer('from handleGediFieldNameChange');
+        await callPlotUpdateDebounced('from handleGediFieldNameChange');
     }
 }
 

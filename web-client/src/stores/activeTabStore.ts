@@ -33,7 +33,7 @@ export const useActiveTabStore = defineStore('activeTabStore', () => {
         return activeTab.value === '1';
     });
 
-    const isElevationPlot = computed(() => {
+    const isActiveTabElevation = computed(() => {
         return activeTab.value === '0';
     });
 
@@ -59,7 +59,7 @@ export const useActiveTabStore = defineStore('activeTabStore', () => {
         getTabLabelByIndex,
         isActiveTabTimeSeries,
         isActiveTabLabel,
-        isElevationPlot,
+        isActiveTabElevation,
         isActiveTab3D,
     };
 });
