@@ -732,7 +732,7 @@ watch(() => atlChartFilterStore.showSlopeLines, async (newValue) => {
                     @mouseleave="tooltipRef.hideTooltip()"
                 >
                     <ToggleButton
-                        v-if="mission === 'ICESat-2'"
+                        v-if="mission === 'ICESat-2' && !recTreeStore.selectedApi.includes('atl13')"
                         onIcon='pi pi-eye-slash'
                         offIcon="pi pi-eye"
                         class="sr-show-hide-button"
