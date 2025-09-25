@@ -1276,7 +1276,12 @@ export async function fetchScatterData(
             };
         }
 
-        useChartStore().setXLegend(reqIdStr, `${x} (normalized) - Meters`);
+        const units = x.toLowerCase() === 'latitude' ? 'Degrees' : 'Meters';
+
+        useChartStore().setXLegend(
+            reqIdStr,
+            `${x} (normalized) - ${units}`
+        );
         //console.log('fetchScatterData chartData:', chartData);
         //console.log('fetchScatterData minMaxValues:', minMaxValues);
         //console.log('fetchScatterData normalizedMinMaxValues:', normalizedMinMaxValues);
