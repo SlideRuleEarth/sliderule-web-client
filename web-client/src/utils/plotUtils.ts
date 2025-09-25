@@ -17,6 +17,7 @@ import { useGradientColorMapStore } from "@/stores/gradientColorMapStore";
 import { useAtl03CnfColorMapStore } from "@/stores/atl03CnfColorMapStore";
 import { useAtl08ClassColorMapStore } from "@/stores/atl08ClassColorMapStore";
 import { useAtl24ClassColorMapStore } from "@/stores/atl24ClassColorMapStore";
+import { useDeck3DConfigStore } from "@/stores/deck3DConfigStore";
 import { formatKeyValuePair } from '@/utils/formatUtils';
 import { SELECTED_LAYER_NAME_PREFIX, type MinMaxLowHigh, type AtlReqParams, type SrSvrParmsUsed } from "@/types/SrTypes";
 import { useSymbolStore } from "@/stores/symbolStore";
@@ -25,13 +26,14 @@ import { createDuckDbClient } from "@/utils/SrDuckDb";
 import { useActiveTabStore } from "@/stores/activeTabStore";
 import { useDeckStore } from "@/stores/deckStore";
 import { SC_BACKWARD,SC_FORWARD } from "@/sliderule/icesat2";
+import { resetFilterUsingSelectedRec } from "@/utils/SrMapUtils";
 
 export const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<string[]> }>({});
 export const yDataSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
 export const yColorEncodeSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
 export const solidColorSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
 export const showYDataMenuReactive = reactive<{ [key: string]: WritableComputedRef<boolean> }>({});
-export const showUseSelectedMinMaxReactive = reactive<{ [key: string]: WritableComputedRef<boolean> }>({});
+export const useSelectedMinMaxReactive = reactive<{ [key: string]: WritableComputedRef<boolean> }>({});
 
 
 export const selectedCyclesReactive = computed({
@@ -151,8 +153,8 @@ export function initDataBindingsToChartStore(reqIds: string[]) {
                 set: (value: boolean) => chartStore.setShowYDataMenu(reqId, value),
             });
         }
-        if(!(reqId in showUseSelectedMinMaxReactive)){
-            showUseSelectedMinMaxReactive[reqId] = computed({
+        if(!(reqId in useSelectedMinMaxReactive)){
+            useSelectedMinMaxReactive[reqId] = computed({
                 get: () => chartStore.getUseSelectedMinMax(reqId),
                 set: (value: boolean) => chartStore.setUseSelectedMinMax(reqId, value),
             });
@@ -1357,60 +1359,102 @@ export async function getPhotonOverlayRunContext(): Promise<SrRunContext> {
     return runContext;
 }
 
-export async function updatePlotAndSelectedTrackMapLayer(msg:string){
-    const startTime = performance.now(); 
-    console.log('updatePlotAndSelectedTrackMapLayer called for:',msg);
-    const recTreeStore = useRecTreeStore();
-    const globalChartStore = useGlobalChartStore();
-    if( (globalChartStore.getRgt() >= 0) &&
-        (globalChartStore.getCycles().length > 0) &&
-        (globalChartStore.getSpots().length > 0)
-    ){
-        //TBD  Can these be done in parallel?
-        await refreshScatterPlot(msg);
-        if((recTreeStore.selectedApi != 'atl13x') ||
-            ((recTreeStore.selectedApi === 'atl13x') && !useActiveTabStore().isActiveTabTimeSeries)){
-            await duckDbReadAndUpdateSelectedLayer(recTreeStore.selectedReqId,SELECTED_LAYER_NAME_PREFIX); 
-        } else {
-            useDeckStore().deleteSelectedLayer();
-        }      
-    } else {
-        console.warn('updatePlotAndSelectedTrackMapLayer Need Rgts, Cycles, and Spots values selected');
-        console.warn('updatePlotAndSelectedTrackMapLayer Rgt:', globalChartStore.getRgt());
-        console.warn('updatePlotAndSelectedTrackMapLayer Cycles:', globalChartStore.getCycles());
-        console.warn('updatePlotAndSelectedTrackMapLayer Spots:', globalChartStore.getSpots());
-    }
-
-    const endTime = performance.now(); 
-    console.log(`updatePlotAndSelectedTrackMapLayer took ${endTime - startTime} milliseconds.`);
-}
-
 
 let updatePlotTimeoutId: number | undefined;
 let pendingResolves: Array<() => void> = [];
+let inFlight = false;
+let pendingMessages: string[] = [];   // <── collects all contributors
 
 export async function callPlotUpdateDebounced(msg: string): Promise<void> {
-    console.log("callPlotUpdateDebounced called:", msg);
+    console.log("callPlotUpdateDebounced -called:", msg);
     const atlChartFilterStore = useAtlChartFilterStore();
     atlChartFilterStore.setIsWarning(true);
     atlChartFilterStore.setMessage('Updating...');
-  
-    // Clear any existing timeout to debounce the calls
+
+    // Collect every reason
+    pendingMessages.push(msg);
+
     if (updatePlotTimeoutId) {
         clearTimeout(updatePlotTimeoutId);
     }
-  
+
     return new Promise((resolve) => {
-        // Store the resolver
         pendingResolves.push(resolve);
+
         updatePlotTimeoutId = window.setTimeout(async () => {
-        await updatePlotAndSelectedTrackMapLayer(msg);
-        // Resolve all pending promises, since updatePlotAndSelectedTrackMapLayer is now complete
-        pendingResolves.forEach(res => res());
-        pendingResolves = [];
+            updatePlotTimeoutId = undefined;
+            try {
+                // collapse messages into a single combined string
+                const combinedMsg = pendingMessages.join(" | ");
+                pendingMessages = []; // reset for next cycle
+
+                while (inFlight) {
+                    await new Promise(r => setTimeout(r, 10));
+                }
+                inFlight = true;
+
+                await updatePlotAndSelectedTrackMapLayer(combinedMsg);
+            } catch (err) {
+                console.error('Plot update failed:', err);
+            } finally {
+                inFlight = false;
+                try {
+                    atlChartFilterStore.setIsWarning(false);
+                    atlChartFilterStore.setMessage('');
+                } catch {}
+                pendingResolves.forEach(res => res());
+                pendingResolves = [];
+            }
         }, 500);
     });
 }
+
+async function updatePlotAndSelectedTrackMapLayer(msg: string): Promise<void> {
+    const startTime = performance.now(); 
+    console.log('updatePlotAndSelectedTrackMapLayer --called:', msg);
+
+    const globalChartStore = useGlobalChartStore();
+    const recTreeStore = useRecTreeStore();
+    const activeTabStore = useActiveTabStore();
+
+    const hasRgtOk =
+        (!globalChartStore.use_rgt_in_filter) ||
+        (globalChartStore.use_rgt_in_filter && globalChartStore.getRgt() >= 0);
+
+    const hasCycles = globalChartStore.getCycles().length > 0;
+    const hasSpots  = globalChartStore.getSpots().length  > 0;
+
+    if (!(hasRgtOk && hasCycles && hasSpots)) {
+        console.warn('updatePlotAndSelectedTrackMapLayer Need Rgts, Cycles, and Spots values selected');
+        console.warn('Rgt:', globalChartStore.getRgt());
+        console.warn('Cycles:', globalChartStore.getCycles());
+        console.warn('Spots:', globalChartStore.getSpots());
+        return;
+    }
+
+    const selectedApi   = recTreeStore.selectedApi;
+    const selectedReqId = recTreeStore.selectedReqId;
+
+    let hasSelectedMapLayer = true;
+
+    if (activeTabStore.isActiveTabTimeSeries) {
+        checkAndSetFilterForTimeSeries();
+        if (selectedApi === 'atl13x') hasSelectedMapLayer = false;
+    } else if (activeTabStore.isActiveTab3D) {
+        checkAndSetFilterFor3D();
+        if (selectedApi === 'atl13x') hasSelectedMapLayer = false;
+    }
+    // Always read this: because of the async debounce, the selectedReqId may have changed since this was called
+    await duckDbReadAndUpdateSelectedLayer(selectedReqId, SELECTED_LAYER_NAME_PREFIX);
+    if (!hasSelectedMapLayer) {
+        useDeckStore().deleteSelectedLayer();
+    }
+    await refreshScatterPlot(msg);
+
+    const endTime = performance.now();
+    console.log(`updatePlotAndSelectedTrackMapLayer took ${endTime - startTime} ms.`);
+}
+
 
 export const findReqMenuLabel = (reqId:number) => {
     const recTreeStore = useRecTreeStore();
@@ -1423,7 +1467,6 @@ export const findReqMenuLabel = (reqId:number) => {
 export async function initSymbolSize(req_id: number):Promise<number>{
     const reqIdStr = req_id.toString();
     const plotConfig = await indexedDb.getPlotConfig();
-    const chartStore = useChartStore();
     const symbolStore = useSymbolStore(); 
     const func = await indexedDb.getFunc(req_id);//must use db
     if ((func ==='atl03sp') || (func === 'atl03x') || (func === 'atl03vp') ){
@@ -1462,16 +1505,49 @@ export async function updateWhereClauseAndXData(req_id: number) {
         console.warn('updateWhereClauseAndXData Failed to update selected request:', error);
     }
 }
-export function checkAndSetFilterForAtl13xTimeSeries() {
-    console.log('checkAndSetFilterForAtl13xTimeSeries called');
-    if(useActiveTabStore().isActiveTabTimeSeries){
+export async function checkAndSetFilterForTimeSeries() {
+    //console.log('checkAndSetFilterForTimeSeries called');
+    const globalChartStore = useGlobalChartStore();
+    const chartStore = useChartStore();
+    const reqIdStr = useRecTreeStore().selectedReqIdStr;
+    chartStore.setUseSelectedMinMax(reqIdStr, false);
+    chartStore.setSelectedColorEncodeData(reqIdStr, 'cycle');
+    if(useRecTreeStore().selectedApi === 'atl13x'){
+        globalChartStore.set_use_y_atc_filter(false);
+        globalChartStore.setSpots([1,2,3,4,5,6]);
+        globalChartStore.setScOrients([SC_BACKWARD, SC_FORWARD]);
+        await globalChartStore.selectAllCycleOptions();
+        globalChartStore.use_rgt_in_filter = false;
+        //console.log('checkAndSetFilterForTimeSeries Setting use_y_atc_filter false, Spots to [1,2,3,4,5,6], Cycles to:',globalChartStore.getSelectedCycleOptions(),'/', globalChartStore.getCycles());
+    } else {
+        globalChartStore.use_rgt_in_filter = true;
+        await resetFilterUsingSelectedRec();
+    }
+}
+
+export async function checkAndSetFilterFor3D() {
+    console.log('checkAndSetFilterFor3D called');
+    const globalChartStore = useGlobalChartStore();
+    const recTreeStore = useRecTreeStore();
+    const chartStore = useChartStore();
+    const deck3DConfigStore = useDeck3DConfigStore();
+
+    if(useActiveTabStore().isActiveTab3D){
+        useChartStore().setUseSelectedMinMax(useRecTreeStore().selectedReqIdStr, false);
         if(useRecTreeStore().selectedApi === 'atl13x'){
-            const globalChartStore = useGlobalChartStore();
+            deck3DConfigStore.verticalExaggeration = 1000; // default for atl13x
             globalChartStore.set_use_y_atc_filter(false);
             globalChartStore.setSpots([1,2,3,4,5,6]);
             globalChartStore.setScOrients([SC_BACKWARD, SC_FORWARD]);
-            selectedCyclesReactive.value = globalChartStore.getCycleOptions().map(option => option.value); // Select all cycles
-            console.log('checkAndSetFilterForAtl13xTimeSeries Setting use_y_atc_filter false, Spots to [1,2,3,4,5,6], Cycles to all');
+            await globalChartStore.selectAllCycleOptions();
+            globalChartStore.use_rgt_in_filter = false;
+            chartStore.setSelectedColorEncodeData(recTreeStore.selectedReqIdStr, 'cycle');
+            //console.log('checkAndSetFilterForTimeSeries Setting use_y_atc_filter false, Spots to [1,2,3,4,5,6], Cycles to all');
+        } else {
+            deck3DConfigStore.verticalExaggeration = 1; // default for other data
+            chartStore.setSelectedColorEncodeData(recTreeStore.selectedReqIdStr, getDefaultColorEncoding(recTreeStore.selectedReqId));
+            await resetFilterUsingSelectedRec();
+            globalChartStore.use_rgt_in_filter = true;
         }
     }
 }

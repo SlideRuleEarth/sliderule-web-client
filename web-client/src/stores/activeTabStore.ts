@@ -33,8 +33,12 @@ export const useActiveTabStore = defineStore('activeTabStore', () => {
         return activeTab.value === '1';
     });
 
-    const isElevationPlot = computed(() => {
+    const isActiveTabElevation = computed(() => {
         return activeTab.value === '0';
+    });
+
+    const isActiveTab3D = computed(() => {
+        return activeTab.value === '3';
     });
     
     // Check if the active tab’s label matches the given string
@@ -55,6 +59,7 @@ export const useActiveTabStore = defineStore('activeTabStore', () => {
         getTabLabelByIndex,
         isActiveTabTimeSeries,
         isActiveTabLabel,
-        isElevationPlot,
+        isActiveTabElevation,
+        isActiveTab3D,
     };
 });

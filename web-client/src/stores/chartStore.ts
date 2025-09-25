@@ -117,6 +117,7 @@ export const useChartStore = defineStore('chartStore', {
         getMinValue(reqIdStr: string, key: string): number {
             this.ensureState(reqIdStr);
             if(this.stateByReqId[reqIdStr]?.minMaxValues && this.stateByReqId[reqIdStr].minMaxValues[key]){
+                //console.log('getMinValue() key:', key, ' min:', this.stateByReqId[reqIdStr].minMaxValues[key].min, ' for:', reqIdStr);
                 return this.stateByReqId[reqIdStr].minMaxValues[key].min;
             } else {
                 console.warn('getMinValue() key:', key, ' not found in minMaxValues for:', reqIdStr);
@@ -127,6 +128,7 @@ export const useChartStore = defineStore('chartStore', {
         getMaxValue(reqIdStr: string, key: string): number {
             this.ensureState(reqIdStr);
             if(this.stateByReqId[reqIdStr]?.minMaxValues && this.stateByReqId[reqIdStr].minMaxValues[key]){
+                //console.log('getMaxValue() key:', key, ' max:', this.stateByReqId[reqIdStr].minMaxValues[key].max, ' for:', reqIdStr);
                 return this.stateByReqId[reqIdStr].minMaxValues[key].max;
             } else {
                 console.warn('getMaxValue() key:', key, ' not found in minMaxValues for:', reqIdStr);
@@ -295,9 +297,9 @@ export const useChartStore = defineStore('chartStore', {
             } else if (func.includes('atl24')) {
                 this.setXDataForChart(reqIdStr,'x_atc');
             } else if (func.includes('atl13')) {
-                this.setXDataForChart(reqIdStr,'longitude'); // this is a placeholder/HACK
+                this.setXDataForChart(reqIdStr,'latitude'); // this is a placeholder/HACK
             } else if (func.includes('gedi')) {
-                this.setXDataForChart(reqIdStr,'longitude'); // this is a placeholder/HACK
+                this.setXDataForChart(reqIdStr,'latitude'); // this is a placeholder/HACK
             } else {
                 console.error('setXDataForChartUsingFunc() unknown function:', func);
             }

@@ -179,80 +179,106 @@ export function getSqlForSpots(spots:number[]){
     return sqls.join(' OR ');
 }
 
-export function createWhereClause(reqId:number){
+export function createWhereClause(reqId: number) {
     const globalChartStore = useGlobalChartStore();
     const func = useRecTreeStore().findApiForReqId(reqId);
+
+    const use_rgt_in_filter = globalChartStore.use_rgt_in_filter;
     const spots = globalChartStore.getSpots();
     const rgt = globalChartStore.getRgt();
     const cycles = globalChartStore.getCycles();
+
     const use_y_atc_filter = globalChartStore.use_y_atc_filter;
     const y_atc_is_valid = globalChartStore.y_atc_is_valid();
     const selected_y_atc = globalChartStore.selected_y_atc;
     const y_atc_margin = globalChartStore.y_atc_margin;
+
     const fieldNameStore = useFieldNameStore();
-    const utfn = fieldNameStore.getUniqueTrkFieldName(reqId);
-    const uofn = fieldNameStore.getUniqueOrbitIdFieldName(reqId);
-    const usfn = fieldNameStore.getUniqueSpotIdFieldName(reqId);
+    const utfn = fieldNameStore.getUniqueTrkFieldName(reqId);      // usually RGT/track id
+    const uofn = fieldNameStore.getUniqueOrbitIdFieldName(reqId);  // cycle/orbit id
+    const usfn = fieldNameStore.getUniqueSpotIdFieldName(reqId);   // spot/beam id
 
     let whereStr = '';
-    if (func === 'atl03sp'){
-        if ((rgt >= 0) || (cycles.length > 0)) {
-            whereStr = 'WHERE ';
-            if( rgt >= 0){
-                whereStr = whereStr + `${utfn} = ${rgt}`;
-            } else {
-                console.error('createWhereClause: rgt is empty for func:', func);
-            }
-            if (cycles.length > 0) {
-                if( rgt >= 0){
-                    whereStr = whereStr + ' AND ';
-                }
-                whereStr = whereStr + `${uofn} IN (${cycles.join(', ')})`;
-            } else {
-                console.error('createWhereClause: cycles is empty for func:', func);
-            }
 
-            if (spots.length > 0) {
-                whereStr = whereStr + ' AND (' + getSqlForSpots(spots) + ')';
-            }
-            if(use_y_atc_filter && y_atc_is_valid && (selected_y_atc !== undefined)){
-                whereStr = whereStr + ` AND (y_atc BETWEEN ${selected_y_atc - y_atc_margin} AND ${selected_y_atc + y_atc_margin})`;
-            }
+    // Helper to build WHERE safely
+    const joinWhere = (conds: string[]) => (conds.length ? `WHERE ${conds.join(' AND ')}` : '');
+
+    if (func === 'atl03sp') {
+        const conds: string[] = [];
+
+        // RGT filter (now optional, controlled by use_rgt_in_filter)
+        if (use_rgt_in_filter && rgt >= 0) {
+            conds.push(`${utfn} = ${rgt}`);
         }
-    } else if ((func === 'atl13x') && useActiveTabStore().isActiveTabTimeSeries){
-        if(cycles.length > 0) {
-            whereStr = `WHERE ${uofn} IN (${cycles.join(', ')})`;
-            if (spots.length > 0) {
-                whereStr = whereStr + ` AND ${usfn} IN (${spots.join(', ')})`;
-            }
+
+        // cycles/orbits
+        if (cycles.length > 0) {
+            conds.push(`${uofn} IN (${cycles.join(', ')})`);
         }
-    } else if ((func === 'atl03vp') || (func.includes('atl06')) || (func.includes('atl08')) || (func.includes('x')) || (func.includes('gedi0'))) {
-        if ((rgt >= 0) || (cycles.length > 0)) {
-            whereStr = 'WHERE ';
-            if( rgt >= 0){
-                whereStr = whereStr + `${utfn} = ${rgt}`;
-            }
-            if (cycles.length > 0) {
-                if( rgt >= 0){
-                    whereStr = whereStr + ' AND ';
-                }
-                whereStr = whereStr + `${uofn} IN (${cycles.join(', ')})`;
-            }
-            if (spots.length > 0) {
-                whereStr = whereStr + ` AND ${usfn} IN (${spots.join(', ')})`;
-            }
-            if(use_y_atc_filter && y_atc_is_valid && (selected_y_atc !== undefined)){
-                const min_y_atc = (selected_y_atc - y_atc_margin).toFixed(3); // this is coupled to the limits in the input control
-                const max_y_atc = (selected_y_atc + y_atc_margin).toFixed(3);
-                whereStr = whereStr + ` AND (y_atc BETWEEN ${min_y_atc} AND ${max_y_atc})`;
-            }
+
+        // spots (atl03sp uses custom SQL for pairs/beams)
+        if (spots.length > 0) {
+            conds.push(`(${getSqlForSpots(spots)})`);
         }
+
+        // y_atc band
+        if (use_y_atc_filter && y_atc_is_valid && selected_y_atc !== undefined) {
+            conds.push(`(y_atc BETWEEN ${selected_y_atc - y_atc_margin} AND ${selected_y_atc + y_atc_margin})`);
+        }
+
+        whereStr = joinWhere(conds);
+
+    } else if ((func === 'atl13x') && useActiveTabStore().isActiveTabTimeSeries) {
+        // Timeseries for atl13x doesn’t use RGT at all; unchanged except for structure
+        const conds: string[] = [];
+        if (cycles.length > 0) {
+            conds.push(`${uofn} IN (${cycles.join(', ')})`);
+        }
+        if (spots.length > 0) {
+            conds.push(`${usfn} IN (${spots.join(', ')})`);
+        }
+        whereStr = joinWhere(conds);
+
+    } else if (
+        (func === 'atl03vp') ||
+        func.includes('atl06') ||
+        func.includes('atl08') ||
+        func.includes('x') ||
+        func.includes('gedi0')
+    ) {
+        const conds: string[] = [];
+
+        // RGT filter (optional)
+        if (use_rgt_in_filter && rgt >= 0) {
+            conds.push(`${utfn} = ${rgt}`);
+        }
+
+        // cycles/orbits
+        if (cycles.length > 0) {
+            conds.push(`${uofn} IN (${cycles.join(', ')})`);
+        }
+
+        // spots
+        if (spots.length > 0) {
+            conds.push(`${usfn} IN (${spots.join(', ')})`);
+        }
+
+        // y_atc band (fixed precision for parity with input control)
+        if (use_y_atc_filter && y_atc_is_valid && selected_y_atc !== undefined) {
+            const min_y_atc = (selected_y_atc - y_atc_margin).toFixed(3);
+            const max_y_atc = (selected_y_atc + y_atc_margin).toFixed(3);
+            conds.push(`(y_atc BETWEEN ${min_y_atc} AND ${max_y_atc})`);
+        }
+
+        whereStr = joinWhere(conds);
+
     } else {
         console.error('createWhereClause: INVALID func:', func);
     }
-    //console.log('createWhereClause: reqId:', reqId, 'func:', func, 'spots:', spots, 'rgt:', rgt, 'cycles:', cycles, 'use_y_atc_filter:', use_y_atc_filter, 'y_atc_is_valid:', y_atc_is_valid, 'selected_y_atc:', selected_y_atc, 'y_atc_margin:', y_atc_margin, 'whereStr:', whereStr);
+
     return whereStr;
 }
+
 
 export function getGtLabelsForSpotsAndScOrients(spots:number[], sc_orients:number[]){
     const labels = [];

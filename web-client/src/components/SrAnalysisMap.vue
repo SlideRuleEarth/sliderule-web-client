@@ -22,6 +22,7 @@
     import SrRecSelectControl from "@/components/SrRecSelectControl.vue";
     import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
     import { useRecTreeStore } from "@/stores/recTreeStore";
+    import { useAutoReqParamsStore } from "@/stores/reqParamsStore";
     import SrColMapSelControl from "@/components/SrColMapSelControl.vue";
     import { useSrToastStore } from "@/stores/srToastStore";
     import { readOrCacheSummary } from "@/utils/SrDuckDbUtils";
@@ -36,7 +37,7 @@
     import { useAnalysisMapStore } from "@/stores/analysisMapStore";
     import { useGlobalChartStore } from "@/stores/globalChartStore";
     import { useDeck3DConfigStore } from "@/stores/deck3DConfigStore";
-    import { updatePlotAndSelectedTrackMapLayer } from '@/utils/plotUtils';
+    import { callPlotUpdateDebounced } from '@/utils/plotUtils';
     import { setCyclesGtsSpotsFromFileUsingRgtYatc,updateSrViewName } from "@/utils/SrMapUtils";
     import Checkbox from 'primevue/checkbox';
     import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
@@ -69,6 +70,7 @@
     const srParquetCfgStore = useSrParquetCfgStore();
     const analysisMapStore = useAnalysisMapStore();
     const globalChartStore = useGlobalChartStore();
+    const autoReqParamsStore = useAutoReqParamsStore();
     const fncs = useFieldNameStore();
     const atlChartFilterStore = useAtlChartFilterStore();
     const activeTabStore = useActiveTabStore();
@@ -81,12 +83,12 @@
 
     const hasOffPointFilter = computed(() => {
         return ((recTreeStore.selectedApi === 'atl13x') ?
-             activeTabStore.isElevationPlot && useFieldNameStore().getMissionForReqId(props.selectedReqId)==='ICESat-2' : isNot3DView.value
+             activeTabStore.isActiveTabElevation && useFieldNameStore().getMissionForReqId(props.selectedReqId)==='ICESat-2' : isNot3DView.value
         );
     });
 
     const hasLinkToElevationPlot = computed(() => {
-        return activeTabStore.isElevationPlot;
+        return activeTabStore.isActiveTabElevation;
     });
 
     const recordsVectorSource = new VectorSource({wrapX: false});
@@ -158,7 +160,7 @@
                 } else {
                     deck3DConfigStore.verticalExaggeration = 1; // default for other data
                 }
-
+                await autoReqParamsStore.presetForScatterPlotOverlay(newReqId);
                 await updateAnalysisMapView('watch selectedReqId');
             } else {
                 console.error("Error: SrAnalysisMap selectedReqId is 0?");
@@ -423,7 +425,7 @@
                     deckStore.clearDeckInstance(); // Clear any existing instance first
                     createDeckInstance(map); 
                     addDeckLayerToMap(map);
-                    await updateMapAndPlot(hasLinkToElevationPlot.value);
+                    await updateMapAndPlot(`SrAnalysisMap: ${reason}`);
                 } else {
                     console.error("SrMap Error: srViewKey is null");
                 }
@@ -456,7 +458,7 @@
             } else {
                 resetFilterUsingSelectedRec();
             }
-            await updatePlotAndSelectedTrackMapLayer("SrAnalysisMap yatc change");// no need to debounce
+            await callPlotUpdateDebounced("SrAnalysisMap yatc change");// no need to debounce
         } else {
             console.error('SrAnalysisMap handleOffPntEnable: globalChartStore.y_atc_is_valid() selected_y_atc:', globalChartStore.selected_y_atc);
         }

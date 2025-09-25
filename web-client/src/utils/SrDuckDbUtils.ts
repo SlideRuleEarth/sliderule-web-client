@@ -16,6 +16,7 @@ import { createWhereClause } from '@/utils/spotUtils';
 import { type SrPosition} from '@/types/SrTypes';
 import { useAnalysisMapStore } from '@/stores/analysisMapStore';
 import { useFieldNameStore } from '@/stores/fieldNameStore';
+import { baseType, alias, FLOAT_TYPES, INT_TYPES, DECIMAL_TYPES, BOOL_TYPES, TEMPORAL_TYPES, buildSafeAggregateClauses } from '@/utils/duckAgg';
 
 
 interface SummaryRowData {
@@ -30,16 +31,9 @@ interface SummaryRowData {
     numPoints: number;
 }
 const srMutex = new SrMutex();
-
-
-function alias(prefix: string, colName: string): string {
-    return `${prefix}_${colName.replace(/\./g, '_')}`;
-}
-
 function aliasKey(prefix: string, colName: string): string {
     return alias(prefix, colName);
 }
-
 export const readOrCacheSummary = async (req_id:number) : Promise<SrRequestSummary | undefined> => {
     try{
         const summary = await _duckDbReadOrCacheSummary(req_id);
@@ -749,38 +743,7 @@ export async function getPairs(req_id: number): Promise<number[]> {
     return pairs;
 }
 
-/**
- * Builds safe DuckDB aggregate SQL expressions with optional isnan() filtering
- * for numeric columns. Non-float types skip isnan() and use raw aggregations.
- */
-export function buildSafeAggregateClauses(
-    columnNames: string[],
-    getType: (colName: string) => string,
-    escape: (colName: string) => string
-): string[] {
-    return columnNames.flatMap((colName) => {
-        const type = getType(colName);
-        const escaped = escape(colName);
-        const isFloat = ['FLOAT', 'DOUBLE', 'REAL'].includes(type);
 
-        if (isFloat) {
-            return [
-                `MIN(${escaped}) FILTER (WHERE NOT isnan(${escaped})) AS ${alias("min", colName)}`,
-                `MAX(${escaped}) FILTER (WHERE NOT isnan(${escaped})) AS ${alias("max", colName)}`,
-                `PERCENTILE_CONT(0.10) WITHIN GROUP (ORDER BY ${escaped}) FILTER (WHERE NOT isnan(${escaped})) AS ${alias("low", colName)}`,
-                `PERCENTILE_CONT(0.90) WITHIN GROUP (ORDER BY ${escaped}) FILTER (WHERE NOT isnan(${escaped})) AS ${alias("high", colName)}`
-            ];
-        } else {
-            return [
-                `MIN(${escaped}) AS ${alias("min", colName)}`,
-                `MAX(${escaped}) AS ${alias("max", colName)}`,
-                `PERCENTILE_CONT(0.10) WITHIN GROUP (ORDER BY ${escaped}) AS ${alias("low", colName)}`,
-                `PERCENTILE_CONT(0.90) WITHIN GROUP (ORDER BY ${escaped}) AS ${alias("high", colName)}`
-            ];
-        }
-
-    });
-}
 // These are IceSat-2 specific
 export async function getTracks(req_id: number): Promise<number[]> {
     const startTime = performance.now(); // Start time
@@ -861,7 +824,7 @@ export async function getAllCycleOptionsInFile(req_id: number): Promise<{ cycles
         const query = `
             SELECT 
                 ${uofn},
-                ANY_VALUE(${duckDbClient.escape(time_fieldname)}) AS time,  -- We only need any single time
+                ANY_VALUE(${duckDbClient.escape(time_fieldname)}) AS time  -- We only need any single time
             FROM '${fileName}'
             GROUP BY ${uofn}
             ORDER BY ${uofn} ASC;
@@ -1092,35 +1055,33 @@ export async function fetchScatterData(
         // Make sure the file is registered with DuckDB
         await duckDbClient.insertOpfsParquet(fileName);
 
-        // 1. Build an additional clause to exclude NaNs in each y column.
-        //    If you also want to exclude NaNs in x, just add x as well.
-        //    e.g. y = [...y, x] or make a separate check for x.
-        // Only apply NOT isnan(...) to columns that are not "time"
-        const yNanClause = y
-            .filter((col) => col !== timeField)
-            .map((col) => `NOT isnan(${duckDbClient.escape(col)})`)
-            .join(' AND ');
+        const colTypes = await duckDbClient.queryColumnTypes(fileName);
+        const getColType = (colName: string) =>
+            baseType(colTypes.find((c) => c.name === colName)?.type ?? 'UNKNOWN');
 
-        // 2. Merge it with the existing whereClause (if any).
-        //    If whereClause doesn’t start with “WHERE”, we need to prepend it properly.
-        //    If it’s empty, we just use “WHERE <nanClause>”.
-        //    If it already has “WHERE”, we append “AND <nanClause>”.
+        // Only floats get isnan/isinf filters; other types just check IS NOT NULL
+        const yNanClauses = y
+        .filter((col) => col !== timeField)
+        .map((col) => {
+            const t = getColType(col);
+            const esc = duckDbClient.escape(col);
+            if (FLOAT_TYPES.has(t)) {
+                return `NOT isnan(${esc}) AND NOT isinf(${esc})`;
+            }
+            return `${esc} IS NOT NULL`;
+        });
+
+        const yNanClause = yNanClauses.length ? yNanClauses.join(' AND ') : 'TRUE';
+
         let finalWhereClause = '';
         if (!whereClause || !whereClause.trim()) {
             finalWhereClause = `WHERE ${yNanClause}`;
         } else {
-            // Strip off a leading "WHERE" if present, because we’re going to add our own
             const sanitizedExistingClause = whereClause.replace(/^WHERE\s+/i, '');
             finalWhereClause = `WHERE ${sanitizedExistingClause} AND ${yNanClause}`;
         }
 
-        /**
-         * 3. Compute min/max for x and each of the y columns (NaNs already excluded by finalWhereClause).
-         */
-        const colTypes = await duckDbClient.queryColumnTypes(fileName);
-        const getColType = (colName: string) =>
-            colTypes.find((c) => c.name === colName)?.type ?? 'UNKNOWN';
-        
+         
         const allAggCols = [x, ...y, ...extraSelectColumns];
         
         const selectParts = buildSafeAggregateClauses(allAggCols, getColType, duckDbClient.escape);
@@ -1342,11 +1303,19 @@ export async function getAllColumnMinMax(
     await duckDbClient.insertOpfsParquet(fileName);
 
     const colTypes = await duckDbClient.queryColumnTypes(fileName);
-
+    //console.log('getAllColumnMinMax colTypes:', colTypes);
     // Filter down to known numeric types
-    const numericCols = colTypes.filter(c =>
-        ['DOUBLE', 'FLOAT', 'INTEGER', 'BIGINT', 'REAL', 'DECIMAL'].includes(c.type)
-    );
+    // Normalize the type and use your sets
+    const numericCols = colTypes.filter(c => {
+        const t = baseType(c.type);
+            return (
+                FLOAT_TYPES.has(t) ||
+                INT_TYPES.has(t) ||
+                DECIMAL_TYPES.has(t) ||
+                BOOL_TYPES.has(t) ||      // optional: if you want min/max/percentiles for booleans
+                TEMPORAL_TYPES.has(t)     // optional: min/max always; percentiles via epoch casting in buildSafeAggregateClauses
+            );
+    });
 
     if (numericCols.length === 0) {
         console.warn(`No numeric columns found in ${fileName}`);

@@ -1,10 +1,10 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import type { MinMaxLowHigh, SrListNumberItem } from '@/types/SrTypes';
-import { gtsOptions, tracksOptions, pairOptions, scOrientOptions } from '@/utils/parmUtils';
+import { gtsOptions, tracksOptions, pairOptions } from '@/utils/parmUtils';
 import { SC_FORWARD,SC_BACKWARD } from '@/sliderule/icesat2';
 import { getDetailsFromSpotNumber, getScOrientFromSpotAndGt } from '@/utils/spotUtils';
-import type { ElevationDataItem } from '@/utils/SrMapUtils';
+import { resetCycleOptions, type ElevationDataItem } from '@/utils/SrMapUtils';
 
 
 export const useGlobalChartStore = defineStore('globalChartStore', () => {
@@ -25,6 +25,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     const hasScBackward = ref<boolean>(false);
     const selectedElevationRec = ref<ElevationDataItem | null>(null);
     const use_y_atc_filter = ref<boolean>(false);
+    const use_rgt_in_filter = ref<boolean>(true);
     const enableLocationFinder = ref<boolean>(true);
     const locationFinderLat = ref<number>(0.0);
     const locationFinderLon = ref<number>(0.0);
@@ -81,11 +82,27 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
             return;
         }
         selectedCycleOptions.value = cycleOptions;
-        //console.trace('setSelectedCycleOptions cycleOptions:', cycleOptions, ' selectedCycleOptions:', selectedCycleOptions.value);
+        //console.log('setSelectedCycleOptions cycleOptions:', cycleOptions, ' selectedCycleOptions:', selectedCycleOptions.value);
     }
 
     function getSelectedCycleOptions(): SrListNumberItem[] {
         return selectedCycleOptions.value;
+    }
+
+    function getMaxSelectedCycle(): number {
+        if (!Array.isArray(selectedCycleOptions.value) || selectedCycleOptions.value.length === 0) {
+            console.error(`getMaxSelectedCycle: selectedCycleOptions is not an array or is empty`, selectedCycleOptions.value);
+            return -1;
+        }
+        return Math.max(...selectedCycleOptions.value.map(cycle => cycle.value));
+    }
+
+    function getMinSelectedCycle(): number {
+        if (!Array.isArray(selectedCycleOptions.value) || selectedCycleOptions.value.length === 0) {
+            console.error(`getMinSelectedCycle: selectedCycleOptions is not an array or is empty`, selectedCycleOptions.value);
+            return -1;
+        }
+        return Math.min(...selectedCycleOptions.value.map(cycle => cycle.value));
     }
 
     function getFilteredCycleOptions(): SrListNumberItem[] {
@@ -375,7 +392,9 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     function set_use_y_atc_filter(value: boolean) {
         use_y_atc_filter.value = value;
     }
-    function selectAllCycleOptions(){
+    async function selectAllCycleOptions(){
+        //console.log('selectAllCycleOptions called');
+        await resetCycleOptions();
         setSelectedCycleOptions(getCycleOptions());
     }
 
@@ -394,6 +413,8 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         selectedCycleOptions,
         getFilteredCycleOptions,
         setFilteredCycleOptions,
+        getMaxSelectedCycle,
+        getMinSelectedCycle,
         setRgtOptions,
         getRgtOptions,
         setRgt,
@@ -435,6 +456,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         setSelectedElevationRec,
         getSelectedElevationRec,
         use_y_atc_filter,
+        use_rgt_in_filter,
         set_use_y_atc_filter,
         selected_y_atc,
         y_atc_is_valid,

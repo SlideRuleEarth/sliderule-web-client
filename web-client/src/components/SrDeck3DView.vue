@@ -25,8 +25,9 @@
             >
             </Select>
             <SrGradientLegend
+                v-if="reqId > 0"
                 class="chart-overlay"
-                :data_key="computedDataKey" 
+                :reqId="reqId" 
                 :transparentBackground="true" 
             />
         </div>
@@ -71,7 +72,7 @@ import SrGradientLegend from "@/components/SrGradientLegend.vue";
 import { useSrToastStore } from '@/stores/srToastStore';
 import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
 import { useRecTreeStore } from '@/stores/recTreeStore';
-import { updateMapAndPlot } from '@/utils/SrMapUtils';
+import { updateElevationMap } from '@/utils/SrMapUtils';
 import { useDeck3DConfigStore } from '@/stores/deck3DConfigStore';
 import SrDeck3DCfg from '@/components/SrDeck3DCfg.vue';
 import Button from 'primevue/button';
@@ -81,22 +82,16 @@ import { debouncedRender } from '@/utils/SrDebounce';
 import { yColorEncodeSelectedReactive } from '@/utils/plotUtils';
 import Select from 'primevue/select';
 import { useChartStore } from '@/stores/chartStore'; 
-import { useGlobalChartStore } from '@/stores/globalChartStore';
+import { checkAndSetFilterFor3D } from '@/utils/plotUtils';
 
 const recTreeStore = useRecTreeStore();
 const chartStore = useChartStore();
-const globalChartStore = useGlobalChartStore();
 const toast = useSrToastStore();
 const deck3DConfigStore = useDeck3DConfigStore();
 const reqId = computed(() => recTreeStore.selectedReqId);
 const elevationStore = useElevationColorMapStore();
 const computedFunc = computed(() => recTreeStore.selectedApi);
-const computedDataKey = computed(() => {
-    const key = recTreeStore.selectedReqIdStr;
-    if (!key) return 'solid';
-    // Prefer the store getter (it can guard internally)
-    return chartStore.getSelectedColorEncodeData(key) ?? 'solid';
-});
+
 const localDeckContainer = ref<HTMLDivElement | null>(null);
 
 const computedStepSize = computed(() => {
@@ -114,7 +109,6 @@ const computedStepSize = computed(() => {
         return 1;
     }
 });
-
 
 
 async function handleColorEncodeSelectionChange() {
@@ -139,19 +133,13 @@ async function handleVerticalExaggerationChange() {
 }
 
 
+
 onMounted(async () => {
-    console.log('onMounted SrDeck3DView reqId:', reqId.value, 'computedDataKey:', computedDataKey.value);
-    updateMapAndPlot(false);
+    //console.log('onMounted SrDeck3DView reqId:', reqId.value);
+    await updateElevationMap(reqId.value);
     await nextTick(); // ensures DOM is updated
     elevationStore.updateElevationColorMapValues();
-    if(computedFunc.value === 'atl13x'){
-        deck3DConfigStore.verticalExaggeration = 1000; // default for atl13x
-        globalChartStore.selectAllCycleOptions();
-        console.log('onMounted atl13x selectAllCycleOptions:', globalChartStore.selectedCycleOptions);
-        chartStore.setSelectedColorEncodeData(recTreeStore.selectedReqIdStr, 'cycle');
-    } else {
-        deck3DConfigStore.verticalExaggeration = 1; // default for other data
-    }
+    checkAndSetFilterFor3D();
     await nextTick(); // makes sure the gradient is available
     //console.log('onMounted Centroid:', deck3DConfigStore.centroid);
     const { width, height } = localDeckContainer.value!.getBoundingClientRect();
@@ -190,7 +178,8 @@ onUnmounted(() => {
 
 watch(reqId, async (newVal, oldVal) => {
     if (newVal && newVal !== oldVal) {
-        updateMapAndPlot(false);
+        checkAndSetFilterFor3D();
+        await updateElevationMap(reqId.value);
         await loadAndCachePointCloudData(reqId.value);
         debouncedRender(localDeckContainer); // Use the fast, debounced renderer
     }

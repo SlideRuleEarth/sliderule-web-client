@@ -7,7 +7,7 @@ import VChart, { THEME_KEY } from "vue-echarts";
 import { provide, watch, onMounted, ref, computed, nextTick } from "vue";
 import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { useChartStore } from "@/stores/chartStore";
-import { callPlotUpdateDebounced, initializeColorEncoding, checkAndSetFilterForAtl13xTimeSeries } from "@/utils/plotUtils";
+import { callPlotUpdateDebounced, checkAndSetFilterForTimeSeries } from "@/utils/plotUtils";
 import { useRecTreeStore } from "@/stores/recTreeStore";
 import { useActiveTabStore } from "@/stores/activeTabStore";
 import SrPlotCntrl from "@/components/SrPlotCntrl.vue";
@@ -17,7 +17,6 @@ import { useFieldNameStore } from "@/stores/fieldNameStore";
 import Dialog from 'primevue/dialog';
 import type { AppendToType } from "@/types/SrTypes";
 import SrCycleSelect from "@/components/SrCycleSelect.vue";
-import { setCyclesGtsSpotsFromFileUsingRgtYatc } from "@/utils/SrMapUtils";
 import SrSimpleYatcCntrl from "./SrSimpleYatcCntrl.vue";
 
 const props = defineProps({
@@ -133,6 +132,7 @@ const initGradientPosition = () => {
   }
   
 };
+const reqId = computed(() => recTreeStore.selectedReqId);
 
 const computedDataKey = computed(() => {
     return chartStore.getSelectedColorEncodeData(recTreeStore.selectedReqIdStr);
@@ -168,10 +168,6 @@ onMounted(async () => {
         atlChartFilterStore.setSelectedOverlayedReqIds([]);
         const reqId = props.startingReqId;
         if (reqId > 0) {
-            if(mission.value === 'ICESat-2'){
-                await setCyclesGtsSpotsFromFileUsingRgtYatc();
-            }
-            initializeColorEncoding(reqId);
             //console.log('SrTimeSeries onMounted: rgt:', globalChartStore.getRgt(), 'spots:', globalChartStore.getSpots(), 'cycles:', globalChartStore.getCycles());
         } else {
             console.error('SrTimeSeries reqId is undefined');
@@ -179,7 +175,7 @@ onMounted(async () => {
         shouldDisplayGradient.value = true;
         await nextTick(); // Ensures Vue has completed the DOM rendering
         initGradientPosition();
-        checkAndSetFilterForAtl13xTimeSeries();
+        await checkAndSetFilterForTimeSeries();
     } catch (error) {
             console.error('Error during onMounted initialization:', error);
     } finally {
@@ -188,14 +184,6 @@ onMounted(async () => {
     }
 });
 
-watch(() => recTreeStore.selectedReqId, async (newReqId) => {
-    console.log('SrTimeSeries watch reqId changed:', newReqId);
-    if (newReqId && newReqId > 0) {
-        // this is just to preset certain values that the user never changes
-        checkAndSetFilterForAtl13xTimeSeries();
-        await callPlotUpdateDebounced('from SrTimeSeries watch recTreeStore.selectedReqId');
-    }
-});
 
 watch(() => plotRef.value, async (newPlotRef) => {
     //console.log('plotRef changed:', newPlotRef);
@@ -203,7 +191,6 @@ watch(() => plotRef.value, async (newPlotRef) => {
         console.warn('SrTimeSeries watch plotRef changed:', newPlotRef);
         atlChartFilterStore.setPlotRef(plotRef.value);
         if(chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length > 0){
-            checkAndSetFilterForAtl13xTimeSeries();
             await callPlotUpdateDebounced('from SrTimeSeries watch plotRef.value');
         } else {
             console.warn('SrTimeSeries watch plotRef.value - no Y data selected');
@@ -212,45 +199,6 @@ watch(() => plotRef.value, async (newPlotRef) => {
     }
 });
 
-watch(() => {
-    const reqId = recTreeStore.selectedReqId;
-    const reqIdStr = recTreeStore.selectedReqIdStr;
-
-    // If reqId is undefined, null, or empty, return default values
-    if (!reqId || reqId <= 0) {
-        return {
-            ydata: [],
-            solidColor: null,
-        };
-    }
-
-    // Otherwise, fetch the real values
-    return {
-        ydata: chartStore.getSelectedYData(reqIdStr),
-        solidColor: chartStore.getSolidSymbolColor(reqIdStr),
-    };
-  },
-  async (newValues, oldValues) => {
-    let needPlotUpdate = false;
-    if (!loadingComponent.value) {
-         // if we have selected Y data and anything changes update the plot
-        if(newValues.ydata.length > 0){
-            needPlotUpdate = true;
-        } else {
-            console.warn(`Skipped updateThePlot for watch selected Y data - Loading component is still active`);
-        }       
-        if(needPlotUpdate){
-            checkAndSetFilterForAtl13xTimeSeries();
-            await callPlotUpdateDebounced('from watch selected Y data changed');
-        }
-    } else {
-      console.warn(
-        `Skipped updateThePlot for watch multiple properties - Loading component is still active`
-      );
-    }
-  },
-  { deep: true }
-);
 
 </script>
 <template>
@@ -290,7 +238,7 @@ watch(() => {
                             <SrGradientLegend
                                 class="chart-overlay"
                                 v-if = "(computedDataKey!='solid')"
-                                :data_key="computedDataKey" 
+                                :reqId="reqId" 
                                 :transparentBackground="true" 
                             />
                         </template>

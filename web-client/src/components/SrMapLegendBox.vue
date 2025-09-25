@@ -55,7 +55,7 @@ watch(
   () => [elevationColorMap.selectedElevationColorMap, elevationColorMap.numShadesForElevation],
   async ()  => {
     elevationColorMap.updateElevationColorMapValues();
-    await updateMapAndPlot();
+    await updateMapAndPlot("SrMapLegendBox watch elevationColorMap change");
   }
 );
 </script>

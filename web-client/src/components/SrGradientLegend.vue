@@ -8,7 +8,7 @@
 
     <div class="sr-legend-minmax">
       <span class="sr-legend-min">{{ minValue }}</span>
-      <span class="sr-legend-name">{{ props.data_key }}</span>
+      <span class="sr-legend-name">{{ computedDataKey }}</span>
       <span class="sr-legend-max">{{ maxValue }}</span>
     </div>
   </div>
@@ -25,16 +25,21 @@ import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
 const props = withDefaults(
   defineProps<{
     isOverlay?: boolean;
-    data_key: string;
+    reqId: number;
     transparentBackground?: boolean;
   }>(),
   {
     isOverlay: false,
-    data_key: '',
+    reqId: 0,
     transparentBackground: false
   }
 );
-
+const computedDataKey = computed(() => {
+    const key = props.reqId ? String(props.reqId) : '';
+    if (!key) return 'solid';
+    // Prefer the store getter (it can guard internally)
+    return chartStore.getSelectedColorEncodeData(key) ?? 'solid';
+});
 const chartStore = useChartStore();
 const globalChartStore = useGlobalChartStore();
 const recTreeStore = useRecTreeStore();
@@ -77,48 +82,50 @@ const colorEncode = computed(() => {
 
 const useSelectedMinMax = computed<boolean>(() => {
   const id = reqIdStr.value;
-  return !!chartStore.stateByReqId[id]?.useSelectedMinMax;
+  const retBool = !!chartStore.stateByReqId[id]?.useSelectedMinMax;
+  //console.log('useSelectedMinMax for reqIdStr:', id, ' is:', retBool);
+  return retBool;
 });
 
 // Safe getters for min/max
 const computedDisplayGradient = computed(() => {
   const id = reqIdStr.value;
-  if (!id || !props.data_key) return false;
-  const min = chartStore.getMinValue(id, props.data_key);
-  const max = chartStore.getMaxValue(id, props.data_key);
+  if (!id || !computedDataKey) return false;
+  const min = chartStore.getMinValue(id, computedDataKey.value);
+  const max = chartStore.getMaxValue(id, computedDataKey.value);
   return min !== null && max !== null && min !== undefined && max !== undefined;
 });
 
 const minValue = computed(() => {
   const id = reqIdStr.value;
-  if (!id || !props.data_key) return '?';
+  if (!id || !computedDataKey) return '?';
 
   const enc = colorEncode.value;
   let min: number | null | undefined;
 
   if (enc === 'cycle') {
-    min = chartStore.getMinValue(id, props.data_key);
+    min = globalChartStore.getMinSelectedCycle();
   } else {
     min = useSelectedMinMax.value
-      ? chartStore.getLow(id, props.data_key)
-      : globalChartStore.getLow(props.data_key);
+      ? chartStore.getLow(id, computedDataKey.value)
+      : globalChartStore.getLow(computedDataKey.value);
   }
   return fmt(min);
 });
 
 const maxValue = computed(() => {
   const id = reqIdStr.value;
-  if (!id || !props.data_key) return '?';
+  if (!id || !computedDataKey) return '?';
 
   const enc = colorEncode.value;
   let max: number | null | undefined;
 
   if (enc === 'cycle') {
-    max = chartStore.getMaxValue(id, props.data_key);
+    max = globalChartStore.getMaxSelectedCycle();
   } else {
     max = useSelectedMinMax.value
-      ? chartStore.getHigh(id, props.data_key)
-      : globalChartStore.getHigh(props.data_key);
+      ? chartStore.getHigh(id, computedDataKey.value)
+      : globalChartStore.getHigh(computedDataKey.value);
   }
   return fmt(max);
 });
@@ -131,7 +138,7 @@ onMounted(() => {
 
 
 // Optional: only ready when we have an id, key, and can compute a range
-const isReady = computed(() => !!reqIdStr.value && !!props.data_key && computedDisplayGradient.value);
+const isReady = computed(() => !!reqIdStr.value && !!computedDataKey.value && computedDisplayGradient.value);
 </script>
 
 <style scoped>
