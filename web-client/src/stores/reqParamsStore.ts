@@ -5,12 +5,13 @@ import { type SrListNumberItem, type Atl13, type Atl13Coord } from '@/types/SrTy
 import { calculatePolygonArea } from "@/composables/SrTurfUtils";
 import { convertTimeFormat } from '@/utils/parmUtils';
 import { db } from '@/db/SlideRuleDb';
-import { convexHull } from "@/composables/SrTurfUtils";
+import { convexHull,regionFromBounds } from "@/composables/SrTurfUtils";
 import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { type ApiName, isValidAPI,type SrMultiSelectNumberItem } from '@/types/SrTypes'
 import { type Icesat2ConfigYapc } from '@/types/slideruleDefaultsInterfaces'
 import { useSlideruleDefaults } from '@/stores/defaultsStore';
 import { useGeoJsonStore } from './geoJsonStore';
+import { useChartStore } from '@/stores/chartStore';
 import { useRasterParamsStore } from '@/stores/rasterParamsStore';
 import { 
   distanceInOptions,
@@ -32,7 +33,6 @@ export function getDefaultReqParamsState(): SrReqParamsState {
       gediSelectedAPI: 'gedi01bp' as string,
       using_worker: false,
       asset: '',
-      isArrowStream: false,
       isFeatherStream: false,
       rasterizePolyCellSize: 0.01,
       ignorePolygon: false,
@@ -230,13 +230,33 @@ const createReqParamsStore = (id: string) =>
             this.setEnableGranuleSelection(true);//tracks and beams
             this.setUseRgt(true);
             this.setUseCycle(true);
-            const poly = await db.getSvrReqPoly(parentReqId);
-            if(poly && poly.length > 0) {
-                this.setPoly(poly);
-                this.setConvexHull(convexHull(poly));
-                this.setAreaOfConvexHull(calculatePolygonArea(poly));
-            } else {
-              if(parentApi !== 'atl13x'){
+            if(parentApi === 'atl13x'){ // dont use the request polygon, use the track bounds
+              const parentReqIdStr = parentReqId.toString();
+              const mmlh = useChartStore().getMinMaxLowHigh(parentReqIdStr);
+              console.log('presetForScatterPlotOverlay: parentReqId:', parentReqId, 'parentApi:', parentApi, 'mmlh:', mmlh);
+              const region = regionFromBounds(
+                  mmlh['latitude']?.min,
+                  mmlh['latitude']?.max,
+                  mmlh['longitude']?.min,
+                  mmlh['longitude']?.max,
+                  { close: true }
+              );
+              if (region) {
+                  this.setPoly(region);
+                  this.setConvexHull(convexHull(region));
+                  this.setAreaOfConvexHull(calculatePolygonArea(region));
+                  console.log('presetForScatterPlotOverlay: using poly for parentReqId:', parentReqId, 'poly:', region);
+              } else {
+                  console.error('presetForScatterPlotOverlay: unable to create region from selected track bounds for parentReqId:', parentReqId);
+              }
+            } else { // all other APIs use the request polygon
+              const poly = await db.getSvrReqPoly(parentReqId);
+              if(poly && poly.length > 0) {
+                  this.setPoly(poly);
+                  this.setConvexHull(convexHull(poly));
+                  this.setAreaOfConvexHull(calculatePolygonArea(poly));
+                  console.log('presetForScatterPlotOverlay: using poly for parentReqId:', parentReqId, 'poly:', poly);
+              } else {
                 console.error('presetForScatterPlotOverlay: no poly for parentReqId:', parentReqId);
               }
             }
@@ -269,7 +289,7 @@ const createReqParamsStore = (id: string) =>
             this.setEnableGranuleSelection(true);
             this.setUseCycle(true);
             this.setCycle(useGlobalChartStore().getCycles()[0]);
-            //console.log('presetForScatterPlotOverlay: tracks:', this.getSelectedTrackOptions(),'gts:', this.getSelectedGtOptions(), 'rgts:', this.getRgt(), 'cycles:', this.getCycle());
+            console.log('presetForScatterPlotOverlay: tracks:', this.getSelectedTrackOptions(),'gts:', this.getSelectedGtOptions(), 'rgts:', this.getRgt(), 'cycles:', this.getCycle());
         },
         getRasterizePolyCellSize() {
             return this.rasterizePolyCellSize;
@@ -298,65 +318,21 @@ const createReqParamsStore = (id: string) =>
         },
         /////////////////////////////////////////////
         getAtlReqParams(req_id: number): AtlReqParams { 
-          //console.log('getAtlReqParams req_id:', req_id);
-          const getOutputPath = (): string => {
-            let path = this.outputLocationPath;
-            if (this.outputLocation.value === 'S3') {
-              path = `s3://${this.outputLocationPath}`;
-            }
-            if (this.outputLocationPath.length === 0) {
-              //Note: This is only used by the server. It needs to be unique for each request.
-              // We create a similar filename for our local client elsewhere.
-              let reqIdStr = 'nnn';
-              if(req_id > 0) {
-                reqIdStr = `${req_id}`;
-              }
-              path = `${this.getFunc()}_${reqIdStr}_${new Date().toISOString()
-                .replace(/:/g, '_')
-                .replace(/\./g, '_')
-                .replace(/T/g, '_')
-                .replace(/Z/g, '')}`;
-            }
-            return path;
-          };
-        
-          const getOutputFormat = (path: string): OutputFormat | undefined => {
-            if (this.fileOutputFormat.value === 'geoparquet' || this.fileOutputFormat.value === 'parquet') {
-              path += '.parquet';
-              return {
-                format: 'parquet',
-                as_geo: this.fileOutputFormat.value === 'geoparquet',
-                path: path,
-                with_checksum: this.useChecksum,
-              };
-            }
-            console.error('getAtlReqParams: outputFormat not recognized:', this.fileOutputFormat.value);
-            return undefined;
-          };
+          //console.log('getAtlReqParams req_id:', req_id);        
           const req: AtlReqParams = {}
-          if(this.missionValue === 'ICESat-2') {
-            if(this.iceSat2SelectedAPI === 'atl06sp') { // land ice
-              this.setAsset('icesat2-atl06'); 
-            } else {
-              this.setAsset('icesat2');
-            }
+          // Compute asset locally (don’t call setAsset and mutate the store, might cause reactive loop) 
+          let asset = this.asset;
+          if (this.missionValue === 'ICESat-2') {
+            asset = (this.iceSat2SelectedAPI === 'atl06sp') ? 'icesat2-atl06' : 'icesat2';
           } else if (this.missionValue === 'GEDI') {
-            //console.log('GEDI API:', this.gediSelectedAPI);
-            if(this.gediSelectedAPI === 'gedi01bp') {
-              this.setAsset('gedil1b');
-            } else if(this.gediSelectedAPI === 'gedi02ap') {
-              this.setAsset('gedil2a');
-            } else if(this.gediSelectedAPI === 'gedi04ap') {
-              //console.log('GEDI API:', this.gediSelectedAPI);
-              this.setAsset('gedil4a');
-            }
-            if(this.gedi_fields.length>0) {
-              req.anc_fields = this.gedi_fields;
-            }
-
+            if (this.gediSelectedAPI === 'gedi01bp') asset = 'gedil1b';
+            else if (this.gediSelectedAPI === 'gedi02ap') asset = 'gedil2a';
+            else if (this.gediSelectedAPI === 'gedi04ap') asset = 'gedil4a';
           } else {
             console.error('getAtlReqParams: mission not recognized:', this.missionValue);
           }
+          req.asset = asset;
+ 
           if((this.iceSat2SelectedAPI==='atl08p') || (this.iceSat2SelectedAPI.includes('atl03'))){
             if(this.getEnablePhoReal()) {
               req.phoreal = {}; // atl08p requires phoreal even if not used
@@ -444,9 +420,7 @@ const createReqParamsStore = (id: string) =>
               req.atl03_ph_fields = this.atl03_ph_fields;
             }
           }
-          if(this.iceSat2SelectedAPI.includes('atl06') || this.iceSat2SelectedAPI.includes('atl08')){
-            req.asset = this.getAsset();
-          }
+
           if((this.iceSat2SelectedAPI.includes('atl06') || this.iceSat2SelectedAPI.includes('atl03x-surface'))){ 
             if(this.atl06_fields.length>0) {
               req.atl06_fields = this.atl06_fields;
@@ -490,7 +464,6 @@ const createReqParamsStore = (id: string) =>
               req.res = this.getStepValue();
             }
           } else if(this.missionValue === 'GEDI') {
-            req.asset = this.getAsset();
             if(this.degradeFlag){
               req.degrade = true;
             }
@@ -529,11 +502,26 @@ const createReqParamsStore = (id: string) =>
           }
 
           if (this.fileOutput) {
-            const path = getOutputPath();
-            const output = getOutputFormat(path);
-            if (output) {
-              req.output = output;
-              this.isArrowStream = true;
+            const pathBase = (() => {
+              let path = this.outputLocationPath;
+              if (this.outputLocation.value === 'S3') path = `s3://${this.outputLocationPath}`;
+              if (!this.outputLocationPath.length) {
+                const reqIdStr = req_id > 0 ? String(req_id) : 'nnn';
+                return `${this.getFunc()}_${reqIdStr}_${new Date().toISOString()
+                  .replace(/:/g, '_').replace(/\./g, '_').replace(/T/g, '_').replace(/Z/g, '')}`;
+              }
+              return path;
+            })();
+
+            if (this.fileOutputFormat.value === 'geoparquet' || this.fileOutputFormat.value === 'parquet') {
+              const path = `${pathBase}.parquet`;
+              req.output = {
+                format: 'parquet',
+                as_geo: this.fileOutputFormat.value === 'geoparquet',
+                path,
+                with_checksum: this.useChecksum,
+              };
+              // DO NOT mutate store here (no this.??? =)
             }
           }
         
@@ -661,7 +649,7 @@ const createReqParamsStore = (id: string) =>
           // Apply forced removals
           for (const path of this.forcedRemovedParams) {
             const actualPath = path.startsWith('parms.') ? path.slice('parms.'.length) : path;
-            deleteNestedKey(baseParams, actualPath);
+            deleteNestedKey(baseParams.parms, actualPath);
           }
 
           //console.trace('getAtlReqParams this:', this, 'req_id:', req_id, 'req:', baseParams);

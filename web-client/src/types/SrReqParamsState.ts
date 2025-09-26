@@ -1,15 +1,10 @@
 import type {
     SrRegion,
-    OutputFormat,
-    SrMenuNumberItem,
-    SrRadioItem,
     Atl13,
     SrListNumberItem,
     SrListStringItem,
     SrMultiSelectNumberItem,
-    SrMultiSelectTextItem,
     SrMenuItem,
-    SrPhoReal,
 } from '@/types/SrTypes';
 
 export interface SrReqParamsState {
@@ -18,7 +13,6 @@ export interface SrReqParamsState {
     gediSelectedAPI: string;
     using_worker: boolean;
     asset: string;
-    isArrowStream: boolean;
     isFeatherStream: boolean;
     rasterizePolyCellSize: number;
     ignorePolygon: boolean;

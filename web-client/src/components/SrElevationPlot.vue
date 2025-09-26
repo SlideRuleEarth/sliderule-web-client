@@ -356,6 +356,9 @@ const photonCloudBtnTooltip = computed(() => {
     if(analysisMapStore.getPntDataByReqId(recTreeStore.selectedReqIdStr).isLoading){
             return 'Photon Cloud is disabled while record is loading';
     } else {
+        if(recTreeStore.selectedApi.includes('atl13x')){
+            return 'Photon Cloud is disabled for now for ATL13x requests; support is coming soon';
+        }
         return  atlChartFilterStore.showPhotonCloud  ? 'Click to hide photon cloud' : PC_OnTooltip.value;
     }
 });
@@ -405,8 +408,6 @@ async function initPlot(){
                 console.warn('SrElevationPlot onMounted - selectedElRecord is null, nothing to plot yet');
             }
             initializeColorEncoding(sReqId);
-            const parentReqId = sReqId;
-            await useAutoReqParamsStore().presetForScatterPlotOverlay(parentReqId);
         } else {
             console.warn('reqId is undefined');
         }        
@@ -732,12 +733,12 @@ watch(() => atlChartFilterStore.showSlopeLines, async (newValue) => {
                     @mouseleave="tooltipRef.hideTooltip()"
                 >
                     <ToggleButton
-                        v-if="mission === 'ICESat-2' && !recTreeStore.selectedApi.includes('atl13')"
+                        v-if="mission === 'ICESat-2' "
                         onIcon='pi pi-eye-slash'
                         offIcon="pi pi-eye"
                         class="sr-show-hide-button"
                         v-model="atlChartFilterStore.showPhotonCloud"
-                        :disabled="analysisMapStore.getPntDataByReqId(recTreeStore.selectedReqIdStr).isLoading || globalChartStore.use_y_atc_filter"
+                        :disabled="recTreeStore.selectedApi.includes('atl13x') || analysisMapStore.getPntDataByReqId(recTreeStore.selectedReqIdStr).isLoading || globalChartStore.use_y_atc_filter"
                         size="small" 
                         onLabel="Hide Photon Cloud"
                         offLabel="Show Photon Cloud"

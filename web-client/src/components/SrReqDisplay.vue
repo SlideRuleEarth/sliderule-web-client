@@ -31,6 +31,7 @@
     import SrJsonDisplayDialog from "./SrJsonDisplayDialog.vue";
     import SrCustomTooltip from "./SrCustomTooltip.vue";
     import Button from "primevue/button";
+    import { useRecTreeStore } from "@/stores/recTreeStore";
   
     // Props
     const props = defineProps({
@@ -49,29 +50,22 @@
     });
     const tooltipRef = ref();
     const showParmsDialog = ref(false);
-    let reqParamsStore: ReturnType<typeof useReqParamsStore>;
-    const curAPI = computed(() => reqParamsStore.getCurAPIStr());
-  
-    if(props.isForPhotonCloud) {
-        reqParamsStore = useAutoReqParamsStore();
-    } else {
-        reqParamsStore = useReqParamsStore();
-    }
-      
-    // const reqParms = computed(() => {
-    //     return JSON.stringify(reqParamsStore.getAtlxxReqParams(0), null, 2);
-    // });
-    const reqParms = ref(reqParamsStore.getAtlxxReqParams(0));
+    const recTreeStore = useRecTreeStore();
+    const reqParamsStore = (props.isForPhotonCloud) ? useAutoReqParamsStore() : useReqParamsStore();
+    const curAPI = computed(() => (reqParamsStore ? reqParamsStore.getCurAPIStr() : ''));
+    const reqParms = computed(() => {
+        return reqParamsStore.getAtlxxReqParams(0);
+    });
     // Open the Parms dialog
-    function openParmsDialog() {
-        reqParms.value = reqParamsStore.getAtlxxReqParams(0);
-        console.log("Opening parms dialog with reqParms:", reqParms.value);
+    async function openParmsDialog() {
+        await reqParamsStore.presetForScatterPlotOverlay(recTreeStore.selectedReqId);
+        console.log("Opening parms dialog with reqParms:", JSON.stringify(reqParms.value, null, 2));
         showParmsDialog.value = true;
     }
+
     onMounted(() => {
-        // Initialize the request parameters when the component is mounted
-        reqParms.value = reqParamsStore.getAtlxxReqParams(0); // ✅ Keep it as an object
-    });
+        console.log("SrReqDisplay mounted with isForPhotonCloud:", props.isForPhotonCloud, " reqParams:", JSON.stringify(reqParms.value, null, 2));
+     });
 </script>
   
   
@@ -84,3 +78,4 @@
 }
 
 </style>
+

@@ -339,7 +339,8 @@ onmessage = async (event) => {
                     if(cmd.func){
                         let result:Sr_Results_type = {} as Sr_Results_type; 
                         try{
-                            console.log('Fetching:', cmd.func, ' for reqID:', reqID, ' with cmd.parameters:', cmd.parameters, ' using callbacks:', callbacks);  
+                            //console.log('Fetching:', cmd.func, ' for reqID:', reqID, ' with cmd.parameters:', cmd.parameters, ' using callbacks:', callbacks); 
+                            console.log("Fetching:", cmd.func, ' for reqID:', reqID, ' with cmd.parameters:',JSON.stringify(cmd.parameters, null, 2)); 
                             if(got_all_cbs){
                                 console.warn("&&&&&&&&&&&&&&&&&&&& STATE ERROR &&&&&&&&&&&&&&&&&&&");
                             }
