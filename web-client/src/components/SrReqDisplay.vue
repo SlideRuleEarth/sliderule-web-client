@@ -58,7 +58,9 @@
     });
     // Open the Parms dialog
     async function openParmsDialog() {
-        await reqParamsStore.presetForScatterPlotOverlay(recTreeStore.selectedReqId);
+        if(props.isForPhotonCloud){
+            await reqParamsStore.presetForScatterPlotOverlay(recTreeStore.selectedReqId);
+        }
         console.log("Opening parms dialog with reqParms:", JSON.stringify(reqParms.value, null, 2));
         showParmsDialog.value = true;
     }
