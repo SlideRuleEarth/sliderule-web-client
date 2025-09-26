@@ -318,41 +318,7 @@ const createReqParamsStore = (id: string) =>
         },
         /////////////////////////////////////////////
         getAtlReqParams(req_id: number): AtlReqParams { 
-          //console.log('getAtlReqParams req_id:', req_id);
-          // const getOutputPath = (): string => {
-          //   let path = this.outputLocationPath;
-          //   if (this.outputLocation.value === 'S3') {
-          //     path = `s3://${this.outputLocationPath}`;
-          //   }
-          //   if (this.outputLocationPath.length === 0) {
-          //     //Note: This is only used by the server. It needs to be unique for each request.
-          //     // We create a similar filename for our local client elsewhere.
-          //     let reqIdStr = 'nnn';
-          //     if(req_id > 0) {
-          //       reqIdStr = `${req_id}`;
-          //     }
-          //     path = `${this.getFunc()}_${reqIdStr}_${new Date().toISOString()
-          //       .replace(/:/g, '_')
-          //       .replace(/\./g, '_')
-          //       .replace(/T/g, '_')
-          //       .replace(/Z/g, '')}`;
-          //   }
-          //   return path;
-          // };
-        
-          // const getOutputFormat = (path: string): OutputFormat | undefined => {
-          //   if (this.fileOutputFormat.value === 'geoparquet' || this.fileOutputFormat.value === 'parquet') {
-          //     path += '.parquet';
-          //     return {
-          //       format: 'parquet',
-          //       as_geo: this.fileOutputFormat.value === 'geoparquet',
-          //       path: path,
-          //       with_checksum: this.useChecksum,
-          //     };
-          //   }
-          //   console.error('getAtlReqParams: outputFormat not recognized:', this.fileOutputFormat.value);
-          //   return undefined;
-          // };
+          //console.log('getAtlReqParams req_id:', req_id);        
           const req: AtlReqParams = {}
           // Compute asset locally (don’t call setAsset and mutate the store, might cause reactive loop) 
           let asset = this.asset;
