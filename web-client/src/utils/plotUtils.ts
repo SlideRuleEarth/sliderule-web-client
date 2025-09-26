@@ -222,7 +222,6 @@ async function getGenericSeries({
         //console.log(`getGenericSeries ${functionName}: minMaxValues:`, minMaxValues);
         const chartStore = useChartStore();
         chartStore.setMinMaxValues(reqIdStr, minMaxValues);
-        //console.log(`${functionName} ${reqIdStr}: minMaxValues set to`, minMaxValues);
         chartStore.setMinMaxLowHigh(reqIdStr, minMaxLowHigh);
         chartStore.setDataOrderNdx(reqIdStr, rest['dataOrderNdx'] || {});
         const gradientColorMapStore = useGradientColorMapStore(reqIdStr);
