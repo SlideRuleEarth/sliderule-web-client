@@ -22,7 +22,6 @@
     import SrRecSelectControl from "@/components/SrRecSelectControl.vue";
     import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
     import { useRecTreeStore } from "@/stores/recTreeStore";
-    import { useAutoReqParamsStore } from "@/stores/reqParamsStore";
     import SrColMapSelControl from "@/components/SrColMapSelControl.vue";
     import { useSrToastStore } from "@/stores/srToastStore";
     import { readOrCacheSummary } from "@/utils/SrDuckDbUtils";
