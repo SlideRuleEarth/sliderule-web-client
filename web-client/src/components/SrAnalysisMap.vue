@@ -70,7 +70,7 @@
     const srParquetCfgStore = useSrParquetCfgStore();
     const analysisMapStore = useAnalysisMapStore();
     const globalChartStore = useGlobalChartStore();
-    const autoReqParamsStore = useAutoReqParamsStore();
+    //const autoReqParamsStore = useAutoReqParamsStore();
     const fncs = useFieldNameStore();
     const atlChartFilterStore = useAtlChartFilterStore();
     const activeTabStore = useActiveTabStore();
@@ -160,7 +160,6 @@
                 } else {
                     deck3DConfigStore.verticalExaggeration = 1; // default for other data
                 }
-                await autoReqParamsStore.presetForScatterPlotOverlay(newReqId);
                 await updateAnalysisMapView('watch selectedReqId');
             } else {
                 console.error("Error: SrAnalysisMap selectedReqId is 0?");

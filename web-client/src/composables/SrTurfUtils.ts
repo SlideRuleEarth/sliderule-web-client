@@ -48,3 +48,42 @@ export function calculatePolygonArea(coords: SrLatLon[]): number {
     
     return areaSqKm;
 }
+
+/**
+ * Create a rectangular SrRegion polygon from min/max lat/lon.
+ * - Order: CCW (SW → SE → NE → NW → back to SW)
+ * - Returns undefined if any bound is missing.
+ */
+export function regionFromBounds(
+    minLatitude?: number,
+    maxLatitude?: number,
+    minLongitude?: number,
+    maxLongitude?: number,
+    { close = true }: { close?: boolean } = {}
+): SrRegion | undefined {
+    if (
+        minLatitude == null || maxLatitude == null ||
+        minLongitude == null || maxLongitude == null
+    ) return undefined;
+
+    // Optionally: clamp to valid ranges
+    const minLat = Math.max(-90, Math.min(90, minLatitude));
+    const maxLat = Math.max(-90, Math.min(90, maxLatitude));
+    const minLon = Math.max(-180, Math.min(180, minLongitude));
+    const maxLon = Math.max(-180, Math.min(180, maxLongitude));
+
+    // If bounds are inverted, swap
+    const south = Math.min(minLat, maxLat);
+    const north = Math.max(minLat, maxLat);
+    const west  = Math.min(minLon, maxLon);
+    const east  = Math.max(minLon, maxLon);
+
+    const ring: SrRegion = [
+        { lat: south, lon: west }, // SW
+        { lat: south, lon: east }, // SE
+        { lat: north, lon: east }, // NE
+        { lat: north, lon: west }, // NW
+    ];
+    if (close) ring.push(ring[0]); // close the polygon
+    return ring;
+}
