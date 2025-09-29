@@ -1,8 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import VChart from "vue-echarts";
-
-
+import type { VueECharts } from 'vue-echarts';   // ✅ correct instance type
+import type { ECharts } from '@/types/echarts';  // alias of EChartsType
 
 export const useAtlChartFilterStore = defineStore('atlChartFilter', {
   state: () => ({
@@ -11,7 +10,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     chartDataRef: ref<number[][]>([]),
     largeData: false as boolean,
     largeDataThreshold: 1000000 as number,
-    plotRef: null as InstanceType<typeof VChart> | null, 
+    plotRef: null as VueECharts | null,  // ✅ use VueECharts here
     selectedOverlayedReqIds: [] as number[],
     message: '' as string,
     isWarning: true as boolean,
@@ -61,11 +60,15 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     setLargeDataThreshold(largeDataThreshold: number) {
         this.largeDataThreshold = largeDataThreshold;
     },
-    setPlotRef(ref: InstanceType<typeof VChart> | null) {
-      this.plotRef = ref;
+    setPlotRef(refInst: VueECharts | null) {   // ✅ accept VueECharts
+      this.plotRef = refInst;
     },
     getPlotRef() {
       return this.plotRef;
+    },
+    getChart(): ECharts | null {
+      // vue-echarts exposes getEchartsInstance(): EChartsType
+      return this.plotRef?.getEchartsInstance() ?? null;  // ✅ now typed
     },
     getSelectedOverlayedReqIds() {
       const selectedOverlayedReqIds = this.selectedOverlayedReqIds;
