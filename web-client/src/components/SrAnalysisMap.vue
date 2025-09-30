@@ -154,11 +154,6 @@
         if(newReqId !== oldReqId){
             if(newReqId > 0){
                 globalChartStore.setAllColumnMinMaxValues({}); // reset all min/max values
-                if(recTreeStore.selectedApi === 'atl13x'){
-                    deck3DConfigStore.verticalExaggeration = 1000; // default for atl13x
-                } else {
-                    deck3DConfigStore.verticalExaggeration = 1; // default for other data
-                }
                 await updateAnalysisMapView('watch selectedReqId');
             } else {
                 console.error("Error: SrAnalysisMap selectedReqId is 0?");

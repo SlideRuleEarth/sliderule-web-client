@@ -36,6 +36,7 @@ const deckInstance: Ref<Deck<OrbitView[]> | null> = ref(null);
 // Module-level state for caching and Deck.gl instance
 let cachedRawData: any[] = [];
 let lastLoadedReqId: number | null = null;
+let verticalExaggerationInitialized = false;
 
 
 // helper: pick a local metric CRS (UTM or polar)
@@ -248,6 +249,7 @@ export async function loadAndCachePointCloudData(reqId: number) {
                 );
             });
             lastLoadedReqId = reqId;
+            verticalExaggerationInitialized = false; // Reset flag for new data
             console.log(`Cached ${cachedRawData.length} valid data points.`);
 
             if (cachedRawData.length > 0) {
@@ -386,6 +388,19 @@ export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
     // ---- Isotropic Z (meters → world) ----
     const h0 = elevMinScale; // base plane for Z (matches percentile window)
     const zRangeMeters = Math.max(1e-6, (elevMaxScale - elevMinScale));
+
+    // Calculate vertical scale ratio based on z range vs x range
+    const calculatedVerticalScaleRatio = Erange / zRangeMeters;
+    console.log(`Calculated verticalScaleRatio: ${calculatedVerticalScaleRatio.toFixed(2)} (Erange: ${Erange.toFixed(2)} m, zRange: ${zRangeMeters.toFixed(2)} m)`);
+    deck3DConfigStore.verticalScaleRatio = calculatedVerticalScaleRatio;
+
+    // Set vertical exaggeration to 1/2 of the calculated ratio (only once per dataset)
+    if (!verticalExaggerationInitialized) {
+        deck3DConfigStore.verticalExaggeration = calculatedVerticalScaleRatio / 2;
+        verticalExaggerationInitialized = true;
+        console.log(`Initialized verticalExaggeration to: ${deck3DConfigStore.verticalExaggeration.toFixed(2)}`);
+    }
+
     const zToWorld = metersToWorld * deck3DConfigStore.verticalExaggeration;
     const scaleZ = zToWorld * zRangeMeters; // Z axis length to pass to axes
 
