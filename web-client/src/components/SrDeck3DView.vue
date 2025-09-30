@@ -57,8 +57,7 @@
                 :min="1"
                 :max="1000000"
                 showButtons
-                :defaultValue="deck3DConfigStore.verticalExaggeration"
-                @value-change="handleVerticalExaggerationChange"
+                @update:model-value="handleVerticalExaggerationChange"
             />
         </div>
 
