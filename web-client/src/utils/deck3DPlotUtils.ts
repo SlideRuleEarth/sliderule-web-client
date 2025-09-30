@@ -318,10 +318,6 @@ export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
         return;
     }
 
-    // Ensure ratio = 1 for isotropic XYZ (exaggeration handled separately)
-    deck3DConfigStore.verticalScaleRatio = 1;
-
-
     // --- fast, in-memory processing ---
     const selectedColorField = chartStore.getSelectedColorEncodeData(recTreeStore.selectedReqIdStr);
     console.log('renderCachedData: selectedColorField:', selectedColorField, ' for reqId:', recTreeStore.selectedReqIdStr);

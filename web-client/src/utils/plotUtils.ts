@@ -1535,7 +1535,7 @@ export async function checkAndSetFilterFor3D() {
     if(useActiveTabStore().isActiveTab3D){
         useChartStore().setUseSelectedMinMax(useRecTreeStore().selectedReqIdStr, false);
         if(useRecTreeStore().selectedApi === 'atl13x'){
-            deck3DConfigStore.verticalExaggeration = 1000; // default for atl13x
+            // verticalExaggeration will be set automatically based on data in renderCachedData
             globalChartStore.set_use_y_atc_filter(false);
             globalChartStore.setSpots([1,2,3,4,5,6]);
             globalChartStore.setScOrients([SC_BACKWARD, SC_FORWARD]);
@@ -1544,7 +1544,7 @@ export async function checkAndSetFilterFor3D() {
             chartStore.setSelectedColorEncodeData(recTreeStore.selectedReqIdStr, 'cycle');
             //console.log('checkAndSetFilterForTimeSeries Setting use_y_atc_filter false, Spots to [1,2,3,4,5,6], Cycles to all');
         } else {
-            deck3DConfigStore.verticalExaggeration = 1; // default for other data
+            // verticalExaggeration will be set automatically based on data in renderCachedData
             chartStore.setSelectedColorEncodeData(recTreeStore.selectedReqIdStr, getDefaultColorEncoding(recTreeStore.selectedReqId));
             await resetFilterUsingSelectedRec();
             globalChartStore.use_rgt_in_filter = true;
