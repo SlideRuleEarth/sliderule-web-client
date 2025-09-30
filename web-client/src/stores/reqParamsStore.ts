@@ -32,7 +32,6 @@ export function getDefaultReqParamsState(): SrReqParamsState {
       iceSat2SelectedAPI: 'atl03x-surface' as string,
       gediSelectedAPI: 'gedi01bp' as string,
       using_worker: false,
-      asset: '',
       isFeatherStream: false,
       rasterizePolyCellSize: 0.01,
       ignorePolygon: false,
@@ -320,18 +319,17 @@ const createReqParamsStore = (id: string) =>
         getAtlReqParams(req_id: number): AtlReqParams { 
           //console.log('getAtlReqParams req_id:', req_id);        
           const req: AtlReqParams = {}
-          // Compute asset locally (don’t call setAsset and mutate the store, might cause reactive loop) 
-          let asset = this.asset;
           if (this.missionValue === 'ICESat-2') {
-            asset = (this.iceSat2SelectedAPI === 'atl06sp') ? 'icesat2-atl06' : 'icesat2';
+            if (!(this.iceSat2SelectedAPI.includes('x'))) { // atlnnx does not need asset set
+              req.asset = (this.iceSat2SelectedAPI === 'atl06sp') ? 'icesat2-atl06' : 'icesat2';
+            }
           } else if (this.missionValue === 'GEDI') {
-            if (this.gediSelectedAPI === 'gedi01bp') asset = 'gedil1b';
-            else if (this.gediSelectedAPI === 'gedi02ap') asset = 'gedil2a';
-            else if (this.gediSelectedAPI === 'gedi04ap') asset = 'gedil4a';
+            if (this.gediSelectedAPI === 'gedi01bp') req.asset = 'gedil1b';
+            else if (this.gediSelectedAPI === 'gedi02ap') req.asset = 'gedil2a';
+            else if (this.gediSelectedAPI === 'gedi04ap') req.asset = 'gedil4a';
           } else {
             console.error('getAtlReqParams: mission not recognized:', this.missionValue);
           }
-          req.asset = asset;
  
           if((this.iceSat2SelectedAPI==='atl08p') || (this.iceSat2SelectedAPI.includes('atl03'))){
             if(this.getEnablePhoReal()) {
@@ -757,12 +755,6 @@ const createReqParamsStore = (id: string) =>
         },
         setPassInvalid(passInvalid:boolean) {
           this.passInvalid = passInvalid;
-        },
-        setAsset(asset:string) {
-          this.asset = asset;
-        },
-        getAsset(): string {
-          return this.asset;
         },
         getMinWindowHeight():number {
           return this.minWindowHeight;

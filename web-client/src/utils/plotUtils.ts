@@ -894,16 +894,16 @@ export async function getScatterOptions(req_id:number): Promise<any> {
                             onZero: false,
                     },
                 }],
-                yAxis: seriesData.map((series, index) => ({
+                yAxis: [{
                     type: 'value',
-                    name: y[index],
-                    min: seriesData[index].min,
-                    max: seriesData[index].max,
+                    name: seriesData.map(s => s.series.name).join(', '),
+                    min: Math.min(...seriesData.map(s => s.min).filter((m): m is number => m !== null)),
+                    max: Math.max(...seriesData.map(s => s.max).filter((m): m is number => m !== null)),
                     scale: true,  // Add this to ensure the axis scales correctly
                     axisLabel: {
                         formatter: (value: number) => value.toFixed(1)  // Format to one decimal place
                     }
-                })),
+                }],
                 series:[
                             ...seriesData.map(series => series.series),
                             ...(slopeSeries ? [slopeSeries] : [])
@@ -1100,7 +1100,7 @@ async function appendSeries(reqId: number): Promise<void> {
         }
         //console.log(`appendSeries(${reqIdStr}): seriesData:`, seriesData);
         // Define the fields that should share a single axis
-        const heightFields = ['height', 'h_mean', 'h_mean_canopy', 'h_li', 'ortho_h'];
+        const heightFields = ['height', 'h_mean', 'h_mean_canopy', 'h_li', 'ortho_h', 'h_min_canopy', 'h_max_canopy', 'h_te_median' ];
 
         // Separate series into "height" group and "non-height" group
         const heightSeriesData = seriesData.filter(d => heightFields.includes(d.series.name));

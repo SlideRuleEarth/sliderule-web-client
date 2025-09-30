@@ -12,7 +12,6 @@ export interface SrReqParamsState {
     iceSat2SelectedAPI: string;
     gediSelectedAPI: string;
     using_worker: boolean;
-    asset: string;
     isFeatherStream: boolean;
     rasterizePolyCellSize: number;
     ignorePolygon: boolean;

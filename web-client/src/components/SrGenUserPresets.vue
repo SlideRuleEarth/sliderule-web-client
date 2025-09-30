@@ -46,7 +46,6 @@ const selectBox = (boxId: number) => {
       case 'ICESat-2 Land Ice Sheet':
         reqParameterStore.setMissionValue('ICESat-2');
         reqParameterStore.setIceSat2API('atl06sp');
-        reqParameterStore.setAsset('icesat2-atl06');
         break;
       case 'ICESat-2 Canopy Heights':
         reqParameterStore.setMissionValue('ICESat-2');
@@ -70,17 +69,14 @@ const selectBox = (boxId: number) => {
       case 'GEDI Biomass Density':
         reqParameterStore.setMissionValue('GEDI');
         reqParameterStore.setGediAPI('gedi04ap');
-        reqParameterStore.setAsset('gedil4a');
         break;
       case 'GEDI Elevations w/Canopy':
         reqParameterStore.setMissionValue('GEDI');
         reqParameterStore.setGediAPI('gedi02ap');
-        reqParameterStore.setAsset('gedil2a');
         break;
       case 'GEDI Geolocated Waveforms':
         reqParameterStore.setMissionValue('GEDI');
         reqParameterStore.setGediAPI('gedi01bp');
-        reqParameterStore.setAsset('gedil1b');
         break;
       default:
         console.error("GenUserOptions Unknown selection.");
