@@ -100,7 +100,7 @@
     });
     
     const locationFinderReady = computed(() => {
-        return ((mapRefComputed != null) && (mapRefComputed!=undefined)  && (globalChartStore.getSelectedElevationRec() !== null));
+        return ((mapRefComputed.value != null) && (mapRefComputed.value != undefined));
     });
     
 
@@ -519,7 +519,7 @@
                 @baselayer-control-created="handleBaseLayerControlCreated" 
                 @update-baselayer="handleUpdateBaseLayer" 
             />
-            <SrLocationFinder v-if="hasLinkToElevationPlot && locationFinderReady && mapRef?.map" :map="mapRef.map" />
+            <SrLocationFinder v-if="hasLinkToElevationPlot && locationFinderReady && globalChartStore.enableLocationFinder && mapRef?.map" :map="mapRef.map" />
 
         </Map.OlMap>
         <div class="sr-tooltip-style">
