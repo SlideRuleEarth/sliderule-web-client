@@ -15,7 +15,6 @@
         <SrJsonEditDialog
             v-model="reqParamsStore.showParamsDialog"
             :zodSchema="ICESat2RequestSchema"
-            :readonly-store-value="() => reqParamsStore.getAtlxxReqParams(0)"
             :title="`endpoint = ${curAPI}`"
             width="80vw"
         />

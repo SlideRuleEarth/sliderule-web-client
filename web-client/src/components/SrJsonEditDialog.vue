@@ -12,8 +12,15 @@ import type { ZodTypeAny } from 'zod'
 import { useJsonImporter } from '@/composables/SrJsonImporter'
 import { importRequestJsonToStore } from '@/utils/importRequestToStore';
 import { useToast } from 'primevue/usetoast';
-import { useReqParamsStore } from '@/stores/reqParamsStore';
+import { useReqParamsStore,  } from '@/stores/reqParamsStore';
+import { useMapStore } from '@/stores/mapStore';
+import { fromLonLat } from 'ol/proj';
+import { Polygon as OlPolygon } from 'ol/geom';
+import { Feature } from 'ol';
+import type { Coordinate } from 'ol/coordinate';
+import { Style, Stroke, Fill } from 'ol/style';
 const reqParamsStore = useReqParamsStore();
+const mapStore = useMapStore();
 
 const toast = useToast();
 
@@ -75,6 +82,11 @@ const parsedCurrentReqJson = computed(() => {
   } catch {
     return null
   }
+});
+
+const hasChangesToApply = computed(() => {
+  if (!isValidJson.value) return false;
+  return JSON.stringify(parsedEditableReqJson.value) !== JSON.stringify(parsedCurrentReqJson.value);
 });
 
 const readonlyHighlightedJson = computed(() => {
@@ -167,11 +179,15 @@ const copyEditableReqJsonToClipboard = async () => {
 
 
 watch(computedShowParamsDialog, (newVal) => {
-    console.log('SrJsonEditDialog showParamsDialog changed:', newVal);
+    //console.log('SrJsonEditDialog watch showParamsDialog changed:', newVal);
     if (newVal) {
-        console.log('SrJsonEditDialog Dialog opened, highlighting JSON.');
+        //console.log('SrJsonEditDialog watch showParamsDialog Dialog opened, highlighting JSON.');
         updateEditableJsonFromStore();
         nextTick(() => highlightJson());
+    } else {
+        //console.log('SrJsonEditDialog watch showParamsDialog Dialog closed.');
+        // Zoom to poly if it exists
+        zoomToPoly();
     }
 });
 
@@ -238,6 +254,88 @@ function handleParamsAccessed(index: number) {
     });
 }
 
+function zoomToPoly() {
+    const map = mapStore.getMap();
+    const poly = reqParamsStore.poly;
+
+    if (!map || !poly || poly.length === 0) {
+        console.log('Cannot zoom to poly: map or poly not available');
+        return;
+    }
+
+    try {
+        // Find the Drawing Layer
+        const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer');
+        if (!vectorLayer) {
+            console.error('Drawing Layer not found');
+            return;
+        }
+
+        const vectorSource = (vectorLayer as any).getSource();
+        if (!vectorSource) {
+            console.error('Drawing Layer source not found');
+            return;
+        }
+
+        // Remove existing polygon with req_id 0 or null
+        const features = vectorSource.getFeatures();
+        const existingFeature = features.find((f: any) => {
+            const reqId = f.get('req_id');
+            return reqId === 0 || reqId === null;
+        });
+        if (existingFeature) {
+            vectorSource.removeFeature(existingFeature);
+        }
+
+        // Prepare coordinates - ensure polygon is closed
+        const originalCoordinates: Coordinate[] = poly.map(p => [p.lon, p.lat]);
+        if (originalCoordinates.length > 0) {
+            const first = originalCoordinates[0];
+            const last = originalCoordinates[originalCoordinates.length - 1];
+            if (first[0] !== last[0] || first[1] !== last[1]) {
+                originalCoordinates.push(first);
+            }
+        }
+
+        // Convert to map projection
+        const projection = map.getView().getProjection();
+        let coordinates: Coordinate[];
+        if (projection.getUnits() !== 'degrees') {
+            coordinates = originalCoordinates.map(coord => fromLonLat(coord));
+        } else {
+            coordinates = originalCoordinates;
+        }
+
+        // Create and add the new polygon feature
+        const polygon = new OlPolygon([coordinates]);
+        const feature = new Feature({ geometry: polygon, req_id: null });
+
+        // Use blue style for user-drawn polygons (reqId 0)
+        const blueStyle = new Style({
+            stroke: new Stroke({
+                color: 'rgba(0, 153, 255, 1)',
+                width: 2
+            }),
+            fill: new Fill({
+                color: 'rgba(0, 153, 255, 0.1)'
+            })
+        });
+        feature.setStyle(blueStyle);
+        vectorSource.addFeature(feature);
+
+        // Zoom to the polygon
+        const extent = polygon.getExtent();
+        map.getView().fit(extent, {
+            size: map.getSize(),
+            padding: [40, 40, 40, 40]
+        });
+
+        console.log('Updated drawing layer and zoomed to poly');
+    } catch (err) {
+        console.error('Error zooming to poly:', err);
+    }
+}
+
 </script>
 
 <template>
@@ -265,26 +363,35 @@ function handleParamsAccessed(index: number) {
                     {{ validationError }}
                 </div>
                 <div class="copy-btn-container">
-                    <Button 
-                        label="Import from File" 
-                        size="small" 
-                        icon="pi pi-file-import" 
-                        @click="importFromFile" 
+                    <Button
+                        label="Save"
+                        size="small"
+                        icon="pi pi-check"
+                        @click="importToStore"
+                        class="copy-btn"
+                        :disabled="!hasChangesToApply"
+                        severity="success"
+                    />
+                    <Button
+                        label="Import from File"
+                        size="small"
+                        icon="pi pi-file-import"
+                        @click="importFromFile"
                         class="copy-btn"
                     />
-                    <Button 
-                        label="Copy to clipboard" 
-                        size="small" 
-                        icon="pi pi-copy" 
-                        @click="copyEditableReqJsonToClipboard" 
-                        class="copy-btn" 
+                    <Button
+                        label="Copy to clipboard"
+                        size="small"
+                        icon="pi pi-copy"
+                        @click="copyEditableReqJsonToClipboard"
+                        class="copy-btn"
                     />
-                    <input 
-                        type="file" 
-                        ref="fileInputRef" 
-                        accept=".json" 
-                        style="display: none;" 
-                        @change="handleFileChange" 
+                    <input
+                        type="file"
+                        ref="fileInputRef"
+                        accept=".json"
+                        style="display: none;"
+                        @change="handleFileChange"
                     />
                 </div>
             </div>

@@ -8,7 +8,7 @@
             <th>{{ props.afterLabel }}</th>
             <th>
                 <Button
-                    label="Apply"
+                    label="Temp Override"
                     icon="pi pi-check"
                     size="small"
                     @click="forceChanges"
@@ -25,14 +25,14 @@
             <td class="force-cell">
                 <template v-if="!props.automaticFields.has(row.path.split('.').at(-1)!)">
                     <div
-                        v-if="row.aVal === undefined"
+                        v-if="row.aVal === undefined || row.aVal === null"
                         class="force-checkbox"
                     >
                         <Checkbox v-model="row.forceAdd" :inputId="`force-add-${index}`" binary class="p-checkbox-sm" />
                         <label :for="`force-add-${index}`">add</label>
                     </div>
                     <div
-                        v-if="(row.aVal !== undefined) && (row.bVal === undefined)"
+                        v-if="(row.aVal !== undefined && row.aVal !== null) && (row.bVal === undefined || row.bVal === null)"
                         class="force-checkbox"
                     >
                         <Checkbox v-model="row.forceRemove" :inputId="`force-remove-${index}`" binary class="p-checkbox-sm" />

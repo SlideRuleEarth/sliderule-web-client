@@ -428,6 +428,29 @@
             }
         } catch (error) {
             console.error(`SrAnalysisMap Error: updateAnalysisMapView failed for ${reason}`,error);
+
+            // Extract meaningful error information
+            const errorMessage = error instanceof Error ? error.message : String(error);
+
+            // Check if it's a column not found error
+            if (errorMessage.includes('Referenced column') && errorMessage.includes('not found')) {
+                // Extract the column name from the error
+                const columnMatch = errorMessage.match(/Referenced column "([^"]+)" not found/);
+                const columnName = columnMatch ? columnMatch[1] : 'unknown';
+
+                useSrToastStore().error(
+                    'Data Column Not Found',
+                    `The column "${columnName}" is not available in the current dataset. Please check your data configuration or select a different column for visualization.`,
+                    10000
+                );
+            } else {
+                // Generic error message for other types of errors
+                useSrToastStore().error(
+                    'Analysis Map Error',
+                    `Failed to update analysis map: ${errorMessage.substring(0, 150)}...`,
+                    10000
+                );
+            }
         } finally {
             if(map){
                 //dumpMapLayers(map,'SrAnalysisMap');
