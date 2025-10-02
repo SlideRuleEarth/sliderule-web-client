@@ -49,6 +49,7 @@
     import SrCustomTooltip from "@/components//SrCustomTooltip.vue";
     import SrDropPinControl from "@/components//SrDropPinControl.vue";
     import SrUploadRegionControl from "@/components/SrUploadRegionControl.vue";
+    import SrExportPolygonControl from "@/components/SrExportPolygonControl.vue";
     import Point from 'ol/geom/Point.js';
     import { readShapefileToOlFeatures } from "@/composables/useReadShapefiles";
     import { useGeoJsonStore } from "@/stores/geoJsonStore";
@@ -911,6 +912,15 @@
     }
     }
 
+    function handleExportPolygonControlCreated(exportControl: any) {
+        const map = mapRef.value?.map;
+        if (map) {
+            map.addControl(exportControl);
+        } else {
+            console.error("handleExportPolygonControlCreated Error: map is null");
+        }
+    }
+
     async function addRecordLayer() : Promise<void> {
         const startTime = performance.now(); // Start time
         const reqIds = recTreeStore.allReqIds;
@@ -1217,9 +1227,17 @@
                 corner="top-right"
                 :offsetX="'0.5rem'"
                 :offsetY="'2.5rem'"
-                bg="rgba(255,255,255,0.6)" 
+                bg="rgba(255,255,255,0.6)"
                 color="black"
                 @upload-region-control-created="handleUploadRegionControlCreated"
+            />
+            <SrExportPolygonControl
+                v-if="reqParamsStore.iceSat2SelectedAPI != 'atl13x'"
+                :map="mapRef?.map"
+                corner="top-left"
+                :offsetX="'0.5rem'"
+                :offsetY="'20.5rem'"
+                @export-polygon-control-created="handleExportPolygonControlCreated"
             />
 
         </Map.OlMap>
@@ -1558,6 +1576,20 @@
   border-radius: var(--sr-radius, var(--p-border-radius));
 
   /* Whatever defaults you want: padding, shadow, etc. */
+  padding: 0.25rem;
+}
+
+:deep(.ol-control.sr-export-polygon-control) {
+  position: absolute;
+  top: var(--sr-top, auto);
+  right: var(--sr-right, auto);
+  bottom: var(--sr-bottom, auto);
+  left: var(--sr-left, auto);
+
+  background-color: var(--sr-bg, rgba(0, 0, 0, 0.8));
+  color: var(--sr-color, white);
+  border-radius: var(--sr-radius, var(--p-border-radius));
+
   padding: 0.25rem;
 }
 

@@ -65,7 +65,6 @@
     const requestsStore = useRequestsStore();
     const recTreeStore = useRecTreeStore();
     const deckStore = useDeckStore();
-    const deck3DConfigStore = useDeck3DConfigStore();
     const srParquetCfgStore = useSrParquetCfgStore();
     const analysisMapStore = useAnalysisMapStore();
     const globalChartStore = useGlobalChartStore();
