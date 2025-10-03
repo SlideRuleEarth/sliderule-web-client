@@ -1635,16 +1635,36 @@ async function appendSeries(reqId: number): Promise<void> {
                 yAxis: updatedYAxis,
             }, { notMerge: true }
         );
-        const options = chart.getOption() as EChartsOption;
-        //console.log(`appendSeries ${reqId} AFTER options:`, options);
 
-        // Get the NEW axis ranges after the update
+        // Get the options that ECharts actually computed (after processing the data)
+        const options = chart.getOption() as EChartsOption;
+
+        // Get the NEW axis ranges after the update - read from what ECharts computed, not our input
         const newXAxis = Array.isArray(options.xAxis) ? options.xAxis[0] : options.xAxis;
-        const newYAxis = Array.isArray(updatedYAxis) ? updatedYAxis[0] : updatedYAxis;
+        const newYAxisArray = Array.isArray(options.yAxis) ? options.yAxis : [options.yAxis];
+        const newYAxis = newYAxisArray[0]; // Primary Y axis
+
         const newXMin = typeof newXAxis?.min === 'number' ? newXAxis.min : oldXMin;
         const newXMax = typeof newXAxis?.max === 'number' ? newXAxis.max : oldXMax;
         const newYMin = typeof newYAxis?.min === 'number' ? newYAxis.min : oldYMin;
         const newYMax = typeof newYAxis?.max === 'number' ? newYAxis.max : oldYMax;
+
+        console.log(`appendSeries ${reqId} axis ranges:`, {
+            old: { xMin: oldXMin, xMax: oldXMax, yMin: oldYMin, yMax: oldYMax },
+            new: { xMin: newXMin, xMax: newXMax, yMin: newYMin, yMax: newYMax },
+            storedView: {
+                xMin: atlChartFilterStore.xViewMin,
+                xMax: atlChartFilterStore.xViewMax,
+                yMin: atlChartFilterStore.yViewMin,
+                yMax: atlChartFilterStore.yViewMax
+            },
+            zoomPercents: {
+                xStart: atlChartFilterStore.xZoomStart,
+                xEnd: atlChartFilterStore.xZoomEnd,
+                yStart: atlChartFilterStore.yZoomStart,
+                yEnd: atlChartFilterStore.yZoomEnd
+            }
+        });
 
         // Only restore zoom if the view ranges were previously set (i.e., user had zoomed)
         // If xViewMin/Max are null, it means no zoom was active, so we can skip restoration
@@ -1666,35 +1686,76 @@ async function appendSeries(reqId: number): Promise<void> {
             atlChartFilterStore.yAxisMax = newYMax;
         }
 
-        // Apply the restored zoom to the chart
-        chart.setOption({
+        // Apply the restored zoom to the chart using ONLY absolute ranges (startValue/endValue)
+        // This is more precise than percentage-based start/end, especially when axis scales change
+        // When both are specified, ECharts prioritizes startValue/endValue over start/end
+        const finalOptions: any = {
             dataZoom: [
                 {
                     type: 'slider',
                     xAxisIndex: 0,
-                    start: atlChartFilterStore.xZoomStart,
-                    end: atlChartFilterStore.xZoomEnd,
+                    filterMode: 'filter',
+                    bottom: 1,
+                    startValue: atlChartFilterStore.xViewMin,
+                    endValue: atlChartFilterStore.xViewMax,
                 },
                 {
                     type: 'slider',
                     yAxisIndex: 0,
-                    start: atlChartFilterStore.yZoomStart,
-                    end: atlChartFilterStore.yZoomEnd,
+                    filterMode: 'filter',
+                    left: '95%',
+                    width: 20,
+                    showDataShadow: false,
+                    startValue: atlChartFilterStore.yViewMin,
+                    endValue: atlChartFilterStore.yViewMax,
                 },
                 {
                     type: 'inside',
                     xAxisIndex: 0,
-                    start: atlChartFilterStore.xZoomStart,
-                    end: atlChartFilterStore.xZoomEnd,
+                    filterMode: 'filter',
+                    startValue: atlChartFilterStore.xViewMin,
+                    endValue: atlChartFilterStore.xViewMax,
                 },
                 {
                     type: 'inside',
                     yAxisIndex: 0,
-                    start: atlChartFilterStore.yZoomStart,
-                    end: atlChartFilterStore.yZoomEnd,
+                    filterMode: 'filter',
+                    startValue: atlChartFilterStore.yViewMin,
+                    endValue: atlChartFilterStore.yViewMax,
                 },
             ],
-        }, { replaceMerge: ['dataZoom'] });
+        };
+
+        console.log(`appendSeries ${reqId} applying final zoom (absolute values only):`, finalOptions.dataZoom);
+        chart.setOption(finalOptions, { replaceMerge: ['dataZoom'] });
+
+        // Update the zoom percentages based on the new axis ranges and fixed view ranges
+        // This is important so that the percentages reflect the actual visible area after overlay
+        const newXZoom = absoluteToPercentRange(
+            atlChartFilterStore.xViewMin!,
+            atlChartFilterStore.xViewMax!,
+            newXMin,
+            newXMax
+        );
+        const newYZoom = absoluteToPercentRange(
+            atlChartFilterStore.yViewMin!,
+            atlChartFilterStore.yViewMax!,
+            newYMin,
+            newYMax
+        );
+
+        atlChartFilterStore.xZoomStart = newXZoom.start;
+        atlChartFilterStore.xZoomEnd = newXZoom.end;
+        atlChartFilterStore.yZoomStart = newYZoom.start;
+        atlChartFilterStore.yZoomEnd = newYZoom.end;
+
+        console.log(`appendSeries ${reqId} updated zoom percentages:`, {
+            xStart: newXZoom.start,
+            xEnd: newXZoom.end,
+            yStart: newYZoom.start,
+            yEnd: newYZoom.end,
+            note: 'These percentages represent the fixed absolute view on the new axis scale'
+        });
 
         //console.log( `appendSeries(${reqIdStr}): Successfully appended scatter series and updated yAxis + legend.`,chart.getOption());
     } catch (error) {
