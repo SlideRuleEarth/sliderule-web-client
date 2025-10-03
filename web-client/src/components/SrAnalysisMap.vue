@@ -35,7 +35,6 @@
     import { OL_DECK_LAYER_NAME } from '@/types/SrTypes';
     import { useAnalysisMapStore } from "@/stores/analysisMapStore";
     import { useGlobalChartStore } from "@/stores/globalChartStore";
-    import { useDeck3DConfigStore } from "@/stores/deck3DConfigStore";
     import { callPlotUpdateDebounced } from '@/utils/plotUtils';
     import { setCyclesGtsSpotsFromFileUsingRgtYatc,updateSrViewName } from "@/utils/SrMapUtils";
     import Checkbox from 'primevue/checkbox';

@@ -21,6 +21,18 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     xZoomEnd: 100 as number,
     yZoomStart: 0 as number,
     yZoomEnd: 100 as number,
+    // Store absolute axis ranges to preserve zoom when data scale changes
+    xAxisMin: null as number | null,
+    xAxisMax: null as number | null,
+    yAxisMin: null as number | null,
+    yAxisMax: null as number | null,
+    // Store the absolute value ranges currently being viewed (for zoom preservation)
+    xViewMin: null as number | null,
+    xViewMax: null as number | null,
+    yViewMin: null as number | null,
+    yViewMax: null as number | null,
+    // Flag to prevent saving zoom after we just restored it (prevents feedback loop)
+    skipNextZoomSave: false as boolean,
     showSlopeLines: false as boolean, // Optional property for slope lines
   }),
 

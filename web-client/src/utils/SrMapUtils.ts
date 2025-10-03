@@ -615,6 +615,18 @@ export async function processSelectedElPnt(d: ElevationDataItem): Promise<void> 
     useAtlChartFilterStore().setShowPhotonCloud(false);
     clearPlot();
     useAtlChartFilterStore().setSelectedOverlayedReqIds([]);
+
+    // Reset zoom when selecting a new track
+    const atlChartFilterStore = useAtlChartFilterStore();
+    atlChartFilterStore.xZoomStart = 0;
+    atlChartFilterStore.xZoomEnd = 100;
+    atlChartFilterStore.yZoomStart = 0;
+    atlChartFilterStore.yZoomEnd = 100;
+    // Clear absolute zoom ranges so they don't interfere
+    atlChartFilterStore.xViewMin = null;
+    atlChartFilterStore.xViewMax = null;
+    atlChartFilterStore.yViewMin = null;
+    atlChartFilterStore.yViewMax = null;
     const mission = useFieldNameStore().getMissionForReqId(useRecTreeStore().selectedReqId);
 
     if (mission === 'ICESat-2') {

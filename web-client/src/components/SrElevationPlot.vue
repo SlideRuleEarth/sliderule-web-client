@@ -10,7 +10,7 @@ import { provide, watch, onMounted, onUnmounted, ref, computed } from "vue";
 import { useAtlChartFilterStore } from "@/stores/atlChartFilterStore";
 import { useChartStore } from "@/stores/chartStore";
 import { useRequestsStore } from '@/stores/requestsStore';
-import { getPhotonOverlayRunContext, initializeColorEncoding, initSymbolSize,callPlotUpdateDebounced } from "@/utils/plotUtils";
+import { getPhotonOverlayRunContext, initializeColorEncoding, initSymbolSize,callPlotUpdateDebounced, updateViewRangesFromZoom } from "@/utils/plotUtils";
 import SrRunControl from "@/components/SrRunControl.vue";
 import { processRunSlideRuleClicked } from  "@/utils/workerDomUtils";
 import { initDataBindingsToChartStore } from '@/utils/plotUtils';
@@ -466,6 +466,13 @@ watch(() => plotRef.value, async (newValue,oldValue) => {
             }
         })();
     });
+
+    // Listen for datazoom events to update stored view ranges
+    chartInstance.on('datazoom', () => {
+        console.log('DataZoom event detected, updating view ranges');
+        updateViewRangesFromZoom(chartInstance);
+    });
+
     atlChartFilterStore.setPlotRef(newValue);
     if (chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length > 0) {
         await callPlotUpdateDebounced('from SrElevationPlot watch plotRef.value');
