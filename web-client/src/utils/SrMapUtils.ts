@@ -73,8 +73,6 @@ import Overlay from 'ol/Overlay';
 import { extractSrRegionFromGeometry, processConvexHull } from '@/utils/geojsonUploader';
  
 
-// This grabs the constructor’s first parameter type
-type ScatterplotLayerProps = ConstructorParameters<typeof ScatterplotLayer>[0];
 
 export const polyCoordsExist = computed(() => {
     let exist = false;
@@ -1462,23 +1460,26 @@ export const updateElevationMap = async (req_id: number) => {
                     analysisMapStore.analysisMapInitialized = true;
                 } else {
                     console.error(`updateElevationMap Failed to get firstRec for req_id:${req_id}`);
-                    useSrToastStore().warn('No points in file', 'The request produced no points');
+                    useSrToastStore().error('Failed to update map', 'Unable to retrieve first record from the request data');
                 }
             } else {
                 console.warn(`updateElevationMap No points in file for req_id:${req_id}`);
-                useSrToastStore().warn('No points in file', 'The request produced no points');
+                useSrToastStore().error('Failed to update map', 'The request produced no elevation points');
             }
         } else {
             console.error(`updateElevationMap Failed to get parms for req_id:${req_id}`);
+            useSrToastStore().error('Failed to update map', `Unable to retrieve parameters for request ID ${req_id}`);
         }
     } catch (error) {
-        console.warn('Failed to update selected request:', error);
+        console.error('Failed to update selected request:', error);
+        useSrToastStore().error('Failed to update map', `Error updating elevation data: ${error}`);
     }
     try {
         await router.push(`/analyze/${useRecTreeStore().selectedReqId}`);
         console.log('Successfully navigated to analyze:', useRecTreeStore().selectedReqId);
     } catch (error) {
         console.error('Failed to navigate to analyze:', error);
+        useSrToastStore().error('Navigation Error', `Failed to navigate to analyze: ${error}`); 
     }
     const endTime = performance.now();
     console.log(`updateElevationMap took ${endTime - startTime} milliseconds.`);
@@ -1496,12 +1497,15 @@ export async function updateMapAndPlot(reason:string): Promise<void> {
             await callPlotUpdateDebounced(`updateMapAndPlot: ${reason}`);
         } else {
             console.error(`updateMapAndPlot Invalid req_id:${req_id}`);
+            useSrToastStore().error('Failed to update map and plot', `Invalid request ID: ${req_id}`);
         }
     } catch (error) {
         if (error instanceof Error) {
             console.error('updateMapAndPlot Failed:', error.message);
+            useSrToastStore().error('Failed to update map and plot', `${error.message}`);
         } else {
             console.error('updateMapAndPlot Unknown error occurred:', error);
+            useSrToastStore().error('Failed to update map and plot', `An unknown error occurred: ${error}`);
         }
     } finally {
         const endTime = performance.now();
