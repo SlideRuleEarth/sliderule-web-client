@@ -14,10 +14,10 @@ export const useSrToastStore = defineStore('srToast', {
         },
         error(title: string = 'I am title', body: string = 'I am body', life?: number): void {
             app.config.globalProperties.$toast.add({
-                severity: 'error', 
-                summary: title, 
-                detail: body, 
-                life: life ?? this.life // Use provided life or default to this.life
+                severity: 'error',
+                summary: title,
+                detail: body,
+                life: life ?? 0 // Error toasts stay until user closes them (life: 0 means no auto-close)
             });
         },
         success(title: string = 'I am title', body: string = 'I am body', life?: number): void {

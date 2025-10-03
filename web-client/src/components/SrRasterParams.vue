@@ -15,9 +15,10 @@
                     @click="addRasterParams()">Add New Raster Params
                 </Button>
             </div>
-            <SrTextInput 
+            <SrSqlFieldInput 
                 label="Key" 
                 v-model="rasterParamsStore.key" 
+                tooltipText="user supplied name used to identify results returned from sampling this raster, must be SQL compliant and unique for each raster param set"
             />
             <Select 
                 v-model="rasterParamsStore.asset"
@@ -39,15 +40,18 @@
             />
             <SrSliderInput 
                 label="Radius" 
-                v-model="rasterParamsStore.radius" 
+                v-model="rasterParamsStore.radius"
+                tooltipText="the size of the kernel in meters when sampling a raster; the size of the region in meters for zonal statistics" 
             />
             <SrCheckbox 
                 label="Zonal Stats" 
-                v-model="rasterParamsStore.zonalStats" 
+                v-model="rasterParamsStore.zonalStats"
+                tooltipText="boolean whether to calculate and return zonal statistics for the region around the location being sampled" 
             />
             <SrCheckbox 
                 label="With Flags" 
-                v-model="rasterParamsStore.withFlags" 
+                v-model="rasterParamsStore.withFlags"
+                tooltipText="boolean whether to include auxiliary information about the sampled pixel in the form of a 32-bit flag" 
             />
             <Sr32BitFlag   
                 :disabled="!rasterParamsStore.withFlags"
@@ -74,13 +78,15 @@
                     :setValue="rasterParamsStore.setT1"
                 />
             </div>
-            <SrTextInput 
+            <SrTextInput
                 label="Substring" 
-                v-model="rasterParamsStore.substring" 
+                v-model="rasterParamsStore.substring"
+                tooltipText="substring filter for rasters to be sampled; the raster will only be sampled if the name of the raster includes the provided substring (useful for datasets that have multiple rasters for a given geolocation to be sampled)" 
             />
             <SrCheckbox
                 label="Use Closest Time"
                 v-model="rasterParamsStore.useClosetTime"
+                tooltipText="time used to filter rasters to be sampled; only the raster that is closest in time to the provided time will be sampled - can be multiple rasters if they all share the same time (format %Y-%m-%dT%H:%M:%SZ, e.g. 2018-10-13T00:00:00Z)"
             />     
             <SrCalendar 
                 label="Closest" 
@@ -93,6 +99,7 @@
             <SrCheckbox 
                 label="Use POI Time"
                 v-model="rasterParamsStore.use_poi_time"
+                tooltipText="overrides the “closest_time” setting (or provides one if not set) with the time associated with the point of interest being sampled"
             />
             <div class="sr-raster-params-catalog">
                 <SrLabelInfoIconButton 
@@ -142,6 +149,7 @@
     import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
     import Sr32BitFlag from './Sr32BitFlag.vue';
     import { onMounted } from 'vue';
+    import SrSqlFieldInput from './SrSqlFieldInput.vue';
 
     const rasterParamsStore = useRasterParamsStore();
 
