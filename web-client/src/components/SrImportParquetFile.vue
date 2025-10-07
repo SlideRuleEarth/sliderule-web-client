@@ -42,6 +42,7 @@ const upload_progress_visible = ref(false);
 const upload_progress = ref(0);
 const tooltipRef = ref();
 const fileUploader = ref<any>(null);
+const upload_status = ref<'idle' | 'uploading' | 'aborted' | 'error' | 'success'>('idle');
 
 const emit = defineEmits<{
     (e: 'file-imported', reqId: string): void;
@@ -51,201 +52,202 @@ onMounted(() => {
     console.log('onMounted fileUploader:', fileUploader.value);
 });
 
+const activeWorker = ref<Worker | null>(null);
+const activeNewFilename = ref<string | null>(null);
+const isBusy = ref(false);
+
+
+// cancel button handler
+function cancelUpload() {
+  if (activeWorker.value) {
+    upload_status.value = 'aborted';     // ⬅️ flip to aborted state (visible ✕)
+    upload_progress.value = 0;           // ⬅️ force bar to zero so “✕ canceled” shows
+    try { activeWorker.value.postMessage({ type: 'cancel' }); } catch {}
+  }
+}
+
+// Optional: helper to remove a file if we fail AFTER the worker succeeded
+async function tryRemoveOpfsFile(filename: string) {
+  try {
+    const root = await navigator.storage.getDirectory();
+    const dir  = await root.getDirectoryHandle('SlideRule');
+    await dir.removeEntry(filename);
+  } catch {
+    // ignore
+  }
+}
 
 
 const customUploader = async (event: any) => {
-    const file = event.files?.[0];
-    if (!file) {
+  const file = event.files?.[0];
+  if (!file) {
+    toast.add({ severity: 'error', summary: 'No File Selected', detail: 'Please select a valid Parquet file.', life: 4000 });
+    return;
+  }
+
+  isBusy.value = true;
+  let worker: Worker | null = null;
+  let newFilename = addTimestampToFilename(file.name);
+  activeNewFilename.value = newFilename;
+
+  try {
+    upload_progress.value = 10;
+    toast.removeGroup('headless');
+    toast.add({
+      severity: 'info',
+      summary: 'Uploading File',
+      detail: 'SlideRule Parquet file is being uploaded...',
+      group: 'headless',
+      life: 999999,
+      data: { progressRef: upload_progress, statusRef: upload_status }
+    } as any);
+
+    // Start worker
+    worker = new SrImportWorker();
+    activeWorker.value = worker;
+
+    const promise = new Promise<ImportWorkerResponse>((resolve, reject) => {
+      worker!.onmessage = (e: MessageEvent<ImportWorkerResponse | { progress: number }>) => {
+        const data = e.data as any;
+        if ('progress' in data) {
+          upload_progress.value = Math.round(data.progress);
+        } else if ('status' in data) {
+          if (data.status === 'error') reject(new Error(data.message || 'Worker error'));
+          else resolve(data); // ok or aborted
+        }
+      };
+      worker!.onerror = (err) => reject(err);
+    });
+
+    worker.postMessage(<ImportWorkerRequest>{
+      fileName: file.name,
+      newFileName: newFilename,
+      file,
+      fileSize: file.size
+    });
+
+    const result = await promise;
+
+    // If aborted by user – just stop and show a gentle toast
+    if (result.status === 'aborted') {
+        upload_status.value = 'aborted';       // ⬅️ ensure status is set even if user canceled earlier
         toast.add({
-            severity: 'error',
-            summary: 'No File Selected',
-            detail: 'Please select a valid Parquet file.',
+            severity: 'warn',
+            summary: 'Upload Canceled',
+            detail: 'The import was canceled. No file was saved.',
             life: 4000
         });
-        return;
+        return; // early out; worker already cleaned the partial file
+    }
+
+    // Worker finished OK – continue
+    upload_progress.value = 85;
+
+    const opfsRoot = await navigator.storage.getDirectory();
+    const directoryHandle = await opfsRoot.getDirectoryHandle('SlideRule');
+    const fileHandle = await directoryHandle.getFileHandle(newFilename);
+    const opfsFile = await fileHandle.getFile();
+
+    const duckDbClient = await createDuckDbClient();
+    await duckDbClient.insertOpfsParquet(newFilename, 'SlideRule');
+
+    upload_progress.value = 90;
+
+    const metadata = await duckDbClient.getAllParquetMetadata(opfsFile.name);
+
+    // Metadata validations that DELETE the file on failure:
+    if (!metadata || !('sliderule' in metadata)) {
+      toast.add({ severity: 'error', summary: 'Invalid File Format', detail: 'SlideRule metadata missing.', life: 5000 });
+      await directoryHandle.removeEntry(opfsFile.name);
+      return;
+    }
+    if (!('meta' in metadata)) {
+      toast.add({ severity: 'warn', summary: 'Incomplete File Format', detail: 'No "meta" field; cannot import.', life: 5000 });
+      await directoryHandle.removeEntry(opfsFile.name);
+      return;
+    }
+    if ('geo' in metadata) {
+      toast.add({ severity: 'error', summary: 'Unsupported File Format', detail: `SlideRule "geo" parquet not supported.`, life: 5000 });
+      await directoryHandle.removeEntry(opfsFile.name);
+      return;
+    }
+
+    upload_progress.value = 90;
+
+    const srReqRec = await requestsStore.createNewSrRequestRecord();
+    if (!srReqRec || !srReqRec.req_id) {
+      await tryRemoveOpfsFile(newFilename); // cleanup
+      toast.add({ severity: 'error', summary: 'Record Error', detail: 'Failed to create request record.', life: 4000 });
+      return;
     }
 
     try {
-        upload_progress.value = 10;
-        toast.removeGroup('headless'); // just in case a stale one is lingering
-        toast.add({
-            severity: 'info',
-            summary: 'Uploading File',
-            detail: 'SlideRule Parquet file is being uploaded...',
-            group: 'headless',
-            life: 999999,
-            data: { progressRef: upload_progress }  // <-- pass progressRef
-        } as any);
+      const metaRaw = metadata.meta;
+      const metaObj = typeof metaRaw === 'string' ? JSON.parse(metaRaw) : metaRaw;
+      srReqRec.func = metaObj?.endpoint || getApiFromFilename(opfsFile.name).func;
+      if (!srReqRec.func) throw new Error('Function not found in metadata or filename');
 
-        // Start the Worker immediately
-        const worker = new SrImportWorker();
-        const fileBuffer = await file.arrayBuffer();
-        const promise = new Promise<ImportWorkerResponse>((resolve, reject) => {
-            worker.onmessage = (e: MessageEvent<ImportWorkerResponse | { progress: number; error?: string }>) => {
-                const data = e.data;
-                if ('progress' in data) {
-                    // live progress update
-                    upload_progress.value = Math.round(data.progress);
-                } else if ('status' in data) {
-                    if (data.status === 'error') {
-                        reject(new Error(data.message || 'Worker error'));
-                    } else {
-                        resolve(data);
-                    }
-                }
-            };
-        });
-
-        
-        const newFilename = addTimestampToFilename(file.name);
-        const msg: ImportWorkerRequest = {
-            fileName: file.name,
-            newFileName: newFilename,
-            fileBuffer,
-        };
-
-        worker.postMessage(msg);
-
-        let result: ImportWorkerResponse;
-        try {
-            result = await promise;
-        } finally {
-            worker.terminate(); // Always terminate even on error
-        }
-
-        const opfsRoot = await navigator.storage.getDirectory();
-        const directoryHandle = await opfsRoot.getDirectoryHandle('SlideRule');
-        const fileHandle = await directoryHandle.getFileHandle(newFilename);
-        const opfsFile = await fileHandle.getFile();
-
-        const duckDbClient = await createDuckDbClient();
-        await duckDbClient.insertOpfsParquet(newFilename, 'SlideRule');
-
-        const metadata = await duckDbClient.getAllParquetMetadata(opfsFile.name);
-        //console.log('customUploader metadata:', metadata);
-
-        if (!metadata || !('sliderule' in metadata)) {
-            toast.add({
-                severity: 'error',
-                summary: 'Invalid File Format',
-                detail: 'The selected file does not contain SlideRule metadata and cannot be imported.',
-                life: 5000
-            });
-            await directoryHandle.removeEntry(opfsFile.name);
-            return;
-        }
-        if (!('meta' in metadata)) {
-            toast.add({
-                severity: 'warn',
-                summary: 'Incomplete File Format',
-                detail: 'The selected file does not contain SlideRule "meta" field in the metadata and may not be able to be imported. Will try filename fallback.',
-                life: 5000
-            });
-            await directoryHandle.removeEntry(opfsFile.name);
-            return;
-        }
-
-        if ('geo' in metadata) {
-            toast.add({
-                severity: 'error',
-                summary: 'Unsupported File Format',
-                detail: `The selected file: ${opfsFile.name} is a SlideRule "geo" parquet file. At this time only SlideRule "vanilla" parquet files can be imported.`,
-            });
-            await directoryHandle.removeEntry(opfsFile.name);
-            return;
-        }
-
-        upload_progress.value = 30;
-        const srReqRec = await requestsStore.createNewSrRequestRecord();
-
-        if (!srReqRec || !srReqRec.req_id) {
-            alert('Failed to create new SlideRule request record');
-            return;
-        }
-
-
-        try {
-            const metaRaw = metadata.meta;
-            const metaObj = typeof metaRaw === 'string'
-                ? JSON.parse(metaRaw)
-                : metaRaw;
-            //console.log('customUploader metaObj:', metaObj);
-            srReqRec.func = metaObj?.endpoint;
-            srReqRec.parameters = metaObj?.request;
-            if (!srReqRec.func) {
-                const api = getApiFromFilename(opfsFile.name);
-                srReqRec.func = api.func;
-            }
-            if (!srReqRec.func) {
-                throw new Error('Function not found in SlideRule metadata and fallback to filename failed');
-            }
-            const hasFit = metaObj?.request?.fit;
-            const hasPhoReal = metaObj?.request?.phoreal;
-            //append suffixes if present
-            if (hasFit) {
-                srReqRec.func += '-surface';
-            }
-            if (hasPhoReal) {
-                srReqRec.func += '-phoreal';
-            }
-        } catch (e) {
-            toast.add({
-                severity: 'error',
-                summary: 'Metadata Error',
-                detail: 'Unable to parse SlideRule metadata. File may be corrupted.',
-                life: 4000
-            });
-            console.error('Error parsing SlideRule metadata:', e);
-            return;
-        }
-
-        srReqRec.file = opfsFile.name;
-        srReqRec.status = 'imported';
-        srReqRec.description = `Imported from SlideRule Parquet File ${file.name}`;
-
-        srReqRec.num_bytes = opfsFile.size;
-
-        upload_progress.value = 60;
-
-        const svr_parms_str = await duckDbLoadOpfsParquetFile(newFilename);
-        srReqRec.svr_parms = svr_parms_str;
-
-        await indexedDb.updateRequestRecord(srReqRec, true);
-        await recTreeStore.updateRecMenu('From customUploader', srReqRec.req_id);
-        await readOrCacheSummary(srReqRec.req_id);
-        await updateAreaInRecord(srReqRec.req_id);
-        await updateNumGranulesInRecord(srReqRec.req_id);
-        const summary = await indexedDb.getWorkerSummary(srReqRec.req_id);
-        if (summary) {
-            srReqRec.cnt = summary.numPoints;
-            await indexedDb.updateRequestRecord(srReqRec, true);
-
-            upload_progress.value = 100;
-            toast.add({
-                severity: 'success',
-                summary: 'Import Complete',
-                detail: 'File imported and copied to OPFS successfully!',
-                life: 5000
-            });
-            emit('file-imported', srReqRec.req_id.toString());
-        } else {
-            alert(`Failed to get summary for req_id: ${srReqRec.req_id}`);
-        }
-    } catch (error) {
-        console.error('File import failed:', error);
-        toast.add({
-            severity: 'error',
-            summary: 'Import Failed',
-            detail: 'There was a problem importing the file.',
-        });
-    } finally {
-        setTimeout(() => {
-            upload_progress.value = 0;
-            toast.removeGroup('headless');
-        }, 2000);
+      const hasFit = metaObj?.request?.fit;
+      const hasPhoReal = metaObj?.request?.phoreal;
+      if (hasFit) srReqRec.func += '-surface';
+      if (hasPhoReal) srReqRec.func += '-phoreal';
+    } catch (e) {
+      await tryRemoveOpfsFile(newFilename); // cleanup
+      toast.add({ severity: 'error', summary: 'Metadata Error', detail: 'Unable to parse SlideRule metadata.', life: 4000 });
+      console.error('Error parsing SlideRule metadata:', e);
+      return;
     }
-};
 
+    srReqRec.file = opfsFile.name;
+    srReqRec.status = 'imported';
+    srReqRec.description = `Imported from SlideRule Parquet File ${file.name}`;
+    srReqRec.num_bytes = opfsFile.size;
+
+    upload_progress.value = 95;
+
+    // If any of the following throws, we’ll delete the OPFS file to avoid orphans
+    try {
+      const svr_parms_str = await duckDbLoadOpfsParquetFile(newFilename);
+      srReqRec.svr_parms = svr_parms_str;
+
+      await indexedDb.updateRequestRecord(srReqRec, true);
+      await recTreeStore.updateRecMenu('From customUploader', srReqRec.req_id);
+      await readOrCacheSummary(srReqRec.req_id);
+      await updateAreaInRecord(srReqRec.req_id);
+      await updateNumGranulesInRecord(srReqRec.req_id);
+
+      const summary = await indexedDb.getWorkerSummary(srReqRec.req_id);
+      if (summary) {
+        srReqRec.cnt = summary.numPoints;
+        await indexedDb.updateRequestRecord(srReqRec, true);
+        toast.add({ severity: 'success', summary: 'Import Complete', detail: 'File imported successfully!', life: 5000 });
+        upload_status.value = 'success';
+        emit('file-imported', srReqRec.req_id.toString());
+      } else {
+        throw new Error(`Failed to get summary for req_id: ${srReqRec.req_id}`);
+      }
+    } catch (laterErr) {
+      // Critical: remove the OPFS file if post-copy processing failed
+      await tryRemoveOpfsFile(newFilename);
+      throw laterErr;
+    }
+  } catch (error) {
+    upload_status.value = 'error';
+    console.error('File import failed:', error);
+    toast.add({ severity: 'error', summary: 'Import Failed', detail: (error as any)?.message || 'Problem importing the file.' });
+  } finally {
+    try { activeWorker.value?.terminate(); } catch {}
+    activeWorker.value = null;
+    isBusy.value = false;
+    setTimeout(() => {
+        upload_status.value = 'idle';
+        upload_progress.value = 0;
+        toast.removeGroup('headless');
+    }, 2000);
+  }
+
+  upload_progress.value = 100;
+};
 const onSelect = (e: any) => {
     console.log('onSelect e:', e);
 };
@@ -264,22 +266,47 @@ const onClear = () => {
     <div class="file-upload-panel">
         <SrToast position="top-center" group="headless" @close="upload_progress_visible = false">
             <template #container="{ message, closeCallback }">
-                <section class="toast-container">
-                    <i class="upload-icon"></i>
-                    <div class="message-container">
-                        <p class="summary">{{ message.summary }}</p>
-                        <p class="detail">{{ message.detail }}</p>
-                        <div class="progress-container">
-                            <ProgressBar :value="message.data.progressRef" :showValue="false" class="progress-bar" />
-                            <label class="upload-percentage">{{ message.data.progressRef }}% uploaded...</label>
-                        </div>
-                        <div class="button-container">
-                            <Button label="Done" text class="done-btn" @click="closeCallback"></Button>
-                        </div>
+                <section class="toast-container" :class="{'is-aborted': message.data.statusRef === 'aborted'}">
+                <i class="upload-icon"></i>
+                <div class="message-container">
+                    <p class="summary">{{ message.summary }}</p>
+                    <p class="detail">
+                    <template v-if="message.data.statusRef === 'aborted'">
+                        Upload canceled. No file saved.
+                    </template>
+                    <template v-else>
+                        {{ message.detail }}
+                    </template>
+                    </p>
+
+                    <div class="progress-container">
+                    <ProgressBar
+                        :value="message.data.progressRef"
+                        :showValue="false"
+                        class="progress-bar"
+                        :class="{'progress-bar-aborted': message.data.statusRef === 'aborted'}"
+                    />
+                    <label class="upload-percentage">
+                        <template v-if="message.data.statusRef === 'aborted'">
+                        <span class="x-mark" aria-label="canceled">✕</span> canceled
+                        </template>
+                        <template v-else>
+                        {{ message.data.progressRef }}% uploaded...
+                        </template>
+                    </label>
                     </div>
+
+                    <div class="button-container" style="display:flex; gap:.5rem; justify-content:flex-end;">
+                    <Button label="Cancel" text class="cancel-btn"
+                            :disabled="message.data.statusRef !== 'uploading'"
+                            @click="cancelUpload" />
+                    <Button label="Done" text class="done-btn" @click="closeCallback" />
+                    </div>
+                </div>
                 </section>
             </template>
         </SrToast>
+
         <div class="sr-file-import-panel">       
             <div class="sr-file-import-panel">
                 <FileUpload 
@@ -423,6 +450,12 @@ const onClear = () => {
     color:var(--p-text-color);
 }
 .sr-file-import-panel .pi-file-import {
-    color: white; 
+    color: white;
+}
+
+.button-container {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
 }
 </style>

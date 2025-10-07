@@ -1,8 +1,7 @@
 // src/utils/applyParsedJsonToStores.ts
-import { geojsonPolygonToSrRegion } from '@/utils/geojsonToSrRegion';
 import { mapGtStringsToSrListNumberItems } from '@/utils/parmUtils';
 import { coerceToNumberArray } from '@/utils/coerceUtils';
-import { surfaceReferenceTypeOptions } from '@/types/SrStaticOptions';
+import { surfaceReferenceTypeOptions, signalConfidenceNumberOptions, qualityPHOptions } from '@/types/SrStaticOptions';
 import { convexHull,calculatePolygonArea } from "@/composables/SrTurfUtils";
 
 export function applyParsedJsonToStores(
@@ -12,7 +11,6 @@ export function applyParsedJsonToStores(
     addError: (section: string, message: string) => void
 ) {
     //console.log('Applying parsed JSON data to stores:', data);
-    if (data.asset) store.setAsset(data.asset);
 
     if (data.poly !== undefined ) {
         store.setPoly(data.poly);
@@ -55,10 +53,14 @@ export function applyParsedJsonToStores(
     }
 
     if (data.cnf) {
-        coerce('cnf', data.cnf, v => store.signalConfidenceNumber = v);
+        coerce('cnf', data.cnf, v => {
+            store.signalConfidence = signalConfidenceNumberOptions.filter(opt => v.includes(opt.value));
+        });
     }
     if (data.quality_ph) {
-        coerce('quality_ph', data.quality_ph, v => store.qualityPHNumber = v);
+        coerce('quality_ph', data.quality_ph, v => {
+            store.qualityPH = qualityPHOptions.filter(opt => v.includes(opt.value));
+        });
     }
     if (data.cnt !== undefined) {
         store.setUseMinimumPhotonCount(true);
