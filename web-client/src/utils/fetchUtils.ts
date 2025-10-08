@@ -27,7 +27,7 @@ export function forceGeoParquet(inputReqParms: any): any {
     return inputReqParms;
 }
 
-export async function getFetchUrlAndOptions(
+export async function getArrowFetchUrlAndOptions(
     reqid: number,
     forceAsGeo: boolean = false
 ): Promise<{ url: string; options: RequestInit }> {
@@ -40,9 +40,9 @@ export async function getFetchUrlAndOptions(
         parm = forceGeoParquet(parm);
     }
     const host = sysConfigStore.getOrganization() && (sysConfigStore.getOrganization() + '.' + sysConfigStore.getDomain()) || sysConfigStore.getDomain();
-    const api_path = `source/${api}`;
+    const api_path = `arrow/${api}`;
     const url = 'https://' + host + '/' + api_path;
-    //console.log('source url:', url);
+    //console.log('getArrowFetchUrlAndOptions source url:', url);
     // Setup Request Options
     let body = null;
     const options: RequestInit = {

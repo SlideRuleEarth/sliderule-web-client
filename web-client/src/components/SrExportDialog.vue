@@ -51,7 +51,7 @@ import { useToast } from 'primevue/usetoast';
 import { db } from '@/db/SlideRuleDb';
 import { createDuckDbClient } from '@/utils/SrDuckDb';
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
-import {getFetchUrlAndOptions} from "@/utils/fetchUtils";
+import {getArrowFetchUrlAndOptions} from "@/utils/fetchUtils";
 import { exportCsvStreamed, getWritableFileStream } from "@/utils/SrParquetUtils";
 
 
@@ -212,43 +212,85 @@ async function exportParquet(fileName: string): Promise<boolean> {
 }
 
 async function exportGeoParquet(fileName: string) : Promise<boolean>  {
-    const { url, options } = await getFetchUrlAndOptions(props.reqId,true);
+    // Check if file already has geo metadata
+    const duckDbClient = await createDuckDbClient();
+    const metadata = await duckDbClient.getAllParquetMetadata(fileName);
 
-    const wb = await getWritableFileStream(`${fileName}_GEO.parquet`, 'application/octet-stream');
-    if (!wb) return false;
+    const hasGeoMetadata = metadata && 'geo' in metadata;
 
-    try {
-        console.log('Fetching GeoParquet export:', url, options);
-        const response = await fetch(url, {
-            method: 'POST',
-            body: options.body,
-            headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
-        });
+    if (hasGeoMetadata) {
+        // File already has geo metadata, export as-is using exportParquet pattern
+        console.log('File already has geo metadata, exporting as-is');
+        const opfsRoot = await navigator.storage.getDirectory();
+        const directoryHandle = await opfsRoot.getDirectoryHandle('SlideRule');
+        const fileHandle = await directoryHandle.getFileHandle(fileName);
+        const srcFile = await fileHandle.getFile();
 
-        if (!response.ok || !response.body) throw new Error(`Export failed with status ${response.status}`);
+        const wb = await getWritableFileStream(fileName, 'application/octet-stream');
+        if (!wb) return false;
 
-        if (wb.writable) {
-            // 🚀 Fast path: let the streams connect directly
-            await response.body.pipeTo(wb.writable);
-        } else {
-            // fallback: manual loop (same as version 1)
-            // exportGeoParquet manual loop branch
-            const reader = response.body.getReader();
-            const writer = wb.getWriter();
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                if (value) {
-                    await writer.ready;
-                    await writer.write(value.slice());
+        try {
+            if (wb.writable && typeof srcFile.stream === 'function') {
+                await srcFile.stream().pipeTo(wb.writable);
+            } else {
+                const reader = srcFile.stream().getReader();
+                const writer = wb.getWriter();
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    if (value) {
+                        await writer.ready;
+                        await writer.write(value.slice());
+                    }
                 }
+                await writer.close();
             }
-            await writer.close();
+            return true;
+        } catch (err) {
+            console.error('Stream copy failed:', err);
+            try { await wb.abort(err); } catch {}
+            return false;
         }
-        return true;
-    } catch (err) {
-        await wb.abort(err);
-        return false;
+    } else {
+        // No geo metadata, fetch from server with as_geo: true
+        console.log('No geo metadata found, fetching GeoParquet from server');
+        const { url, options } = await getArrowFetchUrlAndOptions(props.reqId, true);
+
+        const baseFileName = fileName.replace(/\.parquet$/i, '');
+        const wb = await getWritableFileStream(`${baseFileName}_GEO.parquet`, 'application/octet-stream');
+        if (!wb) return false;
+
+        try {
+            console.log('Fetching GeoParquet export:', url, options);
+            const response = await fetch(url, {
+                method: 'POST',
+                body: options.body,
+                headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+            });
+
+            if (!response.ok || !response.body) throw new Error(`Export failed with status ${response.status}`);
+
+            if (wb.writable) {
+                await response.body.pipeTo(wb.writable);
+            } else {
+                const reader = response.body.getReader();
+                const writer = wb.getWriter();
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    if (value) {
+                        await writer.ready;
+                        await writer.write(value.slice());
+                    }
+                }
+                await writer.close();
+            }
+            return true;
+        } catch (err) {
+            console.error('Failed to write GeoParquet file:', err);
+            try { await wb.abort(err); } catch {}
+            return false;
+        }
     }
 }
 
