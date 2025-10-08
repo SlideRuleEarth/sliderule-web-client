@@ -50,6 +50,7 @@ vi.mock('@/utils/SrDuckDb', () => ({
     getTotalRowCount: duckRowCount,
     queryForColNames: duckCols,
     query: duckQuery,
+    getAllParquetMetadata: vi.fn().mockResolvedValue(undefined),
   }),
 }));
 
@@ -61,7 +62,7 @@ vi.mock('@/stores/srParquetCfgStore', () => ({
 }));
 
 vi.mock('@/utils/fetchUtils', () => ({
-  getFetchUrlAndOptions: vi.fn().mockResolvedValue({
+  getArrowFetchUrlAndOptions: vi.fn().mockResolvedValue({
     url: '/fake/export',
     options: { body: JSON.stringify({ ok: true }), headers: {} },
   }),

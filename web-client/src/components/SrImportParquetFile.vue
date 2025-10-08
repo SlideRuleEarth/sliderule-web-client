@@ -154,7 +154,7 @@ const customUploader = async (event: any) => {
     upload_progress.value = 90;
 
     const metadata = await duckDbClient.getAllParquetMetadata(opfsFile.name);
-
+    console.log('SrImportParquetFile Extracted metadata:', metadata);
     // Metadata validations that DELETE the file on failure:
     if (!metadata || !('sliderule' in metadata)) {
       toast.add({ severity: 'error', summary: 'Invalid File Format', detail: 'SlideRule metadata missing.', life: 5000 });
