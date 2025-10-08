@@ -459,11 +459,90 @@ export async function getWritableFileStream(suggestedName: string, mimeType: str
 }
 
 
-export async function exportCsvStreamed(fileName: string, headerCols: Ref<string[]>) {
+/**
+ * Parse WKB Point geometry to extract x, y, z coordinates
+ * WKB Point format (little-endian):
+ * - byte 0: byte order (1 = little-endian, 0 = big-endian)
+ * - bytes 1-4: geometry type (1 = Point, 1001 = PointZ)
+ * - bytes 5-12: x coordinate (double)
+ * - bytes 13-20: y coordinate (double)
+ * - bytes 21-28: z coordinate (double, if PointZ)
+ */
+function parseWkbPoint(wkb: Uint8Array): { x: number; y: number; z?: number } | null {
+    if (!wkb || wkb.length < 21) {
+        return null;
+    }
+
+    const view = new DataView(wkb.buffer, wkb.byteOffset, wkb.byteLength);
+    const byteOrder = wkb[0]; // 1 = little-endian, 0 = big-endian
+    const littleEndian = byteOrder === 1;
+
+    // Read geometry type (uint32 at offset 1)
+    const geomType = view.getUint32(1, littleEndian);
+
+    // 1 = Point (2D), 1001 = PointZ (3D), 0x80000001 = PointZ with SRID
+    const isPoint = geomType === 1 || geomType === 1001 || geomType === 0x80000001;
+
+    if (!isPoint) {
+        console.warn('Geometry type is not a Point:', geomType);
+        return null;
+    }
+
+    // Read coordinates (doubles at offsets 5, 13, and optionally 21)
+    const x = view.getFloat64(5, littleEndian);
+    const y = view.getFloat64(13, littleEndian);
+
+    // Check if we have Z coordinate (PointZ types)
+    const hasZ = (geomType === 1001 || geomType === 0x80000001) && wkb.length >= 29;
+    const z = hasZ ? view.getFloat64(21, littleEndian) : undefined;
+
+    return { x, y, z };
+}
+
+interface RecordInfo {
+    time?: string;
+    as_geo?: boolean;
+    x: string;
+    y: string;
+    z?: string;
+}
+
+interface GeoMetadata {
+    version?: string;
+    primary_column?: string;
+    columns?: Record<string, any>;
+}
+
+export async function exportCsvStreamed(fileName: string, headerCols: Ref<string[]>, expandGeometry = false) {
     const duck = await createDuckDbClient();
     await duck.insertOpfsParquet(fileName);
 
-    const columns = headerCols.value;
+    let columns = headerCols.value;
+    let geometryColumn: string | null = null;
+    let recordInfo: RecordInfo | null = null;
+
+    // If expandGeometry is true, check for geo metadata and adjust columns
+    if (expandGeometry) {
+        const metadata = await duck.getAllParquetMetadata(fileName);
+        if (metadata?.geo && metadata.recordinfo) {
+            const geoMetadata: GeoMetadata = JSON.parse(metadata.geo);
+            geometryColumn = geoMetadata.primary_column || 'geometry';
+            const parsedRecordInfo: RecordInfo = JSON.parse(metadata.recordinfo);
+            recordInfo = parsedRecordInfo;
+
+            // Build new column list: remove geometry, add x,y,z
+            const xColName = parsedRecordInfo.x || 'lon';
+            const yColName = parsedRecordInfo.y || 'lat';
+            const zColName = parsedRecordInfo.z || 'height';
+
+            columns = columns.filter(col => col !== geometryColumn);
+            columns.push(xColName, yColName);
+            if (parsedRecordInfo.z) {
+                columns.push(zColName);
+            }
+        }
+    }
+
     const encoder = new TextEncoder();
     const { readRows } = await duck.query(`SELECT * FROM "${fileName}"`);
 
@@ -481,8 +560,31 @@ export async function exportCsvStreamed(fileName: string, headerCols: Ref<string
 
     for await (const rows of readRows(1000)) {
         const lines = rows.map(row => {
+            let processedRow = row;
+
+            // If expanding geometry, parse WKB and add x,y,z columns
+            if (expandGeometry && geometryColumn && recordInfo) {
+                const wkb = row[geometryColumn] as Uint8Array;
+                if (wkb) {
+                    const coords = parseWkbPoint(wkb);
+                    if (coords) {
+                        const xColName = recordInfo.x || 'lon';
+                        const yColName = recordInfo.y || 'lat';
+                        const zColName = recordInfo.z || 'height';
+
+                        processedRow = { ...row };
+                        processedRow[xColName] = coords.x;
+                        processedRow[yColName] = coords.y;
+                        if (coords.z !== undefined && recordInfo.z) {
+                            processedRow[zColName] = coords.z;
+                        }
+                        delete processedRow[geometryColumn]; // Remove geometry column
+                    }
+                }
+            }
+
             const processed = columns.map(col => {
-                let val = row[col];
+                let val = processedRow[col];
                 if (col === 'srcid') val = lookup[val] ?? `unknown_srcid_${val}`;
                 return safeCsvCell(val);
             });
