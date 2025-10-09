@@ -499,6 +499,41 @@ function parseWkbPoint(wkb: Uint8Array): { x: number; y: number; z?: number } | 
     return { x, y, z };
 }
 
+/**
+ * Parse WKT Point geometry to extract x, y, z coordinates
+ * WKT Point formats:
+ * - "POINT (x y)"
+ * - "POINT Z (x y z)"
+ * - "POINT M (x y m)"
+ * - "POINT ZM (x y z m)"
+ */
+function parseWktPoint(wkt: string): { x: number; y: number; z?: number } | null {
+    if (!wkt || typeof wkt !== 'string') {
+        return null;
+    }
+
+    // Match POINT, POINT Z, POINT M, or POINT ZM
+    // Coordinates are space-separated numbers inside parentheses
+    const match = wkt.match(/POINT\s*(?:Z|M|ZM)?\s*\(\s*([-+]?[\d.]+(?:[eE][-+]?\d+)?)\s+([-+]?[\d.]+(?:[eE][-+]?\d+)?)(?:\s+([-+]?[\d.]+(?:[eE][-+]?\d+)?))?(?:\s+([-+]?[\d.]+(?:[eE][-+]?\d+)?))?\s*\)/i);
+
+    if (!match) {
+        console.warn('Could not parse WKT Point:', wkt);
+        return null;
+    }
+
+    const x = parseFloat(match[1]);
+    const y = parseFloat(match[2]);
+    const z = match[3] ? parseFloat(match[3]) : undefined;
+    // Note: match[4] would be M value if present, which we ignore
+
+    if (isNaN(x) || isNaN(y)) {
+        console.warn('Invalid coordinates in WKT Point:', wkt);
+        return null;
+    }
+
+    return { x, y, z };
+}
+
 interface RecordInfo {
     time?: string;
     as_geo?: boolean;
@@ -562,11 +597,21 @@ export async function exportCsvStreamed(fileName: string, headerCols: Ref<string
         const lines = rows.map(row => {
             let processedRow = row;
 
-            // If expanding geometry, parse WKB and add x,y,z columns
+            // If expanding geometry, parse WKB or WKT and add x,y,z columns
             if (expandGeometry && geometryColumn && recordInfo) {
-                const wkb = row[geometryColumn] as Uint8Array;
-                if (wkb) {
-                    const coords = parseWkbPoint(wkb);
+                const geomValue = row[geometryColumn];
+                let coords: { x: number; y: number; z?: number } | null = null;
+
+                if (geomValue) {
+                    // Detect format: WKB (Uint8Array) or WKT (string)
+                    if (geomValue instanceof Uint8Array) {
+                        coords = parseWkbPoint(geomValue);
+                    } else if (typeof geomValue === 'string') {
+                        coords = parseWktPoint(geomValue);
+                    } else {
+                        console.warn('Unknown geometry format:', typeof geomValue);
+                    }
+
                     if (coords) {
                         const xColName = recordInfo.x || 'lon';
                         const yColName = recordInfo.y || 'lat';
