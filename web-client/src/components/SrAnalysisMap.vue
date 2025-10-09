@@ -35,7 +35,6 @@
     import { OL_DECK_LAYER_NAME } from '@/types/SrTypes';
     import { useAnalysisMapStore } from "@/stores/analysisMapStore";
     import { useGlobalChartStore } from "@/stores/globalChartStore";
-    import { useDeck3DConfigStore } from "@/stores/deck3DConfigStore";
     import { callPlotUpdateDebounced } from '@/utils/plotUtils';
     import { setCyclesGtsSpotsFromFileUsingRgtYatc,updateSrViewName } from "@/utils/SrMapUtils";
     import Checkbox from 'primevue/checkbox';
@@ -68,10 +67,10 @@
     const srParquetCfgStore = useSrParquetCfgStore();
     const analysisMapStore = useAnalysisMapStore();
     const globalChartStore = useGlobalChartStore();
-    //const autoReqParamsStore = useAutoReqParamsStore();
     const fncs = useFieldNameStore();
     const atlChartFilterStore = useAtlChartFilterStore();
     const activeTabStore = useActiveTabStore();
+    const fieldNameStore = useFieldNameStore();
     const controls = ref([]);
     const tooltipRef = ref<InstanceType<typeof SrCustomTooltip> | null>(null);
     // true whenever the active tab is _not_ “3‑D View”
@@ -152,6 +151,7 @@
         console.log(msg);
         if(newReqId !== oldReqId){
             if(newReqId > 0){
+                await fieldNameStore.loadRecordInfoForReqId(newReqId); // async but don't await
                 globalChartStore.setAllColumnMinMaxValues({}); // reset all min/max values
                 await updateAnalysisMapView('watch selectedReqId');
             } else {
@@ -175,6 +175,7 @@
 
     onMounted(async () => {
         console.log("SrAnalysisMap onMounted using selectedReqId:",props.selectedReqId);
+        await fieldNameStore.loadRecordInfoForReqId(props.selectedReqId); // async but don't await
         // Bind the tooltipRef to the store
         if (tooltipRef.value) {
             analysisMapStore.tooltipRef = tooltipRef.value;

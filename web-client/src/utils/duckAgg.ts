@@ -1,4 +1,8 @@
 // in '@/utils/duckAgg.ts'
+import { useFieldNameStore } from '@/stores/fieldNameStore';
+import { db as indexedDb } from '@/db/SlideRuleDb';
+import { createDuckDbClient } from '@/utils/SrDuckDb';
+
 export { baseType, FLOAT_TYPES, INT_TYPES, DECIMAL_TYPES, BOOL_TYPES, TEMPORAL_TYPES };
 
 
@@ -51,19 +55,105 @@ function percentileOrderExpr(type: string, escaped: string): string {
 }
 
 
+export interface GeometryInfo {
+  hasGeometry: boolean;
+  xCol?: string;
+  yCol?: string;
+  zCol?: string;
+}
+
+/**
+ * Check if a parquet file has a geometry column and create GeometryInfo
+ *
+ * @param colTypes - Column types from queryColumnTypes
+ * @param reqId - Request ID to get field names from fieldNameStore
+ * @returns GeometryInfo object or undefined if no geometry column exists
+ */
+export function getGeometryInfo(
+  colTypes: Array<{ name: string; type: string }>,
+  reqId: number
+): GeometryInfo | undefined {
+  const hasGeometry = colTypes.some(c => c.name === 'geometry');
+  if (!hasGeometry) {
+    return undefined;
+  }
+
+  const fieldNameStore = useFieldNameStore();
+  const heightFieldName = fieldNameStore.getHFieldName(reqId);
+
+  // Check if Z column exists as a separate column in the file
+  // If it does, the geometry is 2D (Point) and Z is stored separately
+  // If it doesn't, the geometry is 3D (Point Z) and Z is in the geometry
+  const hasZColumn = colTypes.some(c => c.name === heightFieldName);
+
+  return {
+    hasGeometry: true,
+    xCol: fieldNameStore.getLonFieldName(reqId),
+    yCol: fieldNameStore.getLatFieldName(reqId),
+    zCol: hasZColumn ? undefined : heightFieldName  // Only set zCol if Z is NOT a separate column
+  };
+}
+
+/**
+ * Complete setup for geometry-aware DuckDB operations.
+ * Convenience wrapper that:
+ * - Gets filename from reqId
+ * - Creates DuckDB client (singleton)
+ * - Loads parquet file
+ * - Queries column types
+ * - Determines geometry info
+ *
+ * @param reqId - Request ID
+ * @returns Object with everything needed for geometry-aware queries
+ */
+export async function getGeometryInfoWithTypes(reqId: number): Promise<{
+  geometryInfo: GeometryInfo | undefined;
+  colTypes: Array<{ name: string; type: string }>;
+  getType: (colName: string) => string;
+  fileName: string;
+  duckDbClient: any; // Using any to avoid importing DuckDBClient type
+}> {
+  const fileName = await indexedDb.getFilename(reqId);
+  const duckDbClient = await createDuckDbClient();
+  await duckDbClient.insertOpfsParquet(fileName);
+
+  const colTypes = await duckDbClient.queryColumnTypes(fileName);
+  const getType = (colName: string) => colTypes.find((c: any) => c.name === colName)?.type ?? 'UNKNOWN';
+  const geometryInfo = getGeometryInfo(colTypes, reqId);
+
+  return { geometryInfo, colTypes, getType, fileName, duckDbClient };
+}
+
 export function buildSafeAggregateClauses(
   columnNames: string[],
   getType: (colName: string) => string,
-  escape: (colName: string) => string
+  escape: (colName: string) => string,
+  geometryInfo?: GeometryInfo
 ): string[] {
+  // Helper to get the expression for a column (either geometry extraction or direct column)
+  const getColumnExpression = (colName: string): string => {
+    if (geometryInfo?.hasGeometry) {
+      // Check if this column should be extracted from geometry
+      if (colName === geometryInfo.xCol) {
+        return `ST_X(${escape('geometry')})`;
+      } else if (colName === geometryInfo.yCol) {
+        return `ST_Y(${escape('geometry')})`;
+      } else if (colName === geometryInfo.zCol) {
+        return `ST_Z(${escape('geometry')})`;
+      }
+    }
+    // Default: use the column directly
+    return escape(colName);
+  };
+
   return columnNames.flatMap((colName) => {
     const rawType = getType(colName);
     const type = baseType(rawType);
-    const escaped = escape(colName);
+    const colExpr = getColumnExpression(colName);
 
     // Filters
-    const floatFilter = `FILTER (WHERE NOT isnan(${escaped}) AND NOT isinf(${escaped}))`;
-    const pctOrderExpr = percentileOrderExpr(type, escaped);
+    const floatFilter = `FILTER (WHERE NOT isnan(${colExpr}) AND NOT isinf(${colExpr}))`;
+    const pctOrderExpr = percentileOrderExpr(type, colExpr);
 
     const pctFilter =
       FLOAT_TYPES.has(type)
@@ -74,12 +164,12 @@ export function buildSafeAggregateClauses(
     const minMaxClauses =
       FLOAT_TYPES.has(type)
         ? [
-            `MIN(${escaped}) ${floatFilter} AS ${alias("min", colName)}`,
-            `MAX(${escaped}) ${floatFilter} AS ${alias("max", colName)}`
+            `MIN(${colExpr}) ${floatFilter} AS ${alias("min", colName)}`,
+            `MAX(${colExpr}) ${floatFilter} AS ${alias("max", colName)}`
           ]
         : [
-            `MIN(${escaped}) AS ${alias("min", colName)}`,
-            `MAX(${escaped}) AS ${alias("max", colName)}`
+            `MIN(${colExpr}) AS ${alias("min", colName)}`,
+            `MAX(${colExpr}) AS ${alias("max", colName)}`
           ];
 
     // LOW/HIGH: percentile-based, using the numeric ORDER BY expression

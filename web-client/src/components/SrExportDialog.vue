@@ -135,7 +135,7 @@ const handleExport = async () => {
         if (!fileName) throw new Error("Filename not found");
         let status = false;
         if (selectedFormat.value === 'csv') {
-            status = await exportCsvStreamed(fileName,headerCols);
+            status = await exportCsvStreamed(fileName,headerCols,true);
         } else if(selectedFormat.value === 'parquet') {
             status = await exportParquet(fileName);
         } else if(selectedFormat.value === 'geoparquet') {

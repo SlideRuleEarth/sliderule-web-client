@@ -166,11 +166,6 @@ const customUploader = async (event: any) => {
       await directoryHandle.removeEntry(opfsFile.name);
       return;
     }
-    if ('geo' in metadata) {
-      toast.add({ severity: 'error', summary: 'Unsupported File Format', detail: `SlideRule "geo" parquet not supported.`, life: 5000 });
-      await directoryHandle.removeEntry(opfsFile.name);
-      return;
-    }
 
     upload_progress.value = 90;
 

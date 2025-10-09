@@ -288,7 +288,7 @@ export function getApiFromFilename(filename: string): { func: string } {
     // atl03x_foo.parquet
     // atl03x-phoreal_bar.parquet
     // atl03x-surface_baz.parquet
-    console.log(`getApiFromFilename Fallback->Extracting API from filename: ${filename}`);
+    console.warn(`getApiFromFilename Fallback->Extracting API from filename: ${filename}`);
     const regex = /^(atl[0-9]{2}[a-z]*(?:-(?:phoreal|surface))?)_/i;
 
     const match = filename.match(regex);
@@ -314,7 +314,7 @@ export const nukeSlideRuleFolder = async () => {
     try {
         // Attempt to remove the SlideRule folder; if it doesn't exist, we'll catch that
         await opfsRoot.removeEntry(folderName, { recursive: true });
-        console.log(`nukeSlideRuleFolder: "${folderName}" folder removed`);
+        console.warn(`nukeSlideRuleFolder: "${folderName}" folder removed`);
     } catch (error: any) {
         // If the folder doesn't exist, it's typically a "NotFoundError" or similar
         if (error.name === 'NotFoundError') {
@@ -328,7 +328,7 @@ export const nukeSlideRuleFolder = async () => {
     try {
         // Recreate the SlideRule folder
         await opfsRoot.getDirectoryHandle(folderName, { create: true });
-        console.log(`nukeSlideRuleFolder: "${folderName}" folder re-created`);
+        console.warn(`nukeSlideRuleFolder: "${folderName}" folder re-created`);
     } catch (error) {
         console.error(`nukeSlideRuleFolder: Error re-creating "${folderName}" folder`, error);
         throw new Error(`Failed to re-create the folder: ${folderName}, error: ${error}`);
@@ -531,9 +531,9 @@ export async function exportCsvStreamed(fileName: string, headerCols: Ref<string
             recordInfo = parsedRecordInfo;
 
             // Build new column list: remove geometry, add x,y,z
-            const xColName = parsedRecordInfo.x || 'lon';
-            const yColName = parsedRecordInfo.y || 'lat';
-            const zColName = parsedRecordInfo.z || 'height';
+            const xColName = parsedRecordInfo.x || 'longitude';
+            const yColName = parsedRecordInfo.y || 'latitude';
+            const zColName = parsedRecordInfo.z || 'Zheight';
 
             columns = columns.filter(col => col !== geometryColumn);
             columns.push(xColName, yColName);
