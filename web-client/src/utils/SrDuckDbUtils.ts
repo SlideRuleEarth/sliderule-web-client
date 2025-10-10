@@ -1278,44 +1278,42 @@ export async function fetchScatterData(
                 }
 
                 y.forEach((yName) => {
-                    if (typeof row[aliasKey("min", yName)] === 'bigint') {
-                        console.warn(`Converting BigInt to number for ${yName}`);
-                    
-                        const minY = Number(row[aliasKey("min", yName)]);
-                        const maxY = Number(row[aliasKey("max", yName)]);
-                        const lowY = Number(row[aliasKey("low", yName)]);
-                        const highY = Number(row[aliasKey("high", yName)]);
-                        if (!isNaN(minY) && !isNaN(maxY) && !isNaN(lowY) && !isNaN(highY)) {
-                            minMaxLowHigh[yName] = { min: minY, max: maxY, low: lowY, high: highY };
-                        }
-                    } else {
-                        const minY = row[aliasKey("min", yName)];
-                        const maxY = row[aliasKey("max", yName)];
-                        const lowY = row[aliasKey("low", yName)];
-                        const highY = row[aliasKey("high", yName)];
-                        if (!isNaN(minY) && !isNaN(maxY) && !isNaN(lowY) && !isNaN(highY)) {
-                            minMaxLowHigh[yName] = { min: minY, max: maxY, low: lowY, high: highY };
-                        }
+                    // Convert to number first if BigInt
+                    const minY = typeof row[aliasKey("min", yName)] === 'bigint'
+                        ? Number(row[aliasKey("min", yName)])
+                        : row[aliasKey("min", yName)];
+                    const maxY = typeof row[aliasKey("max", yName)] === 'bigint'
+                        ? Number(row[aliasKey("max", yName)])
+                        : row[aliasKey("max", yName)];
+                    const lowY = typeof row[aliasKey("low", yName)] === 'bigint'
+                        ? Number(row[aliasKey("low", yName)])
+                        : row[aliasKey("low", yName)];
+                    const highY = typeof row[aliasKey("high", yName)] === 'bigint'
+                        ? Number(row[aliasKey("high", yName)])
+                        : row[aliasKey("high", yName)];
+
+                    if (!isNaN(minY) && !isNaN(maxY) && !isNaN(lowY) && !isNaN(highY)) {
+                        minMaxLowHigh[yName] = { min: minY, max: maxY, low: lowY, high: highY };
                     }
                 });
 
                 extraSelectColumns.forEach((colName) => {
-                    if (typeof row[aliasKey("min", colName)] === 'bigint') {
-                        const minCol = Number(row[aliasKey("min", colName)]);
-                        const maxCol = Number(row[aliasKey("max", colName)]);
-                        const lowCol = Number(row[aliasKey("low", colName)]);
-                        const highCol = Number(row[aliasKey("high", colName)]);
-                        if (!isNaN(minCol) && !isNaN(maxCol) && !isNaN(lowCol) && !isNaN(highCol)) {
-                            minMaxLowHigh[colName] = { min: minCol, max: maxCol, low: lowCol, high: highCol };
-                        }
-                    } else {
-                        const minCol = row[aliasKey("min", colName)];
-                        const maxCol = row[aliasKey("max", colName)];
-                        const lowCol = row[aliasKey("low", colName)];
-                        const highCol = row[aliasKey("high", colName)];
-                        if (!isNaN(minCol) && !isNaN(maxCol) && !isNaN(lowCol) && !isNaN(highCol)) {
-                            minMaxLowHigh[colName] = { min: minCol, max: maxCol, low: lowCol, high: highCol };
-                        }
+                    // Convert to number first if BigInt
+                    const minCol = typeof row[aliasKey("min", colName)] === 'bigint'
+                        ? Number(row[aliasKey("min", colName)])
+                        : row[aliasKey("min", colName)];
+                    const maxCol = typeof row[aliasKey("max", colName)] === 'bigint'
+                        ? Number(row[aliasKey("max", colName)])
+                        : row[aliasKey("max", colName)];
+                    const lowCol = typeof row[aliasKey("low", colName)] === 'bigint'
+                        ? Number(row[aliasKey("low", colName)])
+                        : row[aliasKey("low", colName)];
+                    const highCol = typeof row[aliasKey("high", colName)] === 'bigint'
+                        ? Number(row[aliasKey("high", colName)])
+                        : row[aliasKey("high", colName)];
+
+                    if (!isNaN(minCol) && !isNaN(maxCol) && !isNaN(lowCol) && !isNaN(highCol)) {
+                        minMaxLowHigh[colName] = { min: minCol, max: maxCol, low: lowCol, high: highCol };
                     }
                 });
             }

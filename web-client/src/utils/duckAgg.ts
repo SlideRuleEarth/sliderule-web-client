@@ -124,12 +124,20 @@ export async function getGeometryInfoWithTypes(reqId: number): Promise<{
   return { geometryInfo, colTypes, getType, fileName, duckDbClient };
 }
 
+export interface AggregateOptions {
+  /** Use APPROX_QUANTILE instead of PERCENTILE_CONT for ~10-100x speedup with slight approximation */
+  useApproxQuantile?: boolean;
+}
+
 export function buildSafeAggregateClauses(
   columnNames: string[],
   getType: (colName: string) => string,
   escape: (colName: string) => string,
-  geometryInfo?: GeometryInfo
+  geometryInfo?: GeometryInfo,
+  options?: AggregateOptions
 ): string[] {
+  const useApprox = options?.useApproxQuantile ?? true; // Default to true for better performance
+
   // Helper to get the expression for a column (either geometry extraction or direct column)
   const getColumnExpression = (colName: string): string => {
     if (geometryInfo?.hasGeometry) {
@@ -173,10 +181,16 @@ export function buildSafeAggregateClauses(
           ];
 
     // LOW/HIGH: percentile-based, using the numeric ORDER BY expression
-    const lowHighClauses = [
-      `PERCENTILE_CONT(0.10) WITHIN GROUP (ORDER BY ${pctOrderExpr}) ${pctFilter} AS ${alias("low", colName)}`,
-      `PERCENTILE_CONT(0.90) WITHIN GROUP (ORDER BY ${pctOrderExpr}) ${pctFilter} AS ${alias("high", colName)}`
-    ];
+    // Use APPROX_QUANTILE for ~10-100x speedup or PERCENTILE_CONT for exact results
+    const lowHighClauses = useApprox
+      ? [
+          `APPROX_QUANTILE(${colExpr}, 0.10) ${pctFilter} AS ${alias("low", colName)}`,
+          `APPROX_QUANTILE(${colExpr}, 0.90) ${pctFilter} AS ${alias("high", colName)}`
+        ]
+      : [
+          `PERCENTILE_CONT(0.10) WITHIN GROUP (ORDER BY ${pctOrderExpr}) ${pctFilter} AS ${alias("low", colName)}`,
+          `PERCENTILE_CONT(0.90) WITHIN GROUP (ORDER BY ${pctOrderExpr}) ${pctFilter} AS ${alias("high", colName)}`
+        ];
 
     return [...minMaxClauses, ...lowHighClauses];
   });
