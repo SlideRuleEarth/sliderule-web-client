@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { type SrReqParamsState } from '@/types/SrReqParamsState';
-import type { AtlReqParams, AtlxxReqParams, SrRegion, OutputFormat, SrPhoReal, SrSurfaceFit } from '@/types/SrTypes';
-import { type SrListNumberItem, type Atl13, type Atl13Coord } from '@/types/SrTypes';
+import type { AtlReqParams, AtlxxReqParams, SrRegion, SrSurfaceFit } from '@/types/SrTypes';
+import { type SrListNumberItem, type Atl13Coord } from '@/types/SrTypes';
 import { calculatePolygonArea } from "@/composables/SrTurfUtils";
 import { convertTimeFormat } from '@/utils/parmUtils';
 import { db } from '@/db/SlideRuleDb';
@@ -110,9 +110,9 @@ export function getDefaultReqParamsState(): SrReqParamsState {
       surfaceFlag: false,
       fileOutput: true,
       staged: false,
-      fileOutputFormat: { name: 'parquet', value: 'parquet' },
       outputLocation: { label: 'local', value: 'local' },
       outputLocationPath: '',
+      isGeoParquet: false,
       awsRegion: awsRegionOptions[0], // { label: 'us-west-2', value: 'us-west-2' },
       enableYAPC: false,
       useYAPCScore: false,
@@ -511,16 +511,14 @@ const createReqParamsStore = (id: string) =>
               return path;
             })();
 
-            if (this.fileOutputFormat.value === 'geoparquet' || this.fileOutputFormat.value === 'parquet') {
-              const path = `${pathBase}.parquet`;
-              req.output = {
-                format: 'parquet',
-                as_geo: this.fileOutputFormat.value === 'geoparquet',
-                path,
-                with_checksum: this.useChecksum,
-              };
-              // DO NOT mutate store here (no this.??? =)
-            }
+            const path = this.isGeoParquet ? `${pathBase}_GEO.parquet` : `${pathBase}.parquet`;
+            req.output = {
+              format: 'parquet',
+              as_geo: this.isGeoParquet,
+              path,
+              with_checksum: this.useChecksum,
+            };
+      
           }
         
           if (this.getEnableGranuleSelection()) {

@@ -338,14 +338,25 @@ export const useFieldNameStore = defineStore('fieldNameStore', () => {
      */
     async function loadAsGeoFromSvrParams(reqId: number): Promise<void> {
         try {
-            const svrParams = await db.getSvrParams(reqId) as SrSvrParmsUsed;
-            const asGeo = svrParams?.output?.as_geo === true;
+            let svrParams = await db.getSvrParams(reqId);
+            //console.log(`[fieldNameStore] loadAsGeoFromSvrParams for reqId ${reqId}:`, svrParams);
+            //console.log(`[fieldNameStore] typeof svrParams:`, typeof svrParams);
+
+            // If svrParams is a string, parse it
+            if (typeof svrParams === 'string') {
+                console.log(`[fieldNameStore] Parsing svrParams string for reqId ${reqId}`);
+                svrParams = JSON.parse(svrParams);
+            }
+
+            const typedParams = svrParams as SrSvrParmsUsed;
+            const asGeo = typedParams?.output?.as_geo === true;
+            //console.log(`[fieldNameStore] reqId ${reqId} - output.as_geo = ${asGeo}`, typedParams?.output);
             asGeoCache.value[reqId] = asGeo;
             if (asGeo) {
-                console.log(`Request ${reqId} has as_geo=true in server params`);
+                //console.log(`[fieldNameStore] Request ${reqId} has as_geo=true in server params`);
             }
         } catch (error) {
-            console.warn(`Error loading as_geo from server params for reqId ${reqId}:`, error);
+            console.warn(`[fieldNameStore] Error loading as_geo from server params for reqId ${reqId}:`, error);
             asGeoCache.value[reqId] = false;
         }
     }

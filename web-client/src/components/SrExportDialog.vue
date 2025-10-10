@@ -6,7 +6,14 @@
 
         <div v-if="!exporting" class="dialog-body">
             <div class="dropdown-wrapper">
-                <label for="formatSelect">Select Format</label>
+                <label for="currentFormat">Current Format</label>
+                <div class="current-format-value">
+                    {{ currentFormat }}
+                </div>
+            </div>
+
+            <div class="dropdown-wrapper">
+                <label for="formatSelect">Select Exported Format</label>
                 <Select
                     id="formatSelect"
                     v-model="selectedFormat"
@@ -73,6 +80,12 @@ const selectedFormat = ref<'csv' | 'parquet' | 'geoparquet' | null>(null);
 const headerCols = ref<string[]>([]);
 const rowCount = ref<number | null>(null);
 
+const currentFormat = computed(() => {
+    const isGeo = fieldNameStore.isGeoParquet(props.reqId);
+    console.log(`[ExportDialog] currentFormat computed - reqId: ${props.reqId}, isGeo: ${isGeo}, asGeoCache:`, fieldNameStore.asGeoCache);
+    return isGeo ? 'GeoParquet' : 'Parquet';
+});
+
 const formats = computed(() => {
     const isGeo = fieldNameStore.isGeoParquet(props.reqId);
     if (isGeo) {
@@ -115,6 +128,12 @@ onMounted(() => {
 watch(visible, async (val) => {
     if (val && props.reqId > 0) {
         try {
+            //console.log(`[ExportDialog] Dialog opened for reqId: ${props.reqId}`);
+
+            // Load field name metadata including as_geo flag
+            await fieldNameStore.loadMetaForReqId(props.reqId);
+            //console.log(`[ExportDialog] After loadMetaForReqId, asGeoCache:`, fieldNameStore.asGeoCache);
+
             const fileName = await db.getFilename(props.reqId);
             if (!fileName) return;
             const duck = await createDuckDbClient();
@@ -338,6 +357,13 @@ async function exportGeoParquet(fileName: string) : Promise<boolean>  {
     color: var(--label-color, #374151);
 }
 
+.current-format-value {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--primary-color, #3b82f6);
+    padding: 0.25rem 0;
+}
+
 .size-info {
     font-size: 0.875rem;
     color: var(--info-color, #6b7280);
@@ -376,6 +402,10 @@ async function exportGeoParquet(fileName: string) : Promise<boolean>  {
 
     .dropdown-wrapper label {
         color: #cbd5e1;
+    }
+
+    .current-format-value {
+        color: #60a5fa;
     }
 
     .size-info {
