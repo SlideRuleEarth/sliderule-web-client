@@ -151,7 +151,7 @@
         console.log(msg);
         if(newReqId !== oldReqId){
             if(newReqId > 0){
-                await fieldNameStore.loadRecordInfoForReqId(newReqId); // async but don't await
+                await fieldNameStore.loadMetaForReqId(newReqId); // async but don't await
                 globalChartStore.setAllColumnMinMaxValues({}); // reset all min/max values
                 await updateAnalysisMapView('watch selectedReqId');
             } else {
@@ -175,7 +175,7 @@
 
     onMounted(async () => {
         console.log("SrAnalysisMap onMounted using selectedReqId:",props.selectedReqId);
-        await fieldNameStore.loadRecordInfoForReqId(props.selectedReqId); // async but don't await
+        await fieldNameStore.loadMetaForReqId(props.selectedReqId); // async but don't await
         // Bind the tooltipRef to the store
         if (tooltipRef.value) {
             analysisMapStore.tooltipRef = tooltipRef.value;

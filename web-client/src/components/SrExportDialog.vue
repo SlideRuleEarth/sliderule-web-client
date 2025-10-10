@@ -53,6 +53,7 @@ import { createDuckDbClient } from '@/utils/SrDuckDb';
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import {getArrowFetchUrlAndOptions} from "@/utils/fetchUtils";
 import { exportCsvStreamed, getWritableFileStream } from "@/utils/SrParquetUtils";
+import { useFieldNameStore } from '@/stores/fieldNameStore';
 
 
 const props = defineProps<{
@@ -65,17 +66,28 @@ const emit = defineEmits<{
 }>();
 
 const toast = useToast();
+const fieldNameStore = useFieldNameStore();
 const visible = ref(props.modelValue);
 const exporting = ref(false);
 const selectedFormat = ref<'csv' | 'parquet' | 'geoparquet' | null>(null);
 const headerCols = ref<string[]>([]);
 const rowCount = ref<number | null>(null);
 
-const formats = [
-    { label: 'CSV', value: 'csv' },
-    { label: 'Parquet', value: 'parquet' },
-    { label: 'GeoParquet', value: 'geoparquet' },
-];
+const formats = computed(() => {
+    const isGeo = fieldNameStore.isGeoParquet(props.reqId);
+    if (isGeo) {
+        return [
+            { label: 'GeoParquet', value: 'geoparquet' },
+            { label: 'CSV', value: 'csv' },
+        ];
+    } else {
+        return [
+            { label: 'CSV', value: 'csv' },
+            { label: 'Parquet', value: 'parquet' },
+            { label: 'GeoParquet', value: 'geoparquet' },
+        ];
+    }
+});
 
 const estimatedSizeMB = computed(() => {
     if (rowCount.value !== null && headerCols.value.length > 0) {
@@ -135,7 +147,7 @@ const handleExport = async () => {
         if (!fileName) throw new Error("Filename not found");
         let status = false;
         if (selectedFormat.value === 'csv') {
-            status = await exportCsvStreamed(fileName,headerCols,true);
+            status = await exportCsvStreamed(fileName,headerCols);
         } else if(selectedFormat.value === 'parquet') {
             status = await exportParquet(fileName);
         } else if(selectedFormat.value === 'geoparquet') {

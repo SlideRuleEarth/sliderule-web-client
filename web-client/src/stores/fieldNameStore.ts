@@ -4,6 +4,7 @@ import { useRecTreeStore } from '@/stores/recTreeStore'; // Adjust import path i
 import { useChartStore } from './chartStore';
 import { createDuckDbClient } from '@/utils/SrDuckDb';
 import { db } from '@/db/SlideRuleDb';
+import type { SrSvrParmsUsed } from '@/types/SrTypes';
 
 const curGedi2apElFieldOptions = ref(['elevation_lm','elevation_hr']); 
 const curGedi2apElevationField = ref('elevation_lm'); 
@@ -199,7 +200,6 @@ function getDefaultColorEncoding(funcStr: string,parentFuncStr?:string): string 
 
 interface RecordInfo {
     time?: string;
-    as_geo?: boolean;
     x: string;
     y: string;
     z?: string;
@@ -211,8 +211,11 @@ export const useFieldNameStore = defineStore('fieldNameStore', () => {
     const lonFieldCache = ref<Record<number, string>>({});
     const timeFieldCache = ref<Record<number, string>>({});
     const recordInfoCache = ref<Record<number, RecordInfo | null>>({});
+    const asGeoCache = ref<Record<number, boolean>>({});
 
     const recTreeStore = useRecTreeStore();
+
+
 
     /**
      * Fetch recordinfo metadata from parquet file for a given reqId
@@ -279,7 +282,7 @@ export const useFieldNameStore = defineStore('fieldNameStore', () => {
 
     /**
      * Synchronous field name getters - these check recordinfo cache first (if pre-loaded),
-     * then fall back to hardcoded values. Call loadRecordInfoForReqId() first to populate cache.
+     * then fall back to hardcoded values. Call loadMetaForReqId() first to populate cache.
      */
     function getHFieldName(reqId: number): string {
         // Check if we have recordinfo in cache
@@ -330,22 +333,42 @@ export const useFieldNameStore = defineStore('fieldNameStore', () => {
     }
 
     /**
-     * Async function to pre-load recordinfo metadata for a reqId.
-     * Call this early (e.g., after loading a parquet file) to populate the cache,
-     * so that subsequent synchronous getters can use recordinfo values.
+     * Load as_geo flag from server parameters for a given reqId
+     * This checks the output.as_geo field from the request's server parameters
      */
-    async function loadRecordInfoForReqId(reqId: number): Promise<RecordInfo | null> {
-        return await getRecordInfoForReqId(reqId);
+    async function loadAsGeoFromSvrParams(reqId: number): Promise<void> {
+        try {
+            const svrParams = await db.getSvrParams(reqId) as SrSvrParmsUsed;
+            const asGeo = svrParams?.output?.as_geo === true;
+            asGeoCache.value[reqId] = asGeo;
+            if (asGeo) {
+                console.log(`Request ${reqId} has as_geo=true in server params`);
+            }
+        } catch (error) {
+            console.warn(`Error loading as_geo from server params for reqId ${reqId}:`, error);
+            asGeoCache.value[reqId] = false;
+        }
     }
 
     /**
      * Check if the parquet file for a given reqId is in GeoParquet format.
-     * This checks the as_geo property from the recordinfo metadata.
-     * Returns false if recordinfo is not cached or as_geo is not set.
+     * This checks the as_geo property from the server parameters.
+     * Returns false if not cached.
      */
     function isGeoParquet(reqId: number): boolean {
-        const recordInfo = recordInfoCache.value[reqId];
-        return recordInfo?.as_geo === true;
+        return asGeoCache.value[reqId] === true;
+    }
+
+    /**
+     * Async function to pre-load recordinfo metadata for a reqId.
+     * Call this early (e.g., after loading a parquet file) to populate the cache,
+     * so that subsequent synchronous getters can use recordinfo values.
+     */
+    async function loadMetaForReqId(reqId: number): Promise<RecordInfo | null> {
+        const recordInfo = await getRecordInfoForReqId(reqId);
+        // Also load as_geo flag from server parameters
+        await loadAsGeoFromSvrParams(reqId);
+        return recordInfo;
     }
 
     return {
@@ -363,13 +386,15 @@ export const useFieldNameStore = defineStore('fieldNameStore', () => {
         curGedi2apElFieldOptions,
         curGedi2apElevationField,
         isGeoParquet,
+        loadAsGeoFromSvrParams,
         // for debugging/testing
         hFieldCache,
         latFieldCache,
         lonFieldCache,
         timeFieldCache,
         recordInfoCache,
+        asGeoCache,
         getRecordInfoForReqId,
-        loadRecordInfoForReqId,
+        loadMetaForReqId,
     };
 });

@@ -458,82 +458,6 @@ export async function getWritableFileStream(suggestedName: string, mimeType: str
   return createObjectUrlStream(mimeType, suggestedName);
 }
 
-
-/**
- * Parse WKB Point geometry to extract x, y, z coordinates
- * WKB Point format (little-endian):
- * - byte 0: byte order (1 = little-endian, 0 = big-endian)
- * - bytes 1-4: geometry type (1 = Point, 1001 = PointZ)
- * - bytes 5-12: x coordinate (double)
- * - bytes 13-20: y coordinate (double)
- * - bytes 21-28: z coordinate (double, if PointZ)
- */
-function parseWkbPoint(wkb: Uint8Array): { x: number; y: number; z?: number } | null {
-    if (!wkb || wkb.length < 21) {
-        return null;
-    }
-
-    const view = new DataView(wkb.buffer, wkb.byteOffset, wkb.byteLength);
-    const byteOrder = wkb[0]; // 1 = little-endian, 0 = big-endian
-    const littleEndian = byteOrder === 1;
-
-    // Read geometry type (uint32 at offset 1)
-    const geomType = view.getUint32(1, littleEndian);
-
-    // 1 = Point (2D), 1001 = PointZ (3D), 0x80000001 = PointZ with SRID
-    const isPoint = geomType === 1 || geomType === 1001 || geomType === 0x80000001;
-
-    if (!isPoint) {
-        console.warn('Geometry type is not a Point:', geomType);
-        return null;
-    }
-
-    // Read coordinates (doubles at offsets 5, 13, and optionally 21)
-    const x = view.getFloat64(5, littleEndian);
-    const y = view.getFloat64(13, littleEndian);
-
-    // Check if we have Z coordinate (PointZ types)
-    const hasZ = (geomType === 1001 || geomType === 0x80000001) && wkb.length >= 29;
-    const z = hasZ ? view.getFloat64(21, littleEndian) : undefined;
-
-    return { x, y, z };
-}
-
-/**
- * Parse WKT Point geometry to extract x, y, z coordinates
- * WKT Point formats:
- * - "POINT (x y)"
- * - "POINT Z (x y z)"
- * - "POINT M (x y m)"
- * - "POINT ZM (x y z m)"
- */
-function parseWktPoint(wkt: string): { x: number; y: number; z?: number } | null {
-    if (!wkt || typeof wkt !== 'string') {
-        return null;
-    }
-
-    // Match POINT, POINT Z, POINT M, or POINT ZM
-    // Coordinates are space-separated numbers inside parentheses
-    const match = wkt.match(/POINT\s*(?:Z|M|ZM)?\s*\(\s*([-+]?[\d.]+(?:[eE][-+]?\d+)?)\s+([-+]?[\d.]+(?:[eE][-+]?\d+)?)(?:\s+([-+]?[\d.]+(?:[eE][-+]?\d+)?))?(?:\s+([-+]?[\d.]+(?:[eE][-+]?\d+)?))?\s*\)/i);
-
-    if (!match) {
-        console.warn('Could not parse WKT Point:', wkt);
-        return null;
-    }
-
-    const x = parseFloat(match[1]);
-    const y = parseFloat(match[2]);
-    const z = match[3] ? parseFloat(match[3]) : undefined;
-    // Note: match[4] would be M value if present, which we ignore
-
-    if (isNaN(x) || isNaN(y)) {
-        console.warn('Invalid coordinates in WKT Point:', wkt);
-        return null;
-    }
-
-    return { x, y, z };
-}
-
 interface RecordInfo {
     time?: string;
     as_geo?: boolean;
@@ -548,38 +472,67 @@ interface GeoMetadata {
     columns?: Record<string, any>;
 }
 
-export async function exportCsvStreamed(fileName: string, headerCols: Ref<string[]>, expandGeometry = false) {
+export async function exportCsvStreamed(fileName: string, headerCols: Ref<string[]>) {
     const duck = await createDuckDbClient();
     await duck.insertOpfsParquet(fileName);
 
     let columns = headerCols.value;
     let geometryColumn: string | null = null;
-    let recordInfo: RecordInfo | null = null;
+    let selectCols: string[] = [];
 
-    // If expandGeometry is true, check for geo metadata and adjust columns
-    if (expandGeometry) {
-        const metadata = await duck.getAllParquetMetadata(fileName);
-        if (metadata?.geo && metadata.recordinfo) {
-            const geoMetadata: GeoMetadata = JSON.parse(metadata.geo);
-            geometryColumn = geoMetadata.primary_column || 'geometry';
-            const parsedRecordInfo: RecordInfo = JSON.parse(metadata.recordinfo);
-            recordInfo = parsedRecordInfo;
+    // Check for geo metadata and adjust columns if geometry exists
+    const metadata = await duck.getAllParquetMetadata(fileName);
+    if (metadata?.geo && metadata.recordinfo) {
+        const geoMetadata: GeoMetadata = JSON.parse(metadata.geo);
+        geometryColumn = geoMetadata.primary_column || 'geometry';
+        const parsedRecordInfo: RecordInfo = JSON.parse(metadata.recordinfo);
 
-            // Build new column list: remove geometry, add x,y,z
-            const xColName = parsedRecordInfo.x || 'longitude';
-            const yColName = parsedRecordInfo.y || 'latitude';
-            const zColName = parsedRecordInfo.z || 'Zheight';
+        // Build new column list: remove geometry, add x,y,z
+        const xColName = parsedRecordInfo.x || 'longitude';
+        const yColName = parsedRecordInfo.y || 'latitude';
+        const zColName = parsedRecordInfo.z || 'Zheight';
 
-            columns = columns.filter(col => col !== geometryColumn);
-            columns.push(xColName, yColName);
-            if (parsedRecordInfo.z) {
-                columns.push(zColName);
-            }
+        // Check if Z column exists as a separate column
+        // If it does, geometry is 2D (Point) and Z is stored separately
+        // If it doesn't, geometry is 3D (Point Z) and Z is in the geometry
+        const hasZColumn = headerCols.value.includes(zColName);
+        const geometryHasZ = !hasZColumn;  // Z is in geometry if there's no separate Z column
+
+        // Build SELECT statement using DuckDB spatial functions
+        // Include all columns except geometry (and z column if it's in the geometry)
+        selectCols = headerCols.value
+            .filter(col => {
+                if (col === geometryColumn) return false;
+                // If Z is in geometry, exclude the separate Z column (if it exists)
+                if (geometryHasZ && col === zColName) return false;
+                return true;
+            })
+            .map(col => duck.escape(col));
+
+        // Add geometry extractions using DuckDB spatial functions
+        selectCols.push(`ST_X(${duck.escape(geometryColumn)}) AS ${duck.escape(xColName)}`);
+        selectCols.push(`ST_Y(${duck.escape(geometryColumn)}) AS ${duck.escape(yColName)}`);
+
+        // Only extract Z from geometry if it has Z, otherwise the separate column is already included
+        if (parsedRecordInfo.z && geometryHasZ) {
+            selectCols.push(`ST_Z(${duck.escape(geometryColumn)}) AS ${duck.escape(zColName)}`);
         }
+
+        // Build output columns list
+        columns = headerCols.value.filter(col => col !== geometryColumn);
+        if (!columns.includes(xColName)) columns.push(xColName);
+        if (!columns.includes(yColName)) columns.push(yColName);
+        if (parsedRecordInfo.z && geometryHasZ && !columns.includes(zColName)) {
+            columns.push(zColName);
+        }
+    } else {
+        // No geometry, select all columns
+        selectCols = headerCols.value.map(col => duck.escape(col));
     }
 
     const encoder = new TextEncoder();
-    const { readRows } = await duck.query(`SELECT * FROM "${fileName}"`);
+    const selectClause = selectCols.join(', ');
+    const { readRows } = await duck.query(`SELECT ${selectClause} FROM "${fileName}"`);
 
     const wb = await getWritableFileStream(`${fileName}.csv`, 'text/csv');
     if (!wb) return false;
@@ -595,41 +548,10 @@ export async function exportCsvStreamed(fileName: string, headerCols: Ref<string
 
     for await (const rows of readRows(1000)) {
         const lines = rows.map(row => {
-            let processedRow = row;
-
-            // If expanding geometry, parse WKB or WKT and add x,y,z columns
-            if (expandGeometry && geometryColumn && recordInfo) {
-                const geomValue = row[geometryColumn];
-                let coords: { x: number; y: number; z?: number } | null = null;
-
-                if (geomValue) {
-                    // Detect format: WKB (Uint8Array) or WKT (string)
-                    if (geomValue instanceof Uint8Array) {
-                        coords = parseWkbPoint(geomValue);
-                    } else if (typeof geomValue === 'string') {
-                        coords = parseWktPoint(geomValue);
-                    } else {
-                        console.warn('Unknown geometry format:', typeof geomValue);
-                    }
-
-                    if (coords) {
-                        const xColName = recordInfo.x || 'lon';
-                        const yColName = recordInfo.y || 'lat';
-                        const zColName = recordInfo.z || 'height';
-
-                        processedRow = { ...row };
-                        processedRow[xColName] = coords.x;
-                        processedRow[yColName] = coords.y;
-                        if (coords.z !== undefined && recordInfo.z) {
-                            processedRow[zColName] = coords.z;
-                        }
-                        delete processedRow[geometryColumn]; // Remove geometry column
-                    }
-                }
-            }
-
+            // DuckDB has already extracted geometry coordinates via ST_X, ST_Y, ST_Z
+            // No need for manual WKB/WKT parsing
             const processed = columns.map(col => {
-                let val = processedRow[col];
+                let val = row[col];
                 if (col === 'srcid') val = lookup[val] ?? `unknown_srcid_${val}`;
                 return safeCsvCell(val);
             });
