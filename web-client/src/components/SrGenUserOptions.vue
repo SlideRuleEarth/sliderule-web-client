@@ -77,11 +77,18 @@ onMounted(async () => {
 <template>
     <div class="sr-gen-user-options-container">
         <SrCheckbox
+            label="as GeoParquet"
+            v-model="reqParamsStore.isGeoParquet"
+            tooltipText="When you check this the server will return the data in GeoParquet format"
+            tooltipUrl="https://geoparquet.org/"
+        />
+        <SrCheckbox
             label="Specify Resources (no CMR polygon search)"
             v-model="reqParamsStore.ignorePolygon"
             tooltipText="When you check this the server skips the CMR polygon search and uses the resources you specify below"
             tooltipUrl="https://slideruleearth.io/web/rtd/api_reference/earthdata.html#cmr"
         />
+
         <SrResources v-if="reqParamsStore.ignorePolygon"/>
         <Fieldset class="sr-timeouts-fieldset" legend="Timeouts" :toggleable="true" :collapsed="false">
             <SrSwitchedSliderInput

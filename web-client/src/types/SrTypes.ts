@@ -77,6 +77,7 @@ export interface Region {
   export interface SrSvrParmsUsed extends SrRequestPayload {
     server?: Server;
     poly?: LatLon[]; // supports atl24x and new format TBD
+    output: OutputFormat;
     recordinfo?: RecordInfo;
     atl24?: {};
     atl08?: {};

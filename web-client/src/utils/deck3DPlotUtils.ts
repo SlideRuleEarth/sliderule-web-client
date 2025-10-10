@@ -113,7 +113,7 @@ function initDeckIfNeeded(deckContainer: Ref<HTMLDivElement | null>): boolean {
 
 
 function createDeck(container: HTMLDivElement) {
-    console.log('createDeck inside:', container);
+    //console.log('createDeck inside:', container);
     deckInstance.value = new Deck({
         parent: container,
         useDevicePixels: false,
@@ -193,7 +193,7 @@ export function finalizeDeck() {
     if (deckInstance.value) {
         deckInstance.value.finalize();
         deckInstance.value = null;
-        console.log('Deck instance finalized');
+        //console.log('Deck instance finalized');
     } else {
         console.warn('No Deck instance to finalize');
     }
@@ -220,10 +220,10 @@ export async function loadAndCachePointCloudData(reqId: number) {
     timeField = fieldStore.getTimeFieldName(reqId);
 
     if (reqId === lastLoadedReqId) {
-        console.log(`Data for reqId ${reqId} is already cached.`);
+        //console.log(`Data for reqId ${reqId} is already cached.`);
         return;
     }
-    console.log(`Loading new data for reqId ${reqId}...`);
+    //console.log(`Loading new data for reqId ${reqId}...`);
     
     try {
         const fieldStore = useFieldNameStore();
@@ -232,8 +232,52 @@ export async function loadAndCachePointCloudData(reqId: number) {
 
         const duckDbClient = await createDuckDbClient();
         await duckDbClient.insertOpfsParquet(fileName);
+
+        // Check if geometry column exists and build appropriate SELECT
+        const colTypes = await duckDbClient.queryColumnTypes(fileName);
+        const hasGeometry = colTypes.some(c => c.name === 'geometry');
+
+        let selectClause: string;
+        if (hasGeometry) {
+            // Check if Z column exists as a separate column
+            // If it does, geometry is 2D (Point) and Z is stored separately
+            // If it doesn't, geometry is 3D (Point Z) and Z is in the geometry
+            const hasZColumn = colTypes.some(c => c.name === heightField);
+            const geometryHasZ = !hasZColumn;  // Z is in geometry if there's no separate Z column
+
+            // Build column list: all columns except geometry (and z column if it's in geometry)
+            const nonGeomCols = colTypes
+                .filter(c => {
+                    if (c.name === 'geometry') return false;
+                    // If Z is in geometry, exclude the separate Z column
+                    if (geometryHasZ && c.name === heightField) return false;
+                    return true;
+                })
+                .map(c => duckDbClient.escape(c.name));
+
+            // Add geometry extractions with field name aliases
+            const geomExtractions = [
+                `ST_X(${duckDbClient.escape('geometry')}) AS ${duckDbClient.escape(lonField)}`,
+                `ST_Y(${duckDbClient.escape('geometry')}) AS ${duckDbClient.escape(latField)}`
+            ];
+
+            // Only extract Z from geometry if it has Z, otherwise include the separate column
+            if (geometryHasZ) {
+                geomExtractions.push(
+                    `ST_Z(${duckDbClient.escape('geometry')}) AS ${duckDbClient.escape(heightField)}`
+                );
+            } else {
+                // Z is a separate column, already included in nonGeomCols
+            }
+
+            selectClause = [...nonGeomCols, ...geomExtractions].join(', ');
+        } else {
+            selectClause = '*';
+        }
+
         const sample_fraction = await computeSamplingRate(reqId);
-        const result = await duckDbClient.queryChunkSampled(`SELECT * FROM read_parquet('${fileName}')`, sample_fraction);
+        const query = `SELECT ${selectClause} FROM read_parquet('${fileName}')`;
+        const result = await duckDbClient.queryChunkSampled(query, sample_fraction);
         const { value: rows = [] } = await result.readRows().next();
 
         if (rows.length > 0) {
@@ -250,7 +294,7 @@ export async function loadAndCachePointCloudData(reqId: number) {
             });
             lastLoadedReqId = reqId;
             verticalExaggerationInitialized = false; // Reset flag for new data
-            console.log(`Cached ${cachedRawData.length} valid data points.`);
+            //console.log(`Cached ${cachedRawData.length} valid data points.`);
 
             if (cachedRawData.length > 0) {
                 latField = fieldStore.getLatFieldName(reqId);
@@ -320,7 +364,7 @@ export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
 
     // --- fast, in-memory processing ---
     const selectedColorField = chartStore.getSelectedColorEncodeData(recTreeStore.selectedReqIdStr);
-    console.log('renderCachedData: selectedColorField:', selectedColorField, ' for reqId:', recTreeStore.selectedReqIdStr);
+    //console.log('renderCachedData: selectedColorField:', selectedColorField, ' for reqId:', recTreeStore.selectedReqIdStr);
     const zField = fieldStore.getHFieldName(lastLoadedReqId);
 
     // helper
@@ -344,7 +388,7 @@ export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
     const colorMin = getPercentile(colorValues, deck3DConfigStore.minColorPercent);
     const colorMax = getPercentile(colorValues, deck3DConfigStore.maxColorPercent);
     const colorRange = Math.max(1e-6, colorMax - colorMin);
-    console.log(`renderCachedData hasColorField: ${hasColorField}, color field: ${cField} [${colorMin.toFixed(2)}, ${colorMax.toFixed(2)}] based on ${colorValues.length} samples`);
+    //console.log(`renderCachedData hasColorField: ${hasColorField}, color field: ${cField} [${colorMin.toFixed(2)}, ${colorMax.toFixed(2)}] based on ${colorValues.length} samples`);
     // percentiles for Z scale still come from elevations
     const [minElScalePercent, maxElScalePercent] = deck3DConfigStore.elScaleRange;
     const elevMinScale = getPercentile(elevations, minElScalePercent);
@@ -387,14 +431,14 @@ export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
 
     // Calculate vertical scale ratio based on z range vs x range
     const calculatedVerticalScaleRatio = Erange / zRangeMeters;
-    console.log(`Calculated verticalScaleRatio: ${calculatedVerticalScaleRatio.toFixed(2)} (Erange: ${Erange.toFixed(2)} m, zRange: ${zRangeMeters.toFixed(2)} m)`);
+    //console.log(`Calculated verticalScaleRatio: ${calculatedVerticalScaleRatio.toFixed(2)} (Erange: ${Erange.toFixed(2)} m, zRange: ${zRangeMeters.toFixed(2)} m)`);
     deck3DConfigStore.verticalScaleRatio = calculatedVerticalScaleRatio;
 
     // Set vertical exaggeration to 1/2 of the calculated ratio (only once per dataset)
     if (!verticalExaggerationInitialized) {
         deck3DConfigStore.verticalExaggeration = calculatedVerticalScaleRatio / 2;
         verticalExaggerationInitialized = true;
-        console.log(`Initialized verticalExaggeration to: ${deck3DConfigStore.verticalExaggeration.toFixed(2)}`);
+        //console.log(`Initialized verticalExaggeration to: ${deck3DConfigStore.verticalExaggeration.toFixed(2)}`);
     }
 
     const zToWorld = metersToWorld * deck3DConfigStore.verticalExaggeration;
@@ -507,7 +551,7 @@ export function updateFovy(fovy: number) {
                 }),
             ],
         });
-        console.log('Redrawing deck with new FOVY');
+        //console.log('Redrawing deck with new FOVY');
         deckInstance.value?.redraw(); // <-- manual redraw for non-animated mode
     });
 }

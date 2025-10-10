@@ -66,7 +66,7 @@ function openSvrParmsDialog(params: string | object) {
 const analyze = async (id:number) => {
     try {
         if(recTreeStore.findAndSelectNode(id)){
-            //router.push(`/analyze/${id.toString()}`);
+            toast.add({ severity: 'info', summary: 'Loading new Record', detail: 'Reading data', life: 5000 });
             updateElevationMap(id);
         } else {
             toast.add({ severity: 'error', summary: 'Invalid Record Id', detail: 'Failed to set record Id', life: srToastStore.getLife() });

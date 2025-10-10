@@ -78,8 +78,8 @@ export interface SrReqParamsState {
     surfaceFlag: boolean;
     fileOutput: boolean;
     staged: boolean;
-    fileOutputFormat: SrMenuItem;
     outputLocation: SrListStringItem;
+    isGeoParquet: boolean;
     outputLocationPath: string;
     awsRegion: SrListStringItem;
     enableYAPC: boolean;
