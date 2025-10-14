@@ -722,8 +722,9 @@ export async function initChartStoreFor(reqId:number) : Promise<boolean>{
 }
 
 export async function initChartStore() {
-    const startTime = performance.now(); 
+    const startTime = performance.now();
     const recTreeStore = useRecTreeStore();
+    const totalReqIds = recTreeStore.reqIdMenuItems.length;
     for (const reqIdItem of recTreeStore.reqIdMenuItems) {
         const reqId = Number(reqIdItem.value);
         const status = await initChartStoreFor(reqId);
@@ -732,8 +733,8 @@ export async function initChartStore() {
         }
         await initSymbolSize(reqId);
     }
-    const endTime = performance.now(); 
-    console.log(`initChartStore took ${endTime - startTime} milliseconds.`);
+    const endTime = performance.now();
+    console.log(`initChartStore processed ${totalReqIds} reqIds in ${endTime - startTime} milliseconds.`);
 }
 
 export function slopeRenderItem(_params:any, api:any) {
