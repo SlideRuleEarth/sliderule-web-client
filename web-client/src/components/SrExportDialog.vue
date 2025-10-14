@@ -248,7 +248,7 @@ async function exportGeoParquet(fileName: string) : Promise<boolean>  {
     const metadata = await duckDbClient.getAllParquetMetadata(fileName);
 
     const hasGeoMetadata = metadata && 'geo' in metadata;
-
+    //console.log('exportGeoParquet - hasGeoMetadata:', hasGeoMetadata, metadata);
     if (hasGeoMetadata) {
         // File already has geo metadata, export as-is using exportParquet pattern
         console.log('File already has geo metadata, exporting as-is');

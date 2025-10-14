@@ -779,7 +779,7 @@ export async function duckDbLoadOpfsParquetFile(fileName: string): Promise<any> 
             }
         } catch (error) {
             console.error('duckDbLoadOpfsParquetFile Error dumping parquet metadata:', error);
-        }       
+        }
     } catch (error) {
         console.error('duckDbLoadOpfsParquetFile error:',error);
         throw error;
@@ -788,7 +788,34 @@ export async function duckDbLoadOpfsParquetFile(fileName: string): Promise<any> 
         console.log(`duckDbLoadOpfsParquetFile took ${endTime - startTime} milliseconds.`);
     }
     //console.log('duckDbLoadOpfsParquetFile serverReq:', serverReq);
-    return serverReq;   
+    return serverReq;
+}
+
+export async function getGeoMetadataFromFile(fileName: string): Promise<any> {
+    const startTime = performance.now();
+    let geoMetadata = null;
+    try {
+        const duckDbClient = await createDuckDbClient();
+        await duckDbClient.insertOpfsParquet(fileName);
+        const metadata = await duckDbClient.getAllParquetMetadata(fileName);
+
+        if (metadata?.geo) {
+            try {
+                geoMetadata = JSON.parse(metadata.geo);
+                console.log('getGeoMetadataFromFile found geo metadata for', fileName);
+            } catch (error) {
+                console.error('getGeoMetadataFromFile Error parsing geo metadata:', error);
+            }
+        } else {
+            console.log('getGeoMetadataFromFile no geo metadata found for', fileName);
+        }
+    } catch (error) {
+        console.error('getGeoMetadataFromFile error:', error);
+    } finally {
+        const endTime = performance.now();
+        console.log(`getGeoMetadataFromFile took ${endTime - startTime} milliseconds.`);
+    }
+    return geoMetadata;
 }
 
 export interface SrScatterChartData { value: number[] };

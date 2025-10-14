@@ -33,6 +33,7 @@ export interface SrRequestRecord {
     func?: string; // function name
     parameters?: ReqParams; //  parameters
     svr_parms?: SrSvrParmsUsed; //  parameters used/returned from server
+    geo_metadata?: any; //  geo metadata from geoparquet file
     start_time?: Date; // start time of request
     end_time?: Date; //end time of request
     elapsed_time?: string; //  elapsed time
