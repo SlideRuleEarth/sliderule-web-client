@@ -14,7 +14,7 @@
     "dev": "vite",
     "build-only": "vite build",
     "typecheck": "vue-tsc --noEmit -p tsconfig.app.json",
-    "lint": "eslint .",
+    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts",
     "preview": "vite preview",
     "build": "run-p \"build-only {@}\" --",
     "build_with_maps": "VITE_BUILD_SOURCEMAP=true run-p \"build-only {@}\" --",

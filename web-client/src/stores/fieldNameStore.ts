@@ -75,7 +75,7 @@ function getDefaultElOptions(reqId:number): string[] {
             break;
         case 'atl08p':
         case 'atl03x-phoreal':
-            options = ['h_mean_canopy','h_max_canopy','h_te_median','cycle'];
+            options = ['h_mean_canopy','h_max_canopy','h_canopy','h_min_canopy','h_te_median','canopy_openness','cycle'];
             break;
         case 'atl24x':  options = ['ortho_h','confidence','class_ph','y_atc','cycle','srcid'];
             break;

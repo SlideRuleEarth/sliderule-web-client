@@ -17,6 +17,7 @@ import { type SrPosition} from '@/types/SrTypes';
 import { useAnalysisMapStore } from '@/stores/analysisMapStore';
 import { useFieldNameStore } from '@/stores/fieldNameStore';
 import { baseType, alias, FLOAT_TYPES, INT_TYPES, DECIMAL_TYPES, BOOL_TYPES, TEMPORAL_TYPES, buildSafeAggregateClauses, getGeometryInfo, getGeometryInfoWithTypes } from '@/utils/duckAgg';
+import { extractCrsFromGeoMetadata, transformCoordinate, needsTransformation } from '@/utils/SrCrsTransform';
 
 
 interface SummaryRowData {
@@ -55,7 +56,20 @@ function setElevationDataOptionsFromFieldNames(reqIdStr: string, fieldNames: str
         chartStore.setElevationDataOptions(reqIdStr, fieldNames);
         const reqId = parseInt(reqIdStr);
         // Get the height field name
-        const heightFieldname = fncs.getHFieldName(reqId);
+        let heightFieldname = fncs.getHFieldName(reqId);
+
+        // Validate that the height field actually exists in the file
+        // If not, the metadata is incorrect and we should use the hardcoded default
+        if (!fieldNames.includes(heightFieldname)) {
+            console.warn(`Height field "${heightFieldname}" from metadata not found in file columns. Falling back to hardcoded default.`);
+            // Clear the cached metadata value so it doesn't get used again
+            if (reqId in fncs.recordInfoCache) {
+                delete fncs.recordInfoCache[reqId];
+            }
+            // Get the hardcoded value by calling getHFieldName again (will now skip the cache)
+            heightFieldname = fncs.getHFieldName(reqId);
+            console.log(`Using hardcoded height field: "${heightFieldname}"`);
+        }
 
         // Find the index of the height field name
         const ndx = fieldNames.indexOf(heightFieldname);
@@ -455,6 +469,19 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number, layerName
         pntDataLocal.totalPnts = 0;
         pntDataLocal.currentPnts = 0;
 
+        // Get CRS information for coordinate transformation
+        const geoMetadata = await getGeoMetadataFromFile(filename);
+        const sourceCrs = extractCrsFromGeoMetadata(geoMetadata);
+        const requiresTransformation = needsTransformation(sourceCrs);
+
+        if (requiresTransformation && sourceCrs) {
+            console.log(`duckDbReadAndUpdateElevationData: Will transform coordinates from ${sourceCrs} to EPSG:4326`);
+        } else if (sourceCrs) {
+            console.log(`duckDbReadAndUpdateElevationData: No transformation needed, data is in ${sourceCrs}`);
+        } else {
+            console.log('duckDbReadAndUpdateElevationData: No geo metadata CRS found, assuming coordinates are WGS 84 (EPSG:4326)');
+        }
+
         try {
             const sample_fraction = await computeSamplingRate(req_id);
 
@@ -532,11 +559,18 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number, layerName
                 }
 
                 if (firstRec) {
-                    positions = rows.map(d => [
-                        d[lonField],
-                        d[latField],
-                        0 // keep tracks flat
-                    ] as SrPosition);
+                    // Transform coordinates from source CRS to WGS 84 (EPSG:4326) if needed
+                    positions = rows.map(d => {
+                        const lon = d[lonField];
+                        const lat = d[latField];
+
+                        if (requiresTransformation && sourceCrs) {
+                            const [transformedLon, transformedLat] = transformCoordinate(lon, lat, sourceCrs);
+                            return [transformedLon, transformedLat, 0] as SrPosition;
+                        } else {
+                            return [lon, lat, 0] as SrPosition;
+                        }
+                    });
                 } else {
                     console.warn(`No valid elevation points found in ${numRows} rows.`);
                     useSrToastStore().warn('No Data Processed', `No valid elevation points found in ${numRows} rows.`);
@@ -636,6 +670,19 @@ export const duckDbReadAndUpdateSelectedLayer = async (
 
         await duckDbClient.insertOpfsParquet(filename);
 
+        // Get CRS information for coordinate transformation
+        const geoMetadata = await getGeoMetadataFromFile(filename);
+        const sourceCrs = extractCrsFromGeoMetadata(geoMetadata);
+        const requiresTransformation = needsTransformation(sourceCrs);
+
+        if (requiresTransformation && sourceCrs) {
+            console.log(`duckDbReadAndUpdateSelectedLayer: Will transform coordinates from ${sourceCrs} to EPSG:4326`);
+        } else if (sourceCrs) {
+            console.log(`duckDbReadAndUpdateSelectedLayer: No transformation needed, data is in ${sourceCrs}`);
+        } else {
+            console.log('duckDbReadAndUpdateSelectedLayer: No geo metadata CRS found, assuming coordinates are WGS 84 (EPSG:4326)');
+        }
+
         // Check if geometry column exists and build appropriate SELECT
         const colTypes = await duckDbClient.queryColumnTypes(filename);
         const hasGeometry = colTypes.some(c => c.name === 'geometry');
@@ -705,9 +752,17 @@ export const duckDbReadAndUpdateSelectedLayer = async (
                     numRows += rowChunk.length;
                     rowChunks.push(...rowChunk);
                     filteredPntData.currentPnts = numRows;
-                    // **Precompute positions and store them**
+                    // **Precompute positions and store them with CRS transformation**
                     rowChunk.forEach(d => {
-                        positions.push([d[lonField], d[latField], 0]);
+                        const lon = d[lonField];
+                        const lat = d[latField];
+
+                        if (requiresTransformation && sourceCrs) {
+                            const [transformedLon, transformedLat] = transformCoordinate(lon, lat, sourceCrs);
+                            positions.push([transformedLon, transformedLat, 0]);
+                        } else {
+                            positions.push([lon, lat, 0]);
+                        }
                     });
                 }
             }

@@ -112,7 +112,7 @@ export function getDefaultReqParamsState(): SrReqParamsState {
       staged: false,
       outputLocation: { label: 'local', value: 'local' },
       outputLocationPath: '',
-      isGeoParquet: false,
+      isGeoParquet: true,
       awsRegion: awsRegionOptions[0], // { label: 'us-west-2', value: 'us-west-2' },
       enableYAPC: false,
       useYAPCScore: false,

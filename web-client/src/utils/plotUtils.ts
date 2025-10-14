@@ -1438,10 +1438,10 @@ async function updatePlotAndSelectedTrackMapLayer(msg: string): Promise<void> {
     let hasSelectedMapLayer = true;
 
     if (activeTabStore.isActiveTabTimeSeries) {
-        checkAndSetFilterForTimeSeries();
+        await checkAndSetFilterForTimeSeries();
         if (selectedApi === 'atl13x') hasSelectedMapLayer = false;
     } else if (activeTabStore.isActiveTab3D) {
-        checkAndSetFilterFor3D();
+        await checkAndSetFilterFor3D();
         if (selectedApi === 'atl13x') hasSelectedMapLayer = false;
     }
     // Always read this: because of the async debounce, the selectedReqId may have changed since this was called
