@@ -1329,34 +1329,56 @@ export async function fetchScatterData(
                 if (handleMinMaxRow) {
                     handleMinMaxRow(reqIdStr, row);
                 } else {
+                    // Convert to number first if BigInt
+                    const rawMinX = typeof row[aliasKey("min", `${x}`)] === 'bigint'
+                        ? Number(row[aliasKey("min", `${x}`)])
+                        : row[aliasKey("min", `${x}`)];
+                    const rawMaxX = typeof row[aliasKey("max", `${x}`)] === 'bigint'
+                        ? Number(row[aliasKey("max", `${x}`)])
+                        : row[aliasKey("max", `${x}`)];
+
                     if(options.parentMinX){
                         minXtoUse = options.parentMinX;
                     } else {
-                        minXtoUse = row[aliasKey("min", `${x}`)];
+                        minXtoUse = rawMinX;
                     }
-                    if(minXtoUse === row[aliasKey("min", `${x}`)]){
-                        console.log('fetchScatterData minXtoUse:', minXtoUse, `row['min_${x}']:`, row[aliasKey("min", `${x}`)]);
+                    if(minXtoUse === rawMinX){
+                        console.log('fetchScatterData minXtoUse:', minXtoUse, `row['min_${x}']:`, rawMinX);
                     } else {
-                        console.warn('fetchScatterData minXtoUse:', minXtoUse, `row['min_${x}']:`, row[aliasKey("min", `${x}`)]);
+                        console.warn('fetchScatterData minXtoUse:', minXtoUse, `row['min_${x}']:`, rawMinX);
                     }
                     // set min/max in the store
-                    useChartStore().setRawMinX(reqIdStr, row[aliasKey("min", `${x}`)]);
-                    useChartStore().setMinX(reqIdStr, row[aliasKey("min", `${x}`)] - minXtoUse);
-                    useChartStore().setMaxX(reqIdStr, row[aliasKey("max", `${x}`)] - minXtoUse);
+                    useChartStore().setRawMinX(reqIdStr, rawMinX);
+                    useChartStore().setMinX(reqIdStr, rawMinX - minXtoUse);
+                    useChartStore().setMaxX(reqIdStr, rawMaxX - minXtoUse);
                 }
 
                 // Populate minMaxValues, but exclude NaN values (should be unnecessary now that we filter in SQL)
-                if (!isNaN(row[aliasKey("min", `${x}`)]) && !isNaN(row[aliasKey("max", `${x}`)])) {
+                // Convert to number first if BigInt
+                const minX = typeof row[aliasKey("min", `${x}`)] === 'bigint'
+                    ? Number(row[aliasKey("min", `${x}`)])
+                    : row[aliasKey("min", `${x}`)];
+                const maxX = typeof row[aliasKey("max", `${x}`)] === 'bigint'
+                    ? Number(row[aliasKey("max", `${x}`)])
+                    : row[aliasKey("max", `${x}`)];
+                const lowX = typeof row[aliasKey("low", `${x}`)] === 'bigint'
+                    ? Number(row[aliasKey("low", `${x}`)])
+                    : row[aliasKey("low", `${x}`)];
+                const highX = typeof row[aliasKey("high", `${x}`)] === 'bigint'
+                    ? Number(row[aliasKey("high", `${x}`)])
+                    : row[aliasKey("high", `${x}`)];
+
+                if (!isNaN(minX) && !isNaN(maxX)) {
                     minMaxLowHigh[`x`] = { // genericize the name to x
-                        min: row[aliasKey("min", `${x}`)],
-                        max: row[aliasKey("max", `${x}`)],
-                        low: row[aliasKey("low", `${x}`)],
-                        high: row[aliasKey("high", `${x}`)]
+                        min: minX,
+                        max: maxX,
+                        low: lowX,
+                        high: highX
                     }
-                    
+
                 } else {
                     console.log('aliasKey("min", x):',aliasKey("min", `${x}`));
-                    console.error('fetchScatterData: min/max x is NaN:', row[aliasKey("min", `${x}`)], row[aliasKey("max", `${x}`)]);
+                    console.error('fetchScatterData: min/max x is NaN:', minX, maxX);
                 }
 
                 y.forEach((yName) => {
@@ -1461,18 +1483,24 @@ export async function fetchScatterData(
                     );
                 } else {
                     // Default transformation:
-                    const xVal = normalizeX ? row[x] - minXtoUse : row[x];
+                    // Convert to number first if BigInt
+                    const xRawVal = typeof row[x] === 'bigint' ? Number(row[x]) : row[x];
+                    const xVal = normalizeX ? xRawVal - minXtoUse : xRawVal;
                     rowValues = [xVal];
                     orderNdx = setDataOrder(dataOrderNdx, 'x', orderNdx);
 
                     y.forEach((yName) => {
-                        rowValues.push(row[yName]);
+                        // Convert to number first if BigInt
+                        const yVal = typeof row[yName] === 'bigint' ? Number(row[yName]) : row[yName];
+                        rowValues.push(yVal);
                         orderNdx = setDataOrder(dataOrderNdx, yName, orderNdx);
                     });
 
                     if (extraSelectColumns.length > 0) {
                         extraSelectColumns.forEach((colName) => {
-                            rowValues.push(row[colName]);
+                            // Convert to number first if BigInt
+                            const colVal = typeof row[colName] === 'bigint' ? Number(row[colName]) : row[colName];
+                            rowValues.push(colVal);
                             orderNdx = setDataOrder(dataOrderNdx, colName, orderNdx);
                         });
                     }

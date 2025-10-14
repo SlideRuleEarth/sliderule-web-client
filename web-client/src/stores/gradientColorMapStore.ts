@@ -76,7 +76,9 @@ export function useGradientColorMapStore(reqIdStr: string) {
                 max: maxValue,
                 valueAccessor: (params: any) => {
                     if (ndx < 0) ndx = dataOrderNdx[ndx_name];
-                    return params.data[ndx];
+                    const value = params.data[ndx];
+                    // Convert BigInt to Number if necessary
+                    return typeof value === 'bigint' ? Number(value) : value;
                 }
             });
         }
