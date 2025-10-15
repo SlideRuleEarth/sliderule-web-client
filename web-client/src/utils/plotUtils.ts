@@ -280,6 +280,13 @@ async function getGenericSeries({
         // Get the selected Y data name
         const ySelectedName = chartStore.getSelectedYData(reqIdStr);
 
+        // Handle race condition: if selectedYData is not yet set (empty string),
+        // skip plotting and return empty array to avoid unnecessary redraw
+        if (!ySelectedName) {
+            console.log(`${functionName} ${reqIdStr}: selectedYData not yet initialized, skipping plot until data is ready`);
+            return yItems;
+        }
+
         if (y.includes(ySelectedName)) {
             const yIndex =  gradientColorMapStore.getDataOrderNdx()[ySelectedName];
             const data = chartData[reqIdStr].data; // get raw number[][] data
@@ -686,7 +693,10 @@ async function getSeriesFor(reqIdStr:string,isOverlay=false) : Promise<SrScatter
     // console.log('Filtered y:', y);
     // console.log('getSeriesFor Using y:',y);
     if(y.length != all_y.length){
+        const missing = all_y.filter(col => !existingColumns.includes(col));
         console.warn(`getSeriesFor ${reqIdStr} y length mismatch: all_y.length=${all_y.length}, existingColumns.length=${existingColumns.length}, y.length=${y.length}`);
+        console.warn(`getSeriesFor ${reqIdStr} missing ${missing.length} Y-axis column(s) from file:`, missing);
+        console.warn(`getSeriesFor ${reqIdStr} available columns in file:`, existingColumns);
     }
     let seriesData = [] as SrScatterSeriesData[];
     let minXToUse;
