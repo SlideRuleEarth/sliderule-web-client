@@ -27,10 +27,16 @@ import { useActiveTabStore } from "@/stores/activeTabStore";
 import { useDeckStore } from "@/stores/deckStore";
 import { SC_BACKWARD,SC_FORWARD } from "@/sliderule/icesat2";
 import { resetFilterUsingSelectedRec } from "@/utils/SrMapUtils";
+import { extractCrsFromGeoMetadata, transformCoordinate, needsTransformation } from '@/utils/SrCrsTransform';
 
 export const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<string[]> }>({});
 export const yDataSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
 export const yColorEncodeSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
+
+// Cache for coordinate transformation info per request
+let cachedReqIdForTransform: number | null = null;
+let cachedSourceCrs: string | null = null;
+let cachedNeedsTransformation: boolean = false;
 export const solidColorSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
 export const showYDataMenuReactive = reactive<{ [key: string]: WritableComputedRef<boolean> }>({});
 export const useSelectedMinMaxReactive = reactive<{ [key: string]: WritableComputedRef<boolean> }>({});
@@ -214,6 +220,22 @@ async function getGenericSeries({
     const progressiveChunkMode = plotConfig?.progressiveChunkMode ?? 'sequential';
 
     try {
+        // Ensure lat/lon are always included for location finder, even if not displayed
+        const reqId = parseInt(reqIdStr);
+        const fieldNameStore = useFieldNameStore();
+        const latFieldName = fieldNameStore.getLatFieldName(reqId);
+        const lonFieldName = fieldNameStore.getLonFieldName(reqId);
+
+        // Add lat/lon to extraSelectColumns if not already in y array
+        const extraCols = fetchOptions.extraSelectColumns || [];
+        if (!y.includes(latFieldName) && !extraCols.includes(latFieldName)) {
+            extraCols.push(latFieldName);
+        }
+        if (!y.includes(lonFieldName) && !extraCols.includes(lonFieldName)) {
+            extraCols.push(lonFieldName);
+        }
+        fetchOptions.extraSelectColumns = extraCols;
+
         const { chartData = {}, ...rest } = await fetchData(reqIdStr, fileName, x, y, fetchOptions);
         //console.log(`${functionName} ${reqIdStr} ${y}: chartData:`, chartData, 'fetchOptions:', fetchOptions);
         // e.g. choose minMax based on minMaxProperty
@@ -559,15 +581,76 @@ export function clearPlot() {
     }
 }
 
+async function ensureTransformCache(reqId: number): Promise<void> {
+    if (cachedReqIdForTransform === reqId) {
+        return; // Already cached
+    }
+
+    try {
+        const request = await indexedDb.getRequest(reqId);
+        const geoMetadata = request?.geo_metadata;
+        cachedSourceCrs = extractCrsFromGeoMetadata(geoMetadata);
+        cachedNeedsTransformation = needsTransformation(cachedSourceCrs);
+        cachedReqIdForTransform = reqId;
+        console.log(`Location Finder: Cached transform info for reqId ${reqId}: CRS=${cachedSourceCrs}, needsTransform=${cachedNeedsTransformation}`);
+    } catch (error) {
+        console.warn('Could not load geo metadata for coordinate transformation:', error);
+        cachedSourceCrs = null;
+        cachedNeedsTransformation = false;
+        cachedReqIdForTransform = reqId;
+    }
+}
+
+// Store raw coordinates temporarily before transformation
+let rawLat: number | null = null;
+let rawLon: number | null = null;
+
 function filterDataForPos(label:any, data:any,lat:string,lon:string) {
     //console.log('filterDataForPos label:', label, 'data:', data);
-    //console.log('filterDataForPos BEFORE lat:',  useGlobalChartStore().locationFinderLat, 'lon:', useGlobalChartStore().locationFinderLon);
+    const globalChartStore = useGlobalChartStore();
+
+    // Store raw values
     if(label === lat){
-        useGlobalChartStore().locationFinderLat = data;
+        rawLat = data;
     } else if(label === lon){
-        useGlobalChartStore().locationFinderLon = data;
+        rawLon = data;
     }
-    //console.log('filterDataForPos AFTER  lat:',  useGlobalChartStore().locationFinderLat, 'lon:', useGlobalChartStore().locationFinderLon);
+
+    // Only process when we have both valid coordinates
+    if (rawLat !== null && rawLon !== null &&
+        typeof rawLat === 'number' && typeof rawLon === 'number' &&
+        isFinite(rawLat) && isFinite(rawLon)) {
+
+        let finalLat = rawLat;
+        let finalLon = rawLon;
+
+        // Apply transformation if needed
+        if (cachedNeedsTransformation && cachedSourceCrs) {
+            try {
+                const [transformedLon, transformedLat] = transformCoordinate(
+                    rawLon,
+                    rawLat,
+                    cachedSourceCrs
+                );
+                finalLon = transformedLon;
+                finalLat = transformedLat;
+                console.log(`Location Finder: Transformed: (${rawLon}, ${rawLat}) -> (${transformedLon}, ${transformedLat})`);
+            } catch (error) {
+                console.warn('Failed to transform coordinates for location finder:', error);
+                // Use raw coordinates if transformation fails
+            }
+        }
+
+        // Set the final coordinates
+        globalChartStore.locationFinderLon = finalLon;
+        globalChartStore.locationFinderLat = finalLat;
+        console.log(`Location Finder: Set coordinates lat=${finalLat}, lon=${finalLon}`);
+
+        // Reset raw values for next hover
+        rawLat = null;
+        rawLon = null;
+    }
+    //console.log('filterDataForPos AFTER  lat:',  globalChartStore.locationFinderLat, 'lon:', globalChartStore.locationFinderLon);
 }
 
 export function formatTooltip(params: any,latFieldName:string,lonFieldName:string) {
@@ -1411,12 +1494,15 @@ export async function callPlotUpdateDebounced(msg: string): Promise<void> {
 }
 
 async function updatePlotAndSelectedTrackMapLayer(msg: string): Promise<void> {
-    const startTime = performance.now(); 
+    const startTime = performance.now();
     console.log('updatePlotAndSelectedTrackMapLayer --called:', msg);
 
     const globalChartStore = useGlobalChartStore();
     const recTreeStore = useRecTreeStore();
     const activeTabStore = useActiveTabStore();
+
+    // Ensure coordinate transformation cache is initialized for this request
+    await ensureTransformCache(recTreeStore.selectedReqId);
 
     const hasRgtOk =
         (!globalChartStore.use_rgt_in_filter) ||
