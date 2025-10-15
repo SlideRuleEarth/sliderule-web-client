@@ -80,8 +80,8 @@ function openGeoMetadataDialog(metadata: string | object) {
 const analyze = async (id:number) => {
     try {
         if(recTreeStore.findAndSelectNode(id)){
-            toast.add({ severity: 'info', summary: 'Loading new Record', detail: 'Reading data', life: 5000 });
-            updateElevationMap(id);
+            toast.add({ severity: 'info', summary: 'Loading Record', detail: 'Preparing elevation data...', life: 5000 });
+            await updateElevationMap(id);
         } else {
             toast.add({ severity: 'error', summary: 'Invalid Record Id', detail: 'Failed to set record Id', life: srToastStore.getLife() });
         }

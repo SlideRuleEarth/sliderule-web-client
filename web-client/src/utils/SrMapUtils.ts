@@ -1445,6 +1445,13 @@ export const updateElevationMap = async (req_id: number) => {
         return;
     }
     try {
+        await router.push(`/analyze/${req_id}`);
+        console.log('Successfully navigated to analyze:', req_id);
+    } catch (error) {
+        console.error('Failed to navigate to analyze:', error);
+        useSrToastStore().error('Navigation Error', `Failed to navigate to analyze: ${error}`); 
+    }
+    try {
         const analysisMapStore = useAnalysisMapStore();
         const minMax = await getAllColumnMinMax(req_id);
         useGlobalChartStore().setAllColumnMinMaxValues(minMax);
@@ -1472,13 +1479,6 @@ export const updateElevationMap = async (req_id: number) => {
     } catch (error) {
         console.error('Failed to update selected request:', error);
         useSrToastStore().error('Failed to update map', `Error updating elevation data: ${error}`);
-    }
-    try {
-        await router.push(`/analyze/${useRecTreeStore().selectedReqId}`);
-        console.log('Successfully navigated to analyze:', useRecTreeStore().selectedReqId);
-    } catch (error) {
-        console.error('Failed to navigate to analyze:', error);
-        useSrToastStore().error('Navigation Error', `Failed to navigate to analyze: ${error}`); 
     }
     const endTime = performance.now();
     console.log(`updateElevationMap took ${endTime - startTime} milliseconds.`);
