@@ -67,7 +67,7 @@ const props = withDefaults(
     tooltipText: '',
     tooltipUrl: '',
     labelFontSize: 'small',
-    defaultValue: false,
+    defaultValue: undefined,
     labelOnLeft: false,
   }
 );
@@ -96,7 +96,10 @@ watch(localChecked, (newValue) => {
 });
 
 onMounted(() => {
-  setValue(props.modelValue, props.defaultValue);
+  // Only override modelValue with defaultValue if defaultValue was explicitly provided
+  if (props.defaultValue !== undefined) {
+    setValue(props.modelValue, props.defaultValue);
+  }
 });
 
 const emitChange = () => {
