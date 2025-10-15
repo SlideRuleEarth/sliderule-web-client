@@ -10,7 +10,7 @@ import { useSrToastStore } from "@/stores/srToastStore";
 import { db } from '@/db/SlideRuleDb';
 import type { WorkerMessage, WorkerSummary, WebWorkerCmd } from '@/workers/workerUtils';
 import { useSrSvrConsoleStore } from '@/stores/SrSvrConsoleStore';
-import { duckDbLoadOpfsParquetFile,prepareDbForReqId,readOrCacheSummary } from '@/utils/SrDuckDbUtils';
+import { duckDbLoadOpfsParquetFile,prepareDbForReqId,readOrCacheSummary,getGeoMetadataFromFile } from '@/utils/SrDuckDbUtils';
 import { findSrViewKey } from "@/composables/SrViews";
 import { useJwtStore } from '@/stores/SrJWTStore';
 import router from '@/router/index.js';
@@ -170,7 +170,8 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
                     fileName = await db.getFilename(workerMsg.req_id);
                     chartStore.setFile(reqIdStr,fileName);
                     const serverReqStr = await duckDbLoadOpfsParquetFile(fileName);
-                    await db.updateRequestRecord( {req_id:workerMsg.req_id, svr_parms: serverReqStr });
+                    const geoMetadata = await getGeoMetadataFromFile(fileName);
+                    await db.updateRequestRecord( {req_id:workerMsg.req_id, svr_parms: serverReqStr, geo_metadata: geoMetadata });
                     if(rc?.parentReqId && rc.parentReqId > 0){
                         await useRecTreeStore().updateRecMenu('opfs_ready');// update the tree menu but not the selected node
                         numBytes = await db.getNumBytes(workerMsg.req_id);

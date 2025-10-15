@@ -6,7 +6,14 @@
 
         <div v-if="!exporting" class="dialog-body">
             <div class="dropdown-wrapper">
-                <label for="formatSelect">Select Format</label>
+                <label for="currentFormat">Current Format</label>
+                <div class="current-format-value">
+                    {{ currentFormat }}
+                </div>
+            </div>
+
+            <div class="dropdown-wrapper">
+                <label for="formatSelect">Select Exported Format</label>
                 <Select
                     id="formatSelect"
                     v-model="selectedFormat"
@@ -53,6 +60,7 @@ import { createDuckDbClient } from '@/utils/SrDuckDb';
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import {getArrowFetchUrlAndOptions} from "@/utils/fetchUtils";
 import { exportCsvStreamed, getWritableFileStream } from "@/utils/SrParquetUtils";
+import { useFieldNameStore } from '@/stores/fieldNameStore';
 
 
 const props = defineProps<{
@@ -65,17 +73,34 @@ const emit = defineEmits<{
 }>();
 
 const toast = useToast();
+const fieldNameStore = useFieldNameStore();
 const visible = ref(props.modelValue);
 const exporting = ref(false);
 const selectedFormat = ref<'csv' | 'parquet' | 'geoparquet' | null>(null);
 const headerCols = ref<string[]>([]);
 const rowCount = ref<number | null>(null);
 
-const formats = [
-    { label: 'CSV', value: 'csv' },
-    { label: 'Parquet', value: 'parquet' },
-    { label: 'GeoParquet', value: 'geoparquet' },
-];
+const currentFormat = computed(() => {
+    const isGeo = fieldNameStore.isGeoParquet(props.reqId);
+    console.log(`[ExportDialog] currentFormat computed - reqId: ${props.reqId}, isGeo: ${isGeo}, asGeoCache:`, fieldNameStore.asGeoCache);
+    return isGeo ? 'GeoParquet' : 'Parquet';
+});
+
+const formats = computed(() => {
+    const isGeo = fieldNameStore.isGeoParquet(props.reqId);
+    if (isGeo) {
+        return [
+            { label: 'GeoParquet', value: 'geoparquet' },
+            { label: 'CSV', value: 'csv' },
+        ];
+    } else {
+        return [
+            { label: 'CSV', value: 'csv' },
+            { label: 'Parquet', value: 'parquet' },
+            { label: 'GeoParquet', value: 'geoparquet' },
+        ];
+    }
+});
 
 const estimatedSizeMB = computed(() => {
     if (rowCount.value !== null && headerCols.value.length > 0) {
@@ -103,6 +128,12 @@ onMounted(() => {
 watch(visible, async (val) => {
     if (val && props.reqId > 0) {
         try {
+            //console.log(`[ExportDialog] Dialog opened for reqId: ${props.reqId}`);
+
+            // Load field name metadata including as_geo flag
+            await fieldNameStore.loadMetaForReqId(props.reqId);
+            //console.log(`[ExportDialog] After loadMetaForReqId, asGeoCache:`, fieldNameStore.asGeoCache);
+
             const fileName = await db.getFilename(props.reqId);
             if (!fileName) return;
             const duck = await createDuckDbClient();
@@ -217,7 +248,7 @@ async function exportGeoParquet(fileName: string) : Promise<boolean>  {
     const metadata = await duckDbClient.getAllParquetMetadata(fileName);
 
     const hasGeoMetadata = metadata && 'geo' in metadata;
-
+    //console.log('exportGeoParquet - hasGeoMetadata:', hasGeoMetadata, metadata);
     if (hasGeoMetadata) {
         // File already has geo metadata, export as-is using exportParquet pattern
         console.log('File already has geo metadata, exporting as-is');
@@ -326,6 +357,13 @@ async function exportGeoParquet(fileName: string) : Promise<boolean>  {
     color: var(--label-color, #374151);
 }
 
+.current-format-value {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--primary-color, #3b82f6);
+    padding: 0.25rem 0;
+}
+
 .size-info {
     font-size: 0.875rem;
     color: var(--info-color, #6b7280);
@@ -364,6 +402,10 @@ async function exportGeoParquet(fileName: string) : Promise<boolean>  {
 
     .dropdown-wrapper label {
         color: #cbd5e1;
+    }
+
+    .current-format-value {
+        color: #60a5fa;
     }
 
     .size-info {

@@ -16,7 +16,8 @@ import { createWhereClause } from '@/utils/spotUtils';
 import { type SrPosition} from '@/types/SrTypes';
 import { useAnalysisMapStore } from '@/stores/analysisMapStore';
 import { useFieldNameStore } from '@/stores/fieldNameStore';
-import { baseType, alias, FLOAT_TYPES, INT_TYPES, DECIMAL_TYPES, BOOL_TYPES, TEMPORAL_TYPES, buildSafeAggregateClauses } from '@/utils/duckAgg';
+import { baseType, alias, FLOAT_TYPES, INT_TYPES, DECIMAL_TYPES, BOOL_TYPES, TEMPORAL_TYPES, buildSafeAggregateClauses, getGeometryInfo, getGeometryInfoWithTypes } from '@/utils/duckAgg';
+import { extractCrsFromGeoMetadata, transformCoordinate, needsTransformation } from '@/utils/SrCrsTransform';
 
 
 interface SummaryRowData {
@@ -55,7 +56,20 @@ function setElevationDataOptionsFromFieldNames(reqIdStr: string, fieldNames: str
         chartStore.setElevationDataOptions(reqIdStr, fieldNames);
         const reqId = parseInt(reqIdStr);
         // Get the height field name
-        const heightFieldname = fncs.getHFieldName(reqId);
+        let heightFieldname = fncs.getHFieldName(reqId);
+
+        // Validate that the height field actually exists in the file
+        // If not, the metadata is incorrect and we should use the hardcoded default
+        if (!fieldNames.includes(heightFieldname)) {
+            console.warn(`Height field "${heightFieldname}" from metadata not found in file columns. Falling back to hardcoded default.`);
+            // Clear the cached metadata value so it doesn't get used again
+            if (reqId in fncs.recordInfoCache) {
+                delete fncs.recordInfoCache[reqId];
+            }
+            // Get the hardcoded value by calling getHFieldName again (will now skip the cache)
+            heightFieldname = fncs.getHFieldName(reqId);
+            console.log(`Using hardcoded height field: "${heightFieldname}"`);
+        }
 
         // Find the index of the height field name
         const ndx = fieldNames.indexOf(heightFieldname);
@@ -79,7 +93,7 @@ function setElevationDataOptionsFromFieldNames(reqIdStr: string, fieldNames: str
         console.error('Error in setElevationDataOptionsFromFieldNames:', error);
     } finally {
         const endTime = performance.now(); // End time
-        console.log(`setElevationDataOptionsFromFieldNames using reqId:${reqIdStr} fieldNames:${fieldNames} selectedYData:${chartStore.getSelectedYData(reqIdStr)} took ${endTime - startTime} milliseconds.`);
+        //console.log(`setElevationDataOptionsFromFieldNames using reqId:${reqIdStr} fieldNames:${fieldNames} selectedYData:${chartStore.getSelectedYData(reqIdStr)} took ${endTime - startTime} milliseconds.`);
     }
 }
 
@@ -89,12 +103,6 @@ async function _duckDbReadOrCacheSummary(req_id: number): Promise<SrRequestSumma
     const unlock = await srMutex.lock();
 
     try {
-        const height_fieldname = useFieldNameStore().getHFieldName(req_id);
-        //console.log('_duckDbReadOrCacheSummary req_id:', req_id,'hfn:',height_fieldname);
-        const lat_fieldname = useFieldNameStore().getLatFieldName(req_id);
-        const lon_fieldname = useFieldNameStore().getLonFieldName(req_id);
-        const filename = await indexedDb.getFilename(req_id);
-
         summary = await indexedDb.getWorkerSummary(req_id);
         if (summary?.extLatLon && summary?.extHMean) {
             return summary;
@@ -102,28 +110,53 @@ async function _duckDbReadOrCacheSummary(req_id: number): Promise<SrRequestSumma
 
         const localExtLatLon: ExtLatLon = { minLat: 90, maxLat: -90, minLon: 180, maxLon: -180 };
         const localExtHMean: ExtHMean = { minHMean: 1e6, maxHMean: -1e6, lowHMean: 1e6, highHMean: -1e6 };
-        const duckDbClient = await createDuckDbClient();
 
-        await duckDbClient.insertOpfsParquet(filename);
-        const colTypes = await duckDbClient.queryColumnTypes(filename);
-        const getType = (colName: string) => colTypes.find(c => c.name === colName)?.type ?? 'UNKNOWN';
+        // Get all geometry and type info in one call
+        const { geometryInfo, colTypes, getType, fileName, duckDbClient } = await getGeometryInfoWithTypes(req_id);
+
+        const fieldNameStore = useFieldNameStore();
+        const height_fieldname = fieldNameStore.getHFieldName(req_id);
+        const lat_fieldname = fieldNameStore.getLatFieldName(req_id);
+        const lon_fieldname = fieldNameStore.getLonFieldName(req_id);
+
+        // console.log(`_duckDbReadOrCacheSummary req_id:${req_id} DEBUG:`, {
+        //     height_fieldname,
+        //     lat_fieldname,
+        //     lon_fieldname,
+        //     geometryInfo,
+        //     hasGeometry: geometryInfo?.hasGeometry,
+        //     colTypes: colTypes.map(c => c.name)
+        // });
 
         const aggCols = [lat_fieldname, lon_fieldname, height_fieldname];
-        const aggClauses = buildSafeAggregateClauses(aggCols, getType, duckDbClient.escape);
-
+        const aggClauses = buildSafeAggregateClauses(aggCols, getType, duckDbClient.escape, geometryInfo);
+        //console.log(`_duckDbReadOrCacheSummary req_id:${req_id} aggClauses:`, aggClauses, ' geometryInfo:', geometryInfo);
         // Add COUNT(*) manually
         const summaryQuery = `
             SELECT
                 ${aggClauses.join(',\n')},
                 COUNT(*) AS numPoints
-            FROM '${filename}'
+            FROM '${fileName}'
         `;
 
         const results = await duckDbClient.query(summaryQuery);
+        //console.log(`_duckDbReadOrCacheSummary req_id:${req_id} summaryQuery:`, summaryQuery,' geometryInfo:', geometryInfo, ' results:', results);
         const rows: SummaryRowData[] = [];
 
         for await (const chunk of results.readRows()) {
             for (const row of chunk) {
+                //console.log(`_duckDbReadOrCacheSummary req_id:${req_id} RAW ROW:`, row);
+                // console.log(`_duckDbReadOrCacheSummary req_id:${req_id} HEIGHT KEYS:`, {
+                //     heightField: height_fieldname,
+                //     minKey: aliasKey("min", height_fieldname),
+                //     maxKey: aliasKey("max", height_fieldname),
+                //     lowKey: aliasKey("low", height_fieldname),
+                //     highKey: aliasKey("high", height_fieldname),
+                //     minValue: row[aliasKey("min", height_fieldname)],
+                //     maxValue: row[aliasKey("max", height_fieldname)],
+                //     allKeys: Object.keys(row)
+                // });
+
                 const typedRow: SummaryRowData = {
                     minLat: row[aliasKey("min", lat_fieldname)],
                     maxLat: row[aliasKey("max", lat_fieldname)],
@@ -158,7 +191,9 @@ async function _duckDbReadOrCacheSummary(req_id: number): Promise<SrRequestSumma
             throw new Error('No rows returned');
         }
 
-        return await indexedDb.getWorkerSummary(req_id);
+        const rsummary = await indexedDb.getWorkerSummary(req_id);
+        //console.log('_duckDbReadOrCacheSummary returning summary:', rsummary);
+        return rsummary;
     } catch (error) {
         console.error('_duckDbReadOrCacheSummary error:', error);
         throw error;
@@ -434,9 +469,72 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number, layerName
         pntDataLocal.totalPnts = 0;
         pntDataLocal.currentPnts = 0;
 
+        // Get CRS information for coordinate transformation
+        const geoMetadata = await getGeoMetadataFromFile(filename);
+        const sourceCrs = extractCrsFromGeoMetadata(geoMetadata);
+        const requiresTransformation = needsTransformation(sourceCrs);
+
+        if (requiresTransformation && sourceCrs) {
+            console.log(`duckDbReadAndUpdateElevationData: Will transform coordinates from ${sourceCrs} to EPSG:4326`);
+        } else if (sourceCrs) {
+            console.log(`duckDbReadAndUpdateElevationData: No transformation needed, data is in ${sourceCrs}`);
+        } else {
+            console.log('duckDbReadAndUpdateElevationData: No geo metadata CRS found, assuming coordinates are WGS 84 (EPSG:4326)');
+        }
+
         try {
             const sample_fraction = await computeSamplingRate(req_id);
-            const result = await duckDbClient.queryChunkSampled(`SELECT * FROM read_parquet('${filename}')`, sample_fraction);
+
+            // Check if geometry column exists and build appropriate SELECT
+            const colTypes = await duckDbClient.queryColumnTypes(filename);
+            const hasGeometry = colTypes.some(c => c.name === 'geometry');
+
+            // Get field names from fieldNameStore
+            const fieldNameStore = useFieldNameStore();
+            const lonField = fieldNameStore.getLonFieldName(req_id);
+            const latField = fieldNameStore.getLatFieldName(req_id);
+            const heightField = fieldNameStore.getHFieldName(req_id);
+
+            let selectClause: string;
+            if (hasGeometry) {
+                // Check if Z column exists as a separate column
+                // If it does, geometry is 2D (Point) and Z is stored separately
+                // If it doesn't, geometry is 3D (Point Z) and Z is in the geometry
+                const hasZColumn = colTypes.some(c => c.name === heightField);
+                const geometryHasZ = !hasZColumn;  // Z is in geometry if there's no separate Z column
+
+                // Build column list: all columns except geometry (and z column if it's in geometry)
+                const nonGeomCols = colTypes
+                    .filter(c => {
+                        if (c.name === 'geometry') return false;
+                        // If Z is in geometry, exclude the separate Z column
+                        if (geometryHasZ && c.name === heightField) return false;
+                        return true;
+                    })
+                    .map(c => duckDbClient.escape(c.name));
+
+                // Add geometry extractions with field name aliases
+                const geomExtractions = [
+                    `ST_X(${duckDbClient.escape('geometry')}) AS ${duckDbClient.escape(lonField)}`,
+                    `ST_Y(${duckDbClient.escape('geometry')}) AS ${duckDbClient.escape(latField)}`
+                ];
+
+                // Only extract Z from geometry if it has Z, otherwise include the separate column
+                if (geometryHasZ) {
+                    geomExtractions.push(
+                        `ST_Z(${duckDbClient.escape('geometry')}) AS ${duckDbClient.escape(heightField)}`
+                    );
+                } else {
+                    // Z is a separate column, already included in nonGeomCols
+                }
+
+                selectClause = [...nonGeomCols, ...geomExtractions].join(', ');
+            } else {
+                selectClause = '*';
+            }
+
+            const queryStr = `SELECT ${selectClause} FROM read_parquet('${filename}')`;
+            const result = await duckDbClient.queryChunkSampled(queryStr, sample_fraction);
 
             if (result.totalRows) {
                 pntDataLocal.totalPnts = result.totalRows;
@@ -461,13 +559,18 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number, layerName
                 }
 
                 if (firstRec) {
-                    const lat_fieldname = useFieldNameStore().getLatFieldName(req_id);
-                    const lon_fieldname = useFieldNameStore().getLonFieldName(req_id);
-                    positions = rows.map(d => [
-                        d[lon_fieldname],
-                        d[lat_fieldname],
-                        0 // keep tracks flat
-                    ] as SrPosition);
+                    // Transform coordinates from source CRS to WGS 84 (EPSG:4326) if needed
+                    positions = rows.map(d => {
+                        const lon = d[lonField];
+                        const lat = d[latField];
+
+                        if (requiresTransformation && sourceCrs) {
+                            const [transformedLon, transformedLat] = transformCoordinate(lon, lat, sourceCrs);
+                            return [transformedLon, transformedLat, 0] as SrPosition;
+                        } else {
+                            return [lon, lat, 0] as SrPosition;
+                        }
+                    });
                 } else {
                     console.warn(`No valid elevation points found in ${numRows} rows.`);
                     useSrToastStore().warn('No Data Processed', `No valid elevation points found in ${numRows} rows.`);
@@ -565,8 +668,71 @@ export const duckDbReadAndUpdateSelectedLayer = async (
             use_y_atc_filter = false;
         }
 
+        await duckDbClient.insertOpfsParquet(filename);
+
+        // Get CRS information for coordinate transformation
+        const geoMetadata = await getGeoMetadataFromFile(filename);
+        const sourceCrs = extractCrsFromGeoMetadata(geoMetadata);
+        const requiresTransformation = needsTransformation(sourceCrs);
+
+        if (requiresTransformation && sourceCrs) {
+            console.log(`duckDbReadAndUpdateSelectedLayer: Will transform coordinates from ${sourceCrs} to EPSG:4326`);
+        } else if (sourceCrs) {
+            console.log(`duckDbReadAndUpdateSelectedLayer: No transformation needed, data is in ${sourceCrs}`);
+        } else {
+            console.log('duckDbReadAndUpdateSelectedLayer: No geo metadata CRS found, assuming coordinates are WGS 84 (EPSG:4326)');
+        }
+
+        // Check if geometry column exists and build appropriate SELECT
+        const colTypes = await duckDbClient.queryColumnTypes(filename);
+        const hasGeometry = colTypes.some(c => c.name === 'geometry');
+
+        // Get field names from fieldNameStore
+        const fieldNameStore = useFieldNameStore();
+        const lonField = fieldNameStore.getLonFieldName(req_id);
+        const latField = fieldNameStore.getLatFieldName(req_id);
+        const heightField = fieldNameStore.getHFieldName(req_id);
+
+        let selectClause: string;
+        if (hasGeometry) {
+            // Check if Z column exists as a separate column
+            // If it does, geometry is 2D (Point) and Z is stored separately
+            // If it doesn't, geometry is 3D (Point Z) and Z is in the geometry
+            const hasZColumn = colTypes.some(c => c.name === heightField);
+            const geometryHasZ = !hasZColumn;  // Z is in geometry if there's no separate Z column
+
+            // Build column list: all columns except geometry (and z column if it's in geometry)
+            const nonGeomCols = colTypes
+                .filter(c => {
+                    if (c.name === 'geometry') return false;
+                    // If Z is in geometry, exclude the separate Z column
+                    if (geometryHasZ && c.name === heightField) return false;
+                    return true;
+                })
+                .map(c => duckDbClient.escape(c.name));
+
+            // Add geometry extractions with field name aliases
+            const geomExtractions = [
+                `ST_X(${duckDbClient.escape('geometry')}) AS ${duckDbClient.escape(lonField)}`,
+                `ST_Y(${duckDbClient.escape('geometry')}) AS ${duckDbClient.escape(latField)}`
+            ];
+
+            // Only extract Z from geometry if it has Z, otherwise include the separate column
+            if (geometryHasZ) {
+                geomExtractions.push(
+                    `ST_Z(${duckDbClient.escape('geometry')}) AS ${duckDbClient.escape(heightField)}`
+                );
+            } else {
+                // Z is a separate column, already included in nonGeomCols
+            }
+
+            selectClause = [...nonGeomCols, ...geomExtractions].join(', ');
+        } else {
+            selectClause = '*';
+        }
+
         queryStr = `
-            SELECT * FROM read_parquet('${filename}') 
+            SELECT ${selectClause} FROM read_parquet('${filename}')
             WHERE ${utfn} = ${rgt}
             AND ${uofn} IN (${cycles.join(', ')})
             AND ${usfn} IN (${spots.join(', ')})
@@ -575,7 +741,6 @@ export const duckDbReadAndUpdateSelectedLayer = async (
             queryStr += `AND y_atc BETWEEN ${min_y_atc} AND ${max_y_atc}`;
         }
 
-        await duckDbClient.insertOpfsParquet(filename);
         const rowChunks: ElevationDataItem[] = [];
         const positions: Position[] = []; // Store precomputed positions
 
@@ -587,16 +752,18 @@ export const duckDbReadAndUpdateSelectedLayer = async (
                     numRows += rowChunk.length;
                     rowChunks.push(...rowChunk);
                     filteredPntData.currentPnts = numRows;
-                    // **Precompute positions and store them**
-                    if(func.includes('atl24')){
-                        rowChunk.forEach(d => {
-                            positions.push([d.lon_ph, d.lat_ph, 0]);
-                        });
-                    } else {
-                        rowChunk.forEach(d => {
-                            positions.push([d.longitude, d.latitude, 0]);
-                        });
-                    }
+                    // **Precompute positions and store them with CRS transformation**
+                    rowChunk.forEach(d => {
+                        const lon = d[lonField];
+                        const lat = d[latField];
+
+                        if (requiresTransformation && sourceCrs) {
+                            const [transformedLon, transformedLat] = transformCoordinate(lon, lat, sourceCrs);
+                            positions.push([transformedLon, transformedLat, 0]);
+                        } else {
+                            positions.push([lon, lat, 0]);
+                        }
+                    });
                 }
             }
 
@@ -667,7 +834,7 @@ export async function duckDbLoadOpfsParquetFile(fileName: string): Promise<any> 
             }
         } catch (error) {
             console.error('duckDbLoadOpfsParquetFile Error dumping parquet metadata:', error);
-        }       
+        }
     } catch (error) {
         console.error('duckDbLoadOpfsParquetFile error:',error);
         throw error;
@@ -676,7 +843,34 @@ export async function duckDbLoadOpfsParquetFile(fileName: string): Promise<any> 
         console.log(`duckDbLoadOpfsParquetFile took ${endTime - startTime} milliseconds.`);
     }
     //console.log('duckDbLoadOpfsParquetFile serverReq:', serverReq);
-    return serverReq;   
+    return serverReq;
+}
+
+export async function getGeoMetadataFromFile(fileName: string): Promise<any> {
+    const startTime = performance.now();
+    let geoMetadata = null;
+    try {
+        const duckDbClient = await createDuckDbClient();
+        await duckDbClient.insertOpfsParquet(fileName);
+        const metadata = await duckDbClient.getAllParquetMetadata(fileName);
+
+        if (metadata?.geo) {
+            try {
+                geoMetadata = JSON.parse(metadata.geo);
+                console.log('getGeoMetadataFromFile found geo metadata for', fileName);
+            } catch (error) {
+                console.error('getGeoMetadataFromFile Error parsing geo metadata:', error);
+            }
+        } else {
+            console.log('getGeoMetadataFromFile no geo metadata found for', fileName);
+        }
+    } catch (error) {
+        console.error('getGeoMetadataFromFile error:', error);
+    } finally {
+        const endTime = performance.now();
+        console.log(`getGeoMetadataFromFile took ${endTime - startTime} milliseconds.`);
+    }
+    return geoMetadata;
 }
 
 export interface SrScatterChartData { value: number[] };
@@ -1059,16 +1253,39 @@ export async function fetchScatterData(
         const getColType = (colName: string) =>
             baseType(colTypes.find((c) => c.name === colName)?.type ?? 'UNKNOWN');
 
+        // Check if geometry column exists and get geometry info
+        const reqId = parseInt(reqIdStr);
+        const geometryInfo = getGeometryInfo(colTypes, reqId);
+
+        // Get field names for geometry handling
+        const fieldNameStore = useFieldNameStore();
+        const lon_fieldname = fieldNameStore.getLonFieldName(reqId);
+        const lat_fieldname = fieldNameStore.getLatFieldName(reqId);
+        const height_fieldname = fieldNameStore.getHFieldName(reqId);
+        const hasGeometry = geometryInfo?.hasGeometry ?? false;
+
         // Only floats get isnan/isinf filters; other types just check IS NOT NULL
         const yNanClauses = y
         .filter((col) => col !== timeField)
         .map((col) => {
             const t = getColType(col);
-            const esc = duckDbClient.escape(col);
-            if (FLOAT_TYPES.has(t)) {
-                return `NOT isnan(${esc}) AND NOT isinf(${esc})`;
+            let colExpr: string;
+
+            // Check if this column should be extracted from geometry
+            if (hasGeometry && col === lon_fieldname) {
+                colExpr = `ST_X(${duckDbClient.escape('geometry')})`;
+            } else if (hasGeometry && col === lat_fieldname) {
+                colExpr = `ST_Y(${duckDbClient.escape('geometry')})`;
+            } else if (hasGeometry && geometryInfo?.zCol && col === height_fieldname) {
+                colExpr = `ST_Z(${duckDbClient.escape('geometry')})`;
+            } else {
+                colExpr = duckDbClient.escape(col);
             }
-            return `${esc} IS NOT NULL`;
+
+            if (FLOAT_TYPES.has(t)) {
+                return `NOT isnan(${colExpr}) AND NOT isinf(${colExpr})`;
+            }
+            return `${colExpr} IS NOT NULL`;
         });
 
         const yNanClause = yNanClauses.length ? yNanClauses.join(' AND ') : 'TRUE';
@@ -1081,11 +1298,11 @@ export async function fetchScatterData(
             finalWhereClause = `WHERE ${sanitizedExistingClause} AND ${yNanClause}`;
         }
 
-         
+
         const allAggCols = [x, ...y, ...extraSelectColumns];
-        
-        const selectParts = buildSafeAggregateClauses(allAggCols, getColType, duckDbClient.escape);
-        
+
+        const selectParts = buildSafeAggregateClauses(allAggCols, getColType, duckDbClient.escape, geometryInfo);
+
         const minMaxQuery = `
             SELECT
                 ${selectParts.join(',\n')}
@@ -1112,75 +1329,95 @@ export async function fetchScatterData(
                 if (handleMinMaxRow) {
                     handleMinMaxRow(reqIdStr, row);
                 } else {
+                    // Convert to number first if BigInt
+                    const rawMinX = typeof row[aliasKey("min", `${x}`)] === 'bigint'
+                        ? Number(row[aliasKey("min", `${x}`)])
+                        : row[aliasKey("min", `${x}`)];
+                    const rawMaxX = typeof row[aliasKey("max", `${x}`)] === 'bigint'
+                        ? Number(row[aliasKey("max", `${x}`)])
+                        : row[aliasKey("max", `${x}`)];
+
                     if(options.parentMinX){
                         minXtoUse = options.parentMinX;
                     } else {
-                        minXtoUse = row[aliasKey("min", `${x}`)];
+                        minXtoUse = rawMinX;
                     }
-                    if(minXtoUse === row[aliasKey("min", `${x}`)]){
-                        console.log('fetchScatterData minXtoUse:', minXtoUse, `row['min_${x}']:`, row[aliasKey("min", `${x}`)]);
+                    if(minXtoUse === rawMinX){
+                        console.log('fetchScatterData minXtoUse:', minXtoUse, `row['min_${x}']:`, rawMinX);
                     } else {
-                        console.warn('fetchScatterData minXtoUse:', minXtoUse, `row['min_${x}']:`, row[aliasKey("min", `${x}`)]);
+                        console.warn('fetchScatterData minXtoUse:', minXtoUse, `row['min_${x}']:`, rawMinX);
                     }
                     // set min/max in the store
-                    useChartStore().setRawMinX(reqIdStr, row[aliasKey("min", `${x}`)]);
-                    useChartStore().setMinX(reqIdStr, row[aliasKey("min", `${x}`)] - minXtoUse);
-                    useChartStore().setMaxX(reqIdStr, row[aliasKey("max", `${x}`)] - minXtoUse);
+                    useChartStore().setRawMinX(reqIdStr, rawMinX);
+                    useChartStore().setMinX(reqIdStr, rawMinX - minXtoUse);
+                    useChartStore().setMaxX(reqIdStr, rawMaxX - minXtoUse);
                 }
 
                 // Populate minMaxValues, but exclude NaN values (should be unnecessary now that we filter in SQL)
-                if (!isNaN(row[aliasKey("min", `${x}`)]) && !isNaN(row[aliasKey("max", `${x}`)])) {
+                // Convert to number first if BigInt
+                const minX = typeof row[aliasKey("min", `${x}`)] === 'bigint'
+                    ? Number(row[aliasKey("min", `${x}`)])
+                    : row[aliasKey("min", `${x}`)];
+                const maxX = typeof row[aliasKey("max", `${x}`)] === 'bigint'
+                    ? Number(row[aliasKey("max", `${x}`)])
+                    : row[aliasKey("max", `${x}`)];
+                const lowX = typeof row[aliasKey("low", `${x}`)] === 'bigint'
+                    ? Number(row[aliasKey("low", `${x}`)])
+                    : row[aliasKey("low", `${x}`)];
+                const highX = typeof row[aliasKey("high", `${x}`)] === 'bigint'
+                    ? Number(row[aliasKey("high", `${x}`)])
+                    : row[aliasKey("high", `${x}`)];
+
+                if (!isNaN(minX) && !isNaN(maxX)) {
                     minMaxLowHigh[`x`] = { // genericize the name to x
-                        min: row[aliasKey("min", `${x}`)],
-                        max: row[aliasKey("max", `${x}`)],
-                        low: row[aliasKey("low", `${x}`)],
-                        high: row[aliasKey("high", `${x}`)]
+                        min: minX,
+                        max: maxX,
+                        low: lowX,
+                        high: highX
                     }
-                    
+
                 } else {
                     console.log('aliasKey("min", x):',aliasKey("min", `${x}`));
-                    console.error('fetchScatterData: min/max x is NaN:', row[aliasKey("min", `${x}`)], row[aliasKey("max", `${x}`)]);
+                    console.error('fetchScatterData: min/max x is NaN:', minX, maxX);
                 }
 
                 y.forEach((yName) => {
-                    if (typeof row[aliasKey("min", yName)] === 'bigint') {
-                        console.warn(`Converting BigInt to number for ${yName}`);
-                    
-                        const minY = Number(row[aliasKey("min", yName)]);
-                        const maxY = Number(row[aliasKey("max", yName)]);
-                        const lowY = Number(row[aliasKey("low", yName)]);
-                        const highY = Number(row[aliasKey("high", yName)]);
-                        if (!isNaN(minY) && !isNaN(maxY) && !isNaN(lowY) && !isNaN(highY)) {
-                            minMaxLowHigh[yName] = { min: minY, max: maxY, low: lowY, high: highY };
-                        }
-                    } else {
-                        const minY = row[aliasKey("min", yName)];
-                        const maxY = row[aliasKey("max", yName)];
-                        const lowY = row[aliasKey("low", yName)];
-                        const highY = row[aliasKey("high", yName)];
-                        if (!isNaN(minY) && !isNaN(maxY) && !isNaN(lowY) && !isNaN(highY)) {
-                            minMaxLowHigh[yName] = { min: minY, max: maxY, low: lowY, high: highY };
-                        }
+                    // Convert to number first if BigInt
+                    const minY = typeof row[aliasKey("min", yName)] === 'bigint'
+                        ? Number(row[aliasKey("min", yName)])
+                        : row[aliasKey("min", yName)];
+                    const maxY = typeof row[aliasKey("max", yName)] === 'bigint'
+                        ? Number(row[aliasKey("max", yName)])
+                        : row[aliasKey("max", yName)];
+                    const lowY = typeof row[aliasKey("low", yName)] === 'bigint'
+                        ? Number(row[aliasKey("low", yName)])
+                        : row[aliasKey("low", yName)];
+                    const highY = typeof row[aliasKey("high", yName)] === 'bigint'
+                        ? Number(row[aliasKey("high", yName)])
+                        : row[aliasKey("high", yName)];
+
+                    if (!isNaN(minY) && !isNaN(maxY) && !isNaN(lowY) && !isNaN(highY)) {
+                        minMaxLowHigh[yName] = { min: minY, max: maxY, low: lowY, high: highY };
                     }
                 });
 
                 extraSelectColumns.forEach((colName) => {
-                    if (typeof row[aliasKey("min", colName)] === 'bigint') {
-                        const minCol = Number(row[aliasKey("min", colName)]);
-                        const maxCol = Number(row[aliasKey("max", colName)]);
-                        const lowCol = Number(row[aliasKey("low", colName)]);
-                        const highCol = Number(row[aliasKey("high", colName)]);
-                        if (!isNaN(minCol) && !isNaN(maxCol) && !isNaN(lowCol) && !isNaN(highCol)) {
-                            minMaxLowHigh[colName] = { min: minCol, max: maxCol, low: lowCol, high: highCol };
-                        }
-                    } else {
-                        const minCol = row[aliasKey("min", colName)];
-                        const maxCol = row[aliasKey("max", colName)];
-                        const lowCol = row[aliasKey("low", colName)];
-                        const highCol = row[aliasKey("high", colName)];
-                        if (!isNaN(minCol) && !isNaN(maxCol) && !isNaN(lowCol) && !isNaN(highCol)) {
-                            minMaxLowHigh[colName] = { min: minCol, max: maxCol, low: lowCol, high: highCol };
-                        }
+                    // Convert to number first if BigInt
+                    const minCol = typeof row[aliasKey("min", colName)] === 'bigint'
+                        ? Number(row[aliasKey("min", colName)])
+                        : row[aliasKey("min", colName)];
+                    const maxCol = typeof row[aliasKey("max", colName)] === 'bigint'
+                        ? Number(row[aliasKey("max", colName)])
+                        : row[aliasKey("max", colName)];
+                    const lowCol = typeof row[aliasKey("low", colName)] === 'bigint'
+                        ? Number(row[aliasKey("low", colName)])
+                        : row[aliasKey("low", colName)];
+                    const highCol = typeof row[aliasKey("high", colName)] === 'bigint'
+                        ? Number(row[aliasKey("high", colName)])
+                        : row[aliasKey("high", colName)];
+
+                    if (!isNaN(minCol) && !isNaN(maxCol) && !isNaN(lowCol) && !isNaN(highCol)) {
+                        minMaxLowHigh[colName] = { min: minCol, max: maxCol, low: lowCol, high: highCol };
                     }
                 });
             }
@@ -1191,7 +1428,18 @@ export async function fetchScatterData(
          *    Use the same finalWhereClause so NaNs in y columns are excluded.
          */
         const allColumns = [x, ...y, ...extraSelectColumns]
-            .map((col) => duckDbClient.escape(col))
+            .map((col) => {
+                // Check if this column should be extracted from geometry
+                if (hasGeometry && col === lon_fieldname) {
+                    return `ST_X(${duckDbClient.escape('geometry')}) AS ${duckDbClient.escape(col)}`;
+                } else if (hasGeometry && col === lat_fieldname) {
+                    return `ST_Y(${duckDbClient.escape('geometry')}) AS ${duckDbClient.escape(col)}`;
+                } else if (hasGeometry && geometryInfo?.zCol && col === height_fieldname) {
+                    return `ST_Z(${duckDbClient.escape('geometry')}) AS ${duckDbClient.escape(col)}`;
+                } else {
+                    return duckDbClient.escape(col);
+                }
+            })
             .join(', ');
 
         let mainQuery = `SELECT ${allColumns} \nFROM '${fileName}'\n${finalWhereClause}`;
@@ -1235,18 +1483,24 @@ export async function fetchScatterData(
                     );
                 } else {
                     // Default transformation:
-                    const xVal = normalizeX ? row[x] - minXtoUse : row[x];
+                    // Convert to number first if BigInt
+                    const xRawVal = typeof row[x] === 'bigint' ? Number(row[x]) : row[x];
+                    const xVal = normalizeX ? xRawVal - minXtoUse : xRawVal;
                     rowValues = [xVal];
                     orderNdx = setDataOrder(dataOrderNdx, 'x', orderNdx);
 
                     y.forEach((yName) => {
-                        rowValues.push(row[yName]);
+                        // Convert to number first if BigInt
+                        const yVal = typeof row[yName] === 'bigint' ? Number(row[yName]) : row[yName];
+                        rowValues.push(yVal);
                         orderNdx = setDataOrder(dataOrderNdx, yName, orderNdx);
                     });
 
                     if (extraSelectColumns.length > 0) {
                         extraSelectColumns.forEach((colName) => {
-                            rowValues.push(row[colName]);
+                            // Convert to number first if BigInt
+                            const colVal = typeof row[colName] === 'bigint' ? Number(row[colName]) : row[colName];
+                            rowValues.push(colVal);
                             orderNdx = setDataOrder(dataOrderNdx, colName, orderNdx);
                         });
                     }
@@ -1302,37 +1556,48 @@ export async function getAllColumnMinMax(
     reqId: number
 ): Promise<MinMaxLowHigh> {
     const startTime = performance.now();
-    const fileName = await indexedDb.getFilename(reqId);
-    const duckDbClient = await createDuckDbClient();
 
-    await duckDbClient.insertOpfsParquet(fileName);
+    // Get all geometry and type info in one call
+    const { geometryInfo, colTypes, getType, fileName, duckDbClient } = await getGeometryInfoWithTypes(reqId);
+    const hasGeometry = geometryInfo?.hasGeometry ?? false;
 
-    const colTypes = await duckDbClient.queryColumnTypes(fileName);
-    //console.log('getAllColumnMinMax colTypes:', colTypes);
-    // Filter down to known numeric types
-    // Normalize the type and use your sets
+    // Get field names for geometry handling
+    const fieldNameStore = useFieldNameStore();
+    const lon_fieldname = fieldNameStore.getLonFieldName(reqId);
+    const lat_fieldname = fieldNameStore.getLatFieldName(reqId);
+    const height_fieldname = fieldNameStore.getHFieldName(reqId);
+
+    // Filter down to known numeric types (exclude geometry blob itself)
     const numericCols = colTypes.filter(c => {
+        // Skip the geometry column itself
+        if (c.name === 'geometry') return false;
+
         const t = baseType(c.type);
-            return (
-                FLOAT_TYPES.has(t) ||
-                INT_TYPES.has(t) ||
-                DECIMAL_TYPES.has(t) ||
-                BOOL_TYPES.has(t) ||      // optional: if you want min/max/percentiles for booleans
-                TEMPORAL_TYPES.has(t)     // optional: min/max always; percentiles via epoch casting in buildSafeAggregateClauses
-            );
+        return (
+            FLOAT_TYPES.has(t) ||
+            INT_TYPES.has(t) ||
+            DECIMAL_TYPES.has(t) ||
+            BOOL_TYPES.has(t) ||      // optional: if you want min/max/percentiles for booleans
+            TEMPORAL_TYPES.has(t)     // optional: min/max always; percentiles via epoch casting in buildSafeAggregateClauses
+        );
     });
 
-    if (numericCols.length === 0) {
+    // If geometry exists, ensure we include lon, lat, height in the column list
+    const colNames = numericCols.map(c => c.name);
+    if (hasGeometry) {
+        // Add geometry-derived columns if not already present
+        if (!colNames.includes(lon_fieldname)) colNames.push(lon_fieldname);
+        if (!colNames.includes(lat_fieldname)) colNames.push(lat_fieldname);
+        if (!colNames.includes(height_fieldname)) colNames.push(height_fieldname);
+    }
+
+    if (colNames.length === 0) {
         console.warn(`No numeric columns found in ${fileName}`);
         return {};
     }
 
-    // Prepare names and a type lookup
-    const colNames = numericCols.map(c => c.name);
-    const getType = (colName: string) =>
-        colTypes.find(c => c.name === colName)?.type ?? 'UNKNOWN';
-
-    const selectParts = buildSafeAggregateClauses(colNames, getType, duckDbClient.escape);
+    // Use getType from getGeometryInfoWithTypes (already defined above)
+    const selectParts = buildSafeAggregateClauses(colNames, getType, duckDbClient.escape, geometryInfo);
     const query = `SELECT ${selectParts.join(', ')} FROM '${fileName}'`;
 
     const result: MinMaxLowHigh = {};

@@ -332,6 +332,7 @@ export const useRequestsStore = defineStore('requests', {
               elapsed_time: child.data.elapsed_time,
               parameters: child.data.parameters,
               svr_parms: child.data.svr_parms,
+              geo_metadata: child.data.geo_metadata,
             },
             children: childNodes
           } as TreeNode;

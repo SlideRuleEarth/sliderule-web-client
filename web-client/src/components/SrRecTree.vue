@@ -38,6 +38,10 @@ const currentParms = ref('');
 const showSvrParmsDialog = ref(false);
 const currentSvrParms = ref('');
 
+// -- Dialog state for "geo_metadata"
+const showGeoMetadataDialog = ref(false);
+const currentGeoMetadata = ref('');
+
 const onlySuccess = ref(false);
 
 const exportReqId = ref(0);
@@ -63,11 +67,21 @@ function openSvrParmsDialog(params: string | object) {
   showSvrParmsDialog.value = true;
 }
 
+// Open the Geo Metadata dialog
+function openGeoMetadataDialog(metadata: string | object) {
+  if (typeof metadata === 'object') {
+    currentGeoMetadata.value = JSON.stringify(metadata, null, 2);
+  } else {
+    currentGeoMetadata.value = metadata;
+  }
+  showGeoMetadataDialog.value = true;
+}
+
 const analyze = async (id:number) => {
     try {
         if(recTreeStore.findAndSelectNode(id)){
-            //router.push(`/analyze/${id.toString()}`);
-            updateElevationMap(id);
+            toast.add({ severity: 'info', summary: 'Loading Record', detail: 'Preparing elevation data...', life: 5000 });
+            await updateElevationMap(id);
         } else {
             toast.add({ severity: 'error', summary: 'Invalid Record Id', detail: 'Failed to set record Id', life: srToastStore.getLife() });
         }
@@ -200,6 +214,17 @@ onUnmounted(() => {
         <Column field="reqId" header="ID" expander />
         <Column field="func" header="Api" />
         <Column field="status" header="Status" />
+        <Column field="crs" header="CRS" style="width: 10rem;">
+            <template #body="slotProps">
+                <span v-if="slotProps.node.data.geo_metadata?.columns?.geometry?.crs?.id">
+                    {{ slotProps.node.data.geo_metadata.columns.geometry.crs.id.authority }}:{{ slotProps.node.data.geo_metadata.columns.geometry.crs.id.code }}
+                </span>
+                <span v-else-if="slotProps.node.data.geo_metadata?.columns?.geometry?.crs?.name">
+                    {{ slotProps.node.data.geo_metadata.columns.geometry.crs.name }}
+                </span>
+                <span v-else style="color: #999;">—</span>
+            </template>
+        </Column>
 
         <Column field="Actions" header="Analyze" class="sr-analyze">
             <template #body="slotProps">
@@ -249,9 +274,9 @@ onUnmounted(() => {
         <!-- Server Parameters Button & Dialog -->
         <Column field="svr_parms" header="Svr Parms" class="sr-par-fmt">
             <template #body="slotProps">
-                <Button 
-                    icon="pi pi-eye" 
-                    label="View" 
+                <Button
+                    icon="pi pi-eye"
+                    label="View"
                     class="sr-glow-button"
                     @click="openSvrParmsDialog(slotProps.node.data.svr_parms)"
                     @mouseover="tooltipRef?.showTooltip($event, 'View Server Parameters')"
@@ -259,6 +284,24 @@ onUnmounted(() => {
                     variant="text"
                     rounded
                 ></Button>
+            </template>
+        </Column>
+
+        <!-- Geo Metadata Button & Dialog -->
+        <Column field="geo_metadata" header="Geo Metadata" class="sr-par-fmt">
+            <template #body="slotProps">
+                <Button
+                    v-if="slotProps.node.data.geo_metadata"
+                    icon="pi pi-eye"
+                    label="View"
+                    class="sr-glow-button"
+                    @click="openGeoMetadataDialog(slotProps.node.data.geo_metadata)"
+                    @mouseover="tooltipRef?.showTooltip($event, 'View Geo Metadata')"
+                    @mouseleave="tooltipRef?.hideTooltip"
+                    variant="text"
+                    rounded
+                ></Button>
+                <span v-else style="color: #999;">—</span>
             </template>
         </Column>
 
@@ -357,6 +400,13 @@ onUnmounted(() => {
         v-model:visible="showSvrParmsDialog"
         :json-data="currentSvrParms"
         title="Server Parameters"
+        width="50vw"
+    />
+    <!-- Geo Metadata Dialog -->
+    <SrJsonDisplayDialog
+        v-model:visible="showGeoMetadataDialog"
+        :json-data="currentGeoMetadata"
+        title="Geo Metadata"
         width="50vw"
     />
     <!-- Custom Tooltip -->

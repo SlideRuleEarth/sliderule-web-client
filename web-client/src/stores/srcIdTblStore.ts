@@ -14,13 +14,19 @@ export const useSrcIdTblStore = defineStore('srcIdTblStore', () => {
             return;
         }
         await db.insertOpfsParquet(fileName);
-        const parsed = (await db.getJsonMetaDataForKey( 'meta',fileName)).parsedMetadata;
-        if (parsed && parsed.srctbl && typeof parsed.srctbl === 'object') {
-            // Convert object with numeric keys to an array
-            sourceTable.value = Object.values(parsed.srctbl);
-        } else {
+        try {
+            const parsed = (await db.getJsonMetaDataForKey( 'meta',fileName)).parsedMetadata;
+            if (parsed && parsed.srctbl && typeof parsed.srctbl === 'object') {
+                // Convert object with numeric keys to an array
+                sourceTable.value = Object.values(parsed.srctbl);
+            } else {
+                sourceTable.value = [];
+                console.warn(`setSrcIdTblWithFileName: Missing or invalid 'srctbl' field in JSON for file: ${fileName}`);
+            }
+        } catch (error) {
+            // If meta metadata is not found, just log and continue with empty source table
+            console.warn(`setSrcIdTblWithFileName: Could not load 'meta' metadata for file: ${fileName}. Source table will be empty.`, error);
             sourceTable.value = [];
-            console.warn("Missing or invalid 'srctbl' field in JSON.");
         }
     }
 

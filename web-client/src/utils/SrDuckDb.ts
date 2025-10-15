@@ -451,13 +451,13 @@ async getJsonMetaDataForKey(
         }
 
         if (!formattedMetadata) {
-            console.error(`getJsonMetaDataForKey ${key} metadata not found.`);
+            console.warn(`getJsonMetaDataForKey ${key} metadata not found in ${parquetFilePath}.`);
         }
 
     } catch (error) {
-        console.error("getJsonMetaDataForKey Error dumping Parquet metadata:", error);
-        console.trace("getJsonMetaDataForKey Error dumping Parquet metadata:");
-        
+        console.error("getJsonMetaDataForKey Error reading Parquet metadata:", error);
+        console.trace("getJsonMetaDataForKey Error reading Parquet metadata:");
+
         throw error;
     } finally {
         await conn.close();

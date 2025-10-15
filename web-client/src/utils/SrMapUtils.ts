@@ -782,7 +782,6 @@ export function updateDeckLayerWithObject(
     heightFieldName: string,
     positions: SrPosition[],
     projName: string,
-    deleteSelectedLayer: boolean = false
 ): void {
     //const startTime = performance.now();
     //console.log(`updateDeckLayerWithObject ${name} startTime:`, startTime);
@@ -863,7 +862,7 @@ export function checkAreaOfConvexHullWarning(): boolean {
     const currentApi = useReqParamsStore().getCurAPIObj();
     if (currentApi) {
         const limit = useAreaThresholdsStore().getAreaWarningThreshold(currentApi);
-        console.log(`checkAreaOfConvexHullWarning: currentApi: ${currentApi} limit: ${limit} area: ${useReqParamsStore().getAreaOfConvexHull()}`);
+        //console.log(`checkAreaOfConvexHullWarning: currentApi: ${currentApi} limit: ${limit} area: ${useReqParamsStore().getAreaOfConvexHull()}`);
         if (useReqParamsStore().getAreaOfConvexHull() > limit) {
             const msg = `The area of the convex hull might be too large (${useReqParamsStore().getFormattedAreaOfConvexHull()}).\n Please zoom in and then select a smaller area (try < ${useAreaThresholdsStore().getAreaWarningThreshold(currentApi)} km²).`;
             if (!useAdvancedModeStore().getAdvanced()) {
@@ -886,7 +885,7 @@ export function checkAreaOfConvexHullError(): { ok: boolean, msg?: string } {
     }
     if (currentApi) {
         const limit = useAreaThresholdsStore().getAreaErrorThreshold(currentApi)
-        console.log(`checkAreaOfConvexHullError: currentApi: ${currentApi} limit: ${limit} area: ${useReqParamsStore().getAreaOfConvexHull()}`);
+        //console.log(`checkAreaOfConvexHullError: currentApi: ${currentApi} limit: ${limit} area: ${useReqParamsStore().getAreaOfConvexHull()}`);
         if (useReqParamsStore().getAreaOfConvexHull() > limit) {
             const msg = `The area of the convex hull is too large (${useReqParamsStore().getFormattedAreaOfConvexHull()}).\n Please zoom in and then select a smaller area  < ${limit} km²).`;
             if (!useAdvancedModeStore().getAdvanced()) {
@@ -940,7 +939,7 @@ export function saveMapZoomState(map: OLMap) {
         } else {
             console.error("SrMap Error: zoom is null");
         }
-        console.log('saveMapZoomState center:', center, ' zoom:', zoom);
+        //console.log('saveMapZoomState center:', center, ' zoom:', zoom);
     } else {
         console.error("SrMap Error: map is null");
     }
@@ -1440,10 +1439,17 @@ export async function zoomMapForReqIdUsingView(map: OLMap, reqId: number, srView
 
 export const updateElevationMap = async (req_id: number) => {
     const startTime = performance.now();
-    console.log('updateElevationMap req_id:', req_id);
+    //console.log('updateElevationMap req_id:', req_id);
     if (req_id <= 0) {
         console.warn(`updateElevationMap Invalid request ID:${req_id}`);
         return;
+    }
+    try {
+        await router.push(`/analyze/${req_id}`);
+        console.log('Successfully navigated to analyze:', req_id);
+    } catch (error) {
+        console.error('Failed to navigate to analyze:', error);
+        useSrToastStore().error('Navigation Error', `Failed to navigate to analyze: ${error}`); 
     }
     try {
         const analysisMapStore = useAnalysisMapStore();
@@ -1473,13 +1479,6 @@ export const updateElevationMap = async (req_id: number) => {
     } catch (error) {
         console.error('Failed to update selected request:', error);
         useSrToastStore().error('Failed to update map', `Error updating elevation data: ${error}`);
-    }
-    try {
-        await router.push(`/analyze/${useRecTreeStore().selectedReqId}`);
-        console.log('Successfully navigated to analyze:', useRecTreeStore().selectedReqId);
-    } catch (error) {
-        console.error('Failed to navigate to analyze:', error);
-        useSrToastStore().error('Navigation Error', `Failed to navigate to analyze: ${error}`); 
     }
     const endTime = performance.now();
     console.log(`updateElevationMap took ${endTime - startTime} milliseconds.`);

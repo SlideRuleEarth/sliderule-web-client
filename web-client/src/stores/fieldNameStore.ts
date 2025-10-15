@@ -2,6 +2,9 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { useRecTreeStore } from '@/stores/recTreeStore'; // Adjust import path if needed
 import { useChartStore } from './chartStore';
+import { createDuckDbClient } from '@/utils/SrDuckDb';
+import { db } from '@/db/SlideRuleDb';
+import type { SrSvrParmsUsed } from '@/types/SrTypes';
 
 const curGedi2apElFieldOptions = ref(['elevation_lm','elevation_hr']); 
 const curGedi2apElevationField = ref('elevation_lm'); 
@@ -72,7 +75,7 @@ function getDefaultElOptions(reqId:number): string[] {
             break;
         case 'atl08p':
         case 'atl03x-phoreal':
-            options = ['h_mean_canopy','h_max_canopy','h_te_median','cycle'];
+            options = ['h_mean_canopy','h_max_canopy','h_canopy','h_min_canopy','h_te_median','canopy_openness','cycle'];
             break;
         case 'atl24x':  options = ['ortho_h','confidence','class_ph','y_atc','cycle','srcid'];
             break;
@@ -195,13 +198,70 @@ function getDefaultColorEncoding(funcStr: string,parentFuncStr?:string): string 
     }
 }
 
+interface RecordInfo {
+    time?: string;
+    x: string;
+    y: string;
+    z?: string;
+}
+
 export const useFieldNameStore = defineStore('fieldNameStore', () => {
     const hFieldCache = ref<Record<number, string>>({});
     const latFieldCache = ref<Record<number, string>>({});
     const lonFieldCache = ref<Record<number, string>>({});
     const timeFieldCache = ref<Record<number, string>>({});
+    const recordInfoCache = ref<Record<number, RecordInfo | null>>({});
+    const asGeoCache = ref<Record<number, boolean>>({});
 
     const recTreeStore = useRecTreeStore();
+
+
+
+    /**
+     * Fetch recordinfo metadata from parquet file for a given reqId
+     * This will cache the result to avoid repeated DB queries
+     */
+    async function getRecordInfoForReqId(reqId: number): Promise<RecordInfo | null> {
+        //console.log(`getRecordInfoForReqId: reqId ${reqId}`);
+        if (reqId <= 0) {
+            console.warn(`Invalid reqId ${reqId} in getRecordInfoForReqId`);
+            return null;
+        }
+        // Check cache first
+        if (reqId in recordInfoCache.value) {
+            return recordInfoCache.value[reqId];
+        }
+
+        try {
+            // Get filename for this reqId
+            const fileName = await db.getFilename(reqId);
+            if (!fileName) {
+                console.warn(`No filename found for reqId ${reqId}`);
+                recordInfoCache.value[reqId] = null;
+                return null;
+            }
+
+            // Get DuckDB client and read metadata
+            const duckDb = await createDuckDbClient();
+            await duckDb.insertOpfsParquet(fileName);
+            const metadata = await duckDb.getAllParquetMetadata(fileName);
+
+            if (metadata?.recordinfo) {
+                const recordInfo: RecordInfo = JSON.parse(metadata.recordinfo);
+                console.log(`Loaded recordinfo metadata for reqId ${reqId}:`, recordInfo);
+                recordInfoCache.value[reqId] = recordInfo;
+                return recordInfo;
+            } else {
+                console.log(`No recordinfo metadata found for reqId ${reqId}`);
+                recordInfoCache.value[reqId] = null;
+                return null;
+            }
+        } catch (error) {
+            console.warn(`Error fetching recordinfo for reqId ${reqId}:`, error);
+            recordInfoCache.value[reqId] = null;
+            return null;
+        }
+    }
 
     function getCachedValue(
         cache: Record<number, string>,
@@ -210,11 +270,9 @@ export const useFieldNameStore = defineStore('fieldNameStore', () => {
     ): string {
         if (cache[reqId]) return cache[reqId];
         const funcStr = recTreeStore.findApiForReqId(reqId);
-        //console.log(`getCachedValue called for reqId ${reqId}, funcStr: ${funcStr}`);
         try {
             const field = getField(funcStr);
             cache[reqId] = field;
-            //console.log(`Cached field name for reqId:${reqId} funcStr:${funcStr} : ${field}`);
             return field;
         } catch (error) {
             console.error(`Field name lookup error for reqId ${reqId} funcStr: ${funcStr}:`, error);
@@ -222,22 +280,106 @@ export const useFieldNameStore = defineStore('fieldNameStore', () => {
         }
     }
 
+    /**
+     * Synchronous field name getters - these check recordinfo cache first (if pre-loaded),
+     * then fall back to hardcoded values. Call loadMetaForReqId() first to populate cache.
+     */
     function getHFieldName(reqId: number): string {
-        const fn = getCachedValue(hFieldCache.value, reqId, getHFieldNameForAPIStr);
-        //console.log('getHFieldName', fn,'for reqId:', reqId);
-        return fn;
+        // Check if we have recordinfo in cache
+        const recordInfo = recordInfoCache.value[reqId];
+        if (recordInfo && recordInfo.z) {
+            hFieldCache.value[reqId] = recordInfo.z;
+            return recordInfo.z;
+        }
+        console.warn(`No z field in recordinfo for reqId ${reqId}, falling back to hardcoded.`);
+        // Fall back to hardcoded
+        return getCachedValue(hFieldCache.value, reqId, getHFieldNameForAPIStr);
     }
 
     function getLatFieldName(reqId: number): string {
+        // Check if we have recordinfo in cache
+        const recordInfo = recordInfoCache.value[reqId];
+        if (recordInfo && recordInfo.y) {
+            latFieldCache.value[reqId] = recordInfo.y;
+            return recordInfo.y;
+        }
+        console.warn(`No y field in recordinfo for reqId ${reqId}, falling back to hardcoded.`);
+        // Fall back to hardcoded
         return getCachedValue(latFieldCache.value, reqId, getLatFieldNameForAPIStr);
     }
 
     function getLonFieldName(reqId: number): string {
+        // Check if we have recordinfo in cache
+        const recordInfo = recordInfoCache.value[reqId];
+        if (recordInfo && recordInfo.x) {
+            lonFieldCache.value[reqId] = recordInfo.x;
+            return recordInfo.x;
+        }
+        console.warn(`No x field in recordinfo for reqId ${reqId}, falling back to hardcoded.`);
+        // Fall back to hardcoded
         return getCachedValue(lonFieldCache.value, reqId, getLonFieldNameForAPIStr);
     }
 
     function getTimeFieldName(reqId: number): string {
+        // Check if we have recordinfo in cache
+        const recordInfo = recordInfoCache.value[reqId];
+        if (recordInfo && recordInfo.time) {
+            timeFieldCache.value[reqId] = recordInfo.time;
+            return recordInfo.time;
+        }
+        console.warn(`No time field in recordinfo for reqId ${reqId}, falling back to hardcoded.`);
+        // Fall back to hardcoded
         return getCachedValue(timeFieldCache.value, reqId, getTimeFieldNameForAPIStr);
+    }
+
+    /**
+     * Load as_geo flag from server parameters for a given reqId
+     * This checks the output.as_geo field from the request's server parameters
+     */
+    async function loadAsGeoFromSvrParams(reqId: number): Promise<void> {
+        try {
+            let svrParams = await db.getSvrParams(reqId);
+            //console.log(`[fieldNameStore] loadAsGeoFromSvrParams for reqId ${reqId}:`, svrParams);
+            //console.log(`[fieldNameStore] typeof svrParams:`, typeof svrParams);
+
+            // If svrParams is a string, parse it
+            if (typeof svrParams === 'string') {
+                console.log(`[fieldNameStore] Parsing svrParams string for reqId ${reqId}`);
+                svrParams = JSON.parse(svrParams);
+            }
+
+            const typedParams = svrParams as SrSvrParmsUsed;
+            const asGeo = typedParams?.output?.as_geo === true;
+            //console.log(`[fieldNameStore] reqId ${reqId} - output.as_geo = ${asGeo}`, typedParams?.output);
+            asGeoCache.value[reqId] = asGeo;
+            if (asGeo) {
+                //console.log(`[fieldNameStore] Request ${reqId} has as_geo=true in server params`);
+            }
+        } catch (error) {
+            console.warn(`[fieldNameStore] Error loading as_geo from server params for reqId ${reqId}:`, error);
+            asGeoCache.value[reqId] = false;
+        }
+    }
+
+    /**
+     * Check if the parquet file for a given reqId is in GeoParquet format.
+     * This checks the as_geo property from the server parameters.
+     * Returns false if not cached.
+     */
+    function isGeoParquet(reqId: number): boolean {
+        return asGeoCache.value[reqId] === true;
+    }
+
+    /**
+     * Async function to pre-load recordinfo metadata for a reqId.
+     * Call this early (e.g., after loading a parquet file) to populate the cache,
+     * so that subsequent synchronous getters can use recordinfo values.
+     */
+    async function loadMetaForReqId(reqId: number): Promise<RecordInfo | null> {
+        const recordInfo = await getRecordInfoForReqId(reqId);
+        // Also load as_geo flag from server parameters
+        await loadAsGeoFromSvrParams(reqId);
+        return recordInfo;
     }
 
     return {
@@ -254,10 +396,16 @@ export const useFieldNameStore = defineStore('fieldNameStore', () => {
         getUniqueSpotIdFieldName,
         curGedi2apElFieldOptions,
         curGedi2apElevationField,
+        isGeoParquet,
+        loadAsGeoFromSvrParams,
         // for debugging/testing
         hFieldCache,
         latFieldCache,
         lonFieldCache,
         timeFieldCache,
+        recordInfoCache,
+        asGeoCache,
+        getRecordInfoForReqId,
+        loadMetaForReqId,
     };
 });

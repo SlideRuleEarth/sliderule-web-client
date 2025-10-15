@@ -28,9 +28,29 @@ export const srProjections = ref<{ [key: string]: SrProjection }>({
     name: "EPSG:4326",
     proj4def: "+proj=longlat +datum=WGS84 +no_defs +type=crs",
     default_zoom: 2.85,
-    min_zoom: 0, // really 1 because 
+    min_zoom: 0, // really 1 because
     max_zoom: 16,
     bbox: [-180.0, -90.0, 180.0, 90.0,],
+  },
+  "EPSG:7912": { // ITRF2014 (3D) - used for high-precision geodetic data (e.g., ICESat-2)
+    title: "ITRF2014",
+    label: "ITRF2014",
+    name: "EPSG:7912",
+    proj4def: "+proj=longlat +ellps=GRS80 +no_defs +type=crs",
+    default_zoom: 2.85,
+    min_zoom: 0,
+    max_zoom: 16,
+    bbox: [-180.0, -90.0, 180.0, 90.0],
+  },
+  "EPSG:9000": { // ITRF2014 (2D) - horizontal component for compound CRS
+    title: "ITRF2014 (2D)",
+    label: "ITRF2014 (2D)",
+    name: "EPSG:9000",
+    proj4def: "+proj=longlat +ellps=GRS80 +no_defs +type=crs",
+    default_zoom: 2.85,
+    min_zoom: 0,
+    max_zoom: 16,
+    bbox: [-180.0, -90.0, 180.0, 90.0],
   },
   "EPSG:5936": {
     title: "North: Alaska Polar Stereographic",

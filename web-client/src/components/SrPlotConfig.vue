@@ -94,18 +94,26 @@ async function enableLocationFinder() {
     if(selectedElRec){
         // initialize to selected point on map then update later from plot tooltip formatter
         globalChartStore.locationFinderLat = selectedElRec[latField];
-        globalChartStore.locationFinderLon = selectedElRec[lonField];    
+        globalChartStore.locationFinderLon = selectedElRec[lonField];
     }
     const reqIdStr = props.reqId.toString();
     const currentYData = chartStore.getYDataOptions(reqIdStr);
 
+    // Get the actual columns available in the file (elevationDataOptions contains the actual file columns)
+    const availableColumns = chartStore.getElevationDataOptions(reqIdStr);
+
+    // Only add lat/lon if they exist as actual columns in the file (regular parquet)
+    // For geoparquet, they're extracted from geometry column and don't need to be in yDataOptions
     const newFields = [latField, lonField].filter(
-        field => !currentYData.includes(field)
+        field => !currentYData.includes(field) && availableColumns.includes(field)
     );
 
     if (newFields.length > 0) {
+        console.log(`enableLocationFinder: Adding ${newFields.join(', ')} to yDataOptions (they exist as separate columns in file)`);
         chartStore.setYDataOptions(reqIdStr, [...currentYData, ...newFields]);
         await refreshScatterPlot('enabled Link to Elevation Plot');
+    } else if ([latField, lonField].some(field => !availableColumns.includes(field))) {
+        console.log(`enableLocationFinder: Skipping lat/lon - they don't exist as separate columns (likely geoparquet with geometry column)`);
     }
 
     if (await requestsStore.needAdvice()) {
@@ -134,7 +142,7 @@ onMounted(() => {
 
 watch(() => globalChartStore.enableLocationFinder, async (newVal, oldValue) => {
     if (!oldValue && newVal) {
-        console.log('SrPlotConfig watch enableLocationFinder:', newVal);
+        //console.log('SrPlotConfig watch enableLocationFinder:', newVal);
         enableLocationFinder();
     }
 });

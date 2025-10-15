@@ -5,7 +5,7 @@ import ProgressBar from 'primevue/progressbar';
 import Button from 'primevue/button';
 import SrToast from 'primevue/toast';
 import { useToast } from 'primevue/usetoast';
-import { duckDbLoadOpfsParquetFile, readOrCacheSummary } from '@/utils/SrDuckDbUtils';
+import { duckDbLoadOpfsParquetFile, readOrCacheSummary, getGeoMetadataFromFile } from '@/utils/SrDuckDbUtils';
 import { useRequestsStore } from '@/stores/requestsStore';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { db as indexedDb } from '@/db/SlideRuleDb';
@@ -166,11 +166,6 @@ const customUploader = async (event: any) => {
       await directoryHandle.removeEntry(opfsFile.name);
       return;
     }
-    if ('geo' in metadata) {
-      toast.add({ severity: 'error', summary: 'Unsupported File Format', detail: `SlideRule "geo" parquet not supported.`, life: 5000 });
-      await directoryHandle.removeEntry(opfsFile.name);
-      return;
-    }
 
     upload_progress.value = 90;
 
@@ -205,10 +200,12 @@ const customUploader = async (event: any) => {
 
     upload_progress.value = 95;
 
-    // If any of the following throws, we’ll delete the OPFS file to avoid orphans
+    // If any of the following throws, we'll delete the OPFS file to avoid orphans
     try {
       const svr_parms_str = await duckDbLoadOpfsParquetFile(newFilename);
       srReqRec.svr_parms = svr_parms_str;
+      const geoMetadata = await getGeoMetadataFromFile(newFilename);
+      srReqRec.geo_metadata = geoMetadata;
 
       await indexedDb.updateRequestRecord(srReqRec, true);
       await recTreeStore.updateRecMenu('From customUploader', srReqRec.req_id);

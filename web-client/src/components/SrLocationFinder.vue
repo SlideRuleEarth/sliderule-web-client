@@ -43,16 +43,21 @@ function updatePosition(lat: number, lon: number) {
     highlightEl.style.top = `${globalY}px`;
 
     highlightEl.classList.add('active');
-    setTimeout(() => highlightEl?.classList.remove('active'), 1000);
+    setTimeout(() => {
+        if (highlightEl) {
+            highlightEl.classList.remove('active');
+        }
+    }, 1000);
 
     //console.log('Highlight marker fixed position (body):', { globalX, globalY });
 }
 
 function hideMarker() {
-    if (highlightEl) {
-        highlightEl.style.left = '-9999px';
-        highlightEl.style.top = '-9999px';
-    }
+    if (!highlightEl) return;
+
+    highlightEl.style.left = '-9999px';
+    highlightEl.style.top = '-9999px';
+    highlightEl.classList.remove('active');
 }
 
 const handleScroll = () => {

@@ -288,7 +288,7 @@ export function getApiFromFilename(filename: string): { func: string } {
     // atl03x_foo.parquet
     // atl03x-phoreal_bar.parquet
     // atl03x-surface_baz.parquet
-    console.log(`getApiFromFilename Fallback->Extracting API from filename: ${filename}`);
+    console.warn(`getApiFromFilename Fallback->Extracting API from filename: ${filename}`);
     const regex = /^(atl[0-9]{2}[a-z]*(?:-(?:phoreal|surface))?)_/i;
 
     const match = filename.match(regex);
@@ -314,7 +314,7 @@ export const nukeSlideRuleFolder = async () => {
     try {
         // Attempt to remove the SlideRule folder; if it doesn't exist, we'll catch that
         await opfsRoot.removeEntry(folderName, { recursive: true });
-        console.log(`nukeSlideRuleFolder: "${folderName}" folder removed`);
+        console.warn(`nukeSlideRuleFolder: "${folderName}" folder removed`);
     } catch (error: any) {
         // If the folder doesn't exist, it's typically a "NotFoundError" or similar
         if (error.name === 'NotFoundError') {
@@ -328,7 +328,7 @@ export const nukeSlideRuleFolder = async () => {
     try {
         // Recreate the SlideRule folder
         await opfsRoot.getDirectoryHandle(folderName, { create: true });
-        console.log(`nukeSlideRuleFolder: "${folderName}" folder re-created`);
+        console.warn(`nukeSlideRuleFolder: "${folderName}" folder re-created`);
     } catch (error) {
         console.error(`nukeSlideRuleFolder: Error re-creating "${folderName}" folder`, error);
         throw new Error(`Failed to re-create the folder: ${folderName}, error: ${error}`);
@@ -458,14 +458,81 @@ export async function getWritableFileStream(suggestedName: string, mimeType: str
   return createObjectUrlStream(mimeType, suggestedName);
 }
 
+interface RecordInfo {
+    time?: string;
+    as_geo?: boolean;
+    x: string;
+    y: string;
+    z?: string;
+}
+
+interface GeoMetadata {
+    version?: string;
+    primary_column?: string;
+    columns?: Record<string, any>;
+}
 
 export async function exportCsvStreamed(fileName: string, headerCols: Ref<string[]>) {
     const duck = await createDuckDbClient();
     await duck.insertOpfsParquet(fileName);
 
-    const columns = headerCols.value;
+    let columns = headerCols.value;
+    let geometryColumn: string | null = null;
+    let selectCols: string[] = [];
+
+    // Check for geo metadata and adjust columns if geometry exists
+    const metadata = await duck.getAllParquetMetadata(fileName);
+    if (metadata?.geo && metadata.recordinfo) {
+        const geoMetadata: GeoMetadata = JSON.parse(metadata.geo);
+        geometryColumn = geoMetadata.primary_column || 'geometry';
+        const parsedRecordInfo: RecordInfo = JSON.parse(metadata.recordinfo);
+
+        // Build new column list: remove geometry, add x,y,z
+        const xColName = parsedRecordInfo.x || 'longitude';
+        const yColName = parsedRecordInfo.y || 'latitude';
+        const zColName = parsedRecordInfo.z || 'Zheight';
+
+        // Check if Z column exists as a separate column
+        // If it does, geometry is 2D (Point) and Z is stored separately
+        // If it doesn't, geometry is 3D (Point Z) and Z is in the geometry
+        const hasZColumn = headerCols.value.includes(zColName);
+        const geometryHasZ = !hasZColumn;  // Z is in geometry if there's no separate Z column
+
+        // Build SELECT statement using DuckDB spatial functions
+        // Include all columns except geometry (and z column if it's in the geometry)
+        selectCols = headerCols.value
+            .filter(col => {
+                if (col === geometryColumn) return false;
+                // If Z is in geometry, exclude the separate Z column (if it exists)
+                if (geometryHasZ && col === zColName) return false;
+                return true;
+            })
+            .map(col => duck.escape(col));
+
+        // Add geometry extractions using DuckDB spatial functions
+        selectCols.push(`ST_X(${duck.escape(geometryColumn)}) AS ${duck.escape(xColName)}`);
+        selectCols.push(`ST_Y(${duck.escape(geometryColumn)}) AS ${duck.escape(yColName)}`);
+
+        // Only extract Z from geometry if it has Z, otherwise the separate column is already included
+        if (parsedRecordInfo.z && geometryHasZ) {
+            selectCols.push(`ST_Z(${duck.escape(geometryColumn)}) AS ${duck.escape(zColName)}`);
+        }
+
+        // Build output columns list
+        columns = headerCols.value.filter(col => col !== geometryColumn);
+        if (!columns.includes(xColName)) columns.push(xColName);
+        if (!columns.includes(yColName)) columns.push(yColName);
+        if (parsedRecordInfo.z && geometryHasZ && !columns.includes(zColName)) {
+            columns.push(zColName);
+        }
+    } else {
+        // No geometry, select all columns
+        selectCols = headerCols.value.map(col => duck.escape(col));
+    }
+
     const encoder = new TextEncoder();
-    const { readRows } = await duck.query(`SELECT * FROM "${fileName}"`);
+    const selectClause = selectCols.join(', ');
+    const { readRows } = await duck.query(`SELECT ${selectClause} FROM "${fileName}"`);
 
     const wb = await getWritableFileStream(`${fileName}.csv`, 'text/csv');
     if (!wb) return false;
@@ -481,6 +548,8 @@ export async function exportCsvStreamed(fileName: string, headerCols: Ref<string
 
     for await (const rows of readRows(1000)) {
         const lines = rows.map(row => {
+            // DuckDB has already extracted geometry coordinates via ST_X, ST_Y, ST_Z
+            // No need for manual WKB/WKT parsing
             const processed = columns.map(col => {
                 let val = row[col];
                 if (col === 'srcid') val = lookup[val] ?? `unknown_srcid_${val}`;
