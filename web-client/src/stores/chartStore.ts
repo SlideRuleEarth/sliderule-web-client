@@ -114,6 +114,10 @@ export const useChartStore = defineStore('chartStore', {
             this.ensureState(reqIdStr);
             return this.stateByReqId[reqIdStr].max_x;
         },
+        hasMinMaxValues(reqIdStr: string, key: string): boolean {
+            this.ensureState(reqIdStr);
+            return !!(this.stateByReqId[reqIdStr]?.minMaxValues && this.stateByReqId[reqIdStr].minMaxValues[key]);
+        },
         getMinValue(reqIdStr: string, key: string): number {
             this.ensureState(reqIdStr);
             if(this.stateByReqId[reqIdStr]?.minMaxValues && this.stateByReqId[reqIdStr].minMaxValues[key]){

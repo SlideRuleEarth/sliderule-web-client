@@ -243,7 +243,7 @@
     const handleColMapSelControlCreated = (colMapSelControl: any) => {
         const analysisMap = mapRef.value?.map;
         if(analysisMap){
-            console.log("adding colMapSelControl");
+            //console.log("adding colMapSelControl");
             analysisMap.addControl(colMapSelControl);
         } else {
             console.error("Error:analysisMap is null");
@@ -264,7 +264,7 @@
     const handleProgressSpinnerControlCreated = (progressSpinnerControl: any) => {
         const analysisMap = mapRef.value?.map;
         if (analysisMap) {
-            console.log("handleProgressSpinnerControlCreated Adding ProgressSpinnerControl");
+            //console.log("handleProgressSpinnerControlCreated Adding ProgressSpinnerControl");
             analysisMap.addControl(progressSpinnerControl);
         } else {
             console.warn("handleProgressSpinnerControlCreated analysisMap is null; will be set in onMounted");
@@ -479,6 +479,13 @@
             console.error('SrAnalysisMap handleOffPntEnable: globalChartStore.y_atc_is_valid() selected_y_atc:', globalChartStore.selected_y_atc);
         }
     }
+    function handleUseFullRangeUpdate(value: boolean) {
+        console.log('SrAnalysisMap handleUseFullRangeUpdate:', value);
+        if(value === undefined) {
+            console.log('SrAnalysisMap handleUseFullRangeUpdate: value is undefined:', value);
+        }
+        updateAnalysisMapView("SrAnalysisMap handleUseFullRangeUpdate");
+    }
 
 </script>
 
@@ -555,7 +562,7 @@
                 inputId="show-hide-tooltip"
                 size="small"
             />
-            <label for="show-hide-tooltip" class="sr-check-label" >Map Tooltip</label>
+            <label for="show-hide-tooltip" class="sr-check-label" >Tooltip</label>
         </div>
         <div 
             v-show="computedMission === 'ICESat-2'"
@@ -575,6 +582,23 @@
                 v-show="hasOffPointFilter" 
                 for="enable-off-filter" 
                 class="sr-check-label">Off Pointing Filter
+            </label>
+        </div>
+        <div
+            @mouseover="analysisMapStore.tooltipRef.showTooltip($event,'Use full data range for map legend instead of filtered percentile range')"
+            @mouseleave="analysisMapStore.tooltipRef.hideTooltip"
+        >
+            <Checkbox
+                v-model="globalChartStore.useMapLegendFullRange"
+                :binary="true"
+                inputId="use-full-range"
+                size="small"
+                @update:model-value="handleUseFullRangeUpdate"
+                :title="globalChartStore.useMapLegendFullRange ? 'Using full data range (min/max)' : 'Using filtered percentile range (low/high)'"
+            />
+            <label 
+                for="use-full-range" 
+                class="sr-check-label">Full Range Legend
             </label>
         </div>
         <div

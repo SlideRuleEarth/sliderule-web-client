@@ -39,7 +39,7 @@ let cachedSourceCrs: string | null = null;
 let cachedNeedsTransformation: boolean = false;
 export const solidColorSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
 export const showYDataMenuReactive = reactive<{ [key: string]: WritableComputedRef<boolean> }>({});
-export const useSelectedMinMaxReactive = reactive<{ [key: string]: WritableComputedRef<boolean> }>({});
+export const useGlobalMinMaxReactive = reactive<{ [key: string]: WritableComputedRef<boolean> }>({});
 
 
 export const selectedCyclesReactive = computed({
@@ -159,10 +159,10 @@ export function initDataBindingsToChartStore(reqIds: string[]) {
                 set: (value: boolean) => chartStore.setShowYDataMenu(reqId, value),
             });
         }
-        if(!(reqId in useSelectedMinMaxReactive)){
-            useSelectedMinMaxReactive[reqId] = computed({
-                get: () => chartStore.getUseSelectedMinMax(reqId),
-                set: (value: boolean) => chartStore.setUseSelectedMinMax(reqId, value),
+        if(!(reqId in useGlobalMinMaxReactive)){
+            useGlobalMinMaxReactive[reqId] = computed({
+                get: () => !chartStore.getUseSelectedMinMax(reqId),
+                set: (value: boolean) => chartStore.setUseSelectedMinMax(reqId, !value),
             });
         }
     });
@@ -268,7 +268,7 @@ async function getGenericSeries({
                 //console.log(`getGenericSeries: chartStore.getMinMaxValues(reqIdStr):`, chartStore.getMinMaxValues(reqIdStr));
                 let minValue = chartStore.getLow(reqIdStr, cedk);
                 let maxValue = chartStore.getHigh(reqIdStr, cedk);
-                if(!chartStore.getUseSelectedMinMax(reqIdStr)){
+                if(!chartStore.getUseSelectedMinMax(reqIdStr)){//i.e. use global min/max
                     minValue = useGlobalChartStore().getLow(cedk);
                     maxValue = useGlobalChartStore().getHigh(cedk);
                 }
@@ -641,7 +641,7 @@ function filterDataForPos(label:any, data:any,lat:string,lon:string) {
                 );
                 finalLon = transformedLon;
                 finalLat = transformedLat;
-                console.log(`Location Finder: Transformed: (${rawLon}, ${rawLat}) -> (${transformedLon}, ${transformedLat})`);
+                //console.log(`Location Finder: Transformed: (${rawLon}, ${rawLat}) -> (${transformedLon}, ${transformedLat})`);
             } catch (error) {
                 console.warn('Failed to transform coordinates for location finder:', error);
                 // Use raw coordinates if transformation fails
@@ -651,7 +651,7 @@ function filterDataForPos(label:any, data:any,lat:string,lon:string) {
         // Set the final coordinates
         globalChartStore.locationFinderLon = finalLon;
         globalChartStore.locationFinderLat = finalLat;
-        console.log(`Location Finder: Set coordinates lat=${finalLat}, lon=${finalLon}`);
+        //console.log(`Location Finder: Set coordinates lat=${finalLat}, lon=${finalLon}`);
 
         // Reset raw values for next hover
         rawLat = null;

@@ -8,7 +8,7 @@ import { refreshScatterPlot, callPlotUpdateDebounced } from "@/utils/plotUtils";
 import { useChartStore } from '@/stores/chartStore';
 import { onMounted, computed, watch } from "vue";
 import SrCheckbox from "./SrCheckbox.vue";
-import { yDataBindingsReactive,findReqMenuLabel,showYDataMenuReactive,useSelectedMinMaxReactive } from "@/utils/plotUtils";
+import { yDataBindingsReactive,findReqMenuLabel,showYDataMenuReactive,useGlobalMinMaxReactive } from "@/utils/plotUtils";
 import { useRecTreeStore } from "@/stores/recTreeStore";
 import { useGlobalChartStore } from "@/stores/globalChartStore";
 import { useRequestsStore } from "@/stores/requestsStore";
@@ -75,6 +75,10 @@ async function onUseSelectedMinMaxChange(newValue: string[]) {
     await callPlotUpdateDebounced('from onUseSelectedMinMaxChange');
 }
 
+async function onUsePercentileRangeChange(newValue: boolean) {
+    console.log("Use Percentile Range changed:", newValue);
+    await callPlotUpdateDebounced('from onUsePercentileRangeChange');
+}
 
 async function handleGediFieldNameChange(event: SelectChangeEvent) {
     console.log("Gedi El Data changed:", event.value);
@@ -181,14 +185,26 @@ watch(() => globalChartStore.enableLocationFinder, async (newVal, oldValue) => {
         />         
         <SrCheckbox
             v-if="(!props.isOverlay && !activeTabStore.isActiveTabLabel('Time Series'))" 
-            class="sr-use-selected-min-max"
+            class="sr-checkbox-style"
             :defaultValue="false"
-            label="Use selected track min/max for gradient legend"
+            label="Use global min/max for gradient legend (vice selected trk's min/max)"
             labelFontSize="small"
-            tooltipText="Use the selected track min/max for legend instead of the global min/max"
-            v-model="useSelectedMinMaxReactive[computedReqIdStr]"
+            tooltipText="Use the global min/max for legend instead of the selected min/max"
+            v-model="useGlobalMinMaxReactive[computedReqIdStr]"
             size="small" 
             @update:modelValue="onUseSelectedMinMaxChange"
+
+        />
+        <SrCheckbox
+            v-if="(!props.isOverlay && !activeTabStore.isActiveTabLabel('Time Series'))" 
+            class="sr-checkbox-style"
+            :defaultValue="false"
+            label="Use Percentile Range vice full range for legend (low/high vs min/max)"
+            labelFontSize="small"
+            v-model="globalChartStore.usePercentileRange"
+            tooltipText="Use Percentile Range: Filtered(low/high) vs Full(min/max)"
+            size="small"
+            @update:modelValue="onUsePercentileRangeChange"
 
         />
         <div class="sr-ged02ap-el-select" v-if="recTreeStore.selectedApi == 'gedi02ap'">
