@@ -59,12 +59,12 @@
         if(props.isForPhotonCloud){
             await reqParamsStore.presetForScatterPlotOverlay(recTreeStore.selectedReqId);
         }
-        console.log("Opening parms dialog with reqParms:", JSON.stringify(reqParms.value, null, 2));
+        //console.log("Opening parms dialog with reqParms:", JSON.stringify(reqParms.value, null, 2));
         showParmsDialog.value = true;
     }
 
     onMounted(() => {
-        console.log("SrReqDisplay mounted with isForPhotonCloud:", props.isForPhotonCloud, " reqParams:", JSON.stringify(reqParms.value, null, 2));
+        //console.log("SrReqDisplay mounted with isForPhotonCloud:", props.isForPhotonCloud, " reqParams:", JSON.stringify(reqParms.value, null, 2));
      });
 </script>
   

@@ -62,7 +62,7 @@ const props = defineProps<{
 const displayLabel = computed(() => props.label ?? 'Cycles');
 
 async function handleValueChange(value?:any): Promise<void> {
-    console.log('SrFilterCntrl handleValueChange:', value);
+    //console.log('SrFilterCntrl handleValueChange:', value);
     const reqId = recTreeStore.selectedReqIdStr;
     if (reqId) {
         nextTick(async () => {
@@ -71,7 +71,7 @@ async function handleValueChange(value?:any): Promise<void> {
     } else {
         console.warn('reqId is undefined');
     }
-    console.log('SrFilterCntrl handleValueChange:', value);
+    //console.log('SrFilterCntrl handleValueChange:', value);
 }
 
 async function filterCycles() {
@@ -87,7 +87,7 @@ async function setAllCycles() {
 }
 
 onMounted(() => {
-    console.log('SrCycleSelect component mounted');
+    //console.log('SrCycleSelect component mounted');
 });
 
 

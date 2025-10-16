@@ -243,7 +243,7 @@
     const handleColMapSelControlCreated = (colMapSelControl: any) => {
         const analysisMap = mapRef.value?.map;
         if(analysisMap){
-            console.log("adding colMapSelControl");
+            //console.log("adding colMapSelControl");
             analysisMap.addControl(colMapSelControl);
         } else {
             console.error("Error:analysisMap is null");
@@ -264,7 +264,7 @@
     const handleProgressSpinnerControlCreated = (progressSpinnerControl: any) => {
         const analysisMap = mapRef.value?.map;
         if (analysisMap) {
-            console.log("handleProgressSpinnerControlCreated Adding ProgressSpinnerControl");
+            //console.log("handleProgressSpinnerControlCreated Adding ProgressSpinnerControl");
             analysisMap.addControl(progressSpinnerControl);
         } else {
             console.warn("handleProgressSpinnerControlCreated analysisMap is null; will be set in onMounted");

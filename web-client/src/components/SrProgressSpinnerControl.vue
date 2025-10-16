@@ -46,7 +46,7 @@ onMounted(async () => {
         customControl = new Control({ element: controlContainer.value });
         emit('progress-spinner-control-created', customControl);
     }
-    console.log('onMounted mapStore.isLoading:', analysisMapStore.getPntDataByReqId);
+    //console.log('onMounted mapStore.isLoading:', analysisMapStore.getPntDataByReqId);
 });
 
 onUnmounted(() => {

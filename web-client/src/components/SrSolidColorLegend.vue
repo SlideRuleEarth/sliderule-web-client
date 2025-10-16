@@ -38,6 +38,8 @@ const props = withDefaults(
 const chartStore = useChartStore();
 
 const computedDisplayIt = computed(() => {
+  // Check if min/max values exist first to avoid warnings during loading
+  if (!chartStore.hasMinMaxValues(props.reqIdStr, computedHFieldName.value)) return false;
   return ( chartStore.getMinValue(props.reqIdStr, computedHFieldName.value) !== null && chartStore.getMaxValue(props.reqIdStr, computedHFieldName.value) !== null);
 });
 

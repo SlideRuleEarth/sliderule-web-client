@@ -641,7 +641,7 @@ function filterDataForPos(label:any, data:any,lat:string,lon:string) {
                 );
                 finalLon = transformedLon;
                 finalLat = transformedLat;
-                console.log(`Location Finder: Transformed: (${rawLon}, ${rawLat}) -> (${transformedLon}, ${transformedLat})`);
+                //console.log(`Location Finder: Transformed: (${rawLon}, ${rawLat}) -> (${transformedLon}, ${transformedLat})`);
             } catch (error) {
                 console.warn('Failed to transform coordinates for location finder:', error);
                 // Use raw coordinates if transformation fails
@@ -651,7 +651,7 @@ function filterDataForPos(label:any, data:any,lat:string,lon:string) {
         // Set the final coordinates
         globalChartStore.locationFinderLon = finalLon;
         globalChartStore.locationFinderLat = finalLat;
-        console.log(`Location Finder: Set coordinates lat=${finalLat}, lon=${finalLon}`);
+        //console.log(`Location Finder: Set coordinates lat=${finalLat}, lon=${finalLon}`);
 
         // Reset raw values for next hover
         rawLat = null;

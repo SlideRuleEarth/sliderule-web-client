@@ -91,6 +91,8 @@ const useSelectedMinMax = computed<boolean>(() => {
 const computedDisplayGradient = computed(() => {
   const id = reqIdStr.value;
   if (!id || !computedDataKey) return false;
+  // Check if min/max values exist first to avoid warnings during loading
+  if (!chartStore.hasMinMaxValues(id, computedDataKey.value)) return false;
   const min = chartStore.getMinValue(id, computedDataKey.value);
   const max = chartStore.getMaxValue(id, computedDataKey.value);
   return min !== null && max !== null && min !== undefined && max !== undefined;
