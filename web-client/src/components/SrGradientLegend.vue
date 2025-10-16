@@ -8,14 +8,16 @@
 
     <div class="sr-legend-minmax">
       <span class="sr-legend-min">{{ minValue }}</span>
-      <span class="sr-legend-name">{{ computedDataKey }}</span>
+      <span class="sr-legend-name-with-toggle">
+        <span class="sr-legend-name">{{ legendLabel }}</span>
+        </span>
       <span class="sr-legend-max">{{ maxValue }}</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, watch } from 'vue';
+import { computed, onMounted, watch, ref } from 'vue';
 import { useChartStore } from '@/stores/chartStore';
 import { useGradientColorMapStore } from '@/stores/gradientColorMapStore';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
@@ -87,6 +89,11 @@ const useSelectedMinMax = computed<boolean>(() => {
   return retBool;
 });
 
+const legendLabel = computed(() => {
+  const prefix = useSelectedMinMax.value ? 'Track:' : 'Global:';
+  return `${prefix} ${computedDataKey.value}`;
+});
+
 // Safe getters for min/max
 const computedDisplayGradient = computed(() => {
   const id = reqIdStr.value;
@@ -108,9 +115,16 @@ const minValue = computed(() => {
   if (enc === 'cycle') {
     min = globalChartStore.getMinSelectedCycle();
   } else {
-    min = useSelectedMinMax.value
-      ? chartStore.getLow(id, computedDataKey.value)
-      : globalChartStore.getLow(computedDataKey.value);
+    // Toggle between min/max vs low/high based on globalChartStore.usePercentileRange
+    if (globalChartStore.usePercentileRange) {
+      min = useSelectedMinMax.value
+        ? chartStore.getLow(id, computedDataKey.value)
+        : globalChartStore.getLow(computedDataKey.value);
+    } else {
+      min = useSelectedMinMax.value
+        ? chartStore.getMinValue(id, computedDataKey.value)
+        : globalChartStore.getMin(computedDataKey.value);
+    }
   }
   return fmt(min);
 });
@@ -125,9 +139,16 @@ const maxValue = computed(() => {
   if (enc === 'cycle') {
     max = globalChartStore.getMaxSelectedCycle();
   } else {
-    max = useSelectedMinMax.value
-      ? chartStore.getHigh(id, computedDataKey.value)
-      : globalChartStore.getHigh(computedDataKey.value);
+    // Toggle between min/max vs low/high based on globalChartStore.usePercentileRange
+    if (globalChartStore.usePercentileRange) {
+      max = useSelectedMinMax.value
+        ? chartStore.getHigh(id, computedDataKey.value)
+        : globalChartStore.getHigh(computedDataKey.value);
+    } else {
+      max = useSelectedMinMax.value
+        ? chartStore.getMaxValue(id, computedDataKey.value)
+        : globalChartStore.getMax(computedDataKey.value);
+    }
   }
   return fmt(max);
 });
@@ -149,17 +170,90 @@ const isReady = computed(() => !!reqIdStr.value && !!computedDataKey.value && co
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 0.3125rem;
+  padding: 0.25rem;
   color: var(--p-primary-color);
   background-color: transparent;
   border-radius: var(--p-border-radius);
   border: 1px solid transparent;
   transition: border 0.3s ease-in-out;
+  gap: 0.125rem;
 }
-.sr-legend-box:hover { border: 1px solid var(--p-primary-color); }
-.sr-legend-minmax { display: flex; justify-content: space-between; width: 10rem; }
-.sr-legend-min, .sr-legend-max { font-size: 0.75rem; }
-.sr-legend-name { font-size: 0.7rem; padding: 0 0.25rem; }
-.sr-legend-min { padding-left: 0.25rem; }
-.sr-legend-max { padding-right: 0.25rem; }
+
+.sr-legend-box:hover {
+  border: 1px solid var(--p-primary-color);
+}
+
+.sr-color-map-gradient {
+  margin: 0;
+}
+
+.sr-legend-minmax {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 10rem;
+  line-height: 1;
+  margin: 0;
+  padding: 0;
+}
+
+.sr-legend-min, .sr-legend-max {
+  font-size: 0.75rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+}
+
+.sr-legend-name-with-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.sr-legend-name {
+  font-size: 0.7rem;
+  padding-left: 0.25rem;
+  padding-right: 0;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.sr-legend-toggle {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+}
+
+.sr-legend-toggle :deep(.p-checkbox) {
+  width: 0.7rem;
+  height: 0.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sr-legend-toggle :deep(.p-checkbox-box) {
+  width: 0.7rem;
+  height: 0.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sr-legend-toggle :deep(.p-checkbox-icon) {
+  font-size: 0.5rem;
+  line-height: 1;
+}
+
+.sr-legend-min {
+  padding-left: 0.25rem;
+}
+
+.sr-legend-max {
+  padding-right: 0.25rem;
+}
 </style>

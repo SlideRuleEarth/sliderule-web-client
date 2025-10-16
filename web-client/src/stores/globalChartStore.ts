@@ -35,7 +35,8 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     const chunk_size_for_plot = ref<number>(10000);
     const titleOfElevationPlot = ref<string>('Highlighted Track(s)'); // Default title for the elevation plot
     const allColumnMinMaxValues = ref<MinMaxLowHigh>({});
-
+    const usePercentileRange = ref<boolean>(false);
+    const useMapLegendFullRange = ref<boolean>(true);
 
 
     function setCycleOptions(newCycleOptions: SrListNumberItem[]) {
@@ -474,5 +475,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         getMax,
         getLow,
         getHigh,
+        usePercentileRange,
+        useMapLegendFullRange
     };
 });

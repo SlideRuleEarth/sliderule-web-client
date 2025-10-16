@@ -11,12 +11,6 @@
       </span>
       <span class="sr-legend-name-with-toggle">
         <span class="sr-legend-name">{{ props.data_key }}</span>
-        <Checkbox
-          v-model="useFullRange"
-          :binary="true"
-          :title="useFullRange ? 'Using full data range (min/max)' : 'Using filtered range (low/high)'"
-          class="sr-legend-toggle"
-        />
       </span>
       <span class="sr-legend-max">
         {{ maxValue }}
@@ -31,13 +25,9 @@ import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { watch } from 'vue';
 import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
 import { updateMapAndPlot } from '@/utils/SrMapUtils';
-import Checkbox from 'primevue/checkbox';
 
 const globalChartStore = useGlobalChartStore();
 const elevationColorMap = useElevationColorMapStore();
-
-// Toggle state: false = use getLow/getHigh, true = use getMin/getMax
-const useFullRange = ref(false);
 
 // Props definition
 const props = withDefaults(
@@ -57,14 +47,14 @@ const emit = defineEmits(['legendbox-created', 'picked-changed']);
 
 // Computed properties for min/max values based on toggle state
 const minValue = computed(() => {
-  const value = useFullRange.value
+  const value = globalChartStore.useMapLegendFullRange
     ? globalChartStore.getMin(props.data_key)
     : globalChartStore.getLow(props.data_key);
   return value !== null && value !== undefined ? value.toFixed(1) : '?';
 });
 
 const maxValue = computed(() => {
-  const value = useFullRange.value
+  const value = globalChartStore.useMapLegendFullRange
     ? globalChartStore.getMax(props.data_key)
     : globalChartStore.getHigh(props.data_key);
   return value !== null && value !== undefined ? value.toFixed(1) : '?';
@@ -86,10 +76,6 @@ watch(
   }
 );
 
-// Watch for toggle changes and update the map
-watch(useFullRange, async () => {
-  await updateMapAndPlot("SrMapLegendBox watch useFullRange change");
-});
 </script>
 
 <style scoped>

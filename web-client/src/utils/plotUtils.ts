@@ -39,7 +39,7 @@ let cachedSourceCrs: string | null = null;
 let cachedNeedsTransformation: boolean = false;
 export const solidColorSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
 export const showYDataMenuReactive = reactive<{ [key: string]: WritableComputedRef<boolean> }>({});
-export const useSelectedMinMaxReactive = reactive<{ [key: string]: WritableComputedRef<boolean> }>({});
+export const useGlobalMinMaxReactive = reactive<{ [key: string]: WritableComputedRef<boolean> }>({});
 
 
 export const selectedCyclesReactive = computed({
@@ -159,10 +159,10 @@ export function initDataBindingsToChartStore(reqIds: string[]) {
                 set: (value: boolean) => chartStore.setShowYDataMenu(reqId, value),
             });
         }
-        if(!(reqId in useSelectedMinMaxReactive)){
-            useSelectedMinMaxReactive[reqId] = computed({
-                get: () => chartStore.getUseSelectedMinMax(reqId),
-                set: (value: boolean) => chartStore.setUseSelectedMinMax(reqId, value),
+        if(!(reqId in useGlobalMinMaxReactive)){
+            useGlobalMinMaxReactive[reqId] = computed({
+                get: () => !chartStore.getUseSelectedMinMax(reqId),
+                set: (value: boolean) => chartStore.setUseSelectedMinMax(reqId, !value),
             });
         }
     });
@@ -268,7 +268,7 @@ async function getGenericSeries({
                 //console.log(`getGenericSeries: chartStore.getMinMaxValues(reqIdStr):`, chartStore.getMinMaxValues(reqIdStr));
                 let minValue = chartStore.getLow(reqIdStr, cedk);
                 let maxValue = chartStore.getHigh(reqIdStr, cedk);
-                if(!chartStore.getUseSelectedMinMax(reqIdStr)){
+                if(!chartStore.getUseSelectedMinMax(reqIdStr)){//i.e. use global min/max
                     minValue = useGlobalChartStore().getLow(cedk);
                     maxValue = useGlobalChartStore().getHigh(cedk);
                 }
