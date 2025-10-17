@@ -21,7 +21,7 @@ import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useServerStateStore } from '@/stores/serverStateStore';
 import { useGeoJsonStore } from '@/stores/geoJsonStore';
 import type { AtlxxReqParams } from '@/types/SrTypes';
-import { updateNumGranulesInRecord, updateAreaInRecord } from '@/utils/SrParquetUtils'
+import { updateNumGranulesInRecord, updateAreaInRecord, updateReqParmsFromMeta } from '@/utils/SrParquetUtils'
 
 const consoleStore = useSrSvrConsoleStore();
 const sysConfigStore = useSysConfigStore();
@@ -195,6 +195,7 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
                     }
                     await updateAreaInRecord(workerMsg.req_id);
                     await updateNumGranulesInRecord(workerMsg.req_id);
+                    await updateReqParmsFromMeta(workerMsg.req_id);
                 } catch (error) {
                     const emsg = `Error loading file,reading metadata or creating/updating polyhash for req_id:${workerMsg.req_id}`;
                     console.error('handleWorkerMsg opfs_ready error:',error,emsg);
@@ -426,7 +427,7 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
                 if (reqParamsStore.getIceSat2API()) {
                     srReqRec.parameters = reqParamsStore.getAtlxxReqParams(srReqRec.req_id) as AtlxxReqParams;
                     if((reqParamsStore.getIceSat2API() === 'atl03') && (srReqRec.parameters?.parms?.fit)){
-                        srReqRec.func = 'atl03x-fit';
+                        srReqRec.func = 'atl03x-surface';
                     } else if ((reqParamsStore.getIceSat2API() === 'atl03') && (srReqRec.parameters?.parms?.phoreal)) {
                         srReqRec.func = 'atl03x-phoreal';
                     } else {

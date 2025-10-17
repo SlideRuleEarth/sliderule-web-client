@@ -485,11 +485,10 @@ async getJsonMetaDataForKey(
     async getAllParquetMetadata(parquetFilePath: string): Promise<Record<string, string> | undefined> {
 
         const conn = await this._db!.connect();
+        const metadata: Record<string, string> = {};
         try {
             const query = `SELECT key, value FROM parquet_kv_metadata('${parquetFilePath}')`;
             const result = await conn.query(query);
-            const metadata: Record<string, string> = {};
-
             if (result && result.numRows > 0) {
                 const kk = result.getChild("key");
                 const kv = result.getChild("value");
@@ -504,17 +503,17 @@ async getJsonMetaDataForKey(
                         console.warn("Key or Value is undefined at index", i);
                     }
                 }
-                return metadata;
             } else {
-                console.log("No metadata found for the specified Parquet file.", parquetFilePath);
-                return undefined;
+                console.warn("No metadata found for the specified Parquet file.", parquetFilePath);
             }
         } catch (error) {
             console.error(`Error reading ${parquetFilePath} Parquet metadata:`, error);
             throw error;
         } finally {
             await conn.close();
+            console.log("getAllParquetMetadata metadata:", metadata);
         }
+        return metadata;
     }
 
     async queryColumnTypes(fileName: string): Promise<{ name: string; type: string }[]> {

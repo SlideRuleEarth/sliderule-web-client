@@ -152,6 +152,49 @@ export function applyParsedJsonToStores(
         if ('version' in data.yapc && data.yapc.version !== undefined) store.setYAPCVersion(data.yapc.version);
     }
 
+    // Handle fit (surface fit algorithm) parameters
+    // Note: We need to explicitly check for presence/absence of fit to override the default true value
+    if (data.fit !== undefined) {
+        // If fit is present (even if empty), enable surface fit
+        // Empty {} tells the server to use its defaults
+        store.setUseSurfaceFitAlgorithm(true);
+
+        // Only set specific values if they exist in the fit object
+        if (typeof data.fit === 'object' && data.fit !== null) {
+            if ('maxi' in data.fit) {
+                store.setUseMaxIterations(true);
+                store.setMaxIterations(data.fit.maxi);
+            }
+            if ('H_min_win' in data.fit) {
+                store.setUseMinWindowHeight(true);
+                store.setMinWindowHeight(data.fit.H_min_win);
+            }
+            if ('sigma_r_max' in data.fit) {
+                store.setUseMaxRobustDispersion(true);
+                store.setSigmaRmax(data.fit.sigma_r_max);
+            }
+        }
+    } else {
+        // If fit is not present at all in loaded parameters, turn off surface fit
+        // This handles cases like ATL03x photon cloud where fit should not be used
+        store.setUseSurfaceFitAlgorithm(false);
+    }
+
+    // Handle phoreal parameters
+    if (data.phoreal !== undefined) {
+        // If phoreal is present (even if empty), enable PhoREAL
+        // Empty {} tells the server to use its defaults
+        store.setEnablePhoReal(true);
+
+        // Only set specific values if they exist in the phoreal object
+        if (typeof data.phoreal === 'object' && data.phoreal !== null) {
+            // Add phoreal-specific parameter handling here if needed
+        }
+    } else {
+        // If phoreal is not present at all in loaded parameters, turn off PhoREAL
+        store.setEnablePhoReal(false);
+    }
+
     function coerce(field: string, input: unknown, assign: (v: number[]) => void) {
         const { valid, invalid } = coerceToNumberArray(input);
         assign(valid);

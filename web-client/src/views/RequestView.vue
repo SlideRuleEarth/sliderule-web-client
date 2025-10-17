@@ -24,22 +24,22 @@
             const request = await db.getRequest(reqId);
             console.log('Retrieved request from DB:', request);
 
-            // Use svr_parms (server parameters) which contains the actual parameters sent to server
+            // Use rcvd_parms (received parameters) which contains the actual parameters sent to server
             // This works for both regular requests and imported requests
             let parameters = null;
-            if (request?.svr_parms) {
+            if (request?.rcvd_parms) {
                 try {
-                    // svr_parms might be a JSON string or already an object
-                    parameters = typeof request.svr_parms === 'string'
-                        ? JSON.parse(request.svr_parms)
-                        : request.svr_parms;
-                    console.log('Using svr_parms as parameters:', parameters);
+                    // rcvd_parms might be a JSON string or already an object
+                    parameters = typeof request.rcvd_parms === 'string'
+                        ? JSON.parse(request.rcvd_parms)
+                        : request.rcvd_parms;
+                    console.log('Using rcvd_parms as parameters:', parameters);
                 } catch (error) {
-                    console.error('Failed to parse svr_parms:', error);
+                    console.error('Failed to parse rcvd_parms:', error);
                 }
             }
 
-            // Fallback to request.parameters if svr_parms is not available
+            // Fallback to request.parameters if rcvd_parms is not available
             if (!parameters && request?.parameters && Object.keys(request.parameters).length > 0) {
                 parameters = request.parameters;
                 console.log('Falling back to request.parameters:', parameters);
@@ -78,9 +78,10 @@
 
                         // Map function name to API
                         // Handle the special cases for atl03x variants
-                        if (func === 'atl03x-fit' || (func === 'atl03x' && parameters.parms?.fit)) {
+                        // Check for fit in both parameters.fit (rcvd_parms) and parameters.parms?.fit (original parameters)
+                        if (func === 'atl03x-surface' || (func === 'atl03x' && (parameters.fit || parameters.parms?.fit))) {
                             reqParamsStore.setIceSat2API('atl03x-surface');
-                        } else if (func === 'atl03x-phoreal' || (func === 'atl03x' && parameters.parms?.phoreal)) {
+                        } else if (func === 'atl03x-phoreal' || (func === 'atl03x' && (parameters.phoreal || parameters.parms?.phoreal))) {
                             reqParamsStore.setIceSat2API('atl03x-phoreal');
                         } else if (func === 'atl03x' || func === 'atl03vp') {
                             reqParamsStore.setIceSat2API(func);
