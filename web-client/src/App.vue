@@ -177,12 +177,13 @@ async function getCommonSteps(type: string): Promise<ReturnType<typeof introJs>[
 
 onMounted(async () => {
     console.log('App onMounted');
-
+    const startTime = performance.now();
     const defaultsStore = useSlideruleDefaults();
     await defaultsStore.fetchDefaults();
-    console.log('App onMounted - Defaults loaded');
+    //console.log('App onMounted - Defaults loaded');
     const reqId = await recTreeStore.updateRecMenu('from App');
-    initChartStore();
+    await initChartStore(); 
+    //console.log('App onMounted - @ChartStore init:', performance.now() - startTime, 'ms');
     if ((reqId <= 0) && (recTreeStore.allReqIds.length > 0)) {
       // this covers the case that the user types a bad URL
       recTreeStore.initToFirstRecord();
@@ -227,12 +228,12 @@ onMounted(async () => {
             toast.add({ severity: 'error', summary: 'Exception', detail: `Invalid (exception) route parameter for record:${newReqId}`, life: srToastStore.getLife() });
         }
     });
-    console.log('App onMounted done');
+    console.log('App onMounted - took', performance.now() - startTime, 'ms');
 });
 
 const requestButtonClick = async () => {
     //console.log('Request button clicked');
-    router.push('/request'); 
+    router.push('/request');
 };
 
 const recordButtonClick = () => {

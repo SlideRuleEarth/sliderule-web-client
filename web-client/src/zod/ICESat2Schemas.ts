@@ -29,11 +29,13 @@ const Atl24Schema = z.object({
     class_ph: z.array(z.string()).optional(),
     classification: z.array(z.number()).optional(),
     confidence_threshold: z.number().optional(),
-    invalid_kd: z.boolean().optional(),
-    invalid_wind_speed: z.boolean().optional(),
-    low_confidence: z.boolean().optional(),
-    night: z.boolean().optional(),
-    sensor_depth_exceeded: z.boolean().optional(),
+    // These fields can be either boolean or array of strings ["off", "on"]
+    // The UI uses multi-select with On/Off options, server returns lowercase
+    invalid_kd: z.union([z.boolean(), z.array(z.string())]).optional(),
+    invalid_wind_speed: z.union([z.boolean(), z.array(z.string())]).optional(),
+    low_confidence: z.union([z.boolean(), z.array(z.string())]).optional(),
+    night: z.union([z.boolean(), z.array(z.string())]).optional(),
+    sensor_depth_exceeded: z.union([z.boolean(), z.array(z.string())]).optional(),
     anc_fields: z.array(z.string()).optional(),
 }).optional();
 

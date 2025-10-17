@@ -922,6 +922,8 @@ export async function getScatterOptions(req_id:number): Promise<any> {
                 } else {
                     console.warn('getScatterOptions Filter not set i.e. spots, rgts, or cycles is empty');
                 }
+            } else {
+                console.error(`getScatterOptions ${reqIdStr} fileName is null`);
             }
         } else if(mission === 'GEDI'){
             if(fileName){
