@@ -346,6 +346,37 @@ export async function updateAreaInRecord(req_id:number): Promise<void> {
     await db.updateRequestRecord( {req_id:req_id, area_of_poly: area});
 }
 
+export async function updateReqParmsFromMeta(req_id:number): Promise<void> {
+    try {
+        // Get current rcvd_parms from the request record
+        const currentRequest = await db.getRequest(req_id);
+        const currentRcvdParms = currentRequest?.rcvd_parms;
+        // Only update if rcvd_parms is missing or empty
+        if (!currentRcvdParms || Object.keys(currentRcvdParms).length === 0) {
+            const fileName = await db.getFilename(req_id);
+            const duckDbClient = await createDuckDbClient();
+            await duckDbClient.insertOpfsParquet(fileName);
+
+            const parsed = (await duckDbClient.getJsonMetaDataForKey('meta', fileName)).parsedMetadata;
+            if (parsed && parsed.request && typeof parsed.request === 'object') {
+                console.log(`updateReqParmsFromMeta req_id ${req_id}:`, {
+                    currentRcvdParms,
+                    metadataRequest: parsed.request
+                });
+                console.log(`updateReqParmsFromMeta: Updating rcvd_parms for req_id ${req_id} - rcvd_parms are missing or empty`);
+                await db.updateRequestRecord({ req_id: req_id, rcvd_parms: parsed.request });
+                console.log(`updateReqParmsFromMeta: Successfully updated rcvd_parms for req_id ${req_id}`);
+            } else {
+                console.warn(`updateReqParmsFromMeta: Missing or invalid 'request' field in metadata for req_id ${req_id},' parsed:`, parsed);
+            }
+        } else {
+            //console.log(`updateReqParmsFromMeta: No update needed for req_id ${req_id} - rcvd_parms already exist`);
+        }
+    } catch (error) {
+        console.warn(`updateReqParmsFromMeta: Could not load 'meta' metadata for req_id ${req_id}:`, error);
+    }
+}
+
 function createObjectUrlStream(mimeType: string, suggestedName: string, maxBytes = 200 * 1024 * 1024): WriterBundle {
   let bytes = 0;
   const chunks: BlobPart[] = [];

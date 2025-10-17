@@ -5,7 +5,7 @@ import { deleteOpfsFile } from "@/utils/SrParquetUtils";
 
 const requestsStore = useRequestsStore();
 
-export const cleanupAllRequests = () => {
+export const cleanupDelAllRequests = () => {
     requestsStore.reqs.forEach(async (req) => {
         try {
             if (req.req_id) {

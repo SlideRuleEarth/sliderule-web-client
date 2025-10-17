@@ -14,7 +14,7 @@ import type { SrRegion } from '@/types/SrTypes';
 import type { ImportWorkerRequest, ImportWorkerResponse } from '@/types/SrImportWorkerTypes';
 import SrImportWorker from '@/workers/SrImportWorker?worker'; 
 import { addTimestampToFilename, getApiFromFilename } from '@/utils/SrParquetUtils';
-import { updateNumGranulesInRecord, updateAreaInRecord } from '@/utils/SrParquetUtils'
+import { updateNumGranulesInRecord, updateAreaInRecord, updateReqParmsFromMeta } from '@/utils/SrParquetUtils'
 
 const toast = useToast();
 
@@ -212,6 +212,7 @@ const customUploader = async (event: any) => {
       await readOrCacheSummary(srReqRec.req_id);
       await updateAreaInRecord(srReqRec.req_id);
       await updateNumGranulesInRecord(srReqRec.req_id);
+      await updateReqParmsFromMeta(srReqRec.req_id);
 
       const summary = await indexedDb.getWorkerSummary(srReqRec.req_id);
       if (summary) {

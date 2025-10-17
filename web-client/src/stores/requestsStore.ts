@@ -6,7 +6,7 @@ import type { SrMenuNumberItem } from "@/types/SrTypes";
 import { findParam } from '@/utils/parmUtils';
 import { useSrToastStore } from './srToastStore';
 import type { TreeNode } from 'primevue/treenode';
-import { updateNumGranulesInRecord, updateAreaInRecord } from '@/utils/SrParquetUtils';
+import { updateNumGranulesInRecord, updateAreaInRecord, updateReqParmsFromMeta } from '@/utils/SrParquetUtils';
 
 export const useRequestsStore = defineStore('requests', {
   state: () => ({
@@ -331,6 +331,7 @@ export const useRequestsStore = defineStore('requests', {
 
               elapsed_time: child.data.elapsed_time,
               parameters: child.data.parameters,
+              rcvd_parms: child.data.rcvd_parms,
               svr_parms: child.data.svr_parms,
               geo_metadata: child.data.geo_metadata,
             },
@@ -352,7 +353,7 @@ export const useRequestsStore = defineStore('requests', {
       let updatedArea = false;
       let updatedGranules = false;
 
-      if (srRecord && srRecord.status === 'success' && srRecord.func?.toLowerCase().includes('x')) {
+      if (srRecord && (srRecord.status === 'success' || srRecord.status === 'imported') && srRecord.func?.toLowerCase().includes('x')) {
         // area_of_poly needs update?
         const areaMissing =
           srRecord.area_of_poly == null ||
@@ -372,6 +373,9 @@ export const useRequestsStore = defineStore('requests', {
           await updateNumGranulesInRecord(reqId);  // <-- uses SrParquetUtils
           updatedGranules = true;
         }
+
+        // Always update request parameters from metadata
+        await updateReqParmsFromMeta(reqId);
 
         if (updatedArea || updatedGranules) {
           await this.fetchReqs(); // refresh in-memory state

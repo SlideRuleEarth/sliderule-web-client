@@ -12,7 +12,7 @@ import { useRecTreeStore } from "@/stores/recTreeStore";
 import { db } from '@/db/SlideRuleDb';
 //import router from '@/router/index';
 import { deleteOpfsFile } from '@/utils/SrParquetUtils';
-import { cleanupAllRequests } from '@/utils/storageUtils';
+import { cleanupDelAllRequests } from '@/utils/storageUtils';
 import SrCustomTooltip from './SrCustomTooltip.vue';
 import SrEditDesc from './SrEditDesc.vue';
 import { useSrToastStore } from "@/stores/srToastStore";
@@ -39,6 +39,10 @@ const currentParms = ref('');
 const showSvrParmsDialog = ref(false);
 const currentSvrParms = ref('');
 
+// -- Dialog state for "rcvd_parms"
+const showRcvdParmsDialog = ref(false);
+const currentRcvdParms = ref('');
+
 // -- Dialog state for "geo_metadata"
 const showGeoMetadataDialog = ref(false);
 const currentGeoMetadata = ref('');
@@ -47,6 +51,7 @@ const onlySuccess = ref(false);
 
 const exportReqId = ref(0);
 const showExportDialog = ref(false);
+const isCleaningUp = ref(false);
 
 // Open the Req Parms dialog
 function openParmsDialog(params: string | object) {
@@ -66,6 +71,16 @@ function openSvrParmsDialog(params: string | object) {
     currentSvrParms.value = params;
   }
   showSvrParmsDialog.value = true;
+}
+
+// Open the Rcvd Parms dialog
+function openRcvdParmsDialog(params: string | object) {
+  if (typeof params === 'object') {
+    currentRcvdParms.value = JSON.stringify(params, null, 2);
+  } else {
+    currentRcvdParms.value = params;
+  }
+  showRcvdParmsDialog.value = true;
 }
 
 // Open the Geo Metadata dialog
@@ -146,7 +161,7 @@ const deleteReqAndChildren = async (id:number) => {
 };
 
 const deleteAllReqs = async () => {
-    cleanupAllRequests();
+    cleanupDelAllRequests();
     treeNodes.value = await requestsStore.getTreeTableNodes(onlySuccess.value);
     await recTreeStore.loadTreeData();
     recTreeStore.initToFirstRecord();
@@ -169,7 +184,7 @@ const exportFile = async (req_id:number) => {
     showExportDialog.value = true;
 };
 
-const loadParamsAndGoToRequest = async (req_id: number) => {
+const gotToRequestViewAndLoadParms = async (req_id: number) => {
     try {
         // Navigate to Request view with reqId as a URL parameter
         // The RequestView will detect this and load the params after it mounts
@@ -194,7 +209,9 @@ const handleFileImported = async (reqId: string) => {
 
 
 onMounted(async () => {
+    isCleaningUp.value = true;
     await requestsStore.cleanupAllRequests();
+    isCleaningUp.value = false;
     requestsStore.watchReqTable();
     treeNodes.value = await requestsStore.getTreeTableNodes(onlySuccess.value);
     //console.log('treeNodes.value:', treeNodes.value);
@@ -208,6 +225,12 @@ onUnmounted(() => {
 </script>
 
 <template>
+    <div v-if="isCleaningUp" class="cleanup-overlay">
+        <div class="cleanup-spinner">
+            <i class="pi pi-spin pi-spinner" style="font-size: 3rem"></i>
+            <p>Loading requests...</p>
+        </div>
+    </div>
     <SrExportDialog
         v-model="showExportDialog"
         :reqId="exportReqId"
@@ -241,7 +264,7 @@ onUnmounted(() => {
         </Column>
         <Column field="status">
             <template #header>
-                <div style="text-align: left; width: 100%;">Status</div>
+                <div style="text-align: center; width: 100%;">Status</div>
             </template>
         </Column>
         <!-- Request Parameters Button & Dialog -->
@@ -255,7 +278,7 @@ onUnmounted(() => {
                     label="Parms"
                     class="sr-glow-button"
                     @click="openParmsDialog(slotProps.node.data.parameters)"
-                    @mouseover="tooltipRef?.showTooltip($event, 'View Request Parameters')"
+                    @mouseover="tooltipRef?.showTooltip($event, 'View Request Parameters sent to server')"
                     @mouseleave="tooltipRef?.hideTooltip"
                     variant="text"
                     rounded
@@ -263,12 +286,38 @@ onUnmounted(() => {
                 <Button
                     icon="pi pi-sliders-h"
                     class="sr-glow-button p-button-icon-only"
-                    @click="loadParamsAndGoToRequest(slotProps.node.data.reqId)"
-                    @mouseover="tooltipRef?.showTooltip($event, 'Load Svr Parms into Request view')"
+                    @click="gotToRequestViewAndLoadParms(slotProps.node.data.reqId)"
+                    @mouseover="tooltipRef?.showTooltip($event, 'Load the parms we received back from the server into Request view')"
                     @mouseleave="tooltipRef?.hideTooltip"
                     variant="text"
                     rounded
                 ></Button>
+            </template>
+        </Column>
+        <!-- Received Parameters Button & Dialog -->
+        <Column field="rcvd_parms" class="sr-par-fmt">
+            <template #header>
+                <div
+                    style="text-align: center; width: 100%;"
+                    @mouseover="tooltipRef?.showTooltip($event, 'Req Parameters received by server and returned from server')"
+                    @mouseleave="tooltipRef?.hideTooltip"
+                >
+                    Rcvd Parms
+                </div>
+            </template>
+            <template #body="slotProps">
+                <Button
+                    v-if="slotProps.node.data.rcvd_parms"
+                    icon="pi pi-eye"
+                    label="View"
+                    class="sr-glow-button"
+                    @click="openRcvdParmsDialog(slotProps.node.data.rcvd_parms)"
+                    @mouseover="tooltipRef?.showTooltip($event, 'View request parameters received by server and returned from server')"
+                    @mouseleave="tooltipRef?.hideTooltip"
+                    variant="text"
+                    rounded
+                ></Button>
+                <div v-else class="sr-empty-cell">—</div>
             </template>
         </Column>
         <!-- Server Parameters Button & Dialog -->
@@ -350,7 +399,7 @@ onUnmounted(() => {
         </Column>
         <Column field="crs" style="width: 10rem;">
             <template #header>
-                <div style="text-align: left; width: 100%;">CRS</div>
+                <div style="text-align: center; width: 100%;">CRS</div>
             </template>
             <template #body="slotProps">
                 <span v-if="slotProps.node.data.geo_metadata?.columns?.geometry?.crs?.id">
@@ -468,6 +517,13 @@ onUnmounted(() => {
         title="Request Parameters"
         width="50vw"
     />
+    <!-- Received Parameters Dialog -->
+    <SrJsonDisplayDialog
+        v-model:visible="showRcvdParmsDialog"
+        :json-data="currentRcvdParms"
+        title="Received Parameters"
+        width="50vw"
+    />
     <!-- Server Parameters Dialog -->
     <SrJsonDisplayDialog
         v-model:visible="showSvrParmsDialog"
@@ -492,6 +548,40 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+
+.cleanup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.cleanup-spinner {
+    background-color: var(--p-surface-card, #1e1e1e);
+    border-radius: 8px;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.cleanup-spinner i {
+    color: var(--p-primary-color, #3b82f6);
+}
+
+.cleanup-spinner p {
+    margin: 0;
+    font-size: 1.1rem;
+    color: var(--p-text-color, white);
+}
 
 :deep(.p-icon) {
     color: var(--p-primary-color, white); /* fallback to white */

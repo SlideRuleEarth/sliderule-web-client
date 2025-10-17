@@ -32,6 +32,7 @@ export interface SrRequestRecord {
     status?: string; // status: 'pending', 'processing', 'success', 'error'
     func?: string; // function name
     parameters?: ReqParams; //  parameters
+    rcvd_parms?: ReqParams; //  parameters received/sent to server (from metadata)
     svr_parms?: SrSvrParmsUsed; //  parameters used/returned from server
     geo_metadata?: any; //  geo metadata from geoparquet file
     start_time?: Date; // start time of request
