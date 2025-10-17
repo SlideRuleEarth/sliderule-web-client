@@ -5,6 +5,7 @@ import Column from 'primevue/column';
 import type { TreeNode } from 'primevue/treenode';
 import Button from 'primevue/button';
 import { useToast } from "primevue/usetoast";
+import router from '@/router/index.js';
 
 import { useRequestsStore } from "@/stores/requestsStore";
 import { useRecTreeStore } from "@/stores/recTreeStore";
@@ -168,6 +169,23 @@ const exportFile = async (req_id:number) => {
     showExportDialog.value = true;
 };
 
+const loadParamsAndGoToRequest = async (req_id: number) => {
+    try {
+        // Navigate to Request view with reqId as a URL parameter
+        // The RequestView will detect this and load the params after it mounts
+        console.log('Navigating to /request/' + req_id);
+        await router.push(`/request/${req_id}`);
+    } catch (error) {
+        console.error(`Failed to navigate to request view for req_id ${req_id}:`, error);
+        toast.add({
+            severity: 'error',
+            summary: 'Navigation Failed',
+            detail: `Failed to navigate to request view`,
+            life: srToastStore.getLife()
+        });
+    }
+};
+
 const handleFileImported = async (reqId: string) => {
     console.log('File import completed. Request ID:', reqId);
     treeNodes.value = await requestsStore.getTreeTableNodes(onlySuccess.value);
@@ -211,22 +229,52 @@ onUnmounted(() => {
         :offIcon="'pi pi-times'"
     />
   </template>
-        <Column field="reqId" header="ID" expander />
-        <Column field="func" header="Api" />
-        <Column field="status" header="Status" />
-        <Column field="crs" header="CRS" style="width: 10rem;">
-            <template #body="slotProps">
-                <span v-if="slotProps.node.data.geo_metadata?.columns?.geometry?.crs?.id">
-                    {{ slotProps.node.data.geo_metadata.columns.geometry.crs.id.authority }}:{{ slotProps.node.data.geo_metadata.columns.geometry.crs.id.code }}
-                </span>
-                <span v-else-if="slotProps.node.data.geo_metadata?.columns?.geometry?.crs?.name">
-                    {{ slotProps.node.data.geo_metadata.columns.geometry.crs.name }}
-                </span>
-                <span v-else style="color: #999;">—</span>
+        <Column field="reqId" expander>
+            <template #header>
+                <div style="text-align: right; width: 100%;">ID</div>
             </template>
         </Column>
-
-        <Column field="Actions" header="Analyze" class="sr-analyze">
+        <Column field="func">
+            <template #header>
+                <div style="text-align: center; width: 100%;">Api</div>
+            </template>
+        </Column>
+        <Column field="status">
+            <template #header>
+                <div style="text-align: left; width: 100%;">Status</div>
+            </template>
+        </Column>
+        <!-- Request Parameters Button & Dialog -->
+        <Column field="parameters" class="sr-par-fmt">
+            <template #header>
+                <div style="text-align: center; width: 100%;">Request</div>
+            </template>
+            <template #body="slotProps">
+                <Button
+                    icon="pi pi-eye"
+                    label="Parms"
+                    class="sr-glow-button"
+                    @click="openParmsDialog(slotProps.node.data.parameters)"
+                    @mouseover="tooltipRef?.showTooltip($event, 'View Request Parameters')"
+                    @mouseleave="tooltipRef?.hideTooltip"
+                    variant="text"
+                    rounded
+                ></Button>
+                <Button
+                    icon="pi pi-sliders-h"
+                    class="sr-glow-button p-button-icon-only"
+                    @click="loadParamsAndGoToRequest(slotProps.node.data.reqId)"
+                    @mouseover="tooltipRef?.showTooltip($event, 'Load parameters into Request view')"
+                    @mouseleave="tooltipRef?.hideTooltip"
+                    variant="text"
+                    rounded
+                ></Button>
+            </template>
+        </Column>
+        <Column field="Actions" class="sr-analyze">
+            <template #header>
+                <div style="text-align: center; width: 100%;">Analyze</div>
+            </template>
             <template #body="slotProps">
                 <Button 
                     v-if="slotProps.node.data.status === 'success' || slotProps.node.data.status === 'imported'"
@@ -244,35 +292,23 @@ onUnmounted(() => {
         <!-- Editable Description -->
         <Column field="description" header="Description" :editable="true" style="width: 15rem; max-width: 20rem;">
             <template #header>
-                <i 
-                  class="pi pi-pencil"
-                  @mouseover="tooltipRef?.showTooltip($event, 'Editable Description')"
-                  @mouseleave="tooltipRef?.hideTooltip"
-                ></i>
+                <div style="text-align: center; width: 100%;">
+                    <i
+                      class="pi pi-pencil"
+                      @mouseover="tooltipRef?.showTooltip($event, 'Editable Description')"
+                      @mouseleave="tooltipRef?.hideTooltip"
+                    ></i>
+                </div>
             </template>
             <template #body="slotProps">
                 <SrEditDesc :reqId="slotProps.node.data.reqId" label=""/>
             </template>
         </Column>
-
-        <!-- Request Parameters Button & Dialog -->
-        <Column field="parameters" header="Req Parms" class="sr-par-fmt">
-            <template #body="slotProps">
-                <Button 
-                    icon="pi pi-eye" 
-                    label="View" 
-                    class="sr-glow-button"
-                    @click="openParmsDialog(slotProps.node.data.parameters)"
-                    @mouseover="tooltipRef?.showTooltip($event, 'View Request Parameters')"
-                    @mouseleave="tooltipRef?.hideTooltip"
-                    variant="text"
-                    rounded
-                ></Button>
-            </template>
-        </Column>
-
         <!-- Server Parameters Button & Dialog -->
-        <Column field="svr_parms" header="Svr Parms" class="sr-par-fmt">
+        <Column field="svr_parms" class="sr-par-fmt">
+            <template #header>
+                <div style="text-align: center; width: 100%;">Svr Parms</div>
+            </template>
             <template #body="slotProps">
                 <Button
                     icon="pi pi-eye"
@@ -286,9 +322,11 @@ onUnmounted(() => {
                 ></Button>
             </template>
         </Column>
-
         <!-- Geo Metadata Button & Dialog -->
-        <Column field="geo_metadata" header="Geo Metadata" class="sr-par-fmt">
+        <Column field="geo_metadata" class="sr-par-fmt">
+            <template #header>
+                <div style="text-align: center; width: 100%;">Geo Metadata</div>
+            </template>
             <template #body="slotProps">
                 <Button
                     v-if="slotProps.node.data.geo_metadata"
@@ -304,18 +342,40 @@ onUnmounted(() => {
                 <span v-else style="color: #999;">—</span>
             </template>
         </Column>
-
-        <Column field="cnt" header="Count">
+        <Column field="crs" style="width: 10rem;">
+            <template #header>
+                <div style="text-align: left; width: 100%;">CRS</div>
+            </template>
+            <template #body="slotProps">
+                <span v-if="slotProps.node.data.geo_metadata?.columns?.geometry?.crs?.id">
+                    {{ slotProps.node.data.geo_metadata.columns.geometry.crs.id.authority }}:{{ slotProps.node.data.geo_metadata.columns.geometry.crs.id.code }}
+                </span>
+                <span v-else-if="slotProps.node.data.geo_metadata?.columns?.geometry?.crs?.name">
+                    {{ slotProps.node.data.geo_metadata.columns.geometry.crs.name }}
+                </span>
+                <span v-else style="color: #999;">—</span>
+            </template>
+        </Column>
+        <Column field="cnt">
+            <template #header>
+                <div style="text-align: left; width: 100%;">Count</div>
+            </template>
             <template #body="slotProps">
                 {{ new Intl.NumberFormat().format(parseInt(slotProps.node.data.cnt)) }}
             </template>
         </Column>
-        <Column field="num_bytes" header="Size">
+        <Column field="num_bytes">
+            <template #header>
+                <div style="text-align: left; width: 100%;">Size</div>
+            </template>
             <template #body="slotProps">
                 {{ formatBytes(slotProps.node.data.num_bytes) }}
             </template>
         </Column>
-        <Column field="num_gran" header="# Granules">
+        <Column field="num_gran">
+            <template #header>
+                <div style="text-align: left; width: 100%;"># Granules</div>
+            </template>
             <template #body="slotProps">
                 <span v-if="slotProps.node.data.num_gran > 0">
                     {{ new Intl.NumberFormat().format(slotProps.node.data.num_gran) }}
@@ -324,7 +384,10 @@ onUnmounted(() => {
             </template>
         </Column>
 
-        <Column field="area_of_poly" header="Area">
+        <Column field="area_of_poly">
+            <template #header>
+                <div style="text-align: left; width: 100%;">Area</div>
+            </template>
             <template #body="slotProps">
                 <span v-if="Number.isFinite(slotProps.node.data.area_of_poly)">
                     {{
@@ -335,7 +398,11 @@ onUnmounted(() => {
                 <span v-else>—</span>
             </template>
         </Column>
-        <Column field="elapsed_time" header="Elapsed Time" style="width: 10%" />
+        <Column field="elapsed_time" style="width: 10%">
+            <template #header>
+                <div style="text-align: left; width: 100%;">Elapsed Time</div>
+            </template>
+        </Column>
         <Column field="Actions" header="" class="sr-export">
             <template #header>
                 <div 
@@ -428,6 +495,13 @@ onUnmounted(() => {
     font-size: var(--p-button-sm-font-size);
 }
 
+:deep(.sr-centered-header) {
+    text-align: center !important;
+}
+
+:deep(.sr-centered-header .p-column-header-content) {
+    justify-content: center !important;
+}
 
 .error-message {
     color: red;

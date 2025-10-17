@@ -37,7 +37,13 @@ const router = createRouter({
     {
       path: '/request',
       name: 'request',
-      component: () => import('@/views/RequestView.vue') 
+      component: () => import('@/views/RequestView.vue')
+    },
+    {
+      path: '/request/:reqId',
+      name: 'request-with-params',
+      component: () => import('@/views/RequestView.vue'),
+      props: true
     },
     {
       path: '/analyze/:id',

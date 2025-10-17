@@ -155,14 +155,14 @@ export function drawGeoJson(
 ): Extent | undefined {
     const map = useMapStore().map;
     if (!map || !vectorSource || !geoJsonData) return;
-    console.log(`drawGeoJson called with uniqueId: ${uniqueId}, color: ${color}, noFill: ${noFill}, tag: ${tag} dataProjection: ${dataProjection} geoJsonData:`, geoJsonData);
-    const geoJsonString = typeof geoJsonData === 'string'
-        ? geoJsonData.trim()
-        : JSON.stringify(geoJsonData);
 
     const format = new GeoJSON();
     let features: Feature[] = [];
     try {
+        //console.log(`drawGeoJson called with uniqueId: ${uniqueId}, color: ${color}, noFill: ${noFill}, tag: ${tag} dataProjection: ${dataProjection} geoJsonData:`, geoJsonData);
+        const geoJsonString = typeof geoJsonData === 'string'
+            ? geoJsonData.trim()
+            : JSON.stringify(geoJsonData);
         //console.log('Parsing GeoJSON data:', geoJsonString);
 
         const normalized = unwrapGeoJson(geoJsonData);
