@@ -260,11 +260,29 @@ onUnmounted(() => {
                     variant="text"
                     rounded
                 ></Button>
+            </template>
+        </Column>
+        <!-- Server Parameters Button & Dialog -->
+        <Column field="svr_parms" class="sr-par-fmt">
+            <template #header>
+                <div style="text-align: center; width: 100%;">Svr Parms</div>
+            </template>
+            <template #body="slotProps">
                 <Button
                     icon="pi pi-sliders-h"
                     class="sr-glow-button p-button-icon-only"
                     @click="loadParamsAndGoToRequest(slotProps.node.data.reqId)"
                     @mouseover="tooltipRef?.showTooltip($event, 'Load parameters into Request view')"
+                    @mouseleave="tooltipRef?.hideTooltip"
+                    variant="text"
+                    rounded
+                ></Button>
+                <Button
+                    icon="pi pi-eye"
+                    label="View"
+                    class="sr-glow-button"
+                    @click="openSvrParmsDialog(slotProps.node.data.svr_parms)"
+                    @mouseover="tooltipRef?.showTooltip($event, 'View Server Parameters')"
                     @mouseleave="tooltipRef?.hideTooltip"
                     variant="text"
                     rounded
@@ -304,24 +322,6 @@ onUnmounted(() => {
                 <SrEditDesc :reqId="slotProps.node.data.reqId" label=""/>
             </template>
         </Column>
-        <!-- Server Parameters Button & Dialog -->
-        <Column field="svr_parms" class="sr-par-fmt">
-            <template #header>
-                <div style="text-align: center; width: 100%;">Svr Parms</div>
-            </template>
-            <template #body="slotProps">
-                <Button
-                    icon="pi pi-eye"
-                    label="View"
-                    class="sr-glow-button"
-                    @click="openSvrParmsDialog(slotProps.node.data.svr_parms)"
-                    @mouseover="tooltipRef?.showTooltip($event, 'View Server Parameters')"
-                    @mouseleave="tooltipRef?.hideTooltip"
-                    variant="text"
-                    rounded
-                ></Button>
-            </template>
-        </Column>
         <!-- Geo Metadata Button & Dialog -->
         <Column field="geo_metadata" class="sr-par-fmt">
             <template #header>
@@ -339,7 +339,7 @@ onUnmounted(() => {
                     variant="text"
                     rounded
                 ></Button>
-                <span v-else style="color: #999;">—</span>
+                <div v-else class="sr-empty-cell">—</div>
             </template>
         </Column>
         <Column field="crs" style="width: 10rem;">
@@ -353,7 +353,7 @@ onUnmounted(() => {
                 <span v-else-if="slotProps.node.data.geo_metadata?.columns?.geometry?.crs?.name">
                     {{ slotProps.node.data.geo_metadata.columns.geometry.crs.name }}
                 </span>
-                <span v-else style="color: #999;">—</span>
+                <div v-else class="sr-empty-cell">—</div>
             </template>
         </Column>
         <Column field="cnt">
@@ -507,5 +507,11 @@ onUnmounted(() => {
     color: red;
     font-size: 1.5rem;
     margin-top: 1rem;
+}
+
+.sr-empty-cell {
+    color: #999;
+    text-align: center;
+    width: 100%;
 }
 </style>
