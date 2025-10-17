@@ -260,29 +260,35 @@ onUnmounted(() => {
                     variant="text"
                     rounded
                 ></Button>
+                <Button
+                    icon="pi pi-sliders-h"
+                    class="sr-glow-button p-button-icon-only"
+                    @click="loadParamsAndGoToRequest(slotProps.node.data.reqId)"
+                    @mouseover="tooltipRef?.showTooltip($event, 'Load Svr Parms into Request view')"
+                    @mouseleave="tooltipRef?.hideTooltip"
+                    variant="text"
+                    rounded
+                ></Button>
             </template>
         </Column>
         <!-- Server Parameters Button & Dialog -->
         <Column field="svr_parms" class="sr-par-fmt">
             <template #header>
-                <div style="text-align: center; width: 100%;">Svr Parms</div>
+                <div
+                    style="text-align: center; width: 100%;"
+                    @mouseover="tooltipRef?.showTooltip($event, 'Parameters used by the server for this request (including defaulted parameters)')"
+                    @mouseleave="tooltipRef?.hideTooltip"
+                >
+                    Svr Parms
+                </div>
             </template>
             <template #body="slotProps">
-                <Button
-                    icon="pi pi-sliders-h"
-                    class="sr-glow-button p-button-icon-only"
-                    @click="loadParamsAndGoToRequest(slotProps.node.data.reqId)"
-                    @mouseover="tooltipRef?.showTooltip($event, 'Load parameters into Request view')"
-                    @mouseleave="tooltipRef?.hideTooltip"
-                    variant="text"
-                    rounded
-                ></Button>
                 <Button
                     icon="pi pi-eye"
                     label="View"
                     class="sr-glow-button"
                     @click="openSvrParmsDialog(slotProps.node.data.svr_parms)"
-                    @mouseover="tooltipRef?.showTooltip($event, 'View Server Parameters')"
+                    @mouseover="tooltipRef?.showTooltip($event, 'View Server Parameters (includes defaulted parameters)')"
                     @mouseleave="tooltipRef?.hideTooltip"
                     variant="text"
                     rounded
