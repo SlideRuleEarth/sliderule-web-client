@@ -1,8 +1,8 @@
 import Dexie from 'dexie';
 import type { Table, DBCore, DBCoreTable, DBCoreMutateRequest, DBCoreMutateResponse, DBCoreGetManyRequest } from 'dexie';
-import { type ReqParams, type NullReqParams, type AtlReqParams } from '@/types/SrTypes';
+import { type ReqParams, type NullReqParams } from '@/types/SrTypes';
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
-import type { SrSvrParmsUsed, SrSvrParmsPolyOnly } from '@/types/SrTypes';
+import type { SrSvrParmsUsed, SrSvrParmsPolyOnly, AtlxxReqParams } from '@/types/SrTypes';
 import type { SrRegion } from '@/types/SrTypes';
 
 export const DEFAULT_DESCRIPTION = '';
@@ -31,7 +31,7 @@ export interface SrRequestRecord {
     star?: boolean; // mark as favorite
     status?: string; // status: 'pending', 'processing', 'success', 'error'
     func?: string; // function name
-    parameters?: ReqParams; //  parameters
+    parameters?: AtlxxReqParams; //  parameters
     rcvd_parms?: ReqParams; //  parameters received/sent to server (from metadata)
     svr_parms?: SrSvrParmsUsed; //  parameters used/returned from server
     geo_metadata?: any; //  geo metadata from geoparquet file
@@ -1154,9 +1154,9 @@ export class SlideRuleDexie extends Dexie {
             const reqId = await this.requests.add({ 
                 status: 'pending', 
                 func: '',
-                cnt: 0, 
-                parameters: {} as NullReqParams, 
-                start_time: new Date(), 
+                cnt: 0,
+                parameters: {} as AtlxxReqParams,
+                start_time: new Date(),
                 end_time: new Date(),
                 description: DEFAULT_DESCRIPTION, 
                 star: false,

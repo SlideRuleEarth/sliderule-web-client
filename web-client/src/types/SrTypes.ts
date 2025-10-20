@@ -204,6 +204,7 @@ export interface AtlxxReqParams {
 }
 export interface NullReqParams {
     null: null;
+    parms?: {};
 }
 export interface SrSurfaceFit {
   maxi: number;
