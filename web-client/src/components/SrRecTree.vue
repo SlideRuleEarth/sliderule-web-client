@@ -184,7 +184,7 @@ const exportFile = async (req_id:number) => {
     showExportDialog.value = true;
 };
 
-const gotToRequestViewAndLoadParms = async (req_id: number) => {
+const goToRequestViewAndLoadParms = async (req_id: number) => {
     try {
         // Navigate to Request view with reqId as a URL parameter
         // The RequestView will detect this and load the params after it mounts
@@ -277,8 +277,8 @@ onUnmounted(() => {
                     icon="pi pi-eye"
                     label="Parms"
                     class="sr-glow-button"
-                    @click="openParmsDialog(slotProps.node.data.parameters)"
-                    @mouseover="tooltipRef?.showTooltip($event, 'View Request Parameters sent to server')"
+                    @click="slotProps.node.data.rcvd_parms ? openRcvdParmsDialog(slotProps.node.data.rcvd_parms) : openParmsDialog(slotProps.node.data.parameters)"
+                    @mouseover="tooltipRef?.showTooltip($event, slotProps.node.data.rcvd_parms ? 'View request parameters received by server and returned from server' : 'View Request Parameters sent to server')"
                     @mouseleave="tooltipRef?.hideTooltip"
                     variant="text"
                     rounded
@@ -286,38 +286,12 @@ onUnmounted(() => {
                 <Button
                     icon="pi pi-sliders-h"
                     class="sr-glow-button p-button-icon-only"
-                    @click="gotToRequestViewAndLoadParms(slotProps.node.data.reqId)"
+                    @click="goToRequestViewAndLoadParms(slotProps.node.data.reqId)"
                     @mouseover="tooltipRef?.showTooltip($event, 'Load the parms we received back from the server into Request view')"
                     @mouseleave="tooltipRef?.hideTooltip"
                     variant="text"
                     rounded
                 ></Button>
-            </template>
-        </Column>
-        <!-- Received Parameters Button & Dialog -->
-        <Column field="rcvd_parms" class="sr-par-fmt">
-            <template #header>
-                <div
-                    style="text-align: center; width: 100%;"
-                    @mouseover="tooltipRef?.showTooltip($event, 'Req Parameters received by server and returned from server')"
-                    @mouseleave="tooltipRef?.hideTooltip"
-                >
-                    Rcvd Parms
-                </div>
-            </template>
-            <template #body="slotProps">
-                <Button
-                    v-if="slotProps.node.data.rcvd_parms"
-                    icon="pi pi-eye"
-                    label="View"
-                    class="sr-glow-button"
-                    @click="openRcvdParmsDialog(slotProps.node.data.rcvd_parms)"
-                    @mouseover="tooltipRef?.showTooltip($event, 'View request parameters received by server and returned from server')"
-                    @mouseleave="tooltipRef?.hideTooltip"
-                    variant="text"
-                    rounded
-                ></Button>
-                <div v-else class="sr-empty-cell">—</div>
             </template>
         </Column>
         <!-- Server Parameters Button & Dialog -->
