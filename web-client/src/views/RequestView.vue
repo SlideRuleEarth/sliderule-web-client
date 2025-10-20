@@ -19,13 +19,13 @@
 
     async function loadParametersFromRequest(reqId: number) {
         console.log('loadParametersFromRequest called with reqId:', reqId);
+        // This works for both regular requests and imported requests
         try {
             // Get the request parameters from the database
             const request = await db.getRequest(reqId);
             console.log('Retrieved request from DB:', request);
 
             // Use rcvd_parms (received parameters) which contains the actual parameters sent to server
-            // This works for both regular requests and imported requests
             let parameters = null;
             if (request?.rcvd_parms) {
                 try {
@@ -40,8 +40,8 @@
             }
 
             // Fallback to request.parameters if rcvd_parms is not available
-            if (!parameters && request?.parameters && Object.keys(request.parameters).length > 0) {
-                parameters = request.parameters;
+            if (!parameters && request?.parameters && request?.parameters.parms && Object.keys(request.parameters.parms).length > 0) {
+                parameters = request.parameters.parms;
                 console.log('Falling back to request.parameters:', parameters);
             }
 
