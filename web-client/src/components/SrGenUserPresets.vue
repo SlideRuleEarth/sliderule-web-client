@@ -14,10 +14,10 @@ const boxes = computed(() => [
   { id: 3, name: "ICESat-2 Canopy Heights", description: "For land regions with vegetation", image: "/SrCanopy.webp" },
   { id: 4, name: "ICESat-2 Coastal Bathymetry", description: "For shallow water coastal regions", image: "/SrOcean.webp" },
   { id: 5, name: "ICESat-2 Geolocated Photons", description: "For raw photon cloud", image: "/SrNoise.webp" },
-  { id: 6, name: "ICESat-2 Inland Bodies of Water", description: "For inland bodies of water", image: "/SrOcean.webp" },
+  { id: 6, name: "ICESat-2 Inland Bodies of Water", description: "For inland bodies of water", image: "/SrInlandWater.webp" },
   { id: 7, name: "GEDI Biomass Density", description: "For land regions with vegetation", image: "/SrCanopy.webp" },
-  { id: 8, name: "GEDI Elevations w/Canopy", description: "For elevation w/Canopy heights", image: "/SrInlandWater.webp" },
-  { id: 9, name: "GEDI Geolocated Waveforms", description: "For raw waveform returns", image: "/SrGround.webp" },
+  { id: 8, name: "GEDI Elevations w/Canopy", description: "For elevation w/Canopy heights", image: "/SrCanopy.webp" },
+  { id: 9, name: "GEDI Geolocated Waveforms", description: "For raw waveform returns", image: "/SrNoise.webp" },
 ]);
 
 
