@@ -161,38 +161,99 @@ const customUploader = async (event: any) => {
       await directoryHandle.removeEntry(opfsFile.name);
       return;
     }
-    if (!('meta' in metadata)) {
-      toast.add({ severity: 'warn', summary: 'Incomplete File Format', detail: 'No "meta" field; cannot import.', life: 5000 });
+
+    // Check if we have either 'meta' or 'sliderule' field
+    const hasMeta = 'meta' in metadata;
+    const hasSvrParms = 'sliderule' in metadata;
+
+    if (!hasMeta && !hasSvrParms) {
+      toast.add({ severity: 'warn', summary: 'Incomplete File Format', detail: 'No "meta" or "sliderule" field in metadata; cannot import.', life: 5000 });
       await directoryHandle.removeEntry(opfsFile.name);
       return;
     }
 
     upload_progress.value = 90;
 
-    const srReqRec = await requestsStore.createNewSrRequestRecord();
-    if (!srReqRec || !srReqRec.req_id) {
-      await tryRemoveOpfsFile(newFilename); // cleanup
-      toast.add({ severity: 'error', summary: 'Record Error', detail: 'Failed to create request record.', life: 4000 });
-      return;
+    const svrParmsRaw = metadata.sliderule;
+    const svrParmsObj = typeof svrParmsRaw === 'string' ? JSON.parse(svrParmsRaw) : svrParmsRaw; // will use this for legacy files
+    const metaRaw = metadata.meta;
+    const metaObj = typeof metaRaw === 'string' ? JSON.parse(metaRaw) : metaRaw; // will use this for "x" api files
+    let hasFit;
+    let hasPhoReal;
+    let endpoint;
+    if(metaObj){
+        if('request' in metaObj && 'fit' in metaObj.request){ 
+            hasFit = metaObj.request.fit; 
+        } else {
+            hasFit = false;
+        }
+        if('request' in metaObj && 'phoreal' in metaObj.request){
+            hasPhoReal = metaObj.request.phoreal;
+        } else {
+            hasPhoReal = false;
+        }
+        if('endpoint' in metaObj){
+            endpoint = metaObj.endpoint;
+        }
     }
-
+    const hasLegacySvrParms = svrParmsObj && 'server' in svrParmsObj && 'rqst' in svrParmsObj.server && 'parms' in svrParmsObj.server.rqst;
+    if(hasFit === undefined){
+        if(hasLegacySvrParms){
+            hasFit = svrParmsObj.server.rqst.parms.fit ?? false;
+            hasPhoReal = svrParmsObj.server.rqst.parms.phoreal ?? false;
+        } else {
+            console.error('Invalid svrParmsObj structure (expecting server.rqst.parms.<fit|phoreal> for legacy api):', svrParmsObj);
+            hasFit = false;
+        }
+    }
+    if(hasPhoReal === undefined){
+        if(hasLegacySvrParms){
+            hasPhoReal = svrParmsObj.server.rqst.parms.phoreal ?? false;
+        } else {
+            console.error('Invalid svrParmsObj structure (expecting server.rqst.parms.<fit|phoreal> for legacy api):', svrParmsObj);
+            hasPhoReal = false;
+        }
+        
+    }
+    if(endpoint === undefined || endpoint === null || endpoint === ''){
+        if(hasLegacySvrParms){
+            endpoint = svrParmsObj.server.rqst.endpoint;
+        } else {
+            console.error('Invalid svrParmsObj structure (expecting server.rqst.parms.<fit|phoreal> for legacy api):', svrParmsObj);
+        }
+    }
+    if(endpoint == undefined || endpoint === null || endpoint === ''){
+        console.warn('Endpoint missing from metadata; attempting to infer from filename.');
+        endpoint = getApiFromFilename(opfsFile.name).func;
+    }
+    console.log('Determined endpoint:', endpoint, 'hasFit:', hasFit, 'hasPhoReal:', hasPhoReal, 'metaObj:', metaObj, 'svrParmsObj:', svrParmsObj);
+    const finalEndpoint = endpoint;
+    if(finalEndpoint == undefined || finalEndpoint === null || finalEndpoint === ''){
+        toast.add({ severity: 'error', summary: 'Function Error', detail: 'Unable to determine API/function from metadata or filename.', life: 4000 });
+        await tryRemoveOpfsFile(newFilename); // cleanup
+        return;
+    }
+    let srReqRec;
     try {
-      const metaRaw = metadata.meta;
-      const metaObj = typeof metaRaw === 'string' ? JSON.parse(metaRaw) : metaRaw;
-      srReqRec.func = metaObj?.endpoint || getApiFromFilename(opfsFile.name).func;
-      if (!srReqRec.func) throw new Error('Function not found in metadata or filename');
-
-      const hasFit = metaObj?.request?.fit;
-      const hasPhoReal = metaObj?.request?.phoreal;
-      if (hasFit) srReqRec.func += '-surface';
-      if (hasPhoReal) srReqRec.func += '-phoreal';
+        srReqRec = await requestsStore.createNewSrRequestRecord();
+        if (!srReqRec || !srReqRec.req_id) {
+            toast.add({ severity: 'error', summary: 'Record Error', detail: 'Failed to create request record.', life: 4000 });
+            await tryRemoveOpfsFile(newFilename); // cleanup
+            return;
+        }        
+        srReqRec.func = finalEndpoint;
+        if (hasFit) srReqRec.func += '-surface';
+        if (hasPhoReal) srReqRec.func += '-phoreal';
     } catch (e) {
-      await tryRemoveOpfsFile(newFilename); // cleanup
       toast.add({ severity: 'error', summary: 'Metadata Error', detail: 'Unable to parse SlideRule metadata.', life: 4000 });
       console.error('Error parsing SlideRule metadata:', e);
+      try {
+        await tryRemoveOpfsFile(newFilename); // cleanup
+      } catch (cleanupErr) {
+        console.error('Error cleaning up file after metadata error:', cleanupErr);
+      }
       return;
     }
-
     srReqRec.file = opfsFile.name;
     srReqRec.status = 'imported';
     srReqRec.description = `Imported from SlideRule Parquet File ${file.name}`;
@@ -202,28 +263,28 @@ const customUploader = async (event: any) => {
 
     // If any of the following throws, we'll delete the OPFS file to avoid orphans
     try {
-      const svr_parms_str = await duckDbLoadOpfsParquetFile(newFilename);
-      srReqRec.svr_parms = svr_parms_str;
-      const geoMetadata = await getGeoMetadataFromFile(newFilename);
-      srReqRec.geo_metadata = geoMetadata;
-
-      await indexedDb.updateRequestRecord(srReqRec, true);
-      await recTreeStore.updateRecMenu('From customUploader', srReqRec.req_id);
-      await readOrCacheSummary(srReqRec.req_id);
-      await updateAreaInRecord(srReqRec.req_id);
-      await updateNumGranulesInRecord(srReqRec.req_id);
-      await updateReqParmsFromMeta(srReqRec.req_id);
-
-      const summary = await indexedDb.getWorkerSummary(srReqRec.req_id);
-      if (summary) {
-        srReqRec.cnt = summary.numPoints;
+        const svr_parms_str = await duckDbLoadOpfsParquetFile(newFilename);
+        srReqRec.svr_parms = svr_parms_str;
+        const geoMetadata = await getGeoMetadataFromFile(newFilename);
+        srReqRec.geo_metadata = geoMetadata;
+            
         await indexedDb.updateRequestRecord(srReqRec, true);
-        toast.add({ severity: 'success', summary: 'Import Complete', detail: 'File imported successfully!', life: 5000 });
-        upload_status.value = 'success';
-        emit('file-imported', srReqRec.req_id.toString());
-      } else {
-        throw new Error(`Failed to get summary for req_id: ${srReqRec.req_id}`);
-      }
+        await recTreeStore.updateRecMenu('From customUploader', srReqRec.req_id);
+        await readOrCacheSummary(srReqRec.req_id);
+        await updateAreaInRecord(srReqRec.req_id);
+        await updateNumGranulesInRecord(srReqRec.req_id);
+        await updateReqParmsFromMeta(srReqRec.req_id);
+
+        const summary = await indexedDb.getWorkerSummary(srReqRec.req_id);
+        if (summary) {
+            srReqRec.cnt = summary.numPoints;
+            await indexedDb.updateRequestRecord(srReqRec, true);
+            toast.add({ severity: 'success', summary: 'Import Complete', detail: 'File imported successfully!', life: 5000 });
+            upload_status.value = 'success';
+            emit('file-imported', srReqRec.req_id.toString());
+        } else {
+            throw new Error(`Failed to get summary for req_id: ${srReqRec.req_id}`);
+        }
     } catch (laterErr) {
       // Critical: remove the OPFS file if post-copy processing failed
       await tryRemoveOpfsFile(newFilename);

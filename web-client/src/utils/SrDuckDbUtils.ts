@@ -35,6 +35,40 @@ const srMutex = new SrMutex();
 function aliasKey(prefix: string, colName: string): string {
     return alias(prefix, colName);
 }
+
+/**
+ * Safely convert a value to a number, handling BigInt values.
+ * For statistical operations (min/max/etc), returns NaN if BigInt is too large.
+ * This prevents crashes while indicating the value can't be used for math operations.
+ */
+function safeToNumber(value: any): number {
+    if (typeof value === 'bigint') {
+        // Check if the BigInt is within JavaScript's safe integer range
+        if (value > Number.MAX_SAFE_INTEGER || value < Number.MIN_SAFE_INTEGER) {
+            // Return NaN for statistical operations - this field shouldn't be used for min/max
+            return NaN;
+        }
+        return Number(value);
+    }
+    return value;
+}
+
+/**
+ * Converts a value to a number or string, handling BigInt values intelligently.
+ * For BigInt values outside safe range, converts to string for display purposes.
+ * This allows identifier fields like shot_number to be displayed/plotted as strings.
+ */
+function valueToNumberOrString(value: any): number | string {
+    if (typeof value === 'bigint') {
+        // Check if the BigInt is within JavaScript's safe integer range
+        if (value > Number.MAX_SAFE_INTEGER || value < Number.MIN_SAFE_INTEGER) {
+            // Convert to string for display - this is likely an identifier field
+            return value.toString();
+        }
+        return Number(value);
+    }
+    return value;
+}
 export const readOrCacheSummary = async (req_id:number) : Promise<SrRequestSummary | undefined> => {
     try{
         const summary = await _duckDbReadOrCacheSummary(req_id);
@@ -46,15 +80,29 @@ export const readOrCacheSummary = async (req_id:number) : Promise<SrRequestSumma
     }
 }
 
-function setElevationDataOptionsFromFieldNames(reqIdStr: string, fieldNames: string[]): void {
-    //console.log(`setElevationDataOptionsFromFieldNames reqId:${reqIdStr}`, fieldNames );
+async function setElevationDataOptionsFromFieldNames(reqId: number, fieldNames: string[], funcStr?: string): Promise<void> {
+    //console.log(`setElevationDataOptionsFromFieldNames reqId:${reqId}`, fieldNames );
     const startTime = performance.now(); // Start time
     const chartStore = useChartStore();
     try {
+        const reqIdStr = reqId.toString();
         const fncs = useFieldNameStore();
+
+        // NOTE: Metadata (recordinfo) should already be loaded by prepareDbForReqId
+        // calling loadMetaForReqId. If not, getHFieldName will fall back to hardcoded values.
+
+        // If funcStr not provided, fall back to expensive database lookup
+        if (!funcStr) {
+            console.warn(`setElevationDataOptionsFromFieldNames: No funcStr provided for reqId ${reqId}, falling back to database`);
+            const request = await indexedDb.getRequest(reqId);
+            funcStr = request?.func || '';
+            if (funcStr) {
+                console.log(`setElevationDataOptionsFromFieldNames: Retrieved func='${funcStr}' from database for reqId ${reqId}`);
+            }
+        }
+
         // Update elevation data options in the chart store
         chartStore.setElevationDataOptions(reqIdStr, fieldNames);
-        const reqId = parseInt(reqIdStr);
         // Get the height field name
         let heightFieldname = fncs.getHFieldName(reqId);
 
@@ -62,10 +110,6 @@ function setElevationDataOptionsFromFieldNames(reqIdStr: string, fieldNames: str
         // If not, the metadata is incorrect and we should use the hardcoded default
         if (!fieldNames.includes(heightFieldname)) {
             console.warn(`Height field "${heightFieldname}" from metadata not found in file columns. Falling back to hardcoded default.`);
-            // Clear the cached metadata value so it doesn't get used again
-            if (reqId in fncs.recordInfoCache) {
-                delete fncs.recordInfoCache[reqId];
-            }
             // Get the hardcoded value by calling getHFieldName again (will now skip the cache)
             heightFieldname = fncs.getHFieldName(reqId);
             console.log(`Using hardcoded height field: "${heightFieldname}"`);
@@ -76,7 +120,8 @@ function setElevationDataOptionsFromFieldNames(reqIdStr: string, fieldNames: str
         // Update the index of the elevation data options for height
         chartStore.setNdxOfElevationDataOptionsForHeight(reqIdStr, ndx);
         // Retrieve the existing Y data for the chart
-        const defElOptions = fncs.getDefaultElOptions(reqId);
+        // Pass the func to avoid redundant lookups (from tree or database above)
+        const defElOptions = fncs.getDefaultElOptions(reqId, funcStr);
         for(const elevationOption of defElOptions){
             const existingYdata = chartStore.getYDataOptions(reqIdStr);
             // Check if the elevation option is already in the Y data
@@ -242,8 +287,14 @@ export async function prepareDbForReqId(reqId: number): Promise<void> {
     const startTime = performance.now();
     try {
         const fileName = await indexedDb.getFilename(reqId);
+        const funcStr = await indexedDb.getFunc(reqId);
         const duckDbClient = await createDuckDbClient();
         await duckDbClient.insertOpfsParquet(fileName);
+
+        // Load all metadata early (recordinfo + as_geo) to avoid race conditions
+        // This ensures subsequent calls to getHFieldName, getLatFieldName, etc. use actual metadata
+        const fieldNameStore = useFieldNameStore();
+        await fieldNameStore.loadMetaForReqId(reqId);
 
         // Get typed columns and keep only scalar numerics (no arrays/lists)
         const colTypes = await duckDbClient.queryColumnTypes(fileName);
@@ -254,7 +305,8 @@ export async function prepareDbForReqId(reqId: number): Promise<void> {
         await updateAllFilterOptions(reqId);
         //console.trace(`prepareDbForReqId reqId:${reqId} colNames:`, scalarNumericCols);
         // Use filtered names so arrays never reach the chart store
-        setElevationDataOptionsFromFieldNames(reqId.toString(), scalarNumericCols);
+        // Pass funcStr to avoid circular dependency on recTreeStore
+        await setElevationDataOptionsFromFieldNames(reqId, scalarNumericCols, funcStr);
     } catch (error) {
         console.error('prepareDbForReqId error:', error);
         throw error;
@@ -1165,7 +1217,7 @@ export interface FetchScatterDataOptions {
         minMaxLowHigh: MinMaxLowHigh,
         dataOrderNdx: Record<string, number>,
         orderNdx: number
-    ) => [number[],number];
+    ) => [(number | string)[],number];
   
     /**
      * A callback for how to set store states for min/max x, or any special logic
@@ -1189,7 +1241,7 @@ export interface FetchScatterDataOptions {
     parentMinX?: number;
 }
 export interface SrScatterChartDataArray {
-    data: number[][]; 
+    data: (number | string)[][];
 }
 
 export function setDataOrder(dataOrderNdx: Record<string, number>, colName: string, orderNdx: number) {
@@ -1264,31 +1316,33 @@ export async function fetchScatterData(
         const height_fieldname = fieldNameStore.getHFieldName(reqId);
         const hasGeometry = geometryInfo?.hasGeometry ?? false;
 
-        // Only floats get isnan/isinf filters; other types just check IS NOT NULL
-        const yNanClauses = y
-        .filter((col) => col !== timeField)
-        .map((col) => {
-            const t = getColType(col);
-            let colExpr: string;
+        // Build WHERE clause to filter out invalid rows
+        // Strategy: Only filter on X axis (required for plotting). Y columns can have NULLs (will show as gaps).
+        const xType = getColType(x);
+        let xColExpr: string;
 
-            // Check if this column should be extracted from geometry
-            if (hasGeometry && col === lon_fieldname) {
-                colExpr = `ST_X(${duckDbClient.escape('geometry')})`;
-            } else if (hasGeometry && col === lat_fieldname) {
-                colExpr = `ST_Y(${duckDbClient.escape('geometry')})`;
-            } else if (hasGeometry && geometryInfo?.zCol && col === height_fieldname) {
-                colExpr = `ST_Z(${duckDbClient.escape('geometry')})`;
-            } else {
-                colExpr = duckDbClient.escape(col);
-            }
+        // Check if X column should be extracted from geometry
+        if (hasGeometry && x === lon_fieldname) {
+            xColExpr = `ST_X(${duckDbClient.escape('geometry')})`;
+        } else if (hasGeometry && x === lat_fieldname) {
+            xColExpr = `ST_Y(${duckDbClient.escape('geometry')})`;
+        } else if (hasGeometry && geometryInfo?.zCol && x === height_fieldname) {
+            xColExpr = `ST_Z(${duckDbClient.escape('geometry')})`;
+        } else {
+            xColExpr = duckDbClient.escape(x);
+        }
 
-            if (FLOAT_TYPES.has(t)) {
-                return `NOT isnan(${colExpr}) AND NOT isinf(${colExpr})`;
-            }
-            return `${colExpr} IS NOT NULL`;
-        });
+        // Filter on X column validity
+        let xFilterClause: string;
+        if (FLOAT_TYPES.has(xType)) {
+            xFilterClause = `NOT isnan(${xColExpr}) AND NOT isinf(${xColExpr})`;
+        } else {
+            xFilterClause = `${xColExpr} IS NOT NULL`;
+        }
 
-        const yNanClause = yNanClauses.length ? yNanClauses.join(' AND ') : 'TRUE';
+        // Note: We don't filter on Y columns being NULL - they can have NULLs which will show as gaps
+        // This allows plotting even when some Y columns are entirely NULL
+        const yNanClause = xFilterClause;
 
         let finalWhereClause = '';
         if (!whereClause || !whereClause.trim()) {
@@ -1312,10 +1366,7 @@ export async function fetchScatterData(
             
         const queryResultMinMax: QueryResult = await duckDbClient.query(minMaxQuery);
         //console.log('fetchScatterData queryResultMinMax:', queryResultMinMax);
-        let minXtoUse;
-        if(options.parentMinX){
-            minXtoUse = options.parentMinX;
-        }
+        let minXtoUse: number = options.parentMinX ?? 0;
         console.log('fetchScatterData options.parentMinX:',options.parentMinX,'minXtoUse:', minXtoUse);
 
         for await (const rowChunk of queryResultMinMax.readRows()) {
@@ -1329,13 +1380,9 @@ export async function fetchScatterData(
                 if (handleMinMaxRow) {
                     handleMinMaxRow(reqIdStr, row);
                 } else {
-                    // Convert to number first if BigInt
-                    const rawMinX = typeof row[aliasKey("min", `${x}`)] === 'bigint'
-                        ? Number(row[aliasKey("min", `${x}`)])
-                        : row[aliasKey("min", `${x}`)];
-                    const rawMaxX = typeof row[aliasKey("max", `${x}`)] === 'bigint'
-                        ? Number(row[aliasKey("max", `${x}`)])
-                        : row[aliasKey("max", `${x}`)];
+                    // Convert to number safely, handling BigInt
+                    const rawMinX = safeToNumber(row[aliasKey("min", `${x}`)]);
+                    const rawMaxX = safeToNumber(row[aliasKey("max", `${x}`)]);
 
                     if(options.parentMinX){
                         minXtoUse = options.parentMinX;
@@ -1354,19 +1401,11 @@ export async function fetchScatterData(
                 }
 
                 // Populate minMaxValues, but exclude NaN values (should be unnecessary now that we filter in SQL)
-                // Convert to number first if BigInt
-                const minX = typeof row[aliasKey("min", `${x}`)] === 'bigint'
-                    ? Number(row[aliasKey("min", `${x}`)])
-                    : row[aliasKey("min", `${x}`)];
-                const maxX = typeof row[aliasKey("max", `${x}`)] === 'bigint'
-                    ? Number(row[aliasKey("max", `${x}`)])
-                    : row[aliasKey("max", `${x}`)];
-                const lowX = typeof row[aliasKey("low", `${x}`)] === 'bigint'
-                    ? Number(row[aliasKey("low", `${x}`)])
-                    : row[aliasKey("low", `${x}`)];
-                const highX = typeof row[aliasKey("high", `${x}`)] === 'bigint'
-                    ? Number(row[aliasKey("high", `${x}`)])
-                    : row[aliasKey("high", `${x}`)];
+                // Convert to number safely, handling BigInt
+                const minX = safeToNumber(row[aliasKey("min", `${x}`)]);
+                const maxX = safeToNumber(row[aliasKey("max", `${x}`)]);
+                const lowX = safeToNumber(row[aliasKey("low", `${x}`)]);
+                const highX = safeToNumber(row[aliasKey("high", `${x}`)]);
 
                 if (!isNaN(minX) && !isNaN(maxX)) {
                     minMaxLowHigh[`x`] = { // genericize the name to x
@@ -1382,39 +1421,26 @@ export async function fetchScatterData(
                 }
 
                 y.forEach((yName) => {
-                    // Convert to number first if BigInt
-                    const minY = typeof row[aliasKey("min", yName)] === 'bigint'
-                        ? Number(row[aliasKey("min", yName)])
-                        : row[aliasKey("min", yName)];
-                    const maxY = typeof row[aliasKey("max", yName)] === 'bigint'
-                        ? Number(row[aliasKey("max", yName)])
-                        : row[aliasKey("max", yName)];
-                    const lowY = typeof row[aliasKey("low", yName)] === 'bigint'
-                        ? Number(row[aliasKey("low", yName)])
-                        : row[aliasKey("low", yName)];
-                    const highY = typeof row[aliasKey("high", yName)] === 'bigint'
-                        ? Number(row[aliasKey("high", yName)])
-                        : row[aliasKey("high", yName)];
+                    // Convert to number safely, handling BigInt
+                    const minY = safeToNumber(row[aliasKey("min", yName)]);
+                    const maxY = safeToNumber(row[aliasKey("max", yName)]);
+                    const lowY = safeToNumber(row[aliasKey("low", yName)]);
+                    const highY = safeToNumber(row[aliasKey("high", yName)]);
 
                     if (!isNaN(minY) && !isNaN(maxY) && !isNaN(lowY) && !isNaN(highY)) {
                         minMaxLowHigh[yName] = { min: minY, max: maxY, low: lowY, high: highY };
+                    } else {
+                        // Warn about columns with no valid data (likely all NULLs)
+                        console.warn(`fetchScatterData: Column '${yName}' has no valid data (all NULL or NaN values), skipping from plot`);
                     }
                 });
 
                 extraSelectColumns.forEach((colName) => {
-                    // Convert to number first if BigInt
-                    const minCol = typeof row[aliasKey("min", colName)] === 'bigint'
-                        ? Number(row[aliasKey("min", colName)])
-                        : row[aliasKey("min", colName)];
-                    const maxCol = typeof row[aliasKey("max", colName)] === 'bigint'
-                        ? Number(row[aliasKey("max", colName)])
-                        : row[aliasKey("max", colName)];
-                    const lowCol = typeof row[aliasKey("low", colName)] === 'bigint'
-                        ? Number(row[aliasKey("low", colName)])
-                        : row[aliasKey("low", colName)];
-                    const highCol = typeof row[aliasKey("high", colName)] === 'bigint'
-                        ? Number(row[aliasKey("high", colName)])
-                        : row[aliasKey("high", colName)];
+                    // Convert to number safely, handling BigInt
+                    const minCol = safeToNumber(row[aliasKey("min", colName)]);
+                    const maxCol = safeToNumber(row[aliasKey("max", colName)]);
+                    const lowCol = safeToNumber(row[aliasKey("low", colName)]);
+                    const highCol = safeToNumber(row[aliasKey("high", colName)]);
 
                     if (!isNaN(minCol) && !isNaN(maxCol) && !isNaN(lowCol) && !isNaN(highCol)) {
                         minMaxLowHigh[colName] = { min: minCol, max: maxCol, low: lowCol, high: highCol };
@@ -1470,7 +1496,7 @@ export async function fetchScatterData(
                     continue;
                 }
 
-                let rowValues: number[] = [];
+                let rowValues: (number | string)[] = [];
 
                 if (transformRow) {
                     [rowValues, orderNdx] = transformRow(
@@ -1483,34 +1509,27 @@ export async function fetchScatterData(
                     );
                 } else {
                     // Default transformation:
-                    // Convert to number first if BigInt
-                    const xRawVal = typeof row[x] === 'bigint' ? Number(row[x]) : row[x];
-                    const xVal = normalizeX ? xRawVal - minXtoUse : xRawVal;
+                    // Convert to number or string, handling BigInt intelligently
+                    const xRawVal = valueToNumberOrString(row[x]);
+                    const xVal = (normalizeX && typeof xRawVal === 'number') ? xRawVal - minXtoUse : xRawVal;
                     rowValues = [xVal];
                     orderNdx = setDataOrder(dataOrderNdx, 'x', orderNdx);
 
                     y.forEach((yName) => {
-                        // Convert to number first if BigInt
-                        const yVal = typeof row[yName] === 'bigint' ? Number(row[yName]) : row[yName];
+                        // Convert to number or string, handling BigInt intelligently
+                        const yVal = valueToNumberOrString(row[yName]);
                         rowValues.push(yVal);
                         orderNdx = setDataOrder(dataOrderNdx, yName, orderNdx);
                     });
 
                     if (extraSelectColumns.length > 0) {
                         extraSelectColumns.forEach((colName) => {
-                            // Convert to number first if BigInt
-                            const colVal = typeof row[colName] === 'bigint' ? Number(row[colName]) : row[colName];
+                            // Convert to number or string, handling BigInt intelligently
+                            const colVal = valueToNumberOrString(row[colName]);
                             rowValues.push(colVal);
                             orderNdx = setDataOrder(dataOrderNdx, colName, orderNdx);
                         });
                     }
-                }
-
-                // Double-check: exclude row if anything is NaN, but this should now be rare
-                // since we already filter them out in SQL.
-                if (rowValues.some((val) => isNaN(Number(val)))) {
-                    console.warn('Skipping row due to NaN values:', rowValues);
-                    continue;
                 }
 
                 chartData[reqIdStr].data.push(rowValues);

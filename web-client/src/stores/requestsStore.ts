@@ -65,7 +65,7 @@ export const useRequestsStore = defineStore('requests', {
       console.log('createNewSrRequestRecord() newReqId:', newReqId);
       if(newReqId){
         try{
-          this.reqs.push({req_id: newReqId, status: 'pending', func: '', cnt:0, parameters: {} as NullReqParams, start_time: new Date(), end_time: new Date(), elapsed_time: ''});
+          this.reqs.push({req_id: newReqId, status: 'pending', func: '', cnt:0, parameters: {parms:{}}, start_time: new Date(), end_time: new Date(), elapsed_time: ''});
           await this.fetchReqs();  // Fetch the updated requests from the db
           const newReq = this.getReqById(newReqId);
           console.log('New req created:', newReq);
@@ -374,8 +374,8 @@ export const useRequestsStore = defineStore('requests', {
           updatedGranules = true;
         }
 
-        // Always update request parameters from metadata
-        await updateReqParmsFromMeta(reqId);
+        // Always update request parameters from metadata for x endpoints
+        await updateReqParmsFromMeta(reqId); //for x endpoints
 
         if (updatedArea || updatedGranules) {
           await this.fetchReqs(); // refresh in-memory state

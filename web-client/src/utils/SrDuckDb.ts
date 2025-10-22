@@ -295,15 +295,22 @@ export class DuckDBClient {
     } catch (err) {
       // Fallback: pragma_table_info (works for physical tables/views)
       try {
+        console.error(`queryForColNames: DESCRIBE failed for ${fileName}, trying pragma_table_info fallback`, err);
         const lit = `'${fileName.replace(/'/g, "''")}'`; // string literal
         const res2 = await conn.query(
           `SELECT name AS column_name FROM pragma_table_info(${lit}) ORDER BY cid`
         );
         const names2 = (res2.toArray() as any[]).map(r => r.column_name);
         if (names2.length) return names2;
-      } catch {}
-      console.error(`queryForColNames failed for ${fileName}`, err);
-      throw err;
+        // If we got here, the fallback returned empty results
+        throw new Error(`No columns found via pragma_table_info for ${fileName}`);
+      } catch (fallbackErr) {
+        console.error(`queryForColNames: Both DESCRIBE and pragma_table_info failed for ${fileName}`, {
+          describeError: err,
+          pragmaError: fallbackErr
+        });
+        throw err; // Throw the original error
+      }
     } finally {
       await conn.close();
       //console.log(`queryForColNames took ${performance.now() - start} ms`);

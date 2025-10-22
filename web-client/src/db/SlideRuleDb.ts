@@ -131,13 +131,13 @@ export function hashPoly(poly: {lat: number, lon:number}[]): string {
     return Math.round(value * factor) / factor;
   }
   
-function getServerParams(request:SrRequestRecord): SrSvrParmsUsed|SrSvrParmsPolyOnly|NullReqParams {
+function getServerParams(request:SrRequestRecord):any {
     try {
         if (request.svr_parms) {
-            return request.svr_parms as SrSvrParmsUsed;
+            return request.svr_parms;
         } else {
             console.error(`No svr_parms found for req_id ${request.req_id}`);
-            return {} as NullReqParams;
+            return {};
         }
     } catch (error) {
         console.error(`Failed to get svr_parms for req_id ${request.req_id}:`, error, ' for request:', request);
@@ -893,18 +893,14 @@ export class SlideRuleDexie extends Dexie {
     }
 
 
-    async getSvrParams(req_id:number): Promise<SrSvrParmsUsed|NullReqParams|SrSvrParmsPolyOnly> {
+    async getSvrParams(req_id:number): Promise<any> {
         try {
             const request = await this.requests.get(req_id);
             if (request) {
-                if(request.func === 'atl24x'){
-                    return request.svr_parms as SrSvrParmsPolyOnly;
-                } else {
-                    return request.svr_parms as SrSvrParmsUsed;
-                }
+                return request.svr_parms;
             } else {
                 console.error(`No request found with req_id ${req_id}`);
-                return {} as NullReqParams;
+                return {};
             }
         } catch (error) {
             console.error(`Failed to get svr_parms for req_id ${req_id}:`, error);
