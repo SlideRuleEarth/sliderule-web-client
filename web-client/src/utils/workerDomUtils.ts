@@ -195,7 +195,7 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
                     }
                     await updateAreaInRecord(workerMsg.req_id);
                     await updateNumGranulesInRecord(workerMsg.req_id);
-                    await updateReqParmsFromMeta(workerMsg.req_id);
+                    await updateReqParmsFromMeta(workerMsg.req_id); // for x endpoints
                 } catch (error) {
                     const emsg = `Error loading file,reading metadata or creating/updating polyhash for req_id:${workerMsg.req_id}`;
                     console.error('handleWorkerMsg opfs_ready error:',error,emsg);

@@ -4,7 +4,6 @@ import { useRecTreeStore } from '@/stores/recTreeStore'; // Adjust import path i
 import { useChartStore } from './chartStore';
 import { createDuckDbClient } from '@/utils/SrDuckDb';
 import { db } from '@/db/SlideRuleDb';
-import type { SrSvrParmsUsed } from '@/types/SrTypes';
 
 const curGedi2apElFieldOptions = ref(['elevation_lm','elevation_hr']); 
 const curGedi2apElevationField = ref('elevation_lm'); 
@@ -12,21 +11,25 @@ const curGedi2apElevationField = ref('elevation_lm');
 function getHFieldNameForAPIStr(funcStr: string): string {
     //console.log('getHFieldNameForAPIStr',funcStr);
     switch (funcStr) {
-        case 'atl06': return 'h_mean';
+        case 'atl06':
         case 'atl06p': return 'h_mean';
-        case 'atl06s': return 'h_li';
+        case 'atl06s':
         case 'atl06sp': return 'h_li';
         case 'atl03vp': return 'segment_ph_cnt';
         case 'atl03sp': return 'height';
         case 'atl03x-surface': return 'h_mean';
         case 'atl03x-phoreal': return 'h_mean_canopy';
         case 'atl03x': return 'height';
+        case 'atl08':
         case 'atl08p': return 'h_mean_canopy';
         case 'atl24x': return 'ortho_h';
-        case 'gedi02ap': return curGedi2apElevationField.value;
-        case 'gedi04ap': return 'elevation';
-        case 'gedi01bp': return 'elevation_start';
-        case 'atl13x': return 'ht_ortho'; 
+        case 'gedi02ap':
+        case 'gedi02a': return curGedi2apElevationField.value;
+        case 'gedi04ap':
+        case 'gedi04a': return 'elevation';
+        case 'gedi01bp':
+        case 'gedi01b': return 'elevation_start';
+        case 'atl13x': return 'ht_ortho';
         default:
             console.trace(`Unknown height fieldname for API: ${funcStr} in getHFieldNameForAPIStr`);
             throw new Error(`Unknown height fieldname for API: ${funcStr} in getHFieldNameForAPIStr`);
@@ -51,12 +54,22 @@ function getMissionForReqId(reqId: number): string {
 }
 
 
-function getDefaultElOptions(reqId:number): string[] {
+function getDefaultElOptions(reqId:number, funcStr?: string): string[] {
     //We dont want to include all the fields in the file just the relavent ones
-    
+
     //console.log(`getDefaultElOptions request for ${reqId}`);
-    const funcStr = useRecTreeStore().findApiForReqId(reqId);
+    // If funcStr not provided, try to get it from tree (may be empty during race condition)
+    if (!funcStr) {
+        funcStr = useRecTreeStore().findApiForReqId(reqId);
+    }
     let options=[] as string[];
+
+    // Handle case where tree data isn't loaded yet and no funcStr provided
+    if (!funcStr) {
+        console.warn(`getDefaultElOptions: No API found for reqId ${reqId} (tree may not be loaded yet)`);
+        return options; // Return empty array
+    }
+
     switch (funcStr) {
         case 'atl06':
         case 'atl06p':
@@ -73,6 +86,7 @@ function getDefaultElOptions(reqId:number): string[] {
             break;
         case 'atl03x':  options = ['height','atl03_cnf','y_atc','cycle','srcid','yapc_score'];
             break;
+        case 'atl08':
         case 'atl08p':
         case 'atl03x-phoreal':
             options = ['h_mean_canopy','h_max_canopy','h_canopy','h_min_canopy','h_te_median','canopy_openness','cycle'];
@@ -81,14 +95,17 @@ function getDefaultElOptions(reqId:number): string[] {
             break;
         case 'atl13x':  options = ['ht_ortho','ht_water_surf','stdev_water_surf','water_depth','cycle','srcid'];
             break
-        case 'gedi02ap': options = ['elevation_lm', 'elevation_hr', 'track', 'beam', 'orbit'];
+        case 'gedi02ap':
+        case 'gedi02a': options = ['elevation_lm', 'elevation_hr', 'track', 'beam', 'orbit'];
             break;
-        case 'gedi04ap': options = ['elevation', 'track', 'beam', 'orbit'];
+        case 'gedi04ap':
+        case 'gedi04a': options = ['elevation', 'track', 'beam', 'orbit'];
             break;
-        case 'gedi01bp': options = ['elevation_start', 'track', 'beam', 'orbit'];
+        case 'gedi01bp':
+        case 'gedi01b': options = ['elevation_start', 'track', 'beam', 'orbit'];
             break;
         default:
-            console.error('Unknown funcStr:',funcStr)
+            console.error(`getDefaultElOptions: Unknown API '${funcStr}' for reqId ${reqId}`)
             //throw new Error(`Unknown height fieldname for API: ${funcStr} in getDefaultElOptions`);
             break;
     }
@@ -221,15 +238,11 @@ export const useFieldNameStore = defineStore('fieldNameStore', () => {
      * Fetch recordinfo metadata from parquet file for a given reqId
      * This will cache the result to avoid repeated DB queries
      */
-    async function getRecordInfoForReqId(reqId: number): Promise<RecordInfo | null> {
-        //console.log(`getRecordInfoForReqId: reqId ${reqId}`);
+    async function cacheRecordInfoForReqId(reqId: number): Promise<void> {
+        //console.log(`cacheRecordInfoForReqId: reqId ${reqId}`);
         if (reqId <= 0) {
-            console.warn(`Invalid reqId ${reqId} in getRecordInfoForReqId`);
-            return null;
-        }
-        // Check cache first
-        if (reqId in recordInfoCache.value) {
-            return recordInfoCache.value[reqId];
+            console.warn(`Invalid reqId ${reqId} in cacheRecordInfoForReqId`);
+            return;
         }
 
         try {
@@ -238,7 +251,7 @@ export const useFieldNameStore = defineStore('fieldNameStore', () => {
             if (!fileName) {
                 console.warn(`No filename found for reqId ${reqId}`);
                 recordInfoCache.value[reqId] = null;
-                return null;
+                return;
             }
 
             // Get DuckDB client and read metadata
@@ -250,16 +263,16 @@ export const useFieldNameStore = defineStore('fieldNameStore', () => {
                 const recordInfo: RecordInfo = JSON.parse(metadata.recordinfo);
                 console.log(`Loaded recordinfo metadata for reqId ${reqId}:`, recordInfo);
                 recordInfoCache.value[reqId] = recordInfo;
-                return recordInfo;
+                return;
             } else {
                 console.log(`No recordinfo metadata found for reqId ${reqId}`);
                 recordInfoCache.value[reqId] = null;
-                return null;
+                return;
             }
         } catch (error) {
             console.warn(`Error fetching recordinfo for reqId ${reqId}:`, error);
             recordInfoCache.value[reqId] = null;
-            return null;
+            return;
         }
     }
 
@@ -333,30 +346,108 @@ export const useFieldNameStore = defineStore('fieldNameStore', () => {
     }
 
     /**
+     * Extract as_geo value from X-API format (output.as_geo)
+     */
+    function extractAsGeoFromXApi(svrParams: any, reqId: number): boolean {
+        if(svrParams.output && typeof svrParams.output === 'object'){
+            if(svrParams.output.as_geo !== undefined){
+                const asGeo = svrParams.output.as_geo === true;
+                console.log(`[fieldNameStore] reqId ${reqId} - output.as_geo = ${asGeo}`, svrParams.output);
+                return asGeo;
+            } else {
+                console.error(`[fieldNameStore] reqId ${reqId} - output.as_geo undefined, defaulting to false`, svrParams.output);
+                return false;
+            }
+        } else {
+            console.error(`[fieldNameStore] reqId ${reqId} - output field missing or invalid, defaulting as_geo to false`, svrParams.output);
+            return false;
+        }
+    }
+
+    /**
+     * Extract as_geo value from non-X-API format (server.rqst.parms.output.as_geo)
+     */
+    function extractAsGeoFromNonXApi(svrParams: any, reqId: number): boolean {
+        if(svrParams.server && typeof svrParams.server === 'object'){
+            if(svrParams.server.rqst && typeof svrParams.server.rqst === 'object'){
+                if(svrParams.server.rqst.parms && typeof svrParams.server.rqst.parms === 'object'){
+                    if(svrParams.server.rqst.parms.output && typeof svrParams.server.rqst.parms.output === 'object'){
+                        if(svrParams.server.rqst.parms.output.as_geo !== undefined){
+                            const asGeo = svrParams.server.rqst.parms.output.as_geo === true;
+                            console.log(`[fieldNameStore] reqId ${reqId} - output.as_geo = ${asGeo}`, svrParams.server.rqst.parms.output);
+                            return asGeo;
+                        } else {
+                            console.error(`[fieldNameStore] reqId ${reqId} - output.as_geo undefined, defaulting to false`, svrParams.server.rqst.parms.output);
+                            return false;
+                        }
+                    } else {
+                        console.error(`[fieldNameStore] reqId ${reqId} - output field missing or invalid, defaulting as_geo to false`, svrParams.server.rqst.parms.output);
+                        return false;
+                    }
+                } else {
+                    console.error(`[fieldNameStore] reqId ${reqId} - parms field missing or invalid, defaulting as_geo to false`, svrParams.server.rqst.parms);
+                    return false;
+                }
+            } else {
+                console.error(`[fieldNameStore] reqId ${reqId} - rqst field missing or invalid, defaulting as_geo to false`, svrParams.server.rqst);
+                return false;
+            }
+        } else {
+            console.error(`[fieldNameStore] reqId ${reqId} - server field missing or invalid, defaulting as_geo to false`, svrParams.server);
+            return false;
+        }
+    }
+
+    /**
+     * Set asGeoCache based on server parameters structure
+     * X-APIs store as_geo at output.as_geo
+     * Non-X-APIs store as_geo at server.rqst.parms.output.as_geo
+     */
+    function setAsGeoCache(reqId: number, svrParams: any, funcStr: string): void {
+        if(!svrParams){
+            console.error(`[fieldNameStore] svrParams is null/undefined for reqId ${reqId}`);
+            asGeoCache.value[reqId] = false;
+            return;
+        }
+
+        if(!funcStr){
+            console.error(`[fieldNameStore] request.func is null/undefined for reqId ${reqId}`);
+            asGeoCache.value[reqId] = false;
+            return;
+        }
+
+        if(funcStr.includes('x')){
+            asGeoCache.value[reqId] = extractAsGeoFromXApi(svrParams, reqId);
+        } else {
+            asGeoCache.value[reqId] = extractAsGeoFromNonXApi(svrParams, reqId);
+        }
+    }
+
+    /**
      * Load as_geo flag from server parameters for a given reqId
      * This checks the output.as_geo field from the request's server parameters
      */
     async function loadAsGeoFromSvrParams(reqId: number): Promise<void> {
         try {
-            let svrParams = await db.getSvrParams(reqId);
+            const request = await db.getRequest(reqId);
+            if (!request) {
+                console.error(`[fieldNameStore] No request found for reqId ${reqId}`);
+                asGeoCache.value[reqId] = false;
+                return;
+            }
+            let svrParams = request.svr_parms;
             //console.log(`[fieldNameStore] loadAsGeoFromSvrParams for reqId ${reqId}:`, svrParams);
             //console.log(`[fieldNameStore] typeof svrParams:`, typeof svrParams);
 
             // If svrParams is a string, parse it
             if (typeof svrParams === 'string') {
-                console.log(`[fieldNameStore] Parsing svrParams string for reqId ${reqId}`);
                 svrParams = JSON.parse(svrParams);
+                console.log(`[fieldNameStore] Parsing svrParams string for reqId ${reqId}`, svrParams);
             }
 
-            const typedParams = svrParams as SrSvrParmsUsed;
-            const asGeo = typedParams?.output?.as_geo === true;
-            //console.log(`[fieldNameStore] reqId ${reqId} - output.as_geo = ${asGeo}`, typedParams?.output);
-            asGeoCache.value[reqId] = asGeo;
-            if (asGeo) {
-                //console.log(`[fieldNameStore] Request ${reqId} has as_geo=true in server params`);
-            }
+            setAsGeoCache(reqId, svrParams, request.func || '');
         } catch (error) {
-            console.warn(`[fieldNameStore] Error loading as_geo from server params for reqId ${reqId}:`, error);
+            console.error(`[fieldNameStore] Error loading as_geo from server params for reqId ${reqId}:`, error);
             asGeoCache.value[reqId] = false;
         }
     }
@@ -375,11 +466,17 @@ export const useFieldNameStore = defineStore('fieldNameStore', () => {
      * Call this early (e.g., after loading a parquet file) to populate the cache,
      * so that subsequent synchronous getters can use recordinfo values.
      */
-    async function loadMetaForReqId(reqId: number): Promise<RecordInfo | null> {
-        const recordInfo = await getRecordInfoForReqId(reqId);
-        // Also load as_geo flag from server parameters
-        await loadAsGeoFromSvrParams(reqId);
-        return recordInfo;
+    async function loadMetaForReqId(reqId: number): Promise<void> {
+        try {
+            await loadAsGeoFromSvrParams(reqId);
+        } catch (error) {
+            console.warn(`Error loading as_geo for reqId ${reqId}:`, error);
+        }
+        try{
+            await cacheRecordInfoForReqId(reqId);
+        } catch (error) {
+            console.warn(`Error loading recordinfo for reqId ${reqId}:`, error);
+        }
     }
 
     return {
@@ -405,7 +502,7 @@ export const useFieldNameStore = defineStore('fieldNameStore', () => {
         timeFieldCache,
         recordInfoCache,
         asGeoCache,
-        getRecordInfoForReqId,
+        cacheRecordInfoForReqId,
         loadMetaForReqId,
     };
 });

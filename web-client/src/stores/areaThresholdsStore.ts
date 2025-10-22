@@ -6,8 +6,10 @@ import { type ApiName } from '@/types/SrTypes'
 export const useAreaThresholdsStore = defineStore('areaThresholdStore', () => {
     // State: maps an API name to a numeric threshold
     const areaErrorThreshold = ref<Record<ApiName, number>>({
+        atl06: 15000,
         atl06p: 15000,
         atl06sp: 10000,
+        atl08: 10000,
         atl08p: 10000,
         atl03sp: 350,
         atl03x: 350,
@@ -23,8 +25,10 @@ export const useAreaThresholdsStore = defineStore('areaThresholdStore', () => {
     const areaErrorThresholdFallback = ref<number>(350)
 
     const areaWarningThreshold = ref<Record<ApiName, number>>({
+        atl06: 10000,
         atl06p: 10000,
         atl06sp: 7500,
+        atl08: 8000,
         atl08p: 8000,
         atl03sp: 100,
         atl03x: 100,

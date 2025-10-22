@@ -71,7 +71,7 @@ export interface SrScatterSeriesData{
   series: {
     name: string;
     type: string;
-    data: number[][];
+    data: (number | string)[][];
     dimensions?: string[];
     large?: boolean;
     largeThreshold?: number;
@@ -98,14 +98,24 @@ export interface SrScatterSeriesData{
     polyline?: boolean;
   };
   min: number | null;
-  max: number | null;  
+  max: number | null;
 };
 
 export function getDefaultColorEncoding(reqId:number,parentFuncStr?:string) {
     if(reqId > 0) {
         const func = useRecTreeStore().findApiForReqId(reqId);
         if(func){
-            return useFieldNameStore().getDefaultColorEncoding(func,parentFuncStr);
+            const fieldNameStore = useFieldNameStore();
+            // Special cases that use non-height field for color encoding
+            if (func === 'atl03sp'){
+                return 'atl03_cnf';
+            } else if (func === 'atl03x'){
+                if(parentFuncStr === 'atl24x') return 'atl24_class';
+                else return 'atl03_cnf';
+            } else {
+                // For all other APIs, use the height field (checks metadata cache first)
+                return fieldNameStore.getHFieldName(reqId);
+            }
         } else {
             console.warn(`getDefaultColorEncoding: No function found for reqId: ${reqId}. Returning 'solid'.`);
             return 'solid'; // default color encoding
@@ -694,7 +704,8 @@ async function getSeriesFor(reqIdStr:string,isOverlay=false) : Promise<SrScatter
     // console.log('getSeriesFor Using y:',y);
     if(y.length != all_y.length){
         const missing = all_y.filter(col => !existingColumns.includes(col));
-        console.warn(`getSeriesFor ${reqIdStr} y length mismatch: all_y.length=${all_y.length}, existingColumns.length=${existingColumns.length}, y.length=${y.length}`);
+        const apiMismatch = !func ? ' (API not yet loaded - possible race condition)' : (func ? ` (API: ${func})` : '');
+        console.warn(`getSeriesFor ${reqIdStr}${apiMismatch} y length mismatch: all_y.length=${all_y.length}, existingColumns.length=${existingColumns.length}, y.length=${y.length}`);
         console.warn(`getSeriesFor ${reqIdStr} missing ${missing.length} Y-axis column(s) from file:`, missing);
         console.warn(`getSeriesFor ${reqIdStr} available columns in file:`, existingColumns);
     }

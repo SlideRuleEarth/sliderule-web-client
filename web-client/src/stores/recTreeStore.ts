@@ -162,10 +162,22 @@ export const useRecTreeStore = defineStore('recTreeStore', () => {
     };
 
     const findApiForReqId = (reqId: number): string => {
+        // Handle invalid reqId early
+        if (!reqId || reqId <= 0) {
+            return '';
+        }
+
+        // Check if tree is empty (race condition - tree not yet loaded)
+        if (!treeData.value || treeData.value.length === 0) {
+            console.warn(`findApiForReqId: treeData not yet loaded for reqId ${reqId}, returning empty string`);
+            return '';
+        }
+
         const node = findNodeByKey(treeData.value, reqId.toString());
-        if (!node && reqId > 0) {
-            console.warn(`findApiForReqId: Node with reqId ${reqId} not found`);
-            //console.trace(`findApiForReqId: Node with reqId ${reqId} not found treeData:`, treeData.value);
+        if (!node) {
+            // Node genuinely not found in populated tree
+            console.warn(`findApiForReqId: Node with reqId ${reqId} not found in tree`);
+            console.trace(`findApiForReqId: Node with reqId ${reqId} not found. treeData has ${treeData.value.length} root nodes`);
             return '';
         }
         return node?.api || '';
