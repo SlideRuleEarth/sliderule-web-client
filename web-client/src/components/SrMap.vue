@@ -877,7 +877,7 @@ onMounted(async () => {
       console.error('SrMap Error:map is null')
     }
     //dumpMapLayers(map, 'SrMap onMounted');
-    await addRecordLayer()
+    addRecordLayer()
     if (haveReqPoly || haveReqPin) {
       //draw and zoom to the current reqParamsStore.poly
       drawCurrentReqPolyAndPin()
