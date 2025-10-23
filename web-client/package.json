@@ -15,12 +15,14 @@
     "build-only": "vite build",
     "typecheck": "vue-tsc --noEmit -p tsconfig.app.json",
     "lint": "ESLINT_USE_FLAT_CONFIG=false eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts",
+    "lint:fix": "ESLINT_USE_FLAT_CONFIG=false eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix",
     "preview": "vite preview",
     "build": "run-p \"build-only {@}\" --",
     "build_with_maps": "VITE_BUILD_SOURCEMAP=true run-p \"build-only {@}\" --",
     "format": "prettier --write src/",
     "pw:codegen": "playwright codegen",
-    "pw:report": "playwright show-report"
+    "pw:report": "playwright show-report",
+    "prepare": "husky"
   },
   "dependencies": {
     "@apache-arrow/esnext-esm": "^17.0.0",
@@ -86,7 +88,9 @@
     "@vue/tsconfig": "^0.5.1",
     "eslint": "^9.12.0",
     "eslint-plugin-vue": "^9.28.0",
+    "husky": "^9.1.7",
     "jsdom": "^25.0.0",
+    "lint-staged": "^16.2.6",
     "npm-run-all2": "^6.2.3",
     "prettier": "^3.3.3",
     "start-server-and-test": "^2.0.8",
@@ -97,5 +101,11 @@
     "vitest": "^3.0.5",
     "vue-tsc": "^2.1.6"
   },
-  "type": "module"
+  "type": "module",
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,vue}": [
+      "bash -c 'ESLINT_USE_FLAT_CONFIG=false eslint --fix \"$@\"' --",
+      "prettier --write"
+    ]
+  }
 }

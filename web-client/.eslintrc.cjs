@@ -13,7 +13,7 @@ module.exports = {
     ecmaVersion: 'latest',
     parser: '@typescript-eslint/parser',
     sourceType: 'module',
-    project: './tsconfig.app.json',
+    project: ['./tsconfig.app.json', './tsconfig.vitest.json'],
     tsconfigRootDir: __dirname,
     extraFileExtensions: ['.vue']
   },
@@ -25,5 +25,13 @@ module.exports = {
     'require-await': 'warn',
     // Require functions that return promises to be marked async
     '@typescript-eslint/promise-function-async': 'warn'
-  }
+  },
+  overrides: [
+    {
+      files: ['tests/**/*.{ts,tsx,js,jsx}'],
+      env: {
+        node: true
+      }
+    }
+  ]
 }

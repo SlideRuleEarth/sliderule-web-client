@@ -155,7 +155,7 @@ deploy-docs-to-testsliderule: ## Deploy the docs to the testsliderule.org cloudf
 destroy-docs-testsliderule: ## Destroy the web client from the testsliderule.org cloudfront and remove the S3 bucket
 	make destroy DOMAIN=docs.testsliderule.org S3_BUCKET=testsliderule-docs DOMAIN_APEX=testsliderule.org 
 
-.PHONY: check-vars typecheck lint test-unit test-unit-watch coverage-unit test-e2e test-all ci-check
+.PHONY: check-vars typecheck lint lint-fix lint-staged pre-commit-check test-unit test-unit-watch coverage-unit test-e2e test-all ci-check
 # =========================
 # Testing / Quality targets
 # =========================
@@ -165,6 +165,15 @@ typecheck: ## Run TypeScript type checking
 
 lint: ## Run ESLint
 	cd web-client && npm run lint
+
+lint-fix: ## Run ESLint with auto-fix
+	cd web-client && npm run lint:fix
+
+lint-staged: ## Run lint-staged on staged files (used by pre-commit hook)
+	cd web-client && npx lint-staged
+
+pre-commit-check: lint-staged ## Manually run pre-commit checks without committing
+	@echo "✅ Pre-commit checks passed!"
 
 test-unit: ## Run Vitest unit tests (CI-friendly)
 	cd web-client && npm run test:unit
