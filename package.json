@@ -16,7 +16,8 @@
     "test:local": "ENV=local npx playwright test",
     "test:test": "ENV=test npx playwright test",
     "test:prod": "ENV=prod npx playwright test",
-    "convert:icons": "node convert-maki-icons.js"
+    "convert:icons": "node convert-maki-icons.js",
+    "prepare": "husky"
   },
   "keywords": [],
   "author": "",
