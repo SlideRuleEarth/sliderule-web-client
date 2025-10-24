@@ -24,6 +24,7 @@ import ConfirmationService from 'primevue/confirmationservice';
 import OpenLayersMap, {
     type Vue3OpenlayersGlobalOptions,
 } from "vue3-openlayers";
+import log from './utils/logger';
 
 const SrPreset = definePreset(Lara, {
   semantic: {
@@ -88,8 +89,8 @@ pinia.use(createPersistedState({
 pinia.use(piniaMetaPlugin);
 
 export const app = createApp(App)
-app.config.errorHandler = (err, vm, info) => {
-  console.error('Global Vue Error Handler:', err, info);
+app.config.errorHandler = (err, _vm, info) => {
+  log.error('Global Vue error', { error: err instanceof Error ? err.message : String(err), info });
 };
 const vue3_openlayer_options: Vue3OpenlayersGlobalOptions = {
     debug: false,
@@ -122,15 +123,14 @@ app.use(router)
 app.component('menu-bar', Menubar)
 //
 // adjust vh for mobile devices
-// This is a workaround for mobile devices where 100vh doesn't account for the address bar 
-const isIOS = () => {
-  return (
-      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-      (navigator.userAgent.includes("Macintosh") && 'ontouchend' in document)
-  );
-};
+// This is a workaround for mobile devices where 100vh doesn't account for the address bar
+// const isIOS = () => {
+//   return (
+//       /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+//       (navigator.userAgent.includes("Macintosh") && 'ontouchend' in document)
+//   );
+// };
 
 app.mount('#app')
-console.log("Vue mode:",process.env.NODE_ENV);
-console.log("BASE_URL:",import.meta.env.BASE_URL); // Outputs the base URL of the app
+log.info('Vue app mounted', { mode: import.meta.env.MODE, baseUrl: import.meta.env.BASE_URL });
 

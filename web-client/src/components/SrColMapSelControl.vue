@@ -14,6 +14,9 @@ import SrMenuInput from '@/components/SrMenuInput.vue';
 import { getColorMapOptions } from '@/utils/colorUtils';
 import { watch } from 'vue';
 import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrColMapSelControl');
 
 let customControl: Control | null = null;
 
@@ -37,7 +40,7 @@ onMounted(async () => {
     emit('col-map-sel-control-created', customControl);
   }
 
-  console.log('onMounted selected ElevationColorMap:', elevationColorMapStore.selectedElevationColorMap );
+  logger.debug('onMounted selected ElevationColorMap', { selectedElevationColorMap: elevationColorMapStore.selectedElevationColorMap });
 });
 
 onUnmounted(() => {
@@ -46,10 +49,10 @@ onUnmounted(() => {
   }
 });
 
-watch (selectedElevationColorMap, async (newColorMap, oldColorMap) => {    
-    console.log('ElevationColorMap changed from:', oldColorMap ,' to:', newColorMap);
+watch (selectedElevationColorMap, async (newColorMap, oldColorMap) => {
+    logger.debug('ElevationColorMap changed', { from: oldColorMap, to: newColorMap });
     elevationColorMapStore.setElevationColorMap(newColorMap.value);
     elevationColorMapStore.updateElevationColorMapValues();
-    console.log('Selected Color Map:', elevationColorMapStore.selectedElevationColorMap);
+    logger.debug('Selected Color Map', { selectedElevationColorMap: elevationColorMapStore.selectedElevationColorMap });
 }, { deep: true });
 </script>

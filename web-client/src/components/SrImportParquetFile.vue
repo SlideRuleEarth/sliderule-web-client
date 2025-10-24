@@ -15,7 +15,9 @@ import type { ImportWorkerRequest, ImportWorkerResponse } from '@/types/SrImport
 import SrImportWorker from '@/workers/SrImportWorker?worker'; 
 import { addTimestampToFilename, getApiFromFilename } from '@/utils/SrParquetUtils';
 import { updateNumGranulesInRecord, updateAreaInRecord, updateReqParmsFromMeta } from '@/utils/SrParquetUtils'
+import { createLogger } from '@/utils/logger';
 
+const logger = createLogger('SrImportParquetFile');
 const toast = useToast();
 
 const props = defineProps({
@@ -49,7 +51,7 @@ const emit = defineEmits<{
 }>();
 
 onMounted(() => {
-    console.log('onMounted fileUploader:', fileUploader.value);
+    logger.debug('onMounted fileUploader', { fileUploader: fileUploader.value });
 });
 
 const activeWorker = ref<Worker | null>(null);
@@ -61,8 +63,10 @@ const isBusy = ref(false);
 function cancelUpload() {
   if (activeWorker.value) {
     upload_status.value = 'aborted';     // ⬅️ flip to aborted state (visible ✕)
-    upload_progress.value = 0;           // ⬅️ force bar to zero so “✕ canceled” shows
-    try { activeWorker.value.postMessage({ type: 'cancel' }); } catch {}
+    upload_progress.value = 0;           // ⬅️ force bar to zero so "✕ canceled" shows
+    try { activeWorker.value.postMessage({ type: 'cancel' }); } catch {
+        // Ignore postMessage errors
+    }
   }
 }
 
@@ -73,7 +77,7 @@ async function tryRemoveOpfsFile(filename: string) {
     const dir  = await root.getDirectoryHandle('SlideRule');
     await dir.removeEntry(filename);
   } catch {
-    // ignore
+    // Ignore removal errors
   }
 }
 
@@ -154,7 +158,7 @@ const customUploader = async (event: any) => {
     upload_progress.value = 90;
 
     const metadata = await duckDbClient.getAllParquetMetadata(opfsFile.name);
-    console.log('SrImportParquetFile Extracted metadata:', metadata);
+    logger.debug('Extracted metadata', { metadata });
     // Metadata validations that DELETE the file on failure:
     if (!metadata || !('sliderule' in metadata)) {
       toast.add({ severity: 'error', summary: 'Invalid File Format', detail: 'SlideRule metadata missing.', life: 5000 });
@@ -202,7 +206,7 @@ const customUploader = async (event: any) => {
             hasFit = svrParmsObj.server.rqst.parms.fit ?? false;
             hasPhoReal = svrParmsObj.server.rqst.parms.phoreal ?? false;
         } else {
-            console.error('Invalid svrParmsObj structure (expecting server.rqst.parms.<fit|phoreal> for legacy api):', svrParmsObj);
+            logger.error('Invalid svrParmsObj structure (expecting server.rqst.parms.<fit|phoreal> for legacy api)', { svrParmsObj });
             hasFit = false;
         }
     }
@@ -210,23 +214,23 @@ const customUploader = async (event: any) => {
         if(hasLegacySvrParms){
             hasPhoReal = svrParmsObj.server.rqst.parms.phoreal ?? false;
         } else {
-            console.error('Invalid svrParmsObj structure (expecting server.rqst.parms.<fit|phoreal> for legacy api):', svrParmsObj);
+            logger.error('Invalid svrParmsObj structure (expecting server.rqst.parms.<fit|phoreal> for legacy api)', { svrParmsObj });
             hasPhoReal = false;
         }
-        
+
     }
     if(endpoint === undefined || endpoint === null || endpoint === ''){
         if(hasLegacySvrParms){
             endpoint = svrParmsObj.server.rqst.endpoint;
         } else {
-            console.error('Invalid svrParmsObj structure (expecting server.rqst.parms.<fit|phoreal> for legacy api):', svrParmsObj);
+            logger.error('Invalid svrParmsObj structure (expecting server.rqst.parms.<fit|phoreal> for legacy api)', { svrParmsObj });
         }
     }
     if(endpoint == undefined || endpoint === null || endpoint === ''){
-        console.warn('Endpoint missing from metadata; attempting to infer from filename.');
+        logger.warn('Endpoint missing from metadata; attempting to infer from filename');
         endpoint = getApiFromFilename(opfsFile.name).func;
     }
-    console.log('Determined endpoint:', endpoint, 'hasFit:', hasFit, 'hasPhoReal:', hasPhoReal, 'metaObj:', metaObj, 'svrParmsObj:', svrParmsObj);
+    logger.debug('Determined endpoint', { endpoint, hasFit, hasPhoReal, metaObj, svrParmsObj });
     const finalEndpoint = endpoint;
     if(finalEndpoint == undefined || finalEndpoint === null || finalEndpoint === ''){
         toast.add({ severity: 'error', summary: 'Function Error', detail: 'Unable to determine API/function from metadata or filename.', life: 4000 });
@@ -246,11 +250,11 @@ const customUploader = async (event: any) => {
         if (hasPhoReal) srReqRec.func += '-phoreal';
     } catch (e) {
       toast.add({ severity: 'error', summary: 'Metadata Error', detail: 'Unable to parse SlideRule metadata.', life: 4000 });
-      console.error('Error parsing SlideRule metadata:', e);
+      logger.error('Error parsing SlideRule metadata', { error: e instanceof Error ? e.message : String(e) });
       try {
         await tryRemoveOpfsFile(newFilename); // cleanup
       } catch (cleanupErr) {
-        console.error('Error cleaning up file after metadata error:', cleanupErr);
+        logger.error('Error cleaning up file after metadata error', { error: cleanupErr instanceof Error ? cleanupErr.message : String(cleanupErr) });
       }
       return;
     }
@@ -292,10 +296,12 @@ const customUploader = async (event: any) => {
     }
   } catch (error) {
     upload_status.value = 'error';
-    console.error('File import failed:', error);
-    toast.add({ severity: 'error', summary: 'Import Failed', detail: (error as any)?.message || 'Problem importing the file.' });
+    logger.error('File import failed', { error: error instanceof Error ? error.message : String(error) });
+    toast.add({ severity: 'error', summary: 'Import Failed', detail: (error instanceof Error ? error.message : undefined) || 'Problem importing the file.' });
   } finally {
-    try { activeWorker.value?.terminate(); } catch {}
+    try { activeWorker.value?.terminate(); } catch {
+        // Ignore termination errors
+    }
     activeWorker.value = null;
     isBusy.value = false;
     setTimeout(() => {
@@ -307,17 +313,17 @@ const customUploader = async (event: any) => {
 
   upload_progress.value = 100;
 };
-const onSelect = (e: any) => {
-    console.log('onSelect e:', e);
+const onSelect = (_e: any) => {
+    logger.debug('onSelect');
 };
 
 const onError = (e: any) => {
-    console.log('onError e:', e);
+    logger.error('onError', { e });
     toast.add({ severity: 'error', summary: 'Upload Error', detail: 'Error uploading file', group: 'headless' });
 };
 
 const onClear = () => {
-    console.log('onClear');
+    logger.debug('onClear');
 };
 </script>
 

@@ -3,12 +3,15 @@ import { mapGtStringsToSrListNumberItems } from '@/utils/parmUtils';
 import { coerceToNumberArray } from '@/utils/coerceUtils';
 import { surfaceReferenceTypeOptions, signalConfidenceNumberOptions, qualityPHOptions } from '@/types/SrStaticOptions';
 import { convexHull,calculatePolygonArea } from "@/composables/SrTurfUtils";
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('ApplyParsedJsonToStores');
 
 export function applyParsedJsonToStores(
     data: any,
     store: ReturnType<typeof import('@/stores/reqParamsStore').useReqParamsStore>,
     rasterStore: ReturnType<typeof import('@/stores/rasterParamsStore').useRasterParamsStore>,
-    addError: (section: string, message: string) => void
+    _addError: (_section: string, _message: string) => void
 ) {
     //console.log('Applying parsed JSON data to stores:', data);
 
@@ -26,7 +29,7 @@ export function applyParsedJsonToStores(
         store.setRgt(data.rgt);
     }
     if (data.cycle !== undefined) {
-        console.log('Cycle data found:', data.cycle);
+        logger.debug('Cycle data found', { cycle: data.cycle });
         store.setEnableGranuleSelection(true);
         store.setUseCycle(true);
         store.setCycle(data.cycle);
@@ -48,7 +51,7 @@ export function applyParsedJsonToStores(
         store.setSelectedGtOptions(matched);
         const unmatched = data.beams.filter((name: string) => !matched.some(gt => gt.label === name));
         if (unmatched.length > 0) {
-            addError('beams', `unrecognized value(s): ${unmatched.join(', ')}`);
+            _addError('beams', `unrecognized value(s): ${unmatched.join(', ')}`);
         }
     }
 
@@ -69,7 +72,7 @@ export function applyParsedJsonToStores(
     if (data.ats !== undefined) {
         store.setUseAlongTrackSpread(true);
         coerce('ats', data.ats, v => store.setAlongTrackSpread(v[0]));
-        console.log('Parsing srt values:', data.srt);
+        logger.debug('Parsing srt values', { srt: data.srt });
     }
     if (data.srt !== undefined) {
         let values: number[] = [];
@@ -80,13 +83,13 @@ export function applyParsedJsonToStores(
         } else if (typeof data.srt === 'number') {
             values = [data.srt];
         }
-        console.log('Parsed srt values:', values);
+        logger.debug('Parsed srt values', { values });
         if (values.length > 0) {
             store.surfaceReferenceType = surfaceReferenceTypeOptions.filter(opt => values.includes(opt.value));
             store.enableAtl03Classification = true;
         } else {
             store.surfaceReferenceType = [];
-            addError('srt', `invalid value: ${JSON.stringify(data.srt)}`);
+            _addError('srt', `invalid value: ${JSON.stringify(data.srt)}`);
         }
     }
 
@@ -195,10 +198,10 @@ export function applyParsedJsonToStores(
         store.setEnablePhoReal(false);
     }
 
-    function coerce(field: string, input: unknown, assign: (v: number[]) => void) {
-        const { valid, invalid } = coerceToNumberArray(input);
+    function coerce(field: string, _input: unknown, assign: (_v: number[]) => void) {
+        const { valid, invalid } = coerceToNumberArray(_input);
         assign(valid);
-        if (invalid.length > 0) addError(field, `invalid value(s): ${invalid.join(', ')}`);
+        if (invalid.length > 0) _addError(field, `invalid value(s): ${invalid.join(', ')}`);
     }
 
 }

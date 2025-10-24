@@ -2,13 +2,14 @@
 import { ref } from "vue";
 import TileLayer from 'ol/layer/Tile.js';
 import TileWMS from 'ol/source/TileWMS'; // Import the TileWMS module
-import TileGrid from "ol/tilegrid/TileGrid.js";
 import { useMapStore } from "@/stores/mapStore.js";
 import type { ServerType } from 'ol/source/wms.js';
 import { XYZ } from 'ol/source.js';
 import type OLMap from "ol/Map.js";
-import { srViews } from "./SrViews";
+// import { srViews } from "./SrViews"; // Unused import
+import { createLogger } from '@/utils/logger';
 
+const logger = createLogger('SrLayers');
 
 export const srAttributions = {
   esri: "Tiles © Esri contributors",
@@ -34,46 +35,47 @@ export interface SrLayer {
   serverType?: ServerType;  //  WMS server type
   init_visibility: boolean;
   init_opacity: number;
-  //tileGrid?: TileGrid;
 }
 
-const antarticTileGrid_Options = {
-  origin: [-3.369955099203E7,3.369955101703E7],
-  resolutions: [238810.81335399998,
-      119405.40667699999,
-      59702.70333849987,
-      29851.351669250063,
-      14925.675834625032,
-      7462.837917312516,
-      3731.4189586563907,
-      1865.709479328063,
-      932.8547396640315,
-      466.42736983214803,
-      233.21368491607402,
-      116.60684245803701,
-      58.30342122888621,
-      29.151710614575396,
-      14.5758553072877,
-      7.28792765351156,
-      3.64396382688807,
-      1.82198191331174,
-      0.910990956788164,
-      0.45549547826179,
-      0.227747739130895,
-      0.113873869697739,
-      0.05693693484887,
-      0.028468467424435
-  ],
-  extent: [-9913957.327914657,-5730886.461772691,
-    9913957.327914657,5730886.461773157]
-}
+// Unused - kept for future reference
+// const antarticTileGrid_Options = {
+//   origin: [-3.369955099203E7,3.369955101703E7],
+//   resolutions: [238810.81335399998,
+//       119405.40667699999,
+//       59702.70333849987,
+//       29851.351669250063,
+//       14925.675834625032,
+//       7462.837917312516,
+//       3731.4189586563907,
+//       1865.709479328063,
+//       932.8547396640315,
+//       466.42736983214803,
+//       233.21368491607402,
+//       116.60684245803701,
+//       58.30342122888621,
+//       29.151710614575396,
+//       14.5758553072877,
+//       7.28792765351156,
+//       3.64396382688807,
+//       1.82198191331174,
+//       0.910990956788164,
+//       0.45549547826179,
+//       0.227747739130895,
+//       0.113873869697739,
+//       0.05693693484887,
+//       0.028468467424435
+//   ],
+//   extent: [-9913957.327914657,-5730886.461772691,
+//     9913957.327914657,5730886.461773157]
+// }
 
 // const Antartic_hillshadeParams = {
 //   azimuth: 315,
 //   altitude: 45
 // }
 
-const antarticTileGrid = new TileGrid(antarticTileGrid_Options);
+// Temporarily commented out - not currently used but may be needed in the future
+// const antarticTileGrid = new TileGrid(antarticTileGrid_Options);
 
 export const layers = ref<{ [key: string]: SrLayer }>({
   "Esri World Topo": {
@@ -318,20 +320,20 @@ export const addLayersForCurrentView = (map:OLMap, projectionName:string) => {
         const newLayer = getLayer(projectionName, srLayerForView.title);
         if(newLayer){
           if(map){
-            console.log(`addLayersForCurrentView adding layer:`,srLayerForView.title);
+            logger.debug('addLayersForCurrentView adding layer', { title: srLayerForView.title });
             map.addLayer(newLayer);
           } else {
-            console.error('addLayersForCurrentView map not available map:',map);
+            logger.error('addLayersForCurrentView map not available', { map });
           }
         } else{
-          console.error(`addLayersForCurrentView SKIPPING - No layer found for title: ${srLayerForView.title} projection: ${projectionName}`);
+          logger.error(`addLayersForCurrentView SKIPPING - No layer found for title: ${srLayerForView.title} projection: ${projectionName}`);
         }
       } else {
-        console.log(`addLayersForCurrentView SKIPPING - base layer:`,srLayerForView.title);
+        logger.debug('addLayersForCurrentView SKIPPING - base layer', { title: srLayerForView.title });
       }
     });
   } catch (error) {
-    console.error('addLayersForCurrentView error:',error);
+    logger.error('addLayersForCurrentView error', { error: error instanceof Error ? error.message : String(error) });
   }
 }
 
@@ -357,11 +359,11 @@ export const getLayer = (projectionName: string, title: string): TileLayer | und
     }
     if (cachedLayer) {
       layerInstance = cachedLayer; // Return the cached layer if it exists
-      console.log('Using cached layer:', cachedLayer);
+      logger.debug('Using cached layer', { cachedLayer });
     } else {
         if(srLayer.type === "wmts"){
 
-          console.log('WMTS Layer TBD');
+          logger.debug('WMTS Layer TBD');
 
         } else if(srLayer.type === "wms"){
           // Handle WMS layers
@@ -418,7 +420,7 @@ export const getLayer = (projectionName: string, title: string): TileLayer | und
     }
     //console.log (`getLayer returning: ${lname} isBaseLayer:${srLayer.isBaseLayer} title:${title}`);
   } else {
-    console.log('Layer not found with this title:', title);
+    logger.debug('Layer not found with this title', { title });
   }
   //console.log('getLayer returning:', layerInstance);
   return layerInstance;

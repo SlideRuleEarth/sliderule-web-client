@@ -13,6 +13,9 @@ import { useRecTreeStore } from '@/stores/recTreeStore';
 import SrImportParquetFile from '@/components/SrImportParquetFile.vue';
 import { useFieldNameStore } from '@/stores/fieldNameStore';
 import SrExportBtnDlg from './SrExportBtnDlg.vue';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrAnalyzeOptSidebar');
 
 const atlChartFilterStore = useAtlChartFilterStore();
 const analysisMapStore = useAnalysisMapStore();
@@ -28,7 +31,6 @@ const props = defineProps({
 const tooltipRef = ref();
 const loadingThisSFC = ref(true);
 const isMounted = ref(false);
-const showExportDialog = ref(false);
 
 const computedInitializing = computed(() => {
     return !isMounted.value || loadingThisSFC.value || recTreeStore.reqIdMenuItems.length == 0 || recTreeStore.selectedReqId <= 0;
@@ -37,20 +39,16 @@ const mission = computed(() => {
     return fieldNameStore.getMissionForReqId(props.startingReqId);
 });
 
-const exportButtonClick = () => {
-    showExportDialog.value = true;
-};
-
 
 onMounted(async () => {
     // the router sets the startingReqId and the recTreeStore.reqIdMenuItems
-    console.log(`onMounted SrAnalyzeOptSidebar startingReqId: ${props.startingReqId}`);
+    logger.debug('onMounted SrAnalyzeOptSidebar', { startingReqId: props.startingReqId });
     loadingThisSFC.value = false;
     isMounted.value = true;
 });
 
-const handleFileImported = async (reqId: string) => {
-    console.log('SrAnalyzeOptSidebar File import completed. Request ID:', reqId);
+const handleFileImported = async (_reqId: string) => {
+    logger.debug('File import completed', { reqId: _reqId });
 };
 
 </script>

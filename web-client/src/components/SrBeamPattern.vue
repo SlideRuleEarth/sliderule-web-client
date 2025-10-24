@@ -169,6 +169,9 @@ import { SC_BACKWARD,SC_FORWARD } from '@/sliderule/icesat2';
 import { getGtsForSpotsAndScOrients,getDetailsFromSpotNumber } from '@/utils/spotUtils';
 import { GT1L,GT1R,GT2L,GT2R,GT3L,GT3R } from '@/utils/spotUtils';
 import { callPlotUpdateDebounced } from "@/utils/plotUtils";
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrBeamPattern');
 
 const globalChartStore = useGlobalChartStore();
 
@@ -194,7 +197,7 @@ const computedHasScBackward = computed(() => {
     return globalChartStore.hasScBackward;
 });
 
-const handleValueChange = (e: any) => {
+const handleValueChange = (_e: any) => {
     //console.log('handleValueChange', e);
     //console.log('handleValueChange BEFORE globalChartStore.selectedSpots:',globalChartStore.selectedSpots, 'globalChartStore.getScOrients:', globalChartStore.getScOrients(), 'globalChartStore.hasScForward:', globalChartStore.hasScForward, 'globalChartStore.hasScBackward:', globalChartStore.hasScBackward, 'globalChartStore.gts:', globalChartStore.getGts(), 'globalChartStore.tracks:', globalChartStore.getTracks(), 'globalChartStore.pairs:', globalChartStore.getPairs());
     const gts = getGtsForSpotsAndScOrients(globalChartStore.selectedSpots, globalChartStore.getScOrients());
@@ -242,9 +245,9 @@ watch(() => globalChartStore.hasScForward, handleValueChange);
  * We wrap `callPlotUpdateDebounced` in `nextTick` so that the watchers
  * have already finished for this update cycle.
  */
-function onUserToggled(digit: number) {
-  console.log('SrBeamPattern:onUserToggled spot digit:', digit)
-  nextTick(async () => {
+function onUserToggled(_digit: number) {
+  logger.debug('onUserToggled spot digit', { digit: _digit });
+  void nextTick(async () => {
     await callPlotUpdateDebounced("SrBeamPattern");
   })
 }
@@ -256,8 +259,8 @@ function onUserToggled(digit: number) {
  * have already finished for this update cycle.
  */
 function onUserToggledSc() {
-    console.log('SrBeamPattern:onUserToggledSc');
-    nextTick(async () => {
+    logger.debug('onUserToggledSc');
+    void nextTick(async () => {
         await callPlotUpdateDebounced("SrBeamPattern");
     })
 }

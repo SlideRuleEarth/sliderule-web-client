@@ -1,4 +1,7 @@
 import { defineStore } from 'pinia'
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SysConfigStore');
 
 type CanConnectStatus = 'unknown' | 'yes' | 'no'
 
@@ -72,14 +75,14 @@ export const useSysConfigStore = defineStore('sysConfig', {
 
                 const data = await response.json();
                 if(data === null || typeof data?.server.version !== 'string') {
-                    console.error('Invalid response format:', data);
+                    logger.error('Invalid response format from server version', { data });
                     throw new Error('Invalid response format');
                 }
                 this.setCanConnectVersion('yes');
                 this.setVersion(data.server.version);
                 return data
             } catch (error) {
-                console.error('Error fetching server version:', error);
+                logger.error('Error fetching server version', { error: error instanceof Error ? error.message : String(error) });
                 this.setCanConnectVersion('no');
                 return 'Unknown';
             }
@@ -101,13 +104,13 @@ export const useSysConfigStore = defineStore('sysConfig', {
                 if (typeof data?.nodes === 'number') {
                     this.current_nodes = data.nodes;
                 } else {
-                    console.error('Invalid response format:', data);
+                    logger.error('Invalid response format from current nodes', { data });
                     throw new Error('Invalid response format');
                 }
                 this.setCanConnectNodes('yes');
                 return this.current_nodes >= 0 ? this.current_nodes.toString() : 'Unknown';
             } catch (error) {
-                console.error('Error fetching current nodes:', error);
+                logger.error('Error fetching current nodes', { error: error instanceof Error ? error.message : String(error) });
                 this.setCanConnectNodes('no');
                 return 'Unknown';
             }

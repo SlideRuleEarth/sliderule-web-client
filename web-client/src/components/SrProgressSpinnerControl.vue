@@ -17,6 +17,9 @@ import { onMounted, onUnmounted, ref, watch, computed } from "vue";
 import { Control } from "ol/control";
 import ProgressSpinner from "primevue/progressspinner";
 import { useAnalysisMapStore } from "@/stores/analysisMapStore";
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrProgressSpinnerControl');
 
 const props = withDefaults(
     defineProps<{
@@ -59,7 +62,7 @@ onUnmounted(() => {
 watch(
   computedIsLoading,
   (isLoading) => {
-    console.log("watch fired: mapStore.isLoading changed to", isLoading);
+    logger.debug('isLoading changed', { isLoading });
     if (controlContainer.value) {
       controlContainer.value.style.display = isLoading ? "flex" : "none";
     }

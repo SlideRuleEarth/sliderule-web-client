@@ -4,6 +4,9 @@ import { type ReqParams, type NullReqParams } from '@/types/SrTypes';
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
 import type { SrSvrParmsUsed, SrSvrParmsPolyOnly, AtlxxReqParams } from '@/types/SrTypes';
 import type { SrRegion } from '@/types/SrTypes';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SlideRuleDb');
 
 export const DEFAULT_DESCRIPTION = '';
 export interface SrTimeDelta{
@@ -114,14 +117,14 @@ export function hashPoly(poly: {lat: number, lon:number}[]): string {
     const serializedPoly = JSON.stringify(
       poly.map(coord => ({ lat: round(coord.lat, 8), lon: round(coord.lon, 8) })) // Normalize precision
     );
-  
+
     // Generate a simple hash code
     let hash = 0;
     for (let i = 0; i < serializedPoly.length; i++) {
       const char = serializedPoly.charCodeAt(i);
       hash = (hash * 31 + char) % 2 ** 32; // Keep hash in 32-bit range
     }
-    console.log('hashPoly:',serializedPoly,'hash:',hash.toString(16));
+    logger.debug('Generated poly hash', { hash: hash.toString(16), polyLength: poly.length });
     return hash.toString(16); // Return hash as a hexadecimal string
   }
   
@@ -132,16 +135,11 @@ export function hashPoly(poly: {lat: number, lon:number}[]): string {
   }
   
 function getServerParams(request:SrRequestRecord):any {
-    try {
-        if (request.svr_parms) {
-            return request.svr_parms;
-        } else {
-            console.error(`No svr_parms found for req_id ${request.req_id}`);
-            return {};
-        }
-    } catch (error) {
-        console.error(`Failed to get svr_parms for req_id ${request.req_id}:`, error, ' for request:', request);
-        throw error;
+    if (request.svr_parms) {
+        return request.svr_parms;
+    } else {
+        logger.error('No svr_parms found for request', { reqId: request.req_id });
+        return {};
     }
 }
 
@@ -187,6 +185,7 @@ export class SlideRuleDexie extends Dexie {
                 if (rec.defaultAtl03xSymbolSize === undefined) {
                     rec.defaultAtl03xSymbolSize = 3;
                 }
+                // modify callback doesn't need a return value
             });
         });
 
@@ -195,59 +194,63 @@ export class SlideRuleDexie extends Dexie {
         this._useMiddleware();
     }
     // Method to initialize default colors
-    private async _initializeDefaultColors(): Promise<void> {
-        try {
-            // Check and populate atl03CnfColors
-            const atl03CnfColorCount = await this.atl03CnfColors.count();
-            if (atl03CnfColorCount === 0) {
-                await this.restoreDefaultAtl03CnfColors();
-            }
+    private _initializeDefaultColors(): void {
+        // Initialize default colors asynchronously (fire and forget)
+        void (async () => {
+            try {
+                // Check and populate atl03CnfColors
+                const atl03CnfColorCount = await this.atl03CnfColors.count();
+                if (atl03CnfColorCount === 0) {
+                    await this.restoreDefaultAtl03CnfColors();
+                }
 
-            // Check and populate atl08ClassColors
-            const atl08ClassColorCount = await this.atl08ClassColors.count();
-            if (atl08ClassColorCount === 0) {
-                await this.restoreDefaultAtl08ClassColors();
-            }
+                // Check and populate atl08ClassColors
+                const atl08ClassColorCount = await this.atl08ClassColors.count();
+                if (atl08ClassColorCount === 0) {
+                    await this.restoreDefaultAtl08ClassColors();
+                }
 
-            // Check and populate atl24ClassColors
-            const atl24ClassColorCount = await this.atl24ClassColors.count();
-            if (atl24ClassColorCount === 0) {
-                await this.restoreDefaultAtl24ClassColors();
-            }
+                // Check and populate atl24ClassColors
+                const atl24ClassColorCount = await this.atl24ClassColors.count();
+                if (atl24ClassColorCount === 0) {
+                    await this.restoreDefaultAtl24ClassColors();
+                }
 
-            
-            const plotConfig = await this.plotConfig.get(1);
-            const gradientNumShades = plotConfig?.defaultGradientNumShades;
-            const gradientColorMapName = plotConfig?.defaultGradientColorMapName;
-            if(!gradientColorMapName || !gradientNumShades || gradientNumShades === 0){
-                await this.updatePlotConfig({id:1,defaultGradientColorMapName:'viridis',defaultGradientNumShades:512});
-            }
 
-            // Check and populate colors
-            const colorsCount = await this.colors.count();
-            if (colorsCount === 0) {
-                await this.restoreDefaultColors();
+                const plotConfig = await this.plotConfig.get(1);
+                const gradientNumShades = plotConfig?.defaultGradientNumShades;
+                const gradientColorMapName = plotConfig?.defaultGradientColorMapName;
+                if(!gradientColorMapName || !gradientNumShades || gradientNumShades === 0){
+                    await this.updatePlotConfig({id:1,defaultGradientColorMapName:'viridis',defaultGradientNumShades:512});
+                }
+
+                // Check and populate colors
+                const colorsCount = await this.colors.count();
+                if (colorsCount === 0) {
+                    await this.restoreDefaultColors();
+                }
+            } catch (error) {
+                logger.error('Failed to initialize default colors', { error: error instanceof Error ? error.message : String(error) });
             }
-        } catch (error) {
-            console.error('Failed to initialize default colors:', error);
-            throw error;
-        }
+        })();
     }
-    private async _initializePlotConfig(): Promise<void> {
-        try {
-            // Check if plotConfig record is already there:
-            const count = await this.plotConfig.count();
-            if (count === 0) {
-                // Insert a single record with known id=1
-                this.restorePlotConfig();
-                console.warn('plotConfig table was initialized with default values.');
-            } else {
-                console.log('plotConfig table already has records.');
+    private _initializePlotConfig(): void {
+        // Initialize plot config asynchronously (fire and forget)
+        void (async () => {
+            try {
+                // Check if plotConfig record is already there:
+                const count = await this.plotConfig.count();
+                if (count === 0) {
+                    // Insert a single record with known id=1
+                    await this.restorePlotConfig();
+                    logger.warn('plotConfig table initialized with default values');
+                } else {
+                    logger.debug('plotConfig table already has records');
+                }
+            } catch (error) {
+                logger.error('Failed to initialize plotConfig record', { error: error instanceof Error ? error.message : String(error) });
             }
-        } catch (error) {
-            console.error('Failed to initialize plotConfig record:', error);
-            throw error;
-        }
+        })();
     }
       
     async restorePlotConfig(): Promise<void> {
@@ -274,9 +277,9 @@ export class SlideRuleDexie extends Dexie {
                 defaultAtl03xSymbolSize: 3,
             });
 
-            console.warn('plotConfig table restored to default values.');
+            logger.warn('plotConfig table restored to default values');
         } catch (error) {
-            console.error('Failed to restore plotConfig:', error);
+            logger.error('Failed to restore plotConfig', { error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
@@ -288,7 +291,7 @@ export class SlideRuleDexie extends Dexie {
                 await this.updatePlotConfig({id:1,defaultGradientColorMapName:'viridis',defaultGradientNumShades:512});
             }
         } catch (error) {
-            console.error('Failed to restore default gradient color map:', error);
+            logger.error('Failed to restore default gradient color map', { error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
@@ -319,16 +322,16 @@ export class SlideRuleDexie extends Dexie {
 
             // Clear existing entries in the table
             await this.colors.clear();
-            console.log('colors table cleared.');
+            logger.debug('Colors table cleared');
 
             // Add default entries
             for (const colorEntry of defaultColors) {
                 await this.colors.add(colorEntry);
             }
 
-            console.log('Default colors restored:', defaultColors);
+            logger.info('Default colors restored', { colorCount: defaultColors.length });
         } catch (error) {
-            console.error('Failed to restore default colors:', error);
+            logger.error('Failed to restore default colors', { error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
@@ -340,31 +343,28 @@ export class SlideRuleDexie extends Dexie {
         try {
             const existingColorEntry = await this.colors.where('color').equals(color).first();
             if (existingColorEntry) {
-                console.log(`Color already exists in colors: ${color}`);
+                logger.debug('Color already exists', { color });
             } else {
                 await this.colors.add({ color });
-                console.log(`Color added to colors: ${color}`);
+                logger.debug('Color added', { color });
             }
         } catch (error) {
-            console.error('Failed to add or update color in colors:', error);
+            logger.error('Failed to add or update color', { color, error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
 
-    async setAllColors(colors: string[]): Promise<void> {   
+    async setAllColors(colors: string[]): Promise<void> {
         try {
             // Clear existing entries in the table
             await this.colors.clear();
-            //console.log('colors table cleared.');
 
             // Add new colors
             for (const color of colors) {
                 await this.colors.add({ color });
             }
-
-            //console.log('All colors restored:', colors);
         } catch (error) {
-            //console.error('Failed to restore all colors:', error);
+            logger.error('Failed to restore all colors', { error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
@@ -374,10 +374,9 @@ export class SlideRuleDexie extends Dexie {
         try {
             const colorRecords = await this.colors.toArray();
             const colors = colorRecords.map(record => record.color);
-            //console.log('Retrieved all colors from colors:', colors);
             return colors;
         } catch (error) {
-            console.error('Failed to retrieve all colors from colors:', error);
+            logger.error('Failed to retrieve all colors', { error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
@@ -386,9 +385,9 @@ export class SlideRuleDexie extends Dexie {
     async deleteColor(color: string): Promise<void> {
         try {
             await this.colors.delete(color);
-            console.log(`Color deleted from colors: ${color}`);
+            logger.debug('Color deleted', { color });
         } catch (error) {
-            console.error(`Failed to delete color from colors: ${color}`, error);
+            logger.error('Failed to delete color', { color, error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
@@ -409,16 +408,16 @@ export class SlideRuleDexie extends Dexie {
 
             // Clear existing entries in the table
             await this.atl03CnfColors.clear();
-            console.log('atl03CnfColors table cleared.');
+            logger.debug('atl03CnfColors table cleared');
 
             // Add default entries
             for (const colorEntry of defaultAtl03CnfColors) {
                 await this.atl03CnfColors.add(colorEntry);
             }
 
-            console.log('Default atl03CnfColors restored:', defaultAtl03CnfColors);
+            logger.info('Default atl03CnfColors restored', { count: defaultAtl03CnfColors.length });
         } catch (error) {
-            console.error('Failed to restore default atl03CnfColors:', error);
+            logger.error('Failed to restore default atl03CnfColors', { error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
@@ -437,16 +436,16 @@ export class SlideRuleDexie extends Dexie {
 
             // Clear existing entries in the table
             await this.atl08ClassColors.clear();
-            console.log('atl08ClassColors table cleared.');
+            logger.debug('atl08ClassColors table cleared');
 
             // Add default entries
             for (const colorEntry of defaultAtl08ClassColors) {
                 await this.atl08ClassColors.add(colorEntry);
             }
 
-            console.log('Default atl08ClassColors restored:', defaultAtl08ClassColors);
+            logger.info('Default atl08ClassColors restored', { count: defaultAtl08ClassColors.length });
         } catch (error) {
-            console.error('Failed to restore default atl08ClassColors:', error);
+            logger.error('Failed to restore default atl08ClassColors', { error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
@@ -459,19 +458,19 @@ export class SlideRuleDexie extends Dexie {
                 { number: 1, color: 'greenyellow' }, // bathymetry
                 { number: 2, color: 'lightblue' },  // sea_surface
             ];
-        
+
             // Clear existing entries in the table
             await this.atl24ClassColors.clear();
-            console.log('atl24ClassColors table cleared.');
-        
+            logger.debug('atl24ClassColors table cleared');
+
             // Add default entries
             for (const colorEntry of defaultAtl24ClassColors) {
                 await this.atl24ClassColors.add(colorEntry);
             }
-        
-            console.log('Default atl24ClassColors restored:', defaultAtl24ClassColors);
+
+            logger.info('Default atl24ClassColors restored', { count: defaultAtl24ClassColors.length });
         } catch (error) {
-            console.error('Failed to restore default atl24ClassColors:', error);
+            logger.error('Failed to restore default atl24ClassColors', { error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
@@ -490,7 +489,6 @@ export class SlideRuleDexie extends Dexie {
             if (existingNumberEntry) {
                 // If an entry exists with the same number, update the color
                 await this.atl03CnfColors.put({ color,number });
-                //console.log(`Number updated in atl03CnfColors: ${color},${number}`);
             } else {
                 // If no entry exists with the same number, check the size limit before adding
                 const count = await this.atl03CnfColors.count();
@@ -500,10 +498,10 @@ export class SlideRuleDexie extends Dexie {
 
                 // Add the new number-color pair
                 await this.atl03CnfColors.add({ number, color });
-                console.log(`Number and color added to atl03CnfColors: ${number}, ${color}`);
+                logger.debug('Added atl03CnfColor', { number, color });
             }
         } catch (error) {
-            console.error('Failed to add or update number and color in atl03CnfColors:', error);
+            logger.error('Failed to add or update atl03CnfColor', { number, color, error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
@@ -522,7 +520,7 @@ export class SlideRuleDexie extends Dexie {
             if (existingNumberEntry) {
                 // If an entry exists with the same number, update the color
                 await this.atl08ClassColors.put({ color,number });
-                console.log(`Number updated in atl08ClassColors: ${color},${number}`);
+                logger.debug('Updated atl08ClassColor', { color, number });
             } else {
                 // If no entry exists with the same number, check the size limit before adding
                 const count = await this.atl08ClassColors.count();
@@ -532,10 +530,10 @@ export class SlideRuleDexie extends Dexie {
 
                 // Add the new number-color pair
                 await this.atl08ClassColors.add({ number, color });
-                console.log(`Number and color added to atl08ClassColors: ${number}, ${color}`);
+                logger.debug('Added atl08ClassColor', { number, color });
             }
         } catch (error) {
-            console.error('Failed to add or update number and color in atl08ClassColors:', error);
+            logger.error('Failed to add or update atl08ClassColor', { number, color, error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
@@ -554,7 +552,7 @@ export class SlideRuleDexie extends Dexie {
             if (existingNumberEntry) {
                 // If an entry exists with the same number, update the color
                 await this.atl24ClassColors.put({ color,number });
-                console.log(`Number updated in atl24ClassColors: ${color},${number}`);
+                logger.debug('Updated atl24ClassColor', { color, number });
             } else {
                 // If no entry exists with the same number, check the size limit before adding
                 const count = await this.atl24ClassColors.count();
@@ -564,10 +562,10 @@ export class SlideRuleDexie extends Dexie {
 
                 // Add the new number-color pair
                 await this.atl24ClassColors.add({ number, color });
-                console.log(`Number and color added to at24ClassColors: ${number}, ${color}`);
+                logger.debug('Added atl24ClassColor', { number, color });
             }
         } catch (error) {
-            console.error('Failed to add or update number and color in atl24ClassColors:', error);
+            logger.error('Failed to add or update atl24ClassColor', { number, color, error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
@@ -577,10 +575,10 @@ export class SlideRuleDexie extends Dexie {
         try {
             // Use orderBy to sort the results by the 'number' field in ascending order
             const colorRecords = await this.atl03CnfColors.orderBy('number').toArray();
-            //console.log('Retrieved all atl03CnfColors in ascending order:', colorRecords);
+            //logger.debug('Retrieved all atl03CnfColors', { count: colorRecords.length });
             return colorRecords;
         } catch (error) {
-            console.error('Failed to retrieve all atl03CnfColors:', error);
+            logger.error('Failed to retrieve all atl03CnfColors', { error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
@@ -590,10 +588,10 @@ export class SlideRuleDexie extends Dexie {
         try {
             // Use orderBy to sort the results by the 'number' field in ascending order
             const colorRecords = await this.atl08ClassColors.orderBy('number').toArray();
-            //console.log('Retrieved all atl08ClassColors in ascending order:', colorRecords);
+            //logger.debug('Retrieved all atl08ClassColors', { count: colorRecords.length });
             return colorRecords;
         } catch (error) {
-            console.error('Failed to retrieve all atl08ClassColors:', error);
+            logger.error('Failed to retrieve all atl08ClassColors', { error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
@@ -603,10 +601,10 @@ export class SlideRuleDexie extends Dexie {
         try {
             // Use orderBy to sort the results by the 'number' field in ascending order
             const colorRecords = await this.atl24ClassColors.orderBy('number').toArray();
-            //console.log('Retrieved all atl24ClassColors in ascending order:', colorRecords);
+            //logger.debug('Retrieved all atl24ClassColors', { count: colorRecords.length });
             return colorRecords;
         } catch (error) {
-            console.error('Failed to retrieve all atl24ClassColors:', error);
+            logger.error('Failed to retrieve all atl24ClassColors', { error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
@@ -624,7 +622,7 @@ export class SlideRuleDexie extends Dexie {
             //console.log('Retrieved ordered list of colors:', colors);
             return colors;
         } catch (error) {
-            console.error('Failed to retrieve ordered list of colors:', error);
+            logger.error('Failed to retrieve ordered list of atl03CnfColors', { error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
@@ -634,14 +632,14 @@ export class SlideRuleDexie extends Dexie {
         try {
             // Use orderBy to sort the results by the 'number' field in ascending order
             const colorRecords = await this.atl08ClassColors.orderBy('number').toArray();
-            
+
             // Map the sorted records to get an array of colors
             const colors = colorRecords.map(record => record.color);
-            
+
             //console.log('Retrieved ordered list of colors:', colors);
             return colors;
         } catch (error) {
-            console.error('Failed to retrieve ordered list of colors:', error);
+            logger.error('Failed to retrieve ordered list of atl08ClassColors', { error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
@@ -651,14 +649,14 @@ export class SlideRuleDexie extends Dexie {
         try {
             // Use orderBy to sort the results by the 'number' field in ascending order
             const colorRecords = await this.atl24ClassColors.orderBy('number').toArray();
-            
+
             // Map the sorted records to get an array of colors
             const colors = colorRecords.map(record => record.color);
-            
+
             //console.log('Retrieved ordered list of colors:', colors);
             return colors;
         } catch (error) {
-            console.error('Failed to retrieve ordered list of colors:', error);
+            logger.error('Failed to retrieve ordered list of atl24ClassColors', { error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
@@ -667,9 +665,9 @@ export class SlideRuleDexie extends Dexie {
     async deleteAtl03CnfColor(color: string): Promise<void> {
         try {
             await this.atl03CnfColors.where('color').equals(color).delete();
-            console.log(`Color deleted from atl03CnfColors: ${color}`);
+            logger.debug('Deleted atl03CnfColor', { color });
         } catch (error) {
-            console.error(`Failed to delete color from atl03CnfColors: ${color}`, error);
+            logger.error('Failed to delete atl03CnfColor', { color, error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
@@ -678,9 +676,9 @@ export class SlideRuleDexie extends Dexie {
     async deleteAtl08ClassColor(color: string): Promise<void> {
         try {
             await this.atl08ClassColors.where('color').equals(color).delete();
-            console.log(`Color deleted from atl08ClassColors: ${color}`);
+            logger.debug('Deleted atl08ClassColor', { color });
         } catch (error) {
-            console.error(`Failed to delete color from atl08ClassColors: ${color}`, error);
+            logger.error('Failed to delete atl08ClassColor', { color, error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
@@ -689,9 +687,9 @@ export class SlideRuleDexie extends Dexie {
     async deleteAtl24ClassColor(color: string): Promise<void> {
         try {
             await this.atl24ClassColors.where('color').equals(color).delete();
-            console.log(`Color deleted from atl24ClassColors: ${color}`);
+            logger.debug('Deleted atl24ClassColor', { color });
         } catch (error) {
-            console.error(`Failed to delete color from atl24ClassColors: ${color}`, error);
+            logger.error('Failed to delete atl24ClassColor', { color, error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
@@ -728,7 +726,7 @@ export class SlideRuleDexie extends Dexie {
                     }
                     return downlevelTable.mutate(req);
                 } catch (error) {
-                    console.error('Error during database mutation:', error);
+                    logger.error('Error during database mutation', { error: error instanceof Error ? error.message : String(error) });
                     throw error;
                 }
             },
@@ -753,7 +751,7 @@ export class SlideRuleDexie extends Dexie {
                     });
                     return result;
                 } catch (error) {
-                    console.error('Error during database getMany:', error);
+                    logger.error('Error during database getMany', { error: error instanceof Error ? error.message : String(error) });
                     throw error;
                 }
             }
@@ -802,10 +800,10 @@ export class SlideRuleDexie extends Dexie {
             if (request) {
                 fn = request.file || '';
             } else {
-                console.error(`No request found with req_id ${reqId}`);
+                logger.error('No request found', { reqId });
             }
         } catch (error) {
-            console.error(`Failed to get filename for req_id ${reqId}:`, error);
+            logger.error('Failed to get filename', { reqId, error: error instanceof Error ? error.message : String(error) });
             throw error;
         } finally {
             const endTime = performance.now(); // End time
@@ -818,17 +816,17 @@ export class SlideRuleDexie extends Dexie {
             if(req_id && req_id > 0){
                 const request = await this.requests.get(req_id);
                 if (!request) {
-                    console.error(`getFunc No request found with req_id ${req_id}`);
+                    logger.error('No request found', { reqId: req_id });
                     return '';
                 }
                 return request.func || '';
             } else {
-                console.warn(`getFunc req_id must be a positive integer. req_id: ${req_id}`);
+                logger.warn('Invalid req_id', { reqId: req_id });
                 return '';
             }
 
         } catch (error) {
-            console.error(`getFunc Failed to get function name for req_id ${req_id}:`, error);
+            logger.error('Failed to get function name', { reqId: req_id, error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
@@ -836,12 +834,12 @@ export class SlideRuleDexie extends Dexie {
         try {
             const request = await this.requests.get(req_id);
             if (!request) {
-                console.error(`No request found with req_id ${req_id}`);
+                logger.error('No request found', { reqId: req_id });
                 return '';
             }
             return request.description || '';
         } catch (error) {
-            console.error(`Failed to get description for req_id ${req_id}:`, error);
+            logger.error('Failed to get description', { reqId: req_id, error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
@@ -850,17 +848,17 @@ export class SlideRuleDexie extends Dexie {
             if(req_id && req_id > 0){
                 const request = await this.requests.get(req_id);
                 if (!request) {
-                    console.error(`getFunc No request found with req_id ${req_id}`);
+                    logger.error('No request found', { reqId: req_id });
                     return NaN;
                 }
                 return request.num_bytes || NaN;
             } else {
-                console.warn(`getFunc req_id must be a positive integer. req_id: ${req_id}`);
+                logger.warn('Invalid req_id', { reqId: req_id });
                 return NaN;
             }
 
         } catch (error) {
-            console.error(`getFunc Failed to get function name for req_id ${req_id}:`, error);
+            logger.error('Failed to get num_bytes', { reqId: req_id, error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
@@ -868,12 +866,12 @@ export class SlideRuleDexie extends Dexie {
         try {
             const request = await this.requests.get(req_id);
             if (!request) {
-                console.error(`No request found with req_id ${req_id}`);
+                logger.error('No request found', { reqId: req_id });
                 return '';
             }
             return request.status || '';
         } catch (error) {
-            console.error(`Failed to get status for req_id ${req_id}:`, error);
+            logger.error('Failed to get status', { reqId: req_id, error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
@@ -882,12 +880,12 @@ export class SlideRuleDexie extends Dexie {
         try {
             const request = await this.requests.get(req_id);
             if (!request) {
-                console.error(`No request found with req_id ${req_id}`);
+                logger.error('No request found', { reqId: req_id });
                 return {} as NullReqParams;
             }
             return request.parameters || {} as NullReqParams;
         } catch (error) {
-            console.error(`Failed to get parameters for req_id ${req_id}:`, error);
+            logger.error('Failed to get parameters', { reqId: req_id, error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
@@ -899,11 +897,11 @@ export class SlideRuleDexie extends Dexie {
             if (request) {
                 return request.svr_parms;
             } else {
-                console.error(`No request found with req_id ${req_id}`);
+                logger.error('No request found', { reqId: req_id });
                 return {};
             }
         } catch (error) {
-            console.error(`Failed to get svr_parms for req_id ${req_id}:`, error);
+            logger.error('Failed to get svr_parms', { reqId: req_id, error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
@@ -919,35 +917,35 @@ export class SlideRuleDexie extends Dexie {
             if(svrParmsUsedStr){
 
                 const svrParmsUsed: SrSvrParmsUsed = JSON.parse(svrParmsUsedStr as string);
-                
+
                 if(svrParmsUsed.server){
                     if(svrParmsUsed.server.rqst.parms){
                         return svrParmsUsed.server.rqst.parms.poly;
                     } else {
-                        console.error(`No svr_parms found with req_id ${req_id}`);
+                        logger.error('No svr_parms.server.rqst.parms found', { reqId: req_id });
                         return {} as SrRegion;
                     }
                 } else if(svrParmsUsed.poly){
                     return svrParmsUsed.poly; //atl24x with new server format
                 } else {
-                    console.error(`No svr_parms found with req_id ${req_id}`);
+                    logger.error('No svr_parms.poly found', { reqId: req_id });
                     return {} as SrRegion;
                 }
             } else {
-                console.error(`No svr_parms found with req_id ${req_id}`);
+                logger.error('No svr_parms found', { reqId: req_id });
                 return {} as SrRegion;
             }
         } catch (error) {
-            console.error(`Failed to get svr_parms for req_id ${req_id}:`, error);
+            logger.error('Failed to get svr_parms poly', { reqId: req_id, error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
-    
+
     async getRegionMaskFromSvrParms(req_id: number): Promise<SrRegionMask | undefined> {
         try {
             const request = await this.requests.get(req_id);
             if (!request) {
-                console.error(`getRegionMaskFromSvrParms: no request found for req_id ${req_id}`);
+                logger.error('No request found for getRegionMask', { reqId: req_id });
                 return undefined;
             }
 
@@ -959,7 +957,7 @@ export class SlideRuleDexie extends Dexie {
             try {
                 svr = (typeof raw === 'string') ? JSON.parse(raw) : raw;
             } catch (e) {
-                console.error(`getRegionMaskFromSvrParms: failed to parse svr_parms for req_id ${req_id}`, e, 'raw:', raw);
+                logger.error('Failed to parse svr_parms', { reqId: req_id, error: e instanceof Error ? e.message : String(e) });
                 return undefined;
             }
 
@@ -971,7 +969,7 @@ export class SlideRuleDexie extends Dexie {
                 svr?.raster;
 
             if (!maskLike) {
-                console.error(`getRegionMaskFromSvrParms: no region_mask/raster found for req_id ${req_id}`);
+                logger.error('No region_mask/raster found in svr_parms', { reqId: req_id });
                 return undefined;
             }
 
@@ -1011,12 +1009,12 @@ export class SlideRuleDexie extends Dexie {
                 Number.isFinite(normalized.lonmax);
 
             if (!hasBasics) {
-                console.warn('getRegionMaskFromSvrParms: region_mask present but contains non-numeric fields', normalized);
+                logger.warn('region_mask contains non-numeric fields', { reqId: req_id, normalized });
             }
 
             return normalized;
         } catch (error) {
-            console.error(`getRegionMaskFromSvrParms: failed for req_id ${req_id}:`, error);
+            logger.error('Failed to get region mask from svr_parms', { reqId: req_id, error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
@@ -1026,23 +1024,23 @@ export class SlideRuleDexie extends Dexie {
             if(req_id && req_id > 0){
                 const request = await this.requests.get(req_id);
                 if (!request) {
-                    console.error(`getSrViewName No request found with req_id ${req_id}`);
+                    logger.error('No request found for getSrViewName', { reqId: req_id });
                     return '';
                 }
                 //console.log('getSrViewName req_id:',req_id,'func:',request.func, 'request:',request);
                 let srViewName = request.srViewName || '';
                 if((!srViewName) || (srViewName == '') || (srViewName === 'Global')){
                     srViewName = 'Global Mercator Esri';
-                    console.warn(`HACK ALERT!! inserting srViewName:${srViewName} for reqId:${req_id}`);
+                    logger.warn('Using default srViewName (HACK)', { srViewName, reqId: req_id });
                 }
                 return srViewName
             } else {
-                console.warn(`getSrViewName req_id must be a positive integer. req_id: ${req_id}`);
+                logger.warn('Invalid req_id for getSrViewName', { reqId: req_id });
                 return '';
             }
 
         } catch (error) {
-            console.error(`getSrViewName Failed to get SrViewName for req_id ${req_id}:`, error);
+            logger.error('Failed to get SrViewName', { reqId: req_id, error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
@@ -1051,7 +1049,7 @@ export class SlideRuleDexie extends Dexie {
         try {
             const request = await this.requests.get(req_id);
             if (!request?.checksum) {
-                console.error(`No checksum found for req_id ${req_id}`);
+                logger.error('No checksum found', { reqId: req_id });
                 return BigInt(0);
             }
             let cs: bigint;
@@ -1063,16 +1061,15 @@ export class SlideRuleDexie extends Dexie {
             } else {
                 cs = request.checksum;
             }
-            console.log('getChecksum:',req_id,'checksum:',cs,'typeof:',typeof(cs));
+            logger.debug('Retrieved checksum', { reqId: req_id, checksum: cs.toString(), type: typeof(cs) });
             return cs;
         } catch (error) {
-            console.error(`Failed to get checksum for req_id ${req_id}:`, error);
-            // Additional error details
-            if (error instanceof Error) {
-                console.error('Error name:', error.name);
-                console.error('Error message:', error.message);
-                console.error('Error stack:', error.stack);
-            }
+            logger.error('Failed to get checksum', {
+                reqId: req_id,
+                error: error instanceof Error ? error.message : String(error),
+                errorName: error instanceof Error ? error.name : undefined,
+                errorStack: error instanceof Error ? error.stack : undefined
+            });
             throw error;
         }
     }
@@ -1080,11 +1077,11 @@ export class SlideRuleDexie extends Dexie {
     async updateRequestRecord(updateParams: Partial<SrRequestRecord>, updateTime=false): Promise<void> {
         const { req_id } = updateParams;
         if (!req_id) {
-            console.error('Request ID is required to update. updateParams:', updateParams);
+            logger.error('Request ID is required to update', { updateParams });
             return;
         }
         if(req_id <= 0){
-            console.error('Request ID must be a positive integer. updateParams:', updateParams);
+            logger.error('Request ID must be a positive integer', { updateParams });
             return;
         }
         try {
@@ -1092,11 +1089,11 @@ export class SlideRuleDexie extends Dexie {
             const request = await this.requests.get(req_id);
             //console.log('updateRequestRecord updating request:', request);
             if (!request) {
-                console.error(`No request found with req_id ${req_id}`);
+                logger.error('No request found for update', { reqId: req_id });
                 return;
             }
             if (!request.start_time) {
-                console.error(`Request with req_id ${req_id} has no start time.`);
+                logger.error('Request has no start time', { reqId: req_id });
                 return;
             }
     
@@ -1124,7 +1121,7 @@ export class SlideRuleDexie extends Dexie {
             }
             //console.log(`updateRequestRecord: SrRequestRecord updated for req_id ${req_id} with changes:`, updates);
         } catch (error) {
-            console.error(`Failed to update req_id ${req_id}:`, error);
+            logger.error('Failed to update request record', { reqId: req_id, error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
@@ -1134,11 +1131,11 @@ export class SlideRuleDexie extends Dexie {
         try {
             const request = await this.requests.get(req_id);
             if (!request) {
-                console.error(`No request found with req_id ${req_id}`);
+                logger.error('No request found', { reqId: req_id });
             }
             return request;
         } catch (error) {
-            console.error(`Failed to get request for req_id ${req_id}:`, error);
+            logger.error('Failed to get request', { reqId: req_id, error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
@@ -1147,20 +1144,20 @@ export class SlideRuleDexie extends Dexie {
     async addPendingRequest(): Promise<number> {
         try {
             //console.log("Adding pending request...");
-            const reqId = await this.requests.add({ 
-                status: 'pending', 
+            const reqId = await this.requests.add({
+                status: 'pending',
                 func: '',
                 cnt: 0,
                 parameters: {} as AtlxxReqParams,
                 start_time: new Date(),
                 end_time: new Date(),
-                description: DEFAULT_DESCRIPTION, 
+                description: DEFAULT_DESCRIPTION,
                 star: false,
             });
             //console.log(`Pending request added with req_id ${reqId}.`);
             return reqId;
         } catch (error) {
-            console.error("Failed to add pending request:", error);
+            logger.error('Failed to add pending request', { error: error instanceof Error ? error.message : String(error) });
             // Optionally rethrow the error or handle it according to your error handling policy
             throw error; // Rethrowing allows the calling context to handle it further
         }
@@ -1172,13 +1169,13 @@ export class SlideRuleDexie extends Dexie {
             //console.log("updateRequest: calling update with:",updates);
             const result = await this.requests.update(reqId, updates);
             if (result === 0) {
-                console.error(`No request found with req_id ${reqId}.`);
+                logger.error('No request found for update', { reqId });
             }
             // else {
             //     console.log(`updateRequest: SrRequestRecord updated for req_id ${reqId} with changes:`, updates);
             // }
         } catch (error) {
-            console.error(`updateRequest: Failed to update request for req_id ${reqId}:`, error);
+            logger.error('Failed to update request', { reqId, error: error instanceof Error ? error.message : String(error) });
             throw error; // Rethrowing the error for further handling if needed
         }
     }
@@ -1193,9 +1190,9 @@ export class SlideRuleDexie extends Dexie {
             // Await all deletions to ensure they complete before logging
             await Promise.all([requestDeletion]);
 
-            console.log(`All related data deleted for req_id ${reqId}.`);
+            logger.info('Request and related data deleted', { reqId });
         } catch (error) {
-            console.error(`Failed to delete request and related data for req_id ${reqId}:`, error);
+            logger.error('Failed to delete request and related data', { reqId, error: error instanceof Error ? error.message : String(error) });
             throw error; // Rethrowing the error for further handling if needed
         }
     }
@@ -1204,9 +1201,9 @@ export class SlideRuleDexie extends Dexie {
         try {
             // Delete all requests
             await this.requests.clear();
-            console.warn("All requests deleted successfully.");
+            logger.warn("All requests deleted successfully");
         } catch (error) {
-            console.error("Failed to delete all requests:", error);
+            logger.error('Failed to delete all requests', { error: error instanceof Error ? error.message : String(error) });
             throw error; // Rethrowing the error for further handling if needed
         }
     }
@@ -1215,9 +1212,9 @@ export class SlideRuleDexie extends Dexie {
         try {
             // Delete the request summary
             await this.summary.where('req_id').equals(reqId).delete();
-            console.log(`Request summary deleted for req_id ${reqId}.`);
+            logger.info('Request summary deleted', { reqId });
         } catch (error) {
-            console.error(`Failed to delete request summary for req_id ${reqId}:`, error);
+            logger.error('Failed to delete request summary', { reqId, error: error instanceof Error ? error.message : String(error) });
             throw error; // Rethrowing the error for further handling if needed
         }
     }
@@ -1226,9 +1223,9 @@ export class SlideRuleDexie extends Dexie {
         try {
             // Delete all request summaries
             await this.summary.clear();
-            console.log("All request summaries deleted successfully.");
+            logger.info("All request summaries deleted successfully");
         } catch (error) {
-            console.error("Failed to delete all request summaries:", error);
+            logger.error('Failed to delete all request summaries', { error: error instanceof Error ? error.message : String(error) });
             throw error; // Rethrowing the error for further handling if needed
         }
     }
@@ -1239,7 +1236,7 @@ export class SlideRuleDexie extends Dexie {
             //console.log("Retrieved request IDs:", requestIds);
             return requestIds;
         } catch (error) {
-            console.error("Failed to retrieve request IDs:", error);
+            logger.error('Failed to retrieve request IDs', { error });
             throw error;  // Rethrowing the error for further handling if needed
         }
     }
@@ -1249,7 +1246,7 @@ export class SlideRuleDexie extends Dexie {
             const request = await this.requests.get(req_id);
             return request?.num_gran ?? 0;
         } catch (error) {
-            console.error(`getNumGran failed for req_id ${req_id}:`, error);
+            logger.error('getNumGran failed', { req_id, error });
             return 0;
         }
     }
@@ -1259,18 +1256,18 @@ export class SlideRuleDexie extends Dexie {
             const request = await this.requests.get(req_id);
             return request?.area_of_poly ?? 0;
         } catch (error) {
-            console.error(`getAreaOfPoly failed for req_id ${req_id}:`, error);
+            logger.error('getAreaOfPoly failed', { req_id, error });
             return 0;
         }
     }
     
     async addNewSummary(summary: SrRequestSummary): Promise<void> {
         try {
-            console.log(`Adding summary for req_id ${summary.req_id} with:`, summary);
+            logger.debug('Adding summary', { req_id: summary.req_id, summary });
             await this.summary.add( summary );
             //console.log(`Summary added for req_id ${summary.req_id}.`);
         } catch (error) {
-            console.error(`Failed to add summary for req_id ${summary.req_id}:`, error);
+            logger.error('Failed to add summary', { req_id: summary.req_id, error });
             throw error; // Rethrowing the error for further handling if needed
         }
     }
@@ -1281,7 +1278,7 @@ export class SlideRuleDexie extends Dexie {
             //console.log(`getWorkerSummary for req_id ${reqId}...`);
             const count = await this.summary.where('req_id').equals(reqId).count();
             if (count > 1) {
-                console.error(`Multiple summaries found for req_id ${reqId}.`);
+                logger.error('Multiple summaries found', { reqId });
             }
             const summaryRecord = await this.summary.where('req_id').equals(reqId).first();
             if (!summaryRecord) {
@@ -1291,19 +1288,19 @@ export class SlideRuleDexie extends Dexie {
             //console.log(`getWorkerSummary Retrieved summary for req_id ${reqId}`,' summaryRecord:',summaryRecord); 
             return summaryRecord;
         } catch (error) {
-            console.error(`Failed to retrieve summary for req_id ${reqId}:`, error);
+            logger.error('Failed to retrieve summary', { reqId, error });
             throw error; // Rethrowing the error for further handling if needed
         }
     }
 
     async deleteDatabase(): Promise<void> {
         try {
-            console.warn(`Deleting database ${this.name}...`);
+            logger.warn('Deleting database', { name: this.name });
             this.close();
             await Dexie.delete(this.name);
-            console.warn(`Database ${this.name} deleted successfully.`);
+            logger.warn('Database deleted successfully', { name: this.name });
         } catch (error) {
-            console.error(`Error deleting database ${this.name}:`, error);
+            logger.error('Error deleting database', { name: this.name, error });
             throw error;
         }
     }
@@ -1323,10 +1320,10 @@ export class SlideRuleDexie extends Dexie {
                 .toArray();
     
             if (candidates.length === 0) {
-                console.log(`No matching record found for run context:`, runContext);
+                logger.debug('No matching record found for run context', { runContext });
                 return undefined;
             } else {
-                console.log(`Found ${candidates.length} candidate(s) for run context:`, runContext);
+                logger.debug('Found candidate(s) for run context', { count: candidates.length, runContext });
             }
     
             // Filter candidates by checking if corresponding request has func === 'atl03x'
@@ -1336,11 +1333,11 @@ export class SlideRuleDexie extends Dexie {
                     return rec.reqId;
                 }
             }
-    
-            console.log(`No atl03x func match found in ${candidates.length} candidate(s) for run context:`, runContext);
+
+            logger.debug('No atl03x func match found in candidates', { count: candidates.length, runContext });
             return undefined;
         } catch (error) {
-            console.error(`Failed to find matching atl03x record for run context:`, error);
+            logger.error('Failed to find matching atl03x record for run context', { error });
             throw error;
         }
     }
@@ -1358,7 +1355,7 @@ export class SlideRuleDexie extends Dexie {
             };
             await this.runContexts.put(thisRunContextRecord);
         } catch (error) {
-            console.error('Failed to add SrRunContext:', error);
+            logger.error('Failed to add SrRunContext', { error });
             throw error;
         }
     }
@@ -1367,7 +1364,7 @@ export class SlideRuleDexie extends Dexie {
         try {
             await this.runContexts.where('reqId').equals(reqId).delete();
         } catch (error) {
-            console.error(`Failed to remove run context for req_id ${reqId}:`, error);
+            logger.error('Failed to remove run context', { reqId, error });
             throw error;
         }
     }
@@ -1380,7 +1377,7 @@ export class SlideRuleDexie extends Dexie {
             }
             return runContext;
         } catch (error) {
-            console.error(`Failed to get run context for req_id ${reqId}:`, error);
+            logger.error('Failed to get run context', { reqId, error });
             throw error;
         }
     }
@@ -1390,11 +1387,11 @@ export class SlideRuleDexie extends Dexie {
             // We assume that there is only ever one record (id = 1).
             const config = await this.plotConfig.get(1);
             if (!config) {
-                console.warn('No plotConfig record found. Did initialization fail?');
+                logger.warn('No plotConfig record found. Did initialization fail?');
             }
             return config;
         } catch (error) {
-            console.error('Error retrieving plotConfig:', error);
+            logger.error('Error retrieving plotConfig', { error });
             throw error;
         }
     }
@@ -1406,7 +1403,7 @@ export class SlideRuleDexie extends Dexie {
             await this.plotConfig.update(1, updates);
             // If update returns 0, it means there was no record to update
         } catch (error) {
-            console.error('Error updating plotConfig:', error);
+            logger.error('Error updating plotConfig', { error });
             throw error;
         }
     }

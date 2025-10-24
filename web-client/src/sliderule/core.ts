@@ -1,4 +1,7 @@
 import {Buffer} from 'buffer/'; // note: the trailing slash is important!
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SlideRuleCore');
 const build_env = import.meta.env.VITE_BUILD_ENV;
 
 export type SysConfig = {
@@ -137,7 +140,7 @@ async function populateDefinition(rec_type: any): Promise<any> {
       recordDefinitions[rec_type] = result;
       return recordDefinitions[rec_type];
     } catch (error) {
-      console.error(`failed to retrieve definition for ${rec_type}: ${error}`);
+      logger.error('Failed to retrieve definition', { recType: rec_type, error: error instanceof Error ? error.message : String(error) });
       throw new Error(`failed to retrieve definition for ${rec_type}: ${error}`);
     }
   }
@@ -370,13 +373,13 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
                       if (rec_type in callbacks) {
                         callbacks[rec_type](result);
                       } else {
-                        console.warn('NO callback for rec_type:',rec_type, 'result:', result)
+                        logger.warn('No callback registered for record type', { recType: rec_type, result });
                       }
                       //console.log('rec_type:',rec_type, 'result:', result)
                     }
                   ).catch(error => {
                     decode_errors++;
-                    console.error(`Error decoding record of type ${rec_type}:`, error, 'decode_errors:', decode_errors);
+                    logger.error('Error decoding record', { recType: rec_type, decodeErrors: decode_errors, error: error instanceof Error ? error.message : String(error) });
                     loop_done = true;
                     bytes_to_process = 0;
                   });
@@ -402,10 +405,10 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
             }
           } else {
             empty_chunks++;
-            console.log(`fetchAndProcessResult chunk:${num_chunks} Received empty chunk`);
+            logger.debug('Received empty chunk', { chunkNum: num_chunks });
             if (empty_chunks > 10) {
               loop_done = true;
-              console.error('fetchAndProcessResult empty_chunks > 10? Done! ');
+              logger.error('Too many empty chunks, stopping stream processing', { emptyChunks: empty_chunks });
               break;
             }
           } 
@@ -415,7 +418,7 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
             results["bytes_processed"] = bytes_processed;
             results["num_chunks"] = num_chunks;
             results["empty_chunks"] = empty_chunks;
-            console.log('fetchAndProcessResult read returned done: results:', results);
+            logger.debug('Stream processing completed', { results });
             break;
           }
         }
@@ -429,7 +432,7 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
             binaryData.set(value, position);
             position += value.length;
         }
-        console.log("fetchAndProcessResult final recs_cnt:", recs_cnt, " num_chunks_appended:", num_chunks_appended, "results:", results);
+        logger.debug('Stream processing summary', { recsCnt: recs_cnt, numChunksAppended: num_chunks_appended, results });
         //console.log('fetchAndProcessResult returning binaryData:', binaryData);
         //return binaryData;
         return results;
@@ -441,7 +444,7 @@ async function fetchAndProcessResult(url:string, options:any, callbacks:{ [key: 
     }
   } catch (error) {
       // Handle any errors
-      console.error('fetchAndProcessResult Error fetching or processing stream:', error);
+      logger.error('Error fetching or processing stream', { error: error instanceof Error ? error.message : String(error) });
       throw error; // Re-throw the error if you want to handle it further up the call stack
   }
 }
@@ -474,7 +477,8 @@ export function init(domain: string, organization: string, jwt:string): void {
   //console.log('globalSysConfig:', globalSysConfig); 
 }
 export interface Callbacks {
-  [key: string]: ((result: any) => void) | undefined; 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, no-unused-vars
+  [key: string]: ((result: any) => void) | undefined;
 }
 // Define type for the source function
 export async function source(
@@ -516,36 +520,35 @@ export async function source(
   }
   // Make API Request
   // Await the fetchAndProcessResult call
-  let result;
   try {
       if (api.includes('atl')) {
-        console.log('source url:', url, 'options:',options);
-        console.log('options.body:',options.body);
+        logger.debug('Making ATL API request', { url, options });
+        logger.debug('Request body', { body: options.body });
       }
-      result = await fetchAndProcessResult(url, options, callbacks, stream);
+      const result = await fetchAndProcessResult(url, options, callbacks, stream);
       //console.log('source url:', url, 'options:',options, 'result:', result);
+      return result;
   } catch (error) {
-      console.error('Error in fetchAndProcessResult source url:', url, 'options:',options,' error:', error);
+      logger.error('Error in fetchAndProcessResult', { url, options, error: error instanceof Error ? error.message : String(error) });
       throw error; // Rethrow or handle as needed
   }
-  return result;
 }; 
 
 //
 // Authenticate User
 //
 
-interface SysCredentials {
-    access: string;
-    refresh: string;
-    expiration: number;
-}
+// interface SysCredentials {
+//     access: string;
+//     refresh: string;
+//     expiration: number;
+// }
 
-const sysCredentials: SysCredentials = {
-    access: '',
-    refresh: '',
-    expiration: 0,
-};
+// const sysCredentials: SysCredentials = {
+//     access: '',
+//     refresh: '',
+//     expiration: 0,
+// };
 
 // Define type for the get_version function
 // export function get_version(): Promise<{
@@ -629,11 +632,11 @@ export async function populateAllDefinitions(): Promise<any> {
   ];
 
   try {
-    const definitionPromises = allRecordTypes.map(type => populateDefinition(type));
+    const definitionPromises = allRecordTypes.map(async type => await populateDefinition(type));
     await Promise.all(definitionPromises);
     return recordDefinitions;
   } catch (error) {
-    console.error("Error populating record definitions:", error);
+    logger.error('Error populating record definitions', { error: error instanceof Error ? error.message : String(error) });
     throw error; // re-throw the error if you want the caller to handle it
   }
 }

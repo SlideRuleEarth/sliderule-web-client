@@ -1,4 +1,7 @@
 import Permalink from "ol-ext/control/Permalink";
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('usePermalink');
 
 function isLocalStorageAvailable() {
     try {
@@ -12,11 +15,11 @@ function isLocalStorageAvailable() {
 }
 
 export function usePermalink() {
-    let plink: Permalink;
     if (isLocalStorageAvailable()) {
-        plink = new Permalink({ visible: true, localStorage: 'position' });
+        const plink = new Permalink({ visible: true, localStorage: 'position' });
         return plink;
     } else {
-        console.log("Error:localStorage not available no Permalink control added");
+        logger.error('localStorage not available no Permalink control added');
+        return undefined;
     }
 }

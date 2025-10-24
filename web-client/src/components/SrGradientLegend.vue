@@ -97,7 +97,7 @@ const legendLabel = computed(() => {
 // Safe getters for min/max
 const computedDisplayGradient = computed(() => {
   const id = reqIdStr.value;
-  if (!id || !computedDataKey) return false;
+  if (!id || !computedDataKey.value) return false;
   // Check if min/max values exist first to avoid warnings during loading
   if (!chartStore.hasMinMaxValues(id, computedDataKey.value)) return false;
   const min = chartStore.getMinValue(id, computedDataKey.value);
@@ -107,7 +107,7 @@ const computedDisplayGradient = computed(() => {
 
 const minValue = computed(() => {
   const id = reqIdStr.value;
-  if (!id || !computedDataKey) return '?';
+  if (!id || !computedDataKey.value) return '?';
 
   const enc = colorEncode.value;
   let min: number | null | undefined;
@@ -131,7 +131,7 @@ const minValue = computed(() => {
 
 const maxValue = computed(() => {
   const id = reqIdStr.value;
-  if (!id || !computedDataKey) return '?';
+  if (!id || !computedDataKey.value) return '?';
 
   const enc = colorEncode.value;
   let max: number | null | undefined;

@@ -45,6 +45,9 @@ import Select from 'primevue/select';
 import Button from 'primevue/button';
 import SrGradientLegend from './SrGradientLegend.vue';
 import { useGradientColorMapStore } from '@/stores/gradientColorMapStore';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrGradientLegendCntrl');
 
 // Define props with TypeScript types
 const props = withDefaults(
@@ -67,7 +70,7 @@ const gradientColorMapStore = useGradientColorMapStore(props.req_id.toString());
 
 onMounted(async () => {
     // Await the asynchronous store initialization after mounting
-    console.log('Mounted SrGradientLegendCntrl with store:', gradientColorMapStore);
+    logger.debug('Mounted SrGradientLegendCntrl', { gradientColorMapStore });
 });
 
 const gradientColorMapChanged = () => {

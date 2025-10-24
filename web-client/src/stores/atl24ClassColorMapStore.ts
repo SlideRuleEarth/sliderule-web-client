@@ -1,13 +1,16 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { db } from '@/db/SlideRuleDb';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('Atl24ClassColorMapStore');
 
 /**
  * Factory function to create a unique store instance per reqId
  */
 export async function useAtl24ClassColorMapStore(reqIdStr: string) {
     const store = defineStore(`atl24ClassStore-${reqIdStr}`, () => {
-        const isInitialized = ref(false);
+        // const isInitialized = ref(false); // Unused variable
         const dataOrderNdx =  ref<Record<string, number>>({});
         const atl24ClassColorMap = ref([] as string[]);
         const atl24ClassOptions = [
@@ -17,7 +20,6 @@ export async function useAtl24ClassColorMapStore(reqIdStr: string) {
         ] as {label:string,value:number}[];
 
         async function initializeColorMapStore() {
-            isInitialized.value = true;
             atl24ClassColorMap.value = await db.getAllAtl24ClassColors();
         }
 
@@ -47,11 +49,11 @@ export async function useAtl24ClassColorMapStore(reqIdStr: string) {
                 if (ndx < 0) {
                     ndx = dataOrderNdx.value[ndx_name];
                 }
-                const value = params.data[ndx];
-                if (colorCache[value] === undefined) {
-                    colorCache[value] = getColorFunction(value);
+                const paramValue = params.data[ndx];
+                if (colorCache[paramValue] === undefined) {
+                    colorCache[paramValue] = getColorFunction(paramValue);
                 }
-                return colorCache[value];
+                return colorCache[paramValue];
             };
 
             // Function to clear the cache
@@ -72,7 +74,7 @@ export async function useAtl24ClassColorMapStore(reqIdStr: string) {
             } else if(value == 41){
                 ndx = 2; // sea surface
             } else {
-                console.error('getColorForAtl24ClassValue invalid value:',value);
+                logger.error('getColorForAtl24ClassValue invalid value', { value });
                 return 'White'; // Return White for invalid values
             }
             const c = atl24ClassColorMap.value[ndx];
@@ -106,7 +108,7 @@ export async function useAtl24ClassColorMapStore(reqIdStr: string) {
             } else if(value == 41){
                 ndx = 2; // sea surface
             } else {
-                console.error('setColorForAtl24ClassValue invalid value:',value);
+                logger.error('setColorForAtl24ClassValue invalid value', { value });
                 return;
             }
             atl24ClassColorMap.value[ndx] = namedColorValue;

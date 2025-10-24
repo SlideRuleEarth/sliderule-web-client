@@ -35,10 +35,11 @@ import { useMapStore } from "@/stores/mapStore";
 import Button from 'primevue/button';
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
 import { useToast } from "primevue";
-import { useRecTreeStore } from '@/stores/recTreeStore'; 
+import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
+import { createLogger } from '@/utils/logger';
 
-
+const logger = createLogger('SrDropPinControl');
 const toast = useToast();
 const recTreeStore = useRecTreeStore();
 const reqParamsStore = useReqParamsStore();
@@ -57,13 +58,13 @@ onMounted(async() => {
     if (dropPinWrapper.value) {
         element.appendChild(dropPinWrapper.value);
     } else {
-        console.error("Error: dropPinWrapper is null");
+        logger.error('dropPinWrapper is null');
     }
 
     const customControl = new Control({ element });
     emit('drop-pin-control-created', customControl);
     const apiCounts = recTreeStore.countRequestsByApi();
-    console.log("API Counts:", apiCounts);
+    logger.debug('API Counts', { apiCounts });
     if (!apiCounts.atl13x || (apiCounts.atl13x < 3)) {
         toast.add({
             severity: 'info',
@@ -96,12 +97,12 @@ const toggleDropPinEnabled = () => {
     } else {
         toolTipStrRef.value = "toggleDropPinEnabled - Click to toggle drop pin mode, then drop a pin on an inland body of water to add it to use it's coordinates in the request ";
     }
-    console.log(`toggleDropPinEnabled -  reqParamsStore.useAtl13Point: ${reqParamsStore.useAtl13Point}`);
+    logger.debug('toggleDropPinEnabled', { useAtl13Point: reqParamsStore.useAtl13Point });
 };
 
 const removeDropPin = () => {
     reqParamsStore.removePin();
-    console.log(`removeDropPin - Drop pin reqParamsStore.useAtl13Point: ${reqParamsStore.useAtl13Point}`);
+    logger.debug('removeDropPin', { useAtl13Point: reqParamsStore.useAtl13Point });
 };
 </script>
 <style scoped>

@@ -5,6 +5,9 @@ import ProgressBar from 'primevue/progressbar';
 import Button from 'primevue/button';
 import SrToast from 'primevue/toast';
 import { useGeoJsonUploader } from '@/composables/useGeoJsonUploader';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrGeoJsonFileUpload');
 
 const emit = defineEmits<{
     (e: 'done'): void;   // use lowercase; parent listens as @done
@@ -37,22 +40,22 @@ const { handleUpload } = useGeoJsonUploader(
 
 onMounted(() => {
     if(props.loadReqPoly){
-        console.log('onMounted SrGeoJsonFileUpload: will load request polygon');
+        logger.debug('onMounted: will load request polygon');
     } else {
-        console.log('onMounted SrGeoJsonFileUpload: will load features');
+        logger.debug('onMounted: will load features');
     }
 });
 
-const onSelect = (e: any) => {
-    console.log('onSelect e:', e);
+const onSelect = (_e: any) => {
+    logger.debug('onSelect');
 };
 
 const onError = (e: any) => {
-    console.log('onError e:', e);
+    logger.error('onError', { e });
 };
 
 const onClear = () => {
-    console.log('onClear');
+    logger.debug('onClear');
 };
 
 </script>

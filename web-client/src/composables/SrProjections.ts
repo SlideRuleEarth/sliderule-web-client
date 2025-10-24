@@ -1,4 +1,8 @@
 import { ref,computed } from "vue";
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrProjections');
+
 export interface SrProjection {
     title: string;
     name: string;
@@ -90,7 +94,7 @@ export const srProjections = ref<{ [key: string]: SrProjection }>({
 
 export const useProjectionNames = () => {
   const projectionNames = computed(() =>  Object.values(srProjections.value).map(p => p.name).concat(['EPSG:3857','EPSG:4326']));
-  console.log('useProjectionNames projectionNames:',projectionNames.value);
+  logger.debug('useProjectionNames projectionNames', { projectionNames: projectionNames.value });
   return projectionNames;
 };
 

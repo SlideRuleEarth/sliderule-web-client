@@ -7,7 +7,9 @@ import SrToast from 'primevue/toast';
 import { useToast } from "primevue/usetoast";
 
 import { tableFromIPC } from 'apache-arrow';
+import { createLogger } from '@/utils/logger';
 
+const logger = createLogger('SrFeatherFileUpload');
 const toast = useToast();
 ////////////// upload toast items
 const upload_progress_visible = ref(false);
@@ -16,33 +18,33 @@ const upload_progress = ref(0);
 
 
 const customUploader = async (event:any) => {
-    console.log('SrFeatherFileUpload customUploader event:',event);
+    logger.debug('customUploader event', { event });
     const file = event.files[0];
     if (file) {
         const reader = new FileReader();
         reader.readAsArrayBuffer(file);
         reader.onloadend = async (e) => { // Note: onloadend is used instead of onload
             try {
-                console.log('SrFeatherFileUpload  parsing Feather File');
+                logger.debug('Parsing Feather File');
 
                 if (e.target === null){
-                    console.error('e.target is null');
+                    logger.error('e.target is null');
                     return;
                 } else {
                     //console.log(`e.target.result: ${e.target.result}`);
-                    console.log(`SrFeatherFileUpload e.target.result type: ${typeof e.target.result}`);
+                    logger.debug('e.target.result type', { type: typeof e.target.result });
                     if (e.target === null) {
-                        console.error('e.target is null');
+                        logger.error('e.target is null');
                         return;
                     } else {
-                        console.log('SrFeatherFileUpload e.target.result:',e.target.result);
+                        logger.debug('e.target.result', { result: e.target.result });
                         const buffer = e.target.result as ArrayBuffer;
                         const table = tableFromIPC(buffer);
-                        console.log('Feather table:', table);
+                        logger.debug('Feather table', { table });
                         // Get the column names
                         const columnNames = table.schema.fields.map(field => field.name);
                         // Display the column names
-                        console.log("Column Names:", columnNames);
+                        logger.debug('Column Names', { columnNames });
 
                         // Process the table as needed
                         toast.add({ severity: 'info', summary: 'File Load', detail: 'Feather file successfully loaded', life: 3000 });
@@ -50,15 +52,15 @@ const customUploader = async (event:any) => {
 
                 }
             } catch (error) {
-                console.error('SrFeatherFileUpload Error ', error);
+                logger.error('Error reading Feather file', { error: error instanceof Error ? error.message : String(error) });
                 toast.add({ severity: 'error', summary: 'Failed to read file', group: 'headless' });
             }
         };
 
         reader.onprogress = (e) => {
-            console.log('SrFeatherFileUpload onprogress e:',e);
+            logger.debug('onprogress', { e });
             if (e.lengthComputable) {
-                console.log(`SrFeatherFileUpload Uploading your file ${e.loaded} of ${e.total}`);
+                logger.debug('Uploading file', { loaded: e.loaded, total: e.total });
                 const percentLoaded = Math.round((e.loaded / e.total) * 100);
                 upload_progress.value = percentLoaded;
                 if (!upload_progress_visible.value) {
@@ -68,21 +70,21 @@ const customUploader = async (event:any) => {
             }
         };
     } else {
-        console.error('SrFeatherFileUpload No file input found');
+        logger.error('No file input found');
         toast.add({ severity: 'error', summary: 'No file input found', group: 'headless' });
     };
 };
 
 const onSelect = (e:any) => {
-    console.log('SrFeatherFileUpload onSelect e:',e);
+    logger.debug('onSelect', { e });
 };
 
 const onError = (e:any) => {
-    console.log('SrFeatherFileUpload onError e:',e);
+    logger.error('onError', { e });
     toast.add({ severity: 'error', summary: 'Upload Error', detail: 'Error uploading file', group: 'headless' });
 };
 const onClear = () => {
-    console.log('SrFeatherFileUpload onClear');
+    logger.debug('onClear');
 };
 
 </script>

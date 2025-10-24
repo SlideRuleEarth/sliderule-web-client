@@ -5,6 +5,9 @@ import Button from 'primevue/button'
 import hljs from 'highlight.js/lib/core'
 import json from 'highlight.js/lib/languages/json'
 import 'highlight.js/styles/atom-one-dark.css'
+import { createLogger } from '@/utils/logger'
+
+const logger = createLogger('SrJsonDisplayDialog')
 
 hljs.registerLanguage('json', json)
 
@@ -36,15 +39,15 @@ const highlightedJson = computed(() => {
 const copyToClipboard = async () => {
   try {
     await navigator.clipboard.writeText(prettyJson.value)
-    console.log('Copied to clipboard')
+    logger.debug('Copied to clipboard')
   } catch (err) {
-    console.error('Failed to copy:', err)
+    logger.error('Failed to copy', { error: err instanceof Error ? err.message : String(err) })
   }
 }
 
 watch([modelValue, prettyJson], () => {
   if (modelValue.value) {
-    nextTick(() => highlightJson())
+    void nextTick(() => highlightJson())
   }
 })
 

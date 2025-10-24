@@ -78,6 +78,9 @@ import Card from 'primevue/card';
 import SrElTitleEdit from '@/components/SrElTitleEdit.vue';
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
 import SrWhereClause from '@/components/SrWhereClause.vue';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrFilterCntrlBase');
 
 // Props that control the small differences between ICESat-2 and GEDI
 const props = defineProps<{
@@ -112,15 +115,15 @@ function handleMouseLeave() {
     tooltipRef.value?.hideTooltip?.();
 }
 
-function handleValueChange(_: any) {
+function handleValueChange() {
     const reqId = recTreeStore.selectedReqIdStr;
     if (reqId) {
-        nextTick(async () => {
+        void nextTick(async () => {
             resetFilterUsingSelectedRec();
             await callPlotUpdateDebounced('SrFilterCntrlBase:handleValueChange - RGT');
         });
     } else {
-        console.warn('SrFilterCntrlBase:handleValueChange - RGT reqId is undefined');
+        logger.warn('handleValueChange - RGT reqId is undefined');
     }
 }
 </script>

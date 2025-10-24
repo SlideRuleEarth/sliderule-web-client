@@ -1,3 +1,7 @@
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('FontUtils');
+
 /**
  * Returns the pixel width of a single character, based on the root element's font settings.
  *
@@ -27,5 +31,5 @@ export function getCharacterWidth(character: string): number {
   
   // Example usage:
   const width = getCharacterWidth("M");
-  console.log(`Width of 'M' is: ${width}px`);
+  logger.debug('Character width', { character: 'M', width });
   

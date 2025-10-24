@@ -36,7 +36,9 @@ import PickList from 'primevue/picklist';
 import Button from 'primevue/button';
 import { useColorMapStore } from '@/stores/colorMapStore';
 import Fieldset from 'primevue/fieldset';
+import { createLogger } from '@/utils/logger';
 
+const logger = createLogger('SrColorPalette');
 
 interface AtColorChangeEvent {
   label: string;
@@ -45,7 +47,7 @@ interface AtColorChangeEvent {
 
 const selectedColors = computed({
     get: () => useColorMapStore().getNamedColorPalette(),
-    set: (value) => useColorMapStore().setNamedColorPalette(value)
+    set: async (value) => useColorMapStore().setNamedColorPalette(value)
 });
 
 // Predefined list of CSS color names
@@ -83,12 +85,12 @@ const srColorTable = ref([
 
 onMounted(() => {
     srColorTable.value[1] = colorMapStore.getNamedColorPalette().map(color => ({ label: color, value: color }));
-    console.log('Mounted SrColorPalette colors:', srColorTable.value);
+    logger.debug('Mounted SrColorPalette colors', { srColorTable: srColorTable.value });
 });
 
 const restoreDefaultColors = async () => {
     await colorMapStore.restoreDefaultColors();
-    console.log('SrColorPalette colors:', srColorTable.value);
+    logger.debug('SrColorPalette colors', { srColorTable: srColorTable.value });
 };  
 
 </script>

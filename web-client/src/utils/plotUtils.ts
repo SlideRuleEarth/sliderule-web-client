@@ -17,7 +17,6 @@ import { useGradientColorMapStore } from "@/stores/gradientColorMapStore";
 import { useAtl03CnfColorMapStore } from "@/stores/atl03CnfColorMapStore";
 import { useAtl08ClassColorMapStore } from "@/stores/atl08ClassColorMapStore";
 import { useAtl24ClassColorMapStore } from "@/stores/atl24ClassColorMapStore";
-import { useDeck3DConfigStore } from "@/stores/deck3DConfigStore";
 import { formatKeyValuePair } from '@/utils/formatUtils';
 import { SELECTED_LAYER_NAME_PREFIX, type MinMaxLowHigh, type AtlReqParams, type SrSvrParmsUsed } from "@/types/SrTypes";
 import { useSymbolStore } from "@/stores/symbolStore";
@@ -28,6 +27,9 @@ import { useDeckStore } from "@/stores/deckStore";
 import { SC_BACKWARD,SC_FORWARD } from "@/sliderule/icesat2";
 import { resetFilterUsingSelectedRec } from "@/utils/SrMapUtils";
 import { extractCrsFromGeoMetadata, transformCoordinate, needsTransformation } from '@/utils/SrCrsTransform';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('PlotUtils');
 
 export const yDataBindingsReactive = reactive<{ [key: string]: WritableComputedRef<string[]> }>({});
 export const yDataSelectedReactive = reactive<{ [key: string]: WritableComputedRef<string> }>({});
@@ -82,7 +84,7 @@ export interface SrScatterSeriesData{
     progressiveThreshold?: number;
     progressiveChunkMode?: string;
     itemStyle?: {
-        color: string | ((params: any) => string);
+        color: string | ((_params: any) => string);
     };
     encode?: {
       x: number;
@@ -117,11 +119,11 @@ export function getDefaultColorEncoding(reqId:number,parentFuncStr?:string) {
                 return fieldNameStore.getHFieldName(reqId);
             }
         } else {
-            console.warn(`getDefaultColorEncoding: No function found for reqId: ${reqId}. Returning 'solid'.`);
+            logger.warn('No function found for reqId, returning solid color encoding', { reqId });
             return 'solid'; // default color encoding
         }
     } else {
-        console.warn(`getDefaultColorEncoding: Invalid reqId: ${reqId}. Returning 'solid'.`);
+        logger.warn('Invalid reqId, returning solid color encoding', { reqId });
         return 'solid'; // default color encoding
     }
 }
@@ -183,14 +185,14 @@ interface GetSeriesParams {
     fileName: string;
     x: string;
     y: string[];
-    fetchOptions: FetchScatterDataOptions; 
+    fetchOptions: FetchScatterDataOptions;
     // The name of the function to fetch data:
     fetchData: (
-        reqIdStr: string,
-        fileName: string,
-        x: string,
-        y: string[],
-        fetchOptions: FetchScatterDataOptions 
+        _reqIdStr: string,
+        _fileName: string,
+        _x: string,
+        _y: string[],
+        _fetchOptions: FetchScatterDataOptions
     ) => Promise<{
         chartData: Record<string, SrScatterChartDataArray>;
         minMaxLowHigh: MinMaxLowHigh;
@@ -200,7 +202,7 @@ interface GetSeriesParams {
     // The property name for minMax or normalizedMinMax
     minMaxProperty: 'minMaxLowHigh' | 'normalizedMinMaxValues';
     // A function or color for the series item style
-    colorFunction?: (params: any) => string;
+    colorFunction?: (_params: any) => string;
     // Additional ECharts config
     zValue: number;
     // Logging prefix for console
@@ -265,14 +267,14 @@ async function getGenericSeries({
         const atl24ClassColorMapStore = await useAtl24ClassColorMapStore(reqIdStr);
         atl24ClassColorMapStore.setDataOrderNdx(rest['dataOrderNdx'] || {});
         if (Object.keys(chartData).length === 0 || Object.keys(minMaxValues).length === 0) {
-            console.warn(`${functionName} ${reqIdStr}: chartData or minMax is empty, skipping processing.`);
+            logger.warn('Chart data or minMax is empty, skipping processing', { functionName, reqIdStr });
             return yItems;
         }
         if(!colorFunction){
             const cedk = chartStore.getSelectedColorEncodeData(reqIdStr);
             let thisColorFunction;
             if(cedk === 'solid'){
-                thisColorFunction = (params: any) => chartStore.getSolidSymbolColor(reqIdStr);
+                thisColorFunction = (_params: any) => chartStore.getSolidSymbolColor(reqIdStr);
             } else {
                 //console.log(`getGenericSeries: chartStore.getSelectedColorEncodeData(reqIdStr):`, chartStore.getSelectedColorEncodeData(reqIdStr));
                 //console.log(`getGenericSeries: chartStore.getMinMaxValues(reqIdStr):`, chartStore.getMinMaxValues(reqIdStr));
@@ -293,7 +295,7 @@ async function getGenericSeries({
         // Handle race condition: if selectedYData is not yet set (empty string),
         // skip plotting and return empty array to avoid unnecessary redraw
         if (!ySelectedName) {
-            console.log(`${functionName} ${reqIdStr}: selectedYData not yet initialized, skipping plot until data is ready`);
+            logger.debug('selectedYData not yet initialized, skipping plot until data is ready', { functionName, reqIdStr });
             return yItems;
         }
 
@@ -329,13 +331,13 @@ async function getGenericSeries({
             const totalPoints = data.length;
             chartStore.setNumOfPlottedPnts(reqIdStr, totalPoints);
         } else {
-            console.warn(`getGenericSeries ${functionName} ${reqIdStr} : selected Y data "${ySelectedName}" not found in provided Y array.`);
+            logger.warn('Selected Y data not found in provided Y array', { functionName, reqIdStr, ySelectedName });
         }
     } catch (error) {
-        console.error(`getGenericSeries ${functionName} ${reqIdStr} Error:`, error);
+        logger.error('Error in getGenericSeries', { functionName, reqIdStr, error: error instanceof Error ? error.message : String(error) });
     } finally {
         const endTime = performance.now();
-        console.log(`getGenericSeries ${functionName} ${reqIdStr} took ${endTime - startTime} milliseconds.`);
+        logger.debug('getGenericSeries completed', { functionName, reqIdStr, duration: `${endTime - startTime}ms` });
     }
 
     return yItems;
@@ -468,15 +470,15 @@ async function getSeriesForAtl03vp(
     y: string[]
 ): Promise<SrScatterSeriesData[]> {
 const fetchOptions:FetchScatterDataOptions  = {normalizeX: true};
-return getGenericSeries({
+return await getGenericSeries({
     reqIdStr,
     fileName,
     x,
     y,
     fetchOptions,
-    fetchData: fetchScatterData,         
+    fetchData: fetchScatterData,
     minMaxProperty: 'minMaxLowHigh', // note the difference
-    zValue: 10,                               
+    zValue: 10,
     functionName: 'getSeriesForAtl03vp',
 });
 }
@@ -488,7 +490,7 @@ async function getSeriesForAtl06(
         y: string[]
 ): Promise<SrScatterSeriesData[]> {
     const fetchOptions:FetchScatterDataOptions  = {normalizeX: true};
-    return getGenericSeries({
+    return await getGenericSeries({
         reqIdStr,
         fileName,
         x,
@@ -508,14 +510,14 @@ async function getSeriesForAtl08(
     y: string[]
 ): Promise<SrScatterSeriesData[]> {
     const fetchOptions:FetchScatterDataOptions  = {normalizeX: true};
-    return getGenericSeries({
+    return await getGenericSeries({
         reqIdStr,
         fileName,
         x,
         y,
         fetchOptions,
         fetchData: fetchScatterData,         // function to fetch data
-        minMaxProperty: 'normalizedMinMaxValues', 
+        minMaxProperty: 'normalizedMinMaxValues',
         zValue: 10,                               // z value for ATL06
         functionName: 'getSeriesForAtl08',
     });
@@ -528,14 +530,14 @@ async function getSeriesForAtl24(
     y: string[]
 ): Promise<SrScatterSeriesData[]> {
     const fetchOptions:FetchScatterDataOptions  = {normalizeX: true};
-    return getGenericSeries({
+    return await getGenericSeries({
         reqIdStr,
         fileName,
         x,
         y,
         fetchOptions,
         fetchData: fetchScatterData,         // function to fetch data
-        minMaxProperty: 'normalizedMinMaxValues', 
+        minMaxProperty: 'normalizedMinMaxValues',
         zValue: 10,                               // z value for ATL24
         functionName: 'getSeriesForAtl24',
     });
@@ -548,14 +550,14 @@ async function getSeriesForAtl13(
     y: string[]
 ): Promise<SrScatterSeriesData[]> {
     const fetchOptions:FetchScatterDataOptions  = {normalizeX: true};
-    return getGenericSeries({
+    return await getGenericSeries({
         reqIdStr,
         fileName,
         x,
         y,
         fetchOptions,
         fetchData: fetchScatterData,         // function to fetch data
-        minMaxProperty: 'normalizedMinMaxValues', 
+        minMaxProperty: 'normalizedMinMaxValues',
         zValue: 10,                               // z value for ATL13
         functionName: 'getSeriesForAtl13',
     });
@@ -568,9 +570,9 @@ async function getSeriesForGedi(
     x: string,
     y: string[]
 ): Promise<SrScatterSeriesData[]> {
-    console.log(`getSeriesForGedi ${reqIdStr} fileName:`,fileName);
+    logger.debug('getSeriesForGedi', { reqIdStr, fileName });
 const fetchOptions:FetchScatterDataOptions  = {normalizeX: true};
-return getGenericSeries({
+return await getGenericSeries({
     reqIdStr,
     fileName,
     x,
@@ -589,12 +591,12 @@ export function clearPlot() {
     if (plotRef) {
         if(plotRef.chart){
             plotRef.chart.clear();
-            console.log('clearPlot: plotRef.chart cleared');
+            logger.debug('Plot chart cleared');
         } else {
-            console.warn('clearPlot: plotRef.chart is undefined');
+            logger.warn('Plot chart is undefined');
         }
     } else {
-        console.warn('clearPlot: plotRef is undefined');
+        logger.warn('Plot ref is undefined');
     }
 }
 
@@ -609,9 +611,9 @@ async function ensureTransformCache(reqId: number): Promise<void> {
         cachedSourceCrs = extractCrsFromGeoMetadata(geoMetadata);
         cachedNeedsTransformation = needsTransformation(cachedSourceCrs);
         cachedReqIdForTransform = reqId;
-        console.log(`Location Finder: Cached transform info for reqId ${reqId}: CRS=${cachedSourceCrs}, needsTransform=${cachedNeedsTransformation}`);
+        logger.debug('Location Finder: Cached transform info', { reqId, cachedSourceCrs, cachedNeedsTransformation });
     } catch (error) {
-        console.warn('Could not load geo metadata for coordinate transformation:', error);
+        logger.warn('Could not load geo metadata for coordinate transformation', { error: error instanceof Error ? error.message : String(error) });
         cachedSourceCrs = null;
         cachedNeedsTransformation = false;
         cachedReqIdForTransform = reqId;
@@ -653,7 +655,7 @@ function filterDataForPos(label:any, data:any,lat:string,lon:string) {
                 finalLat = transformedLat;
                 //console.log(`Location Finder: Transformed: (${rawLon}, ${rawLat}) -> (${transformedLon}, ${transformedLat})`);
             } catch (error) {
-                console.warn('Failed to transform coordinates for location finder:', error);
+                logger.warn('Failed to transform coordinates for location finder', { error: error instanceof Error ? error.message : String(error) });
                 // Use raw coordinates if transformation fails
             }
         }
@@ -705,9 +707,9 @@ async function getSeriesFor(reqIdStr:string,isOverlay=false) : Promise<SrScatter
     if(y.length != all_y.length){
         const missing = all_y.filter(col => !existingColumns.includes(col));
         const apiMismatch = !func ? ' (API not yet loaded - possible race condition)' : (func ? ` (API: ${func})` : '');
-        console.warn(`getSeriesFor ${reqIdStr}${apiMismatch} y length mismatch: all_y.length=${all_y.length}, existingColumns.length=${existingColumns.length}, y.length=${y.length}`);
-        console.warn(`getSeriesFor ${reqIdStr} missing ${missing.length} Y-axis column(s) from file:`, missing);
-        console.warn(`getSeriesFor ${reqIdStr} available columns in file:`, existingColumns);
+        logger.warn('Y-axis length mismatch', { reqIdStr, apiMismatch, all_y_length: all_y.length, existingColumns_length: existingColumns.length, y_length: y.length });
+        logger.warn('Missing Y-axis columns from file', { reqIdStr, missing_count: missing.length, missing });
+        logger.warn('Available columns in file', { reqIdStr, existingColumns });
     }
     let seriesData = [] as SrScatterSeriesData[];
     let minXToUse;
@@ -716,7 +718,7 @@ async function getSeriesFor(reqIdStr:string,isOverlay=false) : Promise<SrScatter
         if(rc){
             if(rc.parentReqId){
                 minXToUse = chartStore.getRawMinX(rc.parentReqId.toString());
-                console.log(`getSeriesFor ${reqIdStr} isOverlay: true, minXToUse (from parent:${rc.parentReqId}): ${minXToUse}`);
+                logger.debug('Overlay mode: using parent minX', { reqIdStr, parentReqId: rc.parentReqId, minXToUse });
             }
         }
     }
@@ -739,20 +741,20 @@ async function getSeriesFor(reqIdStr:string,isOverlay=false) : Promise<SrScatter
             } else if(func.includes('gedi')){
                 seriesData = await getSeriesForGedi(reqIdStr, fileName, x, y);
             } else {
-                console.error(`getSeriesFor ${reqIdStr} invalid func:`, func);
+                logger.error('Invalid func', { reqIdStr, func });
             }
             if(seriesData.length === 0){
-                console.warn(`getSeriesFor ${reqIdStr} seriesData is empty`);
+                logger.warn('seriesData is empty', { reqIdStr });
             }
             //console.log(`getSeriesFor ${reqIdStr} seriesData:`, seriesData);
         } else {
-            console.warn(`getSeriesFor ${reqIdStr} fileName is null`);
+            logger.warn('fileName is null', { reqIdStr });
         }
     } catch (error) {
-        console.error('getSeriesFor Error:', error);
+        logger.error('getSeriesFor Error', { error: error instanceof Error ? error.message : String(error) });
     } finally {
-        const endTime = performance.now(); 
-        console.log(`getSeriesFor ${reqIdStr} fileName:${fileName} took ${endTime - startTime} milliseconds. seriesData.length:`, seriesData.length);
+        const endTime = performance.now();
+        logger.debug('getSeriesFor completed', { reqIdStr, fileName, duration: `${endTime - startTime}ms`, seriesDataLength: seriesData.length });
         //console.log(`getSeriesFor ${reqIdStr} seriesData:`, seriesData);
     }
     return seriesData;
@@ -763,7 +765,7 @@ export async function initChartStoreFor(reqId:number) : Promise<boolean>{
     const reqIdStr = reqId.toString();
     let status = true;
     if (reqId <= 0) {
-        console.warn('Invalid request ID:', reqId);
+        logger.warn('Invalid request ID', { reqId });
         return false;
     }
 
@@ -773,17 +775,17 @@ export async function initChartStoreFor(reqId:number) : Promise<boolean>{
         const request = await indexedDb.getRequest(reqId);
 
         if (!request) {
-            console.error(`No request found for reqId: ${reqIdStr}`, request);
+            logger.error('No request found for reqId', { reqIdStr, request });
             return false;
         }
 
-        const { file, func, description, num_bytes, cnt, parameters } = request;
+        const { file, description, num_bytes, cnt, parameters } = request;
 
         if (file) {
             chartStore.setFile(reqIdStr, file);
 
         } else {
-            console.error(`No file found for reqId: ${reqIdStr}`, request);
+            logger.error('No file found for reqId', { reqIdStr, request });
             status = false;
         }
 
@@ -795,7 +797,7 @@ export async function initChartStoreFor(reqId:number) : Promise<boolean>{
             chartStore.setSize(reqIdStr, num_bytes);
         } else {
             if(num_bytes===undefined){
-                console.error(`No num_bytes found for reqId: ${reqIdStr}`, request);
+                logger.error('No num_bytes found for reqId', { reqIdStr, request });
                 status = false;
             }
         }
@@ -804,7 +806,7 @@ export async function initChartStoreFor(reqId:number) : Promise<boolean>{
             chartStore.setRecCnt(reqIdStr, cnt);
         } else {
             if(cnt===undefined){
-                console.error(`No cnt found for reqId: ${reqIdStr}`, request);
+                logger.error('No cnt found for reqId', { reqIdStr, request });
                 status = false;
             }
         }
@@ -814,12 +816,12 @@ export async function initChartStoreFor(reqId:number) : Promise<boolean>{
                 //console.log(`initChartStoreFor ${reqIdStr} setting parameters:`, parms);
                 chartStore.setParameters(reqIdStr, parms);
             } else {
-                console.warn(`No parameters found for reqId: ${reqIdStr}`, request);
+                logger.warn('No parameters found for reqId', { reqIdStr, request });
                 status = false;
             }
         }
     } catch (error) {
-        console.error(`Error processing reqId: ${reqIdStr}`, error);
+        logger.error('Error processing reqId', { reqIdStr, error: error instanceof Error ? error.message : String(error) });
         status = false;
     }
     return status;
@@ -833,12 +835,12 @@ export async function initChartStore() {
         const reqId = Number(reqIdItem.value);
         const status = await initChartStoreFor(reqId);
         if(!status){
-            console.error(`initChartStoreFor ${reqId} failed`);
+            logger.error('initChartStoreFor failed', { reqId });
         }
         await initSymbolSize(reqId);
     }
     const endTime = performance.now();
-    console.log(`initChartStore processed ${totalReqIds} reqIds in ${endTime - startTime} milliseconds.`);
+    logger.debug('initChartStore completed', { totalReqIds, duration: `${endTime - startTime}ms` });
 }
 
 export function slopeRenderItem(_params:any, api:any) {
@@ -874,10 +876,9 @@ export async function getScatterOptions(req_id:number): Promise<any> {
     const chartStore = useChartStore();
     const globalChartStore = useGlobalChartStore();
     const atlChartFilterStore = useAtlChartFilterStore();
-    const startTime = performance.now(); 
+    const startTime = performance.now();
     const reqIdStr = req_id.toString();
     const fileName = chartStore.getFile(reqIdStr);
-    const y = chartStore.getYDataOptions(reqIdStr);
     const x = chartStore.getXDataForChart(reqIdStr);
     const rgt = globalChartStore.getRgt();
     const cycles = useGlobalChartStore().getCycles();
@@ -921,20 +922,20 @@ export async function getScatterOptions(req_id:number): Promise<any> {
                                     renderItem: slopeRenderItem,
                                     z: 11
                                 };
-                            
+
                                 //console.log(`getSeriesFor ${reqIdStr} adding slopeLines series:`, slopeSeries);
                             } else {
-                                console.warn(`getSeriesFor ${reqIdStr} showSlopeLines is true but no slope lines found`);
+                                logger.warn('showSlopeLines is true but no slope lines found', { reqIdStr });
                             }
                         } else {
-                            console.warn(`getSeriesFor ${reqIdStr} showSlopeLines is true but no svr_params found`);
+                            logger.warn('showSlopeLines is true but no svr_params found', { reqIdStr });
                         }
                     }
                 } else {
-                    console.warn('getScatterOptions Filter not set i.e. spots, rgts, or cycles is empty');
+                    logger.warn('Filter not set (spots, rgts, or cycles is empty)');
                 }
             } else {
-                console.error(`getScatterOptions ${reqIdStr} fileName is null`);
+                logger.error('fileName is null', { reqIdStr });
             }
         } else if(mission === 'GEDI'){
             if(fileName){
@@ -942,12 +943,12 @@ export async function getScatterOptions(req_id:number): Promise<any> {
             }
 
         } else {
-            console.error(`getScatterOptions ${reqIdStr} mission:${mission} not supported`);
+            logger.error('Mission not supported', { reqIdStr, mission });
         }
         if(seriesData.length !== 0){
             for(const pt of slopeSeries?.data ?? []) {
                 if(Array.isArray(pt) && (!isFinite(pt[0]) || !isFinite(pt[1]))) {
-                    console.warn("Bad point:", pt);
+                    logger.warn('Bad point in slope series', { pt });
                 }
             }
 
@@ -1048,20 +1049,18 @@ export async function getScatterOptions(req_id:number): Promise<any> {
                         start: atlChartFilterStore.yZoomStart, // Start zoom level
                         end: atlChartFilterStore.yZoomEnd, // End zoom level
                     },
-                ],            
+                ],
             };
         } else {
-            console.warn('getScatterOptions seriesData is empty');
+            logger.warn('seriesData is empty');
         }
         //console.log('getScatterOptions options:', options);
     } catch (error) {
-        console.error('getScatterOptions Error:', error);
-    } finally {
-        //console.log(`getScatterOptions options for: ${reqIdStr}:`, options);
-        const endTime = performance.now(); 
-        console.log(`getScatterOptions fileName:${fileName} took ${endTime - startTime} milliseconds.`,options);
-        return options;
+        logger.error('getScatterOptions Error', { error: error instanceof Error ? error.message : String(error) });
     }
+    const endTime = performance.now();
+    logger.debug('getScatterOptions completed', { fileName, duration: `${endTime - startTime}ms`, options });
+    return options;
 }
 
 export async function getScatterOptionsFor(reqId:number) {
@@ -1072,7 +1071,7 @@ export async function getScatterOptionsFor(reqId:number) {
         atlChartFilterStore.setShowMessage(true);
         atlChartFilterStore.setIsWarning(true);
         atlChartFilterStore.setMessage(`reqId:${reqId} Failed to load data. Click on elevation in map to preset filters`);
-        console.error(`getScatterOptionsFor ${reqId} Failed to load data. Click on elevation in map to preset filters`);
+        logger.error('Failed to load data - click on elevation in map to preset filters', { reqId });
         return;
     }
     const plotRef = atlChartFilterStore.getPlotRef();
@@ -1081,14 +1080,14 @@ export async function getScatterOptionsFor(reqId:number) {
         if(plotRef?.chart){
             attachRenderItem(newScatterOptions);
             plotRef.chart.setOption(newScatterOptions,{notMerge: true });
-            console.log(`getScatterOptionsFor Options applied to chart:`, newScatterOptions);
+            logger.debug('Options applied to chart', { newScatterOptions });
             const options = plotRef.chart.getOption();
-            console.log(`getScatterOptionsFor ${reqId} Options from chart:`, options);
+            logger.debug('Options from chart', { reqId, options });
         } else {
-            console.error(`getScatterOptionsFor ${reqId} plotRef.chart is undefined`);
+            logger.error('plotRef.chart is undefined', { reqId });
         }
     } else {
-        console.warn(`getScatterOptionsFor No valid options to apply to chart`);
+        logger.warn('No valid options to apply to chart');
     }
 }
 
@@ -1099,7 +1098,7 @@ const initScatterPlotWith = async (reqId: number) => {
     //console.log(`initScatterPlotWith ${reqId} startTime:`, startTime);
 
     if (reqId === undefined || reqId <= 0) {
-        console.error(`initScatterPlotWith ${reqId} reqId is empty or invalid`);
+        logger.error('reqId is empty or invalid', { reqId });
         return;
     }
     await updateWhereClauseAndXData(reqId);
@@ -1107,7 +1106,7 @@ const initScatterPlotWith = async (reqId: number) => {
     const y_options = chartStore.getYDataOptions(reqIdStr);
     const plotRef = atlChartFilterStore.getPlotRef();
     if (!plotRef?.chart) {
-        console.warn(`appendSeries(${reqId.toString()}): plotRef or chart is undefined.`);
+        logger.warn('plotRef or chart is undefined', { reqId });
         return;
     }
     // Save the current zoom state of the chart before applying new options
@@ -1118,10 +1117,10 @@ const initScatterPlotWith = async (reqId: number) => {
     for(let zoomNdx = 0; zoomNdx < zoomCntrls.length; zoomNdx++) {
         const zoomCntrl = zoomCntrls[zoomNdx];//console.log(`initScatterPlotWith ${reqId} zoomCntrls[${zoomNdx}]:`, zoomCntrls[zoomNdx]);            
         if(zoomCntrl) {
-            zoomCntrl.filterMode = 'filter'; 
+            zoomCntrl.filterMode = 'filter';
             //console.log(`initScatterPlotWith ALL ${reqId} zoomCntrls[${zoomNdx}]:`, zoomCntrl);
             if(zoomCntrl.start){
-                console.log(`initScatterPlotWith ${reqId} zoomCntrls[${zoomNdx}].start:`, zoomCntrl.start);
+                logger.debug('Zoom control start', { reqId, zoomNdx, start: zoomCntrl.start });
                 if(zoomCntrl.xAxisIndex !== undefined){
                     atlChartFilterStore.xZoomStart = zoomCntrl.start;
                     //console.log(`initScatterPlotWith ${reqId} xZoomStart:`, atlChartFilterStore.xZoomStart);
@@ -1132,7 +1131,7 @@ const initScatterPlotWith = async (reqId: number) => {
                 }
             }
             if(zoomCntrl.end){
-                console.log(`initScatterPlotWith ${reqId} zoomCntrls[${zoomNdx}].end:`, zoomCntrl.end);
+                logger.debug('Zoom control end', { reqId, zoomNdx, end: zoomCntrl.end });
                 if(zoomCntrl.xAxisIndex !== undefined){
                     atlChartFilterStore.xZoomEnd = zoomCntrl.end;
                     //console.log(`initScatterPlotWith ${reqId} xZoomEnd:`, atlChartFilterStore.xZoomEnd);
@@ -1147,10 +1146,9 @@ const initScatterPlotWith = async (reqId: number) => {
     //console.log(`initScatterPlotWith for reqId:${reqId} SAVED VALUES: xZoomStart:${atlChartFilterStore.xZoomStart} xZoomEnd:${atlChartFilterStore.xZoomEnd} yZoomStart:${atlChartFilterStore.yZoomStart} yZoomEnd:${atlChartFilterStore.yZoomEnd} `);
 
     //console.log(`initScatterPlotWith ${reqId} y_options:`, y_options);
-    const msg = '';
     atlChartFilterStore.setShowMessage(false);
     if (!y_options.length || y_options[0] === 'not_set') {
-        console.warn(`initScatterPlotWith ${reqId} No y options selected`);
+        logger.warn('No y options selected', { reqId });
         atlChartFilterStore.setShowMessage(true);
         atlChartFilterStore.setIsWarning(true);
         atlChartFilterStore.setMessage('No Y options selected');
@@ -1161,7 +1159,7 @@ const initScatterPlotWith = async (reqId: number) => {
             //console.log(`initScatterPlotWith for reqId:${reqId} AFTER CLEARPLOT xZoomStart:${atlChartFilterStore.xZoomStart} xZoomEnd:${atlChartFilterStore.xZoomEnd} yZoomStart:${atlChartFilterStore.yZoomStart} yZoomEnd:${atlChartFilterStore.yZoomEnd} `);
             await getScatterOptionsFor(reqId)
         } catch (error) {
-            console.error(`initScatterPlotWith ${reqId} Error fetching scatter options:`, error);
+            logger.error('Error fetching scatter options', { reqId, error: error instanceof Error ? error.message : String(error) });
             atlChartFilterStore.setShowMessage(true);
             atlChartFilterStore.setMessage('Failed to load data. Please try again later.');
         } finally {
@@ -1169,7 +1167,7 @@ const initScatterPlotWith = async (reqId: number) => {
         }
     }
     const endTime = performance.now();
-    console.log(`initScatterPlotWith ${reqId} took ${endTime - startTime} milliseconds.`);
+    logger.debug('initScatterPlotWith completed', { reqId, duration: `${endTime - startTime}ms` });
 };
 
 // This removes the defaulted values of unused toolbox, visualMap, timeline, and calendar options from the options object
@@ -1186,11 +1184,11 @@ function removeUnusedOptions(options:any):any {
 
 async function appendSeries(reqId: number): Promise<void> {
     try {
-        console.log(`appendSeries(${reqId})`);
+        logger.debug('appendSeries called', { reqId });
         const reqIdStr = reqId.toString();
         const plotRef = useAtlChartFilterStore().getPlotRef();
         if (!plotRef?.chart) {
-            console.warn(`appendSeries(${reqIdStr}): plotRef or chart is undefined.`);
+            logger.warn('plotRef or chart is undefined', { reqId: reqIdStr });
             return;
         }
         const chart: ECharts = plotRef.chart;
@@ -1202,7 +1200,7 @@ async function appendSeries(reqId: number): Promise<void> {
         // Fetch series data for the given reqIdStr
         const seriesData = await getSeriesFor(reqIdStr,true);//isOverlay=true
         if (!seriesData.length) {
-            console.warn(`appendSeries(${reqIdStr}): No series data found.`);
+            logger.warn('No series data found', { reqId: reqIdStr });
             return;
         }
         //console.log(`appendSeries(${reqIdStr}): seriesData:`, seriesData);
@@ -1385,16 +1383,15 @@ async function appendSeries(reqId: number): Promise<void> {
                 yAxis: updatedYAxis,
             }, { notMerge: true }
         );
-        const options = chart.getOption() as EChartsOption;
-        //console.log(`appendSeries ${reqId} AFTER options:`, options);
+        //console.log(`appendSeries ${reqId} AFTER options:`, chart.getOption());
 
         //console.log( `appendSeries(${reqIdStr}): Successfully appended scatter series and updated yAxis + legend.`,chart.getOption());
     } catch (error) {
-        console.error(`appendSeries(${reqId}): Error appending scatter series.`, error);
+        logger.error('Error appending scatter series', { reqId, error: error instanceof Error ? error.message : String(error) });
     }
 }
-  
-export const addOverlaysToScatterPlot = async (msg:string) => {
+
+export const addOverlaysToScatterPlot = async () => {
     const startTime = performance.now();
     //console.log(`addOverlaysToScatterPlot for: ${msg}`);
     // Retrieve existing options from the chart
@@ -1402,35 +1399,35 @@ export const addOverlaysToScatterPlot = async (msg:string) => {
     if (plotRef && plotRef.chart) {
         const reqIds = useAtlChartFilterStore().getSelectedOverlayedReqIds();
         //console.log(`addOverlaysToScatterPlot reqIds:`, reqIds);
-        reqIds.forEach(async reqId => { 
+        for (const reqId of reqIds) {
             if(reqId > 0){
                 await updateWhereClauseAndXData(reqId);
                 await appendSeries(reqId);
             } else {
-                console.error(`addOverlaysToScatterPlot Invalid request ID:${reqId}`);
+                logger.error('Invalid request ID', { reqId });
             }
-        });
+        }
     } else {
-        console.warn(`Ignoring addOverlaysToScatterPlot with no plot to update, plotRef is undefined.`);
+        logger.warn('Ignoring addOverlaysToScatterPlot with no plot to update, plotRef is undefined');
     }
     const endTime = performance.now();
-    console.log(`addOverlaysToScatterPlot took ${endTime - startTime} milliseconds.`);
+    logger.debug('addOverlaysToScatterPlot completed', { duration: `${endTime - startTime}ms` });
 }
 
 export const refreshScatterPlot = async (msg:string) => {
-    console.log(`refreshScatterPlot ${msg}`);
+    logger.debug('refreshScatterPlot called', { msg });
     const recTreeStore = useRecTreeStore();
     const atlChartFilterStore = useAtlChartFilterStore();
     const plotRef = atlChartFilterStore.getPlotRef();
     if (plotRef){
         if(plotRef.chart) {
             await initScatterPlotWith(recTreeStore.selectedReqId);
-            await addOverlaysToScatterPlot(msg);
+            await addOverlaysToScatterPlot();
         } else {
-            console.warn(`Ignoring refreshScatterPlot with no chart to refresh, plotRef.chart is undefined.`);
+            logger.warn('Ignoring refreshScatterPlot with no chart to refresh, plotRef.chart is undefined');
         }
     } else {
-        console.warn(`Ignoring refreshScatterPlot with no plot to refresh, plotRef is undefined.`);
+        logger.warn('Ignoring refreshScatterPlot with no plot to refresh, plotRef is undefined');
     }
 };
 
@@ -1439,8 +1436,7 @@ export async function getPhotonOverlayRunContext(): Promise<SrRunContext> {
     const atlChartFilterStore = useAtlChartFilterStore();
     const requestsStore = useRequestsStore();
     const globalChartStore = useGlobalChartStore();
-    const reqIdStr = recTreeStore.selectedReqIdStr;
-    //console.log('getPhotonOverlayRunContext reqIdStr:', reqIdStr, ' chartStore.stateByReqId:', chartStore.stateByReqId[reqIdStr]);
+    //console.log('getPhotonOverlayRunContext reqIdStr:', recTreeStore.selectedReqIdStr, ' chartStore.stateByReqId:', chartStore.stateByReqId[recTreeStore.selectedReqIdStr]);
     const runContext: SrRunContext = {
         reqId: -1, // this will be set in the worker
         parentReqId: recTreeStore.selectedReqId,
@@ -1456,10 +1452,10 @@ export async function getPhotonOverlayRunContext(): Promise<SrRunContext> {
         const reqId = await indexedDb.findCachedRec(runContext);
         if(reqId && (reqId > 0)){ // Use the cached request
             runContext.reqId = reqId;
-            console.log('findCachedRec reqId found:', reqId, 'runContext:', runContext);
+            logger.debug('findCachedRec reqId found', { reqId, runContext });
             atlChartFilterStore.setSelectedOverlayedReqIds([reqId]);
         } else {
-            console.warn('findCachedRec reqId not found, NEED to fetch for:', runContext);
+            logger.warn('findCachedRec reqId not found, need to fetch', { runContext });
             requestsStore.setSvrMsg('');
         }
     }
@@ -1473,7 +1469,7 @@ let inFlight = false;
 let pendingMessages: string[] = [];   // <── collects all contributors
 
 export async function callPlotUpdateDebounced(msg: string): Promise<void> {
-    console.log("callPlotUpdateDebounced -called:", msg);
+    logger.debug('callPlotUpdateDebounced called', { msg });
     const atlChartFilterStore = useAtlChartFilterStore();
     atlChartFilterStore.setIsWarning(true);
     atlChartFilterStore.setMessage('Updating...');
@@ -1485,11 +1481,12 @@ export async function callPlotUpdateDebounced(msg: string): Promise<void> {
         clearTimeout(updatePlotTimeoutId);
     }
 
-    return new Promise((resolve) => {
+    return await new Promise<void>((resolve) => {
         pendingResolves.push(resolve);
 
         updatePlotTimeoutId = window.setTimeout(async () => {
             updatePlotTimeoutId = undefined;
+            let errorOccurred = false;
             try {
                 // collapse messages into a single combined string
                 const combinedMsg = pendingMessages.join(" | ");
@@ -1502,23 +1499,28 @@ export async function callPlotUpdateDebounced(msg: string): Promise<void> {
 
                 await updatePlotAndSelectedTrackMapLayer(combinedMsg);
             } catch (err) {
-                console.error('Plot update failed:', err);
-            } finally {
-                inFlight = false;
+                errorOccurred = true;
+                logger.error('Plot update failed', { error: err instanceof Error ? err.message : String(err) });
+            }
+
+            inFlight = false;
+            if (!errorOccurred) {
                 try {
                     atlChartFilterStore.setIsWarning(false);
                     atlChartFilterStore.setMessage('');
-                } catch {}
-                pendingResolves.forEach(res => res());
-                pendingResolves = [];
+                } catch {
+                    // Intentionally empty - ignore errors when clearing UI state
+                }
             }
+            pendingResolves.forEach(res => res());
+            pendingResolves = [];
         }, 500);
     });
 }
 
 async function updatePlotAndSelectedTrackMapLayer(msg: string): Promise<void> {
     const startTime = performance.now();
-    console.log('updatePlotAndSelectedTrackMapLayer --called:', msg);
+    logger.debug('updatePlotAndSelectedTrackMapLayer called', { msg });
 
     const globalChartStore = useGlobalChartStore();
     const recTreeStore = useRecTreeStore();
@@ -1535,10 +1537,11 @@ async function updatePlotAndSelectedTrackMapLayer(msg: string): Promise<void> {
     const hasSpots  = globalChartStore.getSpots().length  > 0;
 
     if (!(hasRgtOk && hasCycles && hasSpots)) {
-        console.warn('updatePlotAndSelectedTrackMapLayer Need Rgts, Cycles, and Spots values selected');
-        console.warn('Rgt:', globalChartStore.getRgt());
-        console.warn('Cycles:', globalChartStore.getCycles());
-        console.warn('Spots:', globalChartStore.getSpots());
+        logger.warn('Need Rgts, Cycles, and Spots values selected', {
+            rgt: globalChartStore.getRgt(),
+            cycles: globalChartStore.getCycles(),
+            spots: globalChartStore.getSpots()
+        });
         return;
     }
 
@@ -1562,7 +1565,7 @@ async function updatePlotAndSelectedTrackMapLayer(msg: string): Promise<void> {
     await refreshScatterPlot(msg);
 
     const endTime = performance.now();
-    console.log(`updatePlotAndSelectedTrackMapLayer took ${endTime - startTime} ms.`);
+    logger.debug('updatePlotAndSelectedTrackMapLayer completed', { duration: `${endTime - startTime}ms` });
 }
 
 
@@ -1577,7 +1580,7 @@ export const findReqMenuLabel = (reqId:number) => {
 export async function initSymbolSize(req_id: number):Promise<number>{
     const reqIdStr = req_id.toString();
     const plotConfig = await indexedDb.getPlotConfig();
-    const symbolStore = useSymbolStore(); 
+    const symbolStore = useSymbolStore();
     const func = await indexedDb.getFunc(req_id);//must use db
     if ((func ==='atl03sp') || (func === 'atl03x') || (func === 'atl03vp') ){
         //symbolStore.size[reqIdStr] = (plotConfig?.defaultAtl03spSymbolSize  ?? 1);
@@ -1587,15 +1590,15 @@ export async function initSymbolSize(req_id: number):Promise<number>{
         symbolStore.setSize(reqIdStr, (plotConfig?.defaultAtl03vpSymbolSize  ?? 5));
     } else {
         symbolStore.setSize(reqIdStr, (plotConfig?.defaultAtl06SymbolSize ?? 3));
-    } 
+    }
     //console.log('initSymbolSize reqId:', req_id, 'func:', func, 'symbolSize:', chartStore.getSymbolSize(reqIdStr));
-    return symbolStore.getSize(reqIdStr); 
+    return symbolStore.getSize(reqIdStr);
 }
 
-export async function updateWhereClauseAndXData(req_id: number) {
+export function updateWhereClauseAndXData(req_id: number) {
     //console.log('updateWhereClauseAndXData req_id:', req_id);
     if (req_id <= 0) {
-        console.warn(`updateWhereClauseAndXData Invalid request ID:${req_id}`);
+        logger.warn('Invalid request ID', { req_id });
         return;
     }
     try {
@@ -1604,15 +1607,15 @@ export async function updateWhereClauseAndXData(req_id: number) {
         const func = useRecTreeStore().findApiForReqId(req_id);
         const chartStore = useChartStore();
         chartStore.setXDataForChartUsingFunc(reqIdStr, func);
-        
+
         const whereClause = createWhereClause(req_id);
         if(whereClause !== ''){
             chartStore.setWhereClause(reqIdStr,whereClause);
         } else {
-            console.error('updateWhereClauseAndXData whereClause is empty');
+            logger.error('whereClause is empty');
         }
     } catch (error) {
-        console.warn('updateWhereClauseAndXData Failed to update selected request:', error);
+        logger.warn('Failed to update selected request', { error: error instanceof Error ? error.message : String(error) });
     }
 }
 export async function checkAndSetFilterForTimeSeries() {
@@ -1636,11 +1639,10 @@ export async function checkAndSetFilterForTimeSeries() {
 }
 
 export async function checkAndSetFilterFor3D() {
-    console.log('checkAndSetFilterFor3D called');
+    logger.debug('checkAndSetFilterFor3D called');
     const globalChartStore = useGlobalChartStore();
     const recTreeStore = useRecTreeStore();
     const chartStore = useChartStore();
-    const deck3DConfigStore = useDeck3DConfigStore();
 
     if(useActiveTabStore().isActiveTab3D){
         useChartStore().setUseSelectedMinMax(useRecTreeStore().selectedReqIdStr, false);

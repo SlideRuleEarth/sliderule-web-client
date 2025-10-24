@@ -6,6 +6,9 @@ import { useSysConfigStore } from '@/stores/sysConfigStore';
 import { useRoute } from 'vue-router';
 import { useDeviceStore } from '@/stores/deviceStore';
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrAppBar');
 
 const build_env = import.meta.env.VITE_BUILD_ENV;
 const sysConfigStore = useSysConfigStore();
@@ -198,7 +201,7 @@ function isThisClean(input: string): boolean {
     //console.log('parts:', parts);
     // Check if the string has enough parts to contain a number after the first dash
     if (parts.length < 2) {
-        console.log('parts.length < 2, parts:', parts);
+        logger.debug('parts.length < 2', { parts });
         return false;
     }
 
@@ -214,12 +217,12 @@ function isThisClean(input: string): boolean {
 }
 
 const formattedClientVersion = computed(() => {
-    console.log('build_env:', build_env);
+    logger.debug('build_env', { build_env });
     //console.log('typeof build_env:', (typeof build_env));
     if (typeof build_env === 'string') {
         const version = getClientVersionString(build_env);
         const formattedVersion = isThisClean(build_env) ? version : `${version}*`;
-        console.log('formattedVersion:', formattedVersion);
+        logger.debug('formattedVersion', { formattedVersion });
         return formattedVersion
     } else {
         return 'v?.?.?';
@@ -280,16 +283,16 @@ function setDarkMode() {
     if(element){
         element.classList.add('sr-app-dark');
     } else {
-        console.error('Could not find html element to set dark mode  ');
+        logger.error('Could not find html element to set dark mode');
     }
 }
 
 function dumpRouteInfo() {
-    console.log('Route name:', route.name);
-    console.log('Route route:', route.fullPath);
-    console.log('Route path:', route.path);
-    console.log('Route params:', route.params);
-    console.log('Route query:', route.query);
+    logger.debug('Route name', { name: route.name });
+    logger.debug('Route route', { fullPath: route.fullPath });
+    logger.debug('Route path', { path: route.path });
+    logger.debug('Route params', { params: route.params });
+    logger.debug('Route query', { query: route.query });
 }
 
 onMounted(async () => {
@@ -324,7 +327,7 @@ const showServerTooltip = async (event: MouseEvent) => {
                 );
             }
         } catch (error) {
-            console.error('Failed to fetch server status:', error);
+            logger.error('Failed to fetch server status', { error: error instanceof Error ? error.message : String(error) });
             if (isHovering.value) {
                 tooltipRef.value.showTooltip(
                     event,

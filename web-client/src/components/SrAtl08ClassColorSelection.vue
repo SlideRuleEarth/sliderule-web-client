@@ -33,6 +33,9 @@ import Button from 'primevue/button';
 import { useAtl08ClassColorMapStore } from '@/stores/atl08ClassColorMapStore';
 import { useColorMapStore } from '@/stores/colorMapStore';
 import { onMounted, ref } from 'vue';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrAtl08ClassColorSelection');
 
 const props = defineProps({
     reqIdStr: {
@@ -47,7 +50,7 @@ const emit = defineEmits(['atl08selectionChanged', 'atl08defaultsChanged']);
 
 // Function to handle when any SrMenu selection changes
 const handleSelectionChanged = (label: string, color: string) => {
-    console.log(`Selection changed for ${label}: ${color}`);
+    logger.debug('Selection changed', { label, color });
     emit('atl08selectionChanged', { label, color });
 };
 
@@ -57,7 +60,7 @@ const restoreDefaultAtl08ClassColorMap = () => {
 };
 
 onMounted( async () => {
-    console.log('SrAtl08ClassColorSelection mounted');
+    logger.debug('SrAtl08ClassColorSelection mounted');
     atl08ClassColorMapStore.value = await useAtl08ClassColorMapStore(props.reqIdStr);
 });
 

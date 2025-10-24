@@ -12,13 +12,16 @@ import type { ZodTypeAny } from 'zod'
 import { useJsonImporter } from '@/composables/SrJsonImporter'
 import { importRequestJsonToStore } from '@/utils/importRequestToStore';
 import { useToast } from 'primevue/usetoast';
-import { useReqParamsStore,  } from '@/stores/reqParamsStore';
+import { useReqParamsStore } from '@/stores/reqParamsStore';
 import { useMapStore } from '@/stores/mapStore';
 import { fromLonLat } from 'ol/proj';
 import { Polygon as OlPolygon } from 'ol/geom';
 import { Feature } from 'ol';
 import type { Coordinate } from 'ol/coordinate';
 import { Style, Stroke, Fill } from 'ol/style';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrJsonEditDialog');
 const reqParamsStore = useReqParamsStore();
 const mapStore = useMapStore();
 
@@ -45,7 +48,7 @@ const props = withDefaults(defineProps<{
 })
 
 const emit = defineEmits<{
-  (e: 'json-valid', value: any): void
+  (e: 'json-valid', value: unknown): void
 }>()
 
 const jsonBlock = ref<HTMLElement | null>(null)
@@ -69,7 +72,7 @@ const validationError = ref<string | null>(null)
 const currentReqObj = ref({});
 const currentReqJson = computed(() => {
   try {
-    console.log("SrJsonEditDialog computed currentReqObj:", currentReqObj.value);
+    logger.debug('computed currentReqObj', { currentReqObj: currentReqObj.value });
     return JSON.stringify(currentReqObj.value, null, 2);
   } catch {
     return 'Invalid JSON'
@@ -137,7 +140,7 @@ const handleFileChange = async (event: Event) => {
     };
 
     reader.onerror = () => {
-        console.error("SrJsonEditDialog File reading error:", reader.error);
+        logger.error('File reading error', { error: reader.error });
         validationError.value = "Failed to read file.";
         isValidJson.value = false;
     };
@@ -148,17 +151,17 @@ const handleFileChange = async (event: Event) => {
 function validateJson() {
   try {
     //const parsed = JSON.parse(editableReqJson.value)
-    console.log("SrJsonEditDialog Validating editableReqJson:", editableReqJson.value, ' parsed:', parsedEditableReqJson);
+    logger.debug('Validating editableReqJson', { editableReqJson: editableReqJson.value, parsedEditableReqJson });
     if (props.zodSchema) {
       const result = props.zodSchema.safeParse(parsedEditableReqJson.value);
       if (!result.success) {
         isValidJson.value = false
         validationError.value = result.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join('\n')
-        console.warn('SrJsonEditDialog Validation failed:', validationError.value)
+        logger.warn('Validation failed', { validationError: validationError.value })
         return
       } else {
         emit('json-valid', result.data)
-        console.log('SrJsonEditDialog Validation successful for:', parsedEditableReqJson.value);
+        logger.debug('Validation successful', { parsedEditableReqJson: parsedEditableReqJson.value });
       }
     }
     isValidJson.value = true
@@ -171,9 +174,9 @@ function validateJson() {
 const copyEditableReqJsonToClipboard = async () => {
   try {
     await navigator.clipboard.writeText(editableReqJson.value);
-    console.log('SrJsonEditDialog Raw JSON Copied to clipboard');
+    logger.debug('Raw JSON copied to clipboard');
   } catch (err) {
-    console.error('SrJsonEditDialog Failed to copy:', err);
+    logger.error('Failed to copy to clipboard', { error: err instanceof Error ? err.message : String(err) });
   }
 };
 
@@ -183,7 +186,7 @@ watch(computedShowParamsDialog, (newVal) => {
     if (newVal) {
         //console.log('SrJsonEditDialog watch showParamsDialog Dialog opened, highlighting JSON.');
         updateEditableJsonFromStore();
-        nextTick(() => highlightJson());
+        void nextTick(() => highlightJson());
     } else {
         //console.log('SrJsonEditDialog watch showParamsDialog Dialog closed.');
         // Zoom to poly if it exists
@@ -193,7 +196,7 @@ watch(computedShowParamsDialog, (newVal) => {
 
 
 const highlightJson = () => {
-    console.log('Highlighting JSON in readonly panel.');
+    logger.debug('Highlighting JSON in readonly panel');
     if (jsonBlock.value) {
         jsonBlock.value.removeAttribute('data-highlighted'); // allow re-highlighting
         jsonBlock.value.innerHTML = readonlyHighlightedJson.value; // replace with fresh content
@@ -208,21 +211,21 @@ function updateEditableJsonFromStore() {
 }
 
 onMounted(() => {
-    console.log('Schema in SrJsonEditDialog:', props.zodSchema);
+    logger.debug('Schema in SrJsonEditDialog', { zodSchema: props.zodSchema });
     updateEditableJsonFromStore();
-    console.log('Mounted SrJsonEditDialog ');
+    logger.debug('Mounted SrJsonEditDialog');
 })
 
 const importToStore = () => {
     try {
-        console.log('Importing JSON from editableReqJson:', editableReqJson.value);
+        logger.debug('Importing JSON from editableReqJson', { editableReqJson: editableReqJson.value });
         //const parsed = JSON.parse(editableReqJson.value);
-        console.log('Importing JSON to store:', parsedEditableReqJson.value);
+        logger.debug('Importing JSON to store', { parsedEditableReqJson: parsedEditableReqJson.value });
         importRequestJsonToStore(parsedEditableReqJson.value, showToast); // assumes parsed object fits expected input
         currentReqObj.value = reqParamsStore.getAtlxxReqParams(0);
-        console.log('Request imported to store.', currentReqObj.value);
+        logger.debug('Request imported to store', { currentReqObj: currentReqObj.value });
     } catch (err) {
-        console.error('Import failed. Invalid JSON.', err);
+        logger.error('Import failed - Invalid JSON', { error: err instanceof Error ? err.message : String(err) });
         validationError.value = 'Import failed: Invalid JSON';
         isValidJson.value = false;
     }
@@ -247,9 +250,9 @@ function exportToFile(json: string | Ref<string>) {
 }
 
 function handleParamsAccessed(index: number) {
-    console.log('Params accessed at index (pre-flush):', index)
-    nextTick(() => {
-        console.log('Params accessed at index (post-flush):', index)
+    logger.debug('Params accessed at index (pre-flush)', { index })
+    void nextTick(() => {
+        logger.debug('Params accessed at index (post-flush)', { index })
         currentReqObj.value = reqParamsStore.getAtlxxReqParams(index);
     });
 }
@@ -259,7 +262,7 @@ function zoomToPoly() {
     const poly = reqParamsStore.poly;
 
     if (!map || !poly || poly.length === 0) {
-        console.log('Cannot zoom to poly: map or poly not available');
+        logger.debug('Cannot zoom to poly: map or poly not available');
         return;
     }
 
@@ -267,13 +270,13 @@ function zoomToPoly() {
         // Find the Drawing Layer
         const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer');
         if (!vectorLayer) {
-            console.error('Drawing Layer not found');
+            logger.error('Drawing Layer not found');
             return;
         }
 
         const vectorSource = (vectorLayer as any).getSource();
         if (!vectorSource) {
-            console.error('Drawing Layer source not found');
+            logger.error('Drawing Layer source not found');
             return;
         }
 
@@ -330,9 +333,9 @@ function zoomToPoly() {
             padding: [40, 40, 40, 40]
         });
 
-        console.log('Updated drawing layer and zoomed to poly');
+        logger.debug('Updated drawing layer and zoomed to poly');
     } catch (err) {
-        console.error('Error zooming to poly:', err);
+        logger.error('Error zooming to poly', { error: err instanceof Error ? err.message : String(err) });
     }
 }
 

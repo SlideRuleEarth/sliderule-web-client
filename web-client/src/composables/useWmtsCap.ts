@@ -1,11 +1,14 @@
 import ol_control_WMTSCapabilities from 'ol-ext/control/WMTSCapabilities';
 import { useMapStore } from '@/stores/mapStore';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('useWmtsCap');
 import BaseEvent from "ol/events/Event";
 
 const mapStore = useMapStore();
 
 export function useWmtsCap(projectionName: string) {
-    console.log("useWmtsCap:projectionName",projectionName);
+    logger.debug('useWmtsCap called', { projectionName });
     let services = {};
     if (projectionName === 'EPSG:3857') {
         services = {
@@ -34,7 +37,7 @@ export function useWmtsCap(projectionName: string) {
             //'Nasa Earth Observations': 'https://neo.gsfc.nasa.gov/wmts/wmts',
         }
     } else {
-        console.log(`Warn: No Services found for projectionName:${projectionName}`);
+        logger.warn('No Services found for projectionName', { projectionName });
     }
     const map = mapStore.getMap();
     if(map){
@@ -53,7 +56,7 @@ export function useWmtsCap(projectionName: string) {
                 const et:any = 'load';
                 wmts_capabilities_cntrl.on(et,(event: BaseEvent) => {
                     const e = event as any;
-                    console.log('wmts_capabilities_cntrl:on:load', e);
+                    logger.debug('wmts_capabilities_cntrl:on:load', { event: e });
                     map.addLayer(e.layer);
                     e.layer.set('legend', e.options.data.legend);
                     plink.setUrlParam('url', e.options.source.url);
@@ -61,12 +64,12 @@ export function useWmtsCap(projectionName: string) {
                 });
                 return wmts_capabilities_cntrl;
             } else {
-                console.log("Error:wmts_capabilities_cntrl is null");
+                logger.error('wmts_capabilities_cntrl is null');
             }
         } else {
-            console.log("Error:plink is null");
+            logger.error('plink is null');
         }
     } else {
-        console.log("Error:map is null");
+        logger.error('map is null');
     }
 }

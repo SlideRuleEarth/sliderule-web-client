@@ -65,7 +65,9 @@
   import { useSrToastStore } from "@/stores/srToastStore";
   import { useJwtStore } from '@/stores/SrJWTStore';
   import SrClusterInfo from './SrClusterInfo.vue';
+  import { createLogger } from '@/utils/logger';
 
+  const logger = createLogger('SrSysConfig');
   const toast = useToast();
   const srToastStore = useSrToastStore();
   const sysConfigStore = useSysConfigStore();
@@ -97,16 +99,13 @@
 
   const maxNodes = computed(() => sysConfigStore.getMaxNodes());
 
-  const buttonIcon = computed(() => {
-    return computedOrgIsPublic ? 'pi pi-lock-open' : 'pi pi-lock';
-  });
 
-  function domainChanged(newDomain: string) {
+  function domainChanged(_newDomain: string) {
     jwtStore.removeJwt(sysConfigStore.getDomain(), sysConfigStore.getOrganization());
     //console.log('Domain changed:', newDomain);
   }
 
-  function orgChanged(newOrg: string) {
+  function orgChanged(_newOrg: string) {
     jwtStore.removeJwt(sysConfigStore.getDomain(), sysConfigStore.getOrganization());
     //console.log('Organization changed:', newOrg);
   }
@@ -114,7 +113,7 @@
   async function authenticate() : Promise<boolean>{
     orgName.value = sysConfigStore.getOrganization();
     const psHost = `https://ps.${sysConfigStore.getDomain()}`;
-    console.log('authenticate:', username.value, orgName.value);
+    logger.debug('authenticate', { username: username.value, orgName: orgName.value });
     const body = JSON.stringify({
       username: username.value,
       password: password.value,
@@ -139,12 +138,12 @@
           toast.add({ severity: 'success', summary: 'Successfully Authenticated', detail: `Authentication successful for ${orgName.value}`, life: srToastStore.getLife()});
           return true; // Assuming expiration is in the response
         } else {
-          console.error('Failed to authenticate:',response);
+          logger.error('Failed to authenticate', { response });
           toast.add({ severity: 'error', summary: 'Failed Authenticate', detail: 'Login FAILED', life: srToastStore.getLife()});
           return false;
         }
     } catch (error) {
-      console.error('Authentication request error:', error);
+      logger.error('Authentication request error', { error: error instanceof Error ? error.message : String(error) });
       toast.add({ severity: 'error', summary: 'Failed Authenticate', detail:  'Login FAILED', life: srToastStore.getLife()});
       return false;
     } finally {
@@ -168,30 +167,30 @@
               if(result.status === 'QUEUED'){
                   toast.add({ severity: 'info', summary: 'Desired Nodes Request Queued', detail: result.msg, life: srToastStore.getLife()});
               } else {
-                  console.error(`Failed to get Desired Nodes: ${response.statusText}`);
+                  logger.error('Failed to get Desired Nodes', { statusText: response.statusText });
                   toast.add({ severity: 'error', summary: 'Failed to Retrieve Desired Nodes', detail: `Error: ${result.msg}`, life: srToastStore.getLife()});
               }
           } else {
-              console.error(`Failed to get Num Nodes: ${response.statusText}`);
+              logger.error('Failed to get Num Nodes', { statusText: response.statusText });
               toast.add({ severity: 'error', summary: 'Failed to Retrieve Nodes', detail: `Error: ${response.statusText}`, life: srToastStore.getLife()});
-          }  
+          }
       } else {
-          console.error('Login expired or not logged in');
+          logger.error('Login expired or not logged in');
           toast.add({ severity: 'info', summary: 'Need to Login', detail: 'Please log in again', life: srToastStore.getLife()});
       }
     }
  
   function updateDesiredNodes() {
-    console.log('updateDesiredNodes:', desiredNodes.value, ttl.value);
+    logger.debug('updateDesiredNodes', { desiredNodes: desiredNodes.value, ttl: ttl.value });
     showDesiredNodesDialog.value = false; // Close the dialog
     // Add your logic to update desired nodes here
     sysConfigStore.setDesiredNodes(desiredNodes.value);
     sysConfigStore.setTimeToLive(ttl.value);
-    desiredOrgNumNodes();
+    void desiredOrgNumNodes();
   }
 
-  onMounted(async () => {
-    console.log('SrSysConfig onMounted');
+  onMounted(() => {
+    logger.debug('onMounted');
   });
 
 

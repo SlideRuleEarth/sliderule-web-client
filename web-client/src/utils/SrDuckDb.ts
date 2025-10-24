@@ -1,19 +1,22 @@
 import type { Table } from 'apache-arrow';
 import type { DuckDBBundles,AsyncDuckDB } from "@duckdb/duckdb-wasm";
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrDuckDb');
 
 
 // Define the interface for QueryResult
 export interface QueryResult {
   schema: { name: string; type: string; databaseType: string }[];
-  readRows(chunkSize?: number): AsyncGenerator<{ [k: string]: any }[], void, unknown>;
+  readRows(_chunkSize?: number): AsyncGenerator<{ [k: string]: any }[], void, unknown>;
 }
 
 export interface QueryChunkResult {
   totalRows: number | null;
   length: number;
   schema: { name: string; type: string; databaseType: string }[];
-  readRows(chunkSize?: number): AsyncGenerator<{ [k: string]: any }[], void, unknown>;
+  readRows(_chunkSize?: number): AsyncGenerator<{ [k: string]: any }[], void, unknown>;
 }
 
 // Define the interface for Row
@@ -131,7 +134,7 @@ export class DuckDBClient {
   }
 
   // Method to get the singleton instance of DuckDBClient
-  public static async getInstance(): Promise<DuckDBClient> {
+  public static getInstance(): Promise<DuckDBClient> {
     if (!this._instance) {
       this._instance = (async () => {
         const db = await createDb();
@@ -161,7 +164,7 @@ export class DuckDBClient {
   async query(query: string, params?: any): Promise<QueryResult> {
     //console.log('SrDuckDb query:', query);
     //console.trace('SrDuckDb query:', query);
-    const { Table } = await import('apache-arrow');
+    await import('apache-arrow');
     const conn = await this._db!.connect();
     let tbl: Table<any>;
 
@@ -184,7 +187,7 @@ export class DuckDBClient {
         async *readRows(chunkSize = 10000) { // Default chunk size set to 100
           const rows = tbl.toArray().map((r) => Object.fromEntries(r));
           if(rows.length === 0) {
-            console.warn('SrDuckDb No Chunks? readRows rows.length:', rows.length,' with query:', query);
+            logger.warn('SrDuckDb No Chunks', { rowsLength: rows.length, query });
           }
           for (let i = 0; i < rows.length; i += chunkSize) {
             yield rows.slice(i, i + chunkSize);
@@ -192,7 +195,7 @@ export class DuckDBClient {
         },
       };
     } catch (error) {
-      console.error('Query execution error:', error);
+      logger.error('Query execution error', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     } finally {
       await conn.close();
@@ -201,7 +204,6 @@ export class DuckDBClient {
 
 
   async getTotalRowCount(query: string): Promise<number> {
-    const startTime = performance.now(); // Start time
     const conn = await this._db!.connect();
     let totalRows;
     try {
@@ -214,13 +216,10 @@ export class DuckDBClient {
       totalRows = rows[0].total;
       return totalRows;
     } catch (error) {
-      console.error('Error getting total row count:', error);
+      logger.error('Error getting total row count', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     } finally {
       await conn.close();
-      const endTime = performance.now(); // End time
-      const duration = endTime - startTime; // Duration in milliseconds
-      //console.log(`getTotalRowCount:${totalRows} took ${duration} milliseconds for query: ${query}`);
     }
   }
   
@@ -272,7 +271,7 @@ export class DuckDBClient {
         },
       };
     } catch (error) {
-      console.error('Query execution error:', error);
+      logger.error('Query execution error', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     } finally {
       await conn.close();
@@ -280,7 +279,6 @@ export class DuckDBClient {
   }
 
   async queryForColNames(fileName: string): Promise<string[]> {
-    const start = performance.now();
     const conn = await this._db!.connect();
     // Escape identifier: "my weird.table"
     const ident = `"${fileName.replace(/"/g, '""')}"`;
@@ -295,7 +293,7 @@ export class DuckDBClient {
     } catch (err) {
       // Fallback: pragma_table_info (works for physical tables/views)
       try {
-        console.error(`queryForColNames: DESCRIBE failed for ${fileName}, trying pragma_table_info fallback`, err);
+        logger.error('queryForColNames: DESCRIBE failed, trying pragma_table_info fallback', { fileName, error: err instanceof Error ? err.message : String(err) });
         const lit = `'${fileName.replace(/'/g, "''")}'`; // string literal
         const res2 = await conn.query(
           `SELECT name AS column_name FROM pragma_table_info(${lit}) ORDER BY cid`
@@ -305,9 +303,10 @@ export class DuckDBClient {
         // If we got here, the fallback returned empty results
         throw new Error(`No columns found via pragma_table_info for ${fileName}`);
       } catch (fallbackErr) {
-        console.error(`queryForColNames: Both DESCRIBE and pragma_table_info failed for ${fileName}`, {
-          describeError: err,
-          pragmaError: fallbackErr
+        logger.error('queryForColNames: Both DESCRIBE and pragma_table_info failed', {
+          fileName,
+          describeError: err instanceof Error ? err.message : String(err),
+          pragmaError: fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr)
         });
         throw err; // Throw the original error
       }
@@ -329,16 +328,21 @@ export class DuckDBClient {
   }
 
   async isParquetLoaded(name: string): Promise<boolean> {
+    let conn;
     try {
-        const conn = await this._db!.connect(); 
+        conn = await this._db!.connect();
         // Query DuckDB's internal catalog to check if the view exists
         const result = await conn.query(`SELECT view_name FROM duckdb_views WHERE view_name = '${name}'`);
         // Convert the result to an array and check if there's any row
         const rows = result.toArray();
         return rows.length > 0;
     } catch (error) {
-      console.error('isParquetLoaded error:', error, ' for name:', name);
+      logger.error('isParquetLoaded error', { error: error instanceof Error ? error.message : String(error), name });
       return false;
+    } finally {
+      if (conn) {
+        await conn.close();
+      }
     }
   }
     
@@ -362,7 +366,7 @@ async insertOpfsParquet(name: string,folder:string='SlideRule'): Promise<void> {
   
       //console.log('insertOpfsParquet file:',file,'file.size:', file.size);
       if (file.size === 0) {
-        console.warn(`insertOpfsParquet empty file?: ${name}`);
+        logger.warn('insertOpfsParquet empty file', { name });
       }
   
       const url = URL.createObjectURL(file);
@@ -375,7 +379,7 @@ async insertOpfsParquet(name: string,folder:string='SlideRule'): Promise<void> {
           isRegistered = true;
           //console.log('insertOpfsParquet File already registered');
         } else {
-          console.error('insertOpfsParquet registerFileURL error:', error);
+          logger.error('insertOpfsParquet registerFileURL error', { error: error instanceof Error ? error.message : String(error) });
           throw error;
         }
       }
@@ -386,10 +390,10 @@ async insertOpfsParquet(name: string,folder:string='SlideRule'): Promise<void> {
   
       if (!isRegistered) {
         this._filesInDb.add(name);
-        console.log('insertOpfsParquet inserted name:', name);
+        logger.debug('insertOpfsParquet inserted name', { name });
       }
     } catch (error) {
-      console.error('insertOpfsParquet error:', error, ' for name:', name);
+      logger.error('insertOpfsParquet error', { error: error instanceof Error ? error.message : String(error), name });
       throw error;
     }
 }
@@ -425,14 +429,10 @@ async getJsonMetaDataForKey(
                               formattedMetadata = JSON.stringify(parsedMetadata, null, 2);
                               //console.log(`getJsonMetaDataForKey Formatted ${keyString} Metadata:`, formattedMetadata);
                           } catch (stringifyError) {
-                              console.error(`getJsonMetaDataForKey Error stringifying JSON of ${keyString} valueString:`,valueString);
-                              console.error(`getJsonMetaDataForKey Error stringifying JSON of ${keyString} metadata:`,parsedMetadata);
-                              console.error(`getJsonMetaDataForKey Error stringifying JSON of ${keyString} error:`, stringifyError);
+                              logger.error('getJsonMetaDataForKey Error stringifying JSON', { keyString, valueString, parsedMetadata, error: stringifyError instanceof Error ? stringifyError.message : String(stringifyError) });
                           }
                         } catch (parseError) {
-                            console.error(`getJsonMetaDataForKey Error parsing JSON of ${keyString} valueString:`,valueString);
-                            console.error(`getJsonMetaDataForKey Error parsing JSON of ${keyString} metadata:`,parsedMetadata);
-                            console.error(`getJsonMetaDataForKey Error parsing JSON of ${keyString} error:`, parseError);
+                            logger.error('getJsonMetaDataForKey Error parsing JSON', { keyString, valueString, parsedMetadata, error: parseError instanceof Error ? parseError.message : String(parseError) });
                         }
                     } else if (keyString === 'ARROW:schema') {
                         //console.log(`getJsonMetaDataForKey Skipping key: ${keyString}, not matching ${key} and not JSON`);
@@ -440,29 +440,29 @@ async getJsonMetaDataForKey(
                         if (dumpAll) {
                             try {
                                 const parsedOther = JSON.parse(valueString);
-                                const otherMetadata = JSON.stringify(parsedOther, null, 2);
+                                JSON.stringify(parsedOther, null, 2);
                                 //console.log(`getJsonMetaDataForKey Other Formatted ${keyString} Metadata:`, otherMetadata);
                             } catch (parseError) {
-                                console.error(`getJsonMetaDataForKey Error parsing JSON of ${keyString} metadata:`, parseError);
+                                logger.error('getJsonMetaDataForKey Error parsing JSON of other key', { keyString, error: parseError instanceof Error ? parseError.message : String(parseError) });
                             }
                         } else {
                             //console.log(`getJsonMetaDataForKey Skipping Other key: ${keyString}, not matching ${key}`);
                         }
                     }
                 } else {
-                    console.warn("getJsonMetaDataForKey Key or Value is undefined at index", i);
+                    logger.warn('getJsonMetaDataForKey Key or Value is undefined at index', { index: i });
                 }
             }
         } else {
-            console.error("getJsonMetaDataForKey No metadata found for the specified Parquet file.");
+            logger.error('getJsonMetaDataForKey No metadata found for the specified Parquet file');
         }
 
         if (!formattedMetadata) {
-            console.warn(`getJsonMetaDataForKey ${key} metadata not found in ${parquetFilePath}.`);
+            logger.warn('getJsonMetaDataForKey metadata not found', { key, parquetFilePath });
         }
 
     } catch (error) {
-        console.error("getJsonMetaDataForKey Error reading Parquet metadata:", error);
+        logger.error('getJsonMetaDataForKey Error reading Parquet metadata', { error: error instanceof Error ? error.message : String(error) });
         console.trace("getJsonMetaDataForKey Error reading Parquet metadata:");
 
         throw error;
@@ -480,10 +480,10 @@ async getJsonMetaDataForKey(
       // console.log('getServerReqFromMetaData thisMetaData.formattedMetadata:', thisMetaData.formattedMetadata);
       // console.log('getServerReqFromMetaData thisMetaData.parsedMetadata:', thisMetaData.parsedMetadata);
       if (!thisMetaData.parsedMetadata) {
-        console.warn(`getServerReqFromMetaData: No parsed metadata found for ${parquetFilePath}`);
+        logger.warn('getServerReqFromMetaData: No parsed metadata found', { parquetFilePath });
       }
       if(!thisMetaData.formattedMetadata) {
-        console.warn(`getServerReqFromMetaData: No formatted metadata found for ${parquetFilePath}`);
+        logger.warn('getServerReqFromMetaData: No formatted metadata found', { parquetFilePath });
       }
       return thisMetaData.formattedMetadata;
     }
@@ -507,18 +507,18 @@ async getJsonMetaDataForKey(
                         const valueString = new TextDecoder().decode(valueArray);
                         metadata[keyString] = valueString;
                     } else {
-                        console.warn("Key or Value is undefined at index", i);
+                        logger.warn('Key or Value is undefined at index', { index: i });
                     }
                 }
             } else {
-                console.warn("No metadata found for the specified Parquet file.", parquetFilePath);
+                logger.warn('No metadata found for the specified Parquet file', { parquetFilePath });
             }
         } catch (error) {
-            console.error(`Error reading ${parquetFilePath} Parquet metadata:`, error);
+            logger.error('Error reading Parquet metadata', { parquetFilePath, error: error instanceof Error ? error.message : String(error) });
             throw error;
         } finally {
             await conn.close();
-            console.log("getAllParquetMetadata metadata:", metadata);
+            logger.debug('getAllParquetMetadata metadata', { metadata });
         }
         return metadata;
     }
@@ -539,7 +539,7 @@ async getJsonMetaDataForKey(
 }
 
 // Factory function to create a DuckDB client
-export async function createDuckDbClient(): Promise<DuckDBClient> {
+export function createDuckDbClient(): Promise<DuckDBClient> {
   //console.log('createDuckDbClient');
   return DuckDBClient.getInstance();
 }

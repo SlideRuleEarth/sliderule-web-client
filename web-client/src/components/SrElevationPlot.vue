@@ -36,7 +36,9 @@ import ProgressSpinner from "primevue/progressspinner";
 import Panel from 'primevue/panel';
 import { useFieldNameStore } from "@/stores/fieldNameStore";
 import Checkbox from 'primevue/checkbox';
+import { createLogger } from '@/utils/logger';
 
+const logger = createLogger('SrElevationPlot');
 
 const tooltipRef = ref();
 
@@ -103,24 +105,17 @@ const initMainLegendPosition = () => {
   const thisChartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
   if (thisChartWrapper) {
     const rect = thisChartWrapper.getBoundingClientRect();
-    const rect_left = rect.left;
-    const rect_top = rect.top;
-    const rect_right = rect.right;
-    const rect_bottom = rect.bottom;
     globalChartStore.scrollX = window.scrollX;
     globalChartStore.scrollY = window.scrollY;
-    const windowScrollX = globalChartStore.scrollX;
-    const windowScrollY = globalChartStore.scrollY;
     // Convert rem to pixels (1rem = 16px by default)
     const middleHorizontalOffset = rect.width / 2; // n rem from the left
-    const middleX = rect.left + middleHorizontalOffset;
     const assumedTitleWidth = globalChartStore.titleOfElevationPlot.length * globalChartStore.fontSize;
     const endOfTitle = rect.left + middleHorizontalOffset + (assumedTitleWidth/2);
-    const spaceSize = rect.right - endOfTitle; 
+    const spaceSize = rect.right - endOfTitle;
     const centerOfLegend = endOfTitle + (spaceSize/2);
-    const assumedLegendWidth = assumedTitleWidth; // They are about the same cefgw 
+    const assumedLegendWidth = assumedTitleWidth; // They are about the same cefgw
     const leftLegendOffset = centerOfLegend - (assumedLegendWidth/2);
-    const left = `${leftLegendOffset}px`; 
+    const left = `${leftLegendOffset}px`;
 
     const topOffset = 0.25 * globalChartStore.fontSize; // n rem from the top
     const top = `${rect.top + topOffset}px`; 
@@ -147,14 +142,14 @@ const initMainLegendPosition = () => {
 
     mainLegendDialogStyle.value = {
       position: "absolute",
-      top: top, 
-      left: left, 
+      top: top,
+      left: left,
       transform: "none" // Remove centering transformation
     };
   } else {
-    console.warn('SrElevationPlot initMainLegendPosition - thisChartWrapper is null');
+    logger.warn('initMainLegendPosition: thisChartWrapper is null');
   }
-  
+
 };
 
 
@@ -162,24 +157,17 @@ const initOverlayLegendPosition = () => {
   const thisChartWrapper = document.querySelector(".chart-wrapper") as HTMLElement;
   if (thisChartWrapper) {
     const rect = thisChartWrapper.getBoundingClientRect();
-    const rect_left = rect.left;
-    const rect_top = rect.top;
-    const rect_right = rect.right;
-    const rect_bottom = rect.bottom;
     globalChartStore.scrollX = window.scrollX;
     globalChartStore.scrollY = window.scrollY;
-    const windowScrollX = globalChartStore.scrollX;
-    const windowScrollY = globalChartStore.scrollY;
     // Convert rem to pixels (1rem = 16px by default)
     const middleHorizontalOffset = rect.width / 2; // n rem from the left
-    const middleX = rect.left + middleHorizontalOffset;
     const assumedTitleWidth = globalChartStore.titleOfElevationPlot.length * globalChartStore.fontSize;
     const endOfTitle = rect.left + middleHorizontalOffset + (assumedTitleWidth/2);
-    const spaceSize = rect.right - endOfTitle; 
+    const spaceSize = rect.right - endOfTitle;
     const centerOfLegend = endOfTitle + (spaceSize/2);
-    const assumedLegendWidth = assumedTitleWidth; // They are about the same cefgw 
+    const assumedLegendWidth = assumedTitleWidth; // They are about the same cefgw
     const leftLegendOffset = centerOfLegend - (assumedLegendWidth/2);
-    const left = `${leftLegendOffset}px`; 
+    const left = `${leftLegendOffset}px`;
 
     const topOffset = 3 * globalChartStore.fontSize; // n rem from the top
     const top = `${rect.top + topOffset}px`; 
@@ -206,19 +194,22 @@ const initOverlayLegendPosition = () => {
 
     overlayLegendDialogStyle.value = {
       position: "absolute",
-      top: top, 
-      left: left, 
+      top: top,
+      left: left,
       transform: "none" // Remove centering transformation
     };
   } else {
-    console.warn('SrElevationPlot initOverlayLegendPosition - thisChartWrapper is null');
+    logger.warn('initOverlayLegendPosition: thisChartWrapper is null');
   }
-  
+
 };
 const reqId = computed(() => recTreeStore.selectedReqId);
 
 
 const shouldDisplayAtl03Colors = computed(() => {
+    // Wait for tree to load before checking API
+    if (!recTreeStore.isTreeLoaded) return false;
+
     let shouldDisplay = false;
     if(recTreeStore.findApiForReqId(reqId.value).includes('atl03') &&
         chartStore.getSelectedColorEncodeData(recTreeStore.selectedReqIdStr) === 'atl03_cnf'){
@@ -234,6 +225,9 @@ const shouldDisplayAtl03Colors = computed(() => {
     return shouldDisplay;
 });
 const shouldDisplayAtl08Colors = computed(() => {
+    // Wait for tree to load before checking API
+    if (!recTreeStore.isTreeLoaded) return false;
+
     let shouldDisplay = false;
     if(recTreeStore.findApiForReqId(reqId.value).includes('atl03') &&
         chartStore.getSelectedColorEncodeData(recTreeStore.selectedReqIdStr) === 'atl08_class'){
@@ -250,6 +244,9 @@ const shouldDisplayAtl08Colors = computed(() => {
 });
 
 const shouldDisplayAtl24Colors = computed(() => {
+    // Wait for tree to load before checking API
+    if (!recTreeStore.isTreeLoaded) return false;
+
     let shouldDisplay = false;
     if(recTreeStore.findApiForReqId(reqId.value).includes('atl03') &&
         chartStore.getSelectedColorEncodeData(recTreeStore.selectedReqIdStr) === 'atl24_class'){
@@ -366,16 +363,16 @@ const photonCloudBtnTooltip = computed(() => {
 const handleChartFinished = () => {
     if(chartWrapperRef.value){
         //console.log('handleChartFinished ECharts update finished event -- dialogsInitialized.value:', dialogsInitialized.value, 'chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length:',chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length);
-        if( (dialogsInitialized.value == false) && 
+        if( (dialogsInitialized.value == false) &&
             (chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length > 0)){
-            console.log('handleChartFinished - initializing dialogs');
+            logger.debug('handleChartFinished: initializing dialogs');
             initMainLegendPosition();
             initOverlayLegendPosition();
             chartReady.value = true;
             dialogsInitialized.value = true; // Mark dialogs as initialized
         }
     } else {
-        console.warn('handleChartFinished - chartWrapperRef is null');
+        logger.warn('handleChartFinished: chartWrapperRef is null');
     }
 };
 
@@ -387,7 +384,7 @@ const selectedReqIdStr = computed(() => {
 
 
 async function initPlot(){
-    console.log('SrElevationPlot onMounted updated webGLSupported',!!window.WebGLRenderingContext); // Should log `true` if WebGL is supported
+    logger.debug('initPlot: webGLSupported', { webGLSupported: !!window.WebGLRenderingContext });
     try{
     // Get the computed style of the document's root element
         // Extract the font size from the computed style
@@ -405,14 +402,14 @@ async function initPlot(){
             if(selectedElRecord){
                 await processSelectedElPnt(selectedElRecord); // TBD maybe no await here to run in parallel?
             } else {
-                console.warn('SrElevationPlot onMounted - selectedElRecord is null, nothing to plot yet');
+                logger.warn('onMounted: selectedElRecord is null, nothing to plot yet');
             }
             initializeColorEncoding(sReqId);
         } else {
-            console.warn('reqId is undefined');
-        }        
+            logger.warn('reqId is undefined');
+        }
     } catch (error) {
-        console.error('Error initializing plot:', error);
+        logger.error('Error initializing plot', { error: error instanceof Error ? error.message : String(error) });
     } finally {
         // Final setup after initialization
     }
@@ -426,24 +423,24 @@ onMounted(async () => {
         globalChartStore.titleOfElevationPlot = ' Highlighted Track(s)';
         await initPlot();
         //enableTouchDragging(); // this is experimental
-        requestsStore.displayHelpfulMapAdvice("Legends are draggable to any location");
+        void requestsStore.displayHelpfulMapAdvice("Legends are draggable to any location");
     } catch (error) {
-            console.error('Error during onMounted initialization:', error);
+            logger.error('Error during onMounted initialization', { error: error instanceof Error ? error.message : String(error) });
     } finally {
         loadingComponent.value = false;
     }
 });
 
 onUnmounted(() => {
-    console.log('SrElevationPlot onUnmounted');
+    logger.debug('SrElevationPlot onUnmounted');
 });
 
 
 watch(() => plotRef.value, async (newValue,oldValue) => {
   if (!newValue){
-    console.warn(`SrElevationPlot watch plotRef.value - newValue {newValue} is null or undefined, cannot proceed oldValue`,oldValue);
+    logger.warn('watch plotRef.value: newValue is null or undefined', { oldValue });
     return;
-  } 
+  }
 
   // Cast to expose .chart, and safely access .value
   const chartInstance = (newValue as InstanceType<typeof VChart>).chart;
@@ -451,8 +448,8 @@ watch(() => plotRef.value, async (newValue,oldValue) => {
   if (chartInstance) {
     // chartInstance is type EChartsType, NOT a ref
     chartInstance.on('restore', () => {
-        (async () => {
-            console.log('Zoom or settings were reset!');
+        void (async () => {
+            logger.debug('Zoom or settings were reset');
             atlChartFilterStore.xZoomStart = 0;
             atlChartFilterStore.xZoomEnd = 100;
             atlChartFilterStore.yZoomStart = 0;
@@ -462,7 +459,7 @@ watch(() => plotRef.value, async (newValue,oldValue) => {
             if (chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length > 0) {
                 await callPlotUpdateDebounced('from SrElevationPlot watch plotRef.value');
             } else {
-                console.warn('No Y data selected');
+                logger.warn('No Y data selected');
             }
         })();
     });
@@ -470,10 +467,10 @@ watch(() => plotRef.value, async (newValue,oldValue) => {
     if (chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length > 0) {
         await callPlotUpdateDebounced('from SrElevationPlot watch plotRef.value');
     } else {
-        console.warn('No Y data selected');
+        logger.warn('No Y data selected');
     }
   } else {
-        console.warn('Chart instance not ready yet');
+        logger.warn('Chart instance not ready yet');
   }
 });
 
@@ -486,7 +483,7 @@ const messageClass = computed(() => {
 });
 
 watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, oldShowPhotonCloud) => {
-    console.log('SrElevationPlot showPhotonCloud changed from:', oldShowPhotonCloud ,' to:', newShowPhotonCloud);
+    logger.debug('showPhotonCloud changed', { oldShowPhotonCloud, newShowPhotonCloud });
     if(!loadingComponent.value){
         if(newShowPhotonCloud){
             const runContext = await getPhotonOverlayRunContext();
@@ -496,7 +493,7 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                 // initially hide the atl024x because it is a different height datum. This avoids confusion
                 chartStore.setInitLegendUnselected(parentReqIdStr, true);
             }
-            console.log("rc:",runContext, "parentFuncStr:", parentFuncStr);
+            logger.debug('Photon cloud run context', { runContext, parentFuncStr });
             // atl03sp is decrepcated here so fetch and use atl03x instead even if the old one exists
             const isAtl03sp = (recTreeStore.findApiForReqId(runContext.reqId) === 'atl03sp');//because it is deprecated
             if((runContext.reqId <= 0) || (isAtl03sp)){ // need to fetch the data because atl03sp is deprecated
@@ -511,11 +508,11 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
                     chartStore.setSelectedColorEncodeData(parentReqIdStr, 'solid');
                     await initSymbolSize(runContext.reqId); // for new record
                     initializeColorEncoding(runContext.reqId,'atl03x');
-                    // The worker will now fetch the data from the server 
-                    // and write the opfs file then update 
+                    // The worker will now fetch the data from the server
+                    // and write the opfs file then update
                     // the map selected layer and the chart
-                } else { 
-                    console.error('SrElevationPlot watch atlChartFilterStore.showPhotonCloud - processRunSlideRuleClicked failed');
+                } else {
+                    logger.error('watch atlChartFilterStore.showPhotonCloud: processRunSlideRuleClicked failed');
                 }
             } else { // we already have the data
                 initializeColorEncoding(runContext.reqId,parentFuncStr);
@@ -543,12 +540,12 @@ watch (() => atlChartFilterStore.showPhotonCloud, async (newShowPhotonCloud, old
             await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud FALSE');
         }
     } else {
-        console.warn(`SrElevationPlot Skipped handlePhotonCloudChange - Loading component is still active`);
+        logger.warn('Skipped handlePhotonCloudChange: Loading component is still active');
     }
 });
 
 watch(() => atlChartFilterStore.showSlopeLines, async (newValue) => {
-    console.log('Slope Lines visibility changed:', newValue, atlChartFilterStore.showSlopeLines);
+    logger.debug('Slope Lines visibility changed', { newValue, showSlopeLines: atlChartFilterStore.showSlopeLines });
     // Handle the change in slope lines visibility
     await callPlotUpdateDebounced('from watch atlChartFilterStore.showSlopeLines');
 });

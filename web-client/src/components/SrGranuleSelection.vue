@@ -8,7 +8,9 @@ import SrCheckbox from './SrCheckbox.vue';
 import SrListbox from './SrListbox.vue';
 import { tracksOptions,gtsOptions,getGtsAndTracksWithGts } from '@/utils/parmUtils';
 import { type SrListNumberItem } from '@/types/SrTypes';
+import { createLogger } from '@/utils/logger';
 
+const logger = createLogger('SrGranuleSelection');
 const reqParamsStore = useReqParamsStore();
 const defaultEnableGranuleSelection = () => {
     return reqParamsStore.enableGranuleSelection !== undefined ? reqParamsStore.enableGranuleSelection : false;
@@ -55,16 +57,16 @@ onUnmounted(() => {
     //console.log('Unmounted SrGranuleSelection');
 });
 
-const TracksSelection = (tracks:SrListNumberItem[]) => {
-    console.log('TracksSelection:',tracks);
-}
+const TracksSelection = (_tracks: SrListNumberItem[]) => {
+    logger.debug('TracksSelection');
+};
 
-const GtsSelection = (gts:SrListNumberItem[]) => {
-    console.log('GtsSelection:',gts);
+const GtsSelection = (gts: SrListNumberItem[]) => {
+    logger.debug('GtsSelection', { gts });
     const parms = getGtsAndTracksWithGts(gts);
     reqParamsStore.setSelectedTrackOptions(parms.tracks);
-    console.log('GtsSelection gts:',gts, ' => tracks:',reqParamsStore.tracks, ' beams:',reqParamsStore.beams);
-}
+    logger.debug('GtsSelection result', { gts, tracks: reqParamsStore.tracks, beams: reqParamsStore.beams });
+};
 
 
 </script>

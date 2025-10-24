@@ -24,6 +24,9 @@
     import { ref,onMounted,computed } from "vue";
     import SrCheckbox from "@/components/SrCheckbox.vue";
     import { useChartStore } from "@/stores/chartStore";
+    import { createLogger } from '@/utils/logger';
+
+    const logger = createLogger('SrSqlStmnt');
 
     const props = withDefaults(
         defineProps<{
@@ -63,7 +66,7 @@
     }); 
     async function handleShowSqlStmnt(newValue: boolean) {
         if(newValue) {
-          console.log('SrSqlStmnt handleShowSqlStmnt: showSqlStmnt:', newValue,'sql:',computedSqlStmnt.value);  
+          logger.debug('handleShowSqlStmnt', { showSqlStmnt: newValue, sql: computedSqlStmnt.value });
         }
     }
     onMounted(async () => {

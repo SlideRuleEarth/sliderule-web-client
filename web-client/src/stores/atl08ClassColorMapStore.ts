@@ -1,13 +1,16 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { db } from '@/db/SlideRuleDb';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('Atl08ClassColorMapStore');
 
 /**
  * Factory function to create a unique store instance per reqId
  */
 export async function useAtl08ClassColorMapStore(reqIdStr: string) {
     const store = defineStore(`atl08ClassStore-${reqIdStr}`, () => {
-        const isInitialized = ref(false);
+        // const isInitialized = ref(false); // Unused variable
         const dataOrderNdx =  ref<Record<string, number>>({});
         const atl08ClassColorMap = ref([] as string[]);
         const atl08ClassOptions = [
@@ -19,7 +22,6 @@ export async function useAtl08ClassColorMapStore(reqIdStr: string) {
         ] as {label:string,value:number}[];
 
         async function initializeColorMapStore() {
-            isInitialized.value = true;
             atl08ClassColorMap.value = await db.getAllAtl08ClassColors();
         }
 
@@ -49,18 +51,18 @@ export async function useAtl08ClassColorMapStore(reqIdStr: string) {
                 if (ndx < 0) {
                     ndx = dataOrderNdx.value[ndx_name];
                 }
-                const value = params.data[ndx];
-                if (colorCache[value] === undefined) {
-                    colorCache[value] = getColorFunction(value);
+                const paramValue = params.data[ndx];
+                if (colorCache[paramValue] === undefined) {
+                    colorCache[paramValue] = getColorFunction(paramValue);
                 }
-                return colorCache[value];
+                return colorCache[paramValue];
             };
 
             // Function to clear the cache
             colorFunction.resetCache = () => {
                 Object.keys(colorCache).forEach(key => delete colorCache[Number(key)]);
                 ndx = -1; // Reset index so it is recalculated
-                console.log(`Cache for ${ndx_name} reset.`);
+                logger.debug('Cache reset', { ndx_name });
             };
 
             return colorFunction;
@@ -69,7 +71,7 @@ export async function useAtl08ClassColorMapStore(reqIdStr: string) {
         const getColorForAtl08ClassValue = (value:number) => { // value is the atl08_class value 0 to 4
             const ndx = value;
             if(ndx < 0 || ndx > 4){
-                console.error('getColorForAtl08ClassValue invalid value:',value);
+                logger.error('getColorForAtl08ClassValue invalid value', { value });
                 return 'White'; // Return White for invalid values
             }
             const c = atl08ClassColorMap.value[ndx];
@@ -97,7 +99,7 @@ export async function useAtl08ClassColorMapStore(reqIdStr: string) {
         async function setColorForAtl08ClassValue(value:number,namedColorValue:string) { // value is the atl08_class value 0 to 4
             const ndx = value;
             if(ndx < 0 || ndx > 4){
-                console.error('setColorForAtl08ClassValue invalid value:',value);
+                logger.error('setColorForAtl08ClassValue invalid value', { value });
                 return;
             }
             atl08ClassColorMap.value[ndx] = namedColorValue;

@@ -22,7 +22,9 @@ import SrImportParquetFile from './SrImportParquetFile.vue';
 import ToggleButton from 'primevue/togglebutton';
 import SrExportDialog from '@/components/SrExportDialog.vue';
 import { updateElevationMap } from '@/utils/SrMapUtils';
+import { createLogger } from '@/utils/logger';
 
+const logger = createLogger('SrRecTree');
 const requestsStore = useRequestsStore();
 const recTreeStore = useRecTreeStore();
 const srToastStore = useSrToastStore();
@@ -102,7 +104,7 @@ const analyze = async (id:number) => {
             toast.add({ severity: 'error', summary: 'Invalid Record Id', detail: 'Failed to set record Id', life: srToastStore.getLife() });
         }
     } catch (error) {
-        console.error(`Failed to analyze request for id:${id}`, error);
+        logger.error('Failed to analyze request', { id, error: error instanceof Error ? error.message : String(error) });
         throw error;
     }
 };
@@ -113,7 +115,7 @@ async function deleteRequest(id:number){
         const fn = await db.getFilename(id);
         await deleteOpfsFile(fn);
     } catch (error) {
-        console.error(`Failed to delete file for id:${id}`, error);
+        logger.error('Failed to delete file', { id, error: error instanceof Error ? error.message : String(error) });
         deleted = false;
     }
     try {
@@ -124,7 +126,7 @@ async function deleteRequest(id:number){
             toast.add({ severity: 'error', summary: 'Record Deletion Failed', detail: `Failed to delete record ${id}`, life: srToastStore.getLife() });
         }
     } catch (error) {
-        console.error(`Failed to delete record for id:${id}`, error);
+        logger.error('Failed to delete record', { id, error: error instanceof Error ? error.message : String(error) });
         deleted = false;
     }
     return deleted;
@@ -179,7 +181,7 @@ const confirmDeleteAllReqs = async () => {
 };
 
 const exportFile = async (req_id:number) => {
-    console.log('Exporting file for req_id', req_id);
+    logger.debug('Exporting file', { req_id });
     exportReqId.value = req_id;
     showExportDialog.value = true;
 };
@@ -188,10 +190,10 @@ const goToRequestViewAndLoadParms = async (req_id: number) => {
     try {
         // Navigate to Request view with reqId as a URL parameter
         // The RequestView will detect this and load the params after it mounts
-        console.log('Navigating to /request/' + req_id);
+        logger.debug('Navigating to request view', { req_id, path: `/request/${req_id}` });
         await router.push(`/request/${req_id}`);
     } catch (error) {
-        console.error(`Failed to navigate to request view for req_id ${req_id}:`, error);
+        logger.error('Failed to navigate to request view', { req_id, error: error instanceof Error ? error.message : String(error) });
         toast.add({
             severity: 'error',
             summary: 'Navigation Failed',
@@ -202,7 +204,7 @@ const goToRequestViewAndLoadParms = async (req_id: number) => {
 };
 
 const handleFileImported = async (reqId: string) => {
-    console.log('File import completed. Request ID:', reqId);
+    logger.debug('File import completed', { reqId });
     treeNodes.value = await requestsStore.getTreeTableNodes(onlySuccess.value);
 };
 

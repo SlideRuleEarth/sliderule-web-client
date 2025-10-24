@@ -13,6 +13,9 @@ import { useSlideruleDefaults } from '@/stores/defaultsStore';
 import { useGeoJsonStore } from './geoJsonStore';
 import { useChartStore } from '@/stores/chartStore';
 import { useRasterParamsStore } from '@/stores/rasterParamsStore';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('ReqParamsStore');
 import { 
   distanceInOptions,
   surfaceReferenceTypeOptions,
@@ -172,7 +175,7 @@ export function getDefaultReqParamsState(): SrReqParamsState {
     };
 }
 function setNestedValue(obj: any, path: string, value: unknown) {
-  console.log('setNestedValue obj:', obj, 'path:', path, 'value:', value);
+  logger.debug('Setting nested value', { path, value });
   const keys = path.split('.');
   let current = obj;
   keys.slice(0, -1).forEach(key => {
@@ -182,10 +185,10 @@ function setNestedValue(obj: any, path: string, value: unknown) {
     current = current[key];
   });
   current[keys[keys.length - 1]] = value;
-  console.log('setNestedValue result obj:', obj);
+  logger.debug('Nested value set', { path });
 }
 
-function deleteNestedKey(obj: any, path: string) {
+function deleteNestedKey(obj: any, path: string): void {
     if (!path) return;
 
     const keys = path.split('.');
@@ -232,7 +235,7 @@ const createReqParamsStore = (id: string) =>
             if(parentApi === 'atl13x'){ // dont use the request polygon, use the track bounds
               const parentReqIdStr = parentReqId.toString();
               const mmlh = useChartStore().getMinMaxLowHigh(parentReqIdStr);
-              console.log('presetForScatterPlotOverlay: parentReqId:', parentReqId, 'parentApi:', parentApi, 'mmlh:', mmlh);
+              logger.debug('Preset for scatter plot overlay', { parentReqId, parentApi, hasMinMax: !!mmlh });
               const region = regionFromBounds(
                   mmlh['latitude']?.min,
                   mmlh['latitude']?.max,
@@ -244,9 +247,9 @@ const createReqParamsStore = (id: string) =>
                   this.setPoly(region);
                   this.setConvexHull(convexHull(region));
                   this.setAreaOfConvexHull(calculatePolygonArea(region));
-                  console.log('presetForScatterPlotOverlay: using poly for parentReqId:', parentReqId, 'poly:', region);
+                  logger.debug('Using poly from track bounds', { parentReqId, polyLength: region.length });
               } else {
-                  console.error('presetForScatterPlotOverlay: unable to create region from selected track bounds for parentReqId:', parentReqId);
+                  logger.error('Unable to create region from track bounds', { parentReqId });
               }
             } else { // all other APIs use the request polygon
               const poly = await db.getSvrReqPoly(parentReqId);
@@ -254,9 +257,9 @@ const createReqParamsStore = (id: string) =>
                   this.setPoly(poly);
                   this.setConvexHull(convexHull(poly));
                   this.setAreaOfConvexHull(calculatePolygonArea(poly));
-                  console.log('presetForScatterPlotOverlay: using poly for parentReqId:', parentReqId, 'poly:', poly);
+                  logger.debug('Using poly from server params', { parentReqId, polyLength: poly.length });
               } else {
-                console.error('presetForScatterPlotOverlay: no poly for parentReqId:', parentReqId);
+                logger.error('No poly found for preset', { parentReqId });
               }
             }
             this.enableAtl03Classification = true;
@@ -288,7 +291,12 @@ const createReqParamsStore = (id: string) =>
             this.setEnableGranuleSelection(true);
             this.setUseCycle(true);
             this.setCycle(useGlobalChartStore().getCycles()[0]);
-            console.log('presetForScatterPlotOverlay: tracks:', this.getSelectedTrackOptions(),'gts:', this.getSelectedGtOptions(), 'rgts:', this.getRgt(), 'cycles:', this.getCycle());
+            logger.debug('Preset granule selection complete', {
+              tracks: this.getSelectedTrackOptions().length,
+              gts: this.getSelectedGtOptions().length,
+              rgt: this.getRgt(),
+              cycle: this.getCycle()
+            });
         },
         getRasterizePolyCellSize() {
             return this.rasterizePolyCellSize;
@@ -311,7 +319,7 @@ const createReqParamsStore = (id: string) =>
           } else if (this.missionValue === 'GEDI') {
             func = this.gediSelectedAPI;
           } else {
-            console.error('getFunc: mission not recognized:', this.missionValue);
+            logger.error('Mission not recognized in getFunc', { mission: this.missionValue });
           }
           return func;
         },
@@ -328,7 +336,7 @@ const createReqParamsStore = (id: string) =>
             else if (this.gediSelectedAPI === 'gedi02ap') req.asset = 'gedil2a';
             else if (this.gediSelectedAPI === 'gedi04ap') req.asset = 'gedil4a';
           } else {
-            console.error('getAtlReqParams: mission not recognized:', this.missionValue);
+            logger.error('Mission not recognized in getAtlReqParams', { mission: this.missionValue });
           }
  
           if((this.iceSat2SelectedAPI==='atl08p') || (this.iceSat2SelectedAPI.includes('atl03'))){
@@ -479,7 +487,7 @@ const createReqParamsStore = (id: string) =>
             req.poly = this.poly;
           }
           const geojsonStore = useGeoJsonStore();
-          console.log('getAtlReqParams: geojsonStore.getReqGeoJsonData():', geojsonStore.getReqGeoJsonData());
+          logger.debug('GeoJSON data in getAtlReqParams', { geoJsonData: geojsonStore.getReqGeoJsonData() });
           if(geojsonStore.getReqGeoJsonData() != null){
             if(geojsonStore.reqHasPoly()) {
               req.region_mask = {
@@ -544,6 +552,7 @@ const createReqParamsStore = (id: string) =>
             }
           }
           if(this.enableAtl03Classification) {
+            // ATL03 classification settings would go here
           }
 
           if(this.enableAtl08Classification) {
@@ -624,11 +633,11 @@ const createReqParamsStore = (id: string) =>
               timeout = readTimeSetting;
             }
           }
-          console.log('getWorkerThreadTimeout this.getReqTimeout:', this.getReqTimeout(), 'timeout:', timeout); 
-          return timeout;      
+          logger.debug('Worker thread timeout calculated', { reqTimeout: this.getReqTimeout(), timeout });
+          return timeout;
         },
         getAtlxxReqParams(req_id: number): AtlxxReqParams {
-          console.log('getAtlxxReqParams this:', this, 'req_id:', req_id);
+          logger.debug('Getting Atlxx request params', { reqId: req_id });
           const baseParams:AtlxxReqParams = {
             parms: this.getAtlReqParams(req_id),
           };
@@ -874,8 +883,8 @@ const createReqParamsStore = (id: string) =>
         setReadTimeout(readTimeoutValue:number) {
           this.readTimeoutValue = readTimeoutValue;
         },
-        async restoreTimeouts() {
-          console.log('restoreTimeouts called');
+        restoreTimeouts() {
+          logger.debug('Restoring timeouts to defaults');
           this.useServerTimeout = false;
           this.useReqTimeout = false;
           this.useNodeTimeout = false;
@@ -884,28 +893,28 @@ const createReqParamsStore = (id: string) =>
           if(sto){
               this.setServerTimeout(sto);
           } else {
-              console.warn('restoreTimeouts: No default server timeout found, setting to fallback default of 601 seconds');
+              logger.warn('No default server timeout found, using fallback', { fallbackValue: 601 });
               this.setServerTimeout(601); // fallback default
           }
           const nto = useSlideruleDefaults().getNestedDefault<number>('core', 'node_timeout');
           if(nto){
               this.setNodeTimeout(nto);
           } else {
-              console.warn('restoreTimeouts: No default node timeout found, setting to fallback default of 601 seconds');
+              logger.warn('No default node timeout found, using fallback', { fallbackValue: 601 });
               this.setNodeTimeout(601); // fallback default
           }
           const rto = useSlideruleDefaults().getNestedDefault<number>('core', 'read_timeout');
           if(rto){
               this.setReadTimeout(rto);
           } else {
-              console.warn('restoreTimeouts: No default read timeout found, setting to fallback default of 601 seconds');
+              logger.warn('No default read timeout found, using fallback', { fallbackValue: 601 });
               this.setReadTimeout(601); // fallback default
           }
           const rqto = useSlideruleDefaults().getNestedDefault<number>('core', 'rqst_timeout');
           if(rqto){
               this.setReqTimeout(rqto);
           } else {
-              console.warn('restoreTimeouts: No default request timeout found, setting to fallback default of 601 seconds');
+              logger.warn('No default request timeout found, using fallback', { fallbackValue: 601 });
               this.setReqTimeout(601); // fallback default
           }
         },
@@ -989,18 +998,18 @@ const createReqParamsStore = (id: string) =>
           this.YAPCVersion = value;
         },
 
-        async initYapcDefaults(){
+        initYapcDefaults(){
           const yapc = useSlideruleDefaults().getNestedMissionDefault<object>(this.missionValue,'yapc') as Icesat2ConfigYapc;
-          console.log('yapc:',yapc);
+          logger.debug('Initializing YAPC defaults', { yapc });
           if (yapc) {
             this.setYAPCVersion(yapc['version']); //3
-            console.log('yapc[score]:',yapc['score']);
+            logger.debug('YAPC score from defaults', { score: yapc['score'] });
             this.setYAPCScore(yapc['score']); //0
             this.setYAPCKnn(yapc['knn']); //0
             this.setYAPCWindowHeight(yapc['win_h']); //10
             this.setYAPCWindowWidth(yapc['win_x']); //10
           }
-                  
+
         },
         getMissionValue() : string {
           return this.missionValue;
@@ -1041,7 +1050,7 @@ const createReqParamsStore = (id: string) =>
           } else if (this.missionValue === 'GEDI' && isValidAPI(this.gediSelectedAPI)) {
             return this.gediSelectedAPI as ApiName;
           }
-          console.error('getCurAPIObj: mission not recognized or API not valid mission:', this.missionValue,'iceSat2API:', this.iceSat2SelectedAPI, 'gediAPI:', this.gediSelectedAPI);
+          logger.error('Mission not recognized or API not valid', { mission: this.missionValue, iceSat2API: this.iceSat2SelectedAPI, gediAPI: this.gediSelectedAPI });
           return null; // Explicitly return `null` instead of `''`
         },    
         setConvexHull(convexHull: SrRegion|null) {

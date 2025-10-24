@@ -1,19 +1,23 @@
-import { db } from '@/db/SlideRuleDb'; 
+import { db } from '@/db/SlideRuleDb';
 import type { ElevationPlottable, } from '@/db/SlideRuleDb';
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
 import { useSrcIdTblStore } from '@/stores/srcIdTblStore';
 import { calculatePolygonArea } from '@/composables/SrTurfUtils';
 import { createDuckDbClient } from '@/utils/SrDuckDb';
 import { type Ref } from 'vue';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrParquetUtils');
 
 //const srcIdTblStore = useSrcIdTblStore();
-declare function showSaveFilePicker(options?: SaveFilePickerOptions): Promise<FileSystemFileHandle>;
+// declare function showSaveFilePicker(options?: SaveFilePickerOptions): Promise<FileSystemFileHandle>;
 
 type WriterBundle = {
   writable?: WritableStream<Uint8Array>;
   writer?: WritableStreamDefaultWriter<Uint8Array>;
   getWriter: () => WritableStreamDefaultWriter<Uint8Array>; // lazy
   close: () => Promise<void>;
+  // eslint-disable-next-line no-unused-vars
   abort: (reason?: any) => Promise<void>;
 };
 
@@ -22,11 +26,11 @@ interface FilePickerAcceptType {
     accept: Record<string, string[]>;
 }
 
-interface SaveFilePickerOptions {
-    suggestedName?: string;
-    types?: FilePickerAcceptType[];
-    excludeAcceptAllOption?: boolean;
-}
+// interface SaveFilePickerOptions {
+//     suggestedName?: string;
+//     types?: FilePickerAcceptType[];
+//     excludeAcceptAllOption?: boolean;
+// }
 
 
 export function safeCsvCell(val: any): string {
@@ -181,19 +185,19 @@ export function getTypes(fieldAndType: SrParquetPathTypeJsType[]):string[] {
 
 export const deleteOpfsFile = async (filename:string) => {
     try{
-        console.log('deleteOpfsFile filename:',filename);
+        logger.debug('deleteOpfsFile', { filename });
         if (!filename) {
-            console.error('deleteOpfsFile filename is undefined');
+            logger.error('deleteOpfsFile filename is undefined');
             return;
         }
         const opfsRoot = await navigator.storage.getDirectory();
-        const folderName = 'SlideRule'; 
+        const folderName = 'SlideRule';
         const directoryHandle = await opfsRoot.getDirectoryHandle(folderName, { create: true });
-        directoryHandle.removeEntry(filename);
-        console.log('deleteOpfsFile Successfully deleted:',filename);
+        void directoryHandle.removeEntry(filename);
+        logger.debug('deleteOpfsFile Successfully deleted', { filename });
     } catch (error) {
         const errorMsg = `Failed to delete file: ${filename} error: ${error}`;
-        console.error('deleteOpfsFile error:',errorMsg);
+        logger.error('deleteOpfsFile error', { errorMsg });
         throw new Error(errorMsg);
     }
 }
@@ -258,7 +262,7 @@ export async function calculateChecksumFromOpfs(fileHandle: FileSystemFileHandle
             readResult = await reader.read(); // Read next chunk
         }
     } catch (error) {
-        console.error('Error reading file:', error);
+        logger.error('Error reading file', { error: error instanceof Error ? error.message : String(error) });
         throw error;
     } finally {
         reader.releaseLock();
@@ -288,7 +292,7 @@ export function getApiFromFilename(filename: string): { func: string } {
     // atl03x_foo.parquet
     // atl03x-phoreal_bar.parquet
     // atl03x-surface_baz.parquet
-    console.warn(`getApiFromFilename Fallback->Extracting API from filename: ${filename}`);
+    logger.warn('getApiFromFilename Fallback->Extracting API from filename', { filename });
     const regex = /^(atl[0-9]{2}[a-z]*(?:-(?:phoreal|surface))?)_/i;
 
     const match = filename.match(regex);
@@ -307,20 +311,20 @@ export const nukeSlideRuleFolder = async () => {
         // Get the root directory handle
         opfsRoot = await navigator.storage.getDirectory();
     } catch (error) {
-        console.error('nukeSlideRuleFolder: Error retrieving root directory', error);
+        logger.error('nukeSlideRuleFolder: Error retrieving root directory', { error: error instanceof Error ? error.message : String(error) });
         throw error;
     }
 
     try {
         // Attempt to remove the SlideRule folder; if it doesn't exist, we'll catch that
         await opfsRoot.removeEntry(folderName, { recursive: true });
-        console.warn(`nukeSlideRuleFolder: "${folderName}" folder removed`);
+        logger.warn('nukeSlideRuleFolder: folder removed', { folderName });
     } catch (error: any) {
         // If the folder doesn't exist, it's typically a "NotFoundError" or similar
         if (error.name === 'NotFoundError') {
-            console.warn(`nukeSlideRuleFolder: "${folderName}" folder not found, ignoring...`);
+            logger.warn('nukeSlideRuleFolder: folder not found, ignoring', { folderName });
         } else {
-            console.error('nukeSlideRuleFolder: Error removing folder', error);
+            logger.error('nukeSlideRuleFolder: Error removing folder', { error: error instanceof Error ? error.message : String(error) });
             throw new Error(`Failed to remove folder: ${error}`);
         }
     }
@@ -328,9 +332,9 @@ export const nukeSlideRuleFolder = async () => {
     try {
         // Recreate the SlideRule folder
         await opfsRoot.getDirectoryHandle(folderName, { create: true });
-        console.warn(`nukeSlideRuleFolder: "${folderName}" folder re-created`);
+        logger.warn('nukeSlideRuleFolder: folder re-created', { folderName });
     } catch (error) {
-        console.error(`nukeSlideRuleFolder: Error re-creating "${folderName}" folder`, error);
+        logger.error('nukeSlideRuleFolder: Error re-creating folder', { folderName, error: error instanceof Error ? error.message : String(error) });
         throw new Error(`Failed to re-create the folder: ${folderName}, error: ${error}`);
     }
 };
@@ -350,7 +354,7 @@ export async function updateReqParmsFromMeta(req_id:number): Promise<void> {
     try {
         // Get current rcvd_parms from the request record
         const currentRequest = await db.getRequest(req_id);
-        console.log('updateReqParmsFromMeta currentRequest:', currentRequest);
+        logger.debug('updateReqParmsFromMeta', { currentRequest });
         if(currentRequest && currentRequest.func?.includes('x')) {
             const currentRcvdParms = currentRequest?.rcvd_parms; // these are the received parameters from the server
             // Only update if rcvd_parms is missing or empty
@@ -361,22 +365,19 @@ export async function updateReqParmsFromMeta(req_id:number): Promise<void> {
 
                 const parsed = (await duckDbClient.getJsonMetaDataForKey('meta', fileName)).parsedMetadata;
                 if (parsed && parsed.request && typeof parsed.request === 'object') {
-                    console.log(`updateReqParmsFromMeta req_id ${req_id}:`, {
-                        currentRcvdParms,
-                        metadataRequest: parsed.request
-                    });
+                    logger.debug('updateReqParmsFromMeta', { req_id, currentRcvdParms, metadataRequest: parsed.request });
                     //console.log(`updateReqParmsFromMeta: Updating rcvd_parms for req_id ${req_id} - rcvd_parms are missing or empty`);
                     await db.updateRequestRecord({ req_id: req_id, rcvd_parms: parsed.request });
                     //console.log(`updateReqParmsFromMeta: Successfully updated rcvd_parms for req_id ${req_id}`);
                 } else {
-                    console.warn(`updateReqParmsFromMeta: Missing meta field or invalid 'request' field in metadata for req_id ${req_id},' parsed:`, parsed);
+                    logger.warn('updateReqParmsFromMeta: Missing meta field or invalid request field in metadata', { req_id, parsed });
                 }
             } else {
                 //console.log(`updateReqParmsFromMeta: No update needed for req_id ${req_id} - rcvd_parms already exist`);
             }
         } // skip if not x endpoints
     } catch (error) {
-        console.warn(`updateReqParmsFromMeta: Could not load 'meta' metadata for req_id ${req_id}:`, error);
+        logger.warn('updateReqParmsFromMeta: Could not load meta metadata', { req_id, error: error instanceof Error ? error.message : String(error) });
     }
 }
 
@@ -397,7 +398,7 @@ function createObjectUrlStream(mimeType: string, suggestedName: string, maxBytes
       a.click();
       URL.revokeObjectURL(url);
     },
-    abort(reason) { console.error('Stream aborted:', reason); }
+    abort(reason) { logger.error('Stream aborted', { reason }); }
   });
 
   let writerRef: WritableStreamDefaultWriter<Uint8Array> | undefined;
@@ -407,7 +408,7 @@ function createObjectUrlStream(mimeType: string, suggestedName: string, maxBytes
     getWriter: () => (writerRef ??= writable.getWriter()),
     writer: undefined,
     close: async () => { if (writerRef) await writerRef.close(); },
-    abort: async (r?: any) => { if (writerRef) await writerRef.abort(r); }
+    abort: async (_r?: any) => { if (writerRef) await writerRef.abort(_r); }
   };
 }
 
@@ -453,8 +454,8 @@ function wrapFsWritable(fs: FileSystemWritableFileStream): WritableStream<Uint8A
             // ensure ArrayBuffer (not SharedArrayBuffer)
             await fs.write(chunk.slice());
         },
-        close: () => fs.close(),
-        abort: (reason) => fs.abort?.(reason)
+        close: async () => await fs.close(),
+        abort: async (reason) => await fs.abort?.(reason)
     });
 }
 
@@ -480,11 +481,11 @@ export async function getWritableFileStream(suggestedName: string, mimeType: str
         writer: undefined,
         getWriter: () => (writerRef ??= safeWritable.getWriter()),
         close: async () => { if (writerRef) await writerRef.close(); /* pipeTo closes automatically */ },
-        abort: async (r?: any) => { if (writerRef) await writerRef.abort(r); }
+        abort: async (_r?: any) => { if (writerRef) await writerRef.abort(_r); }
       };
     } catch (err: any) {
       if (err.name === 'AbortError') return null;
-      console.warn('showSaveFilePicker failed, falling back to download:', err);
+      logger.warn('showSaveFilePicker failed, falling back to download', { error: err instanceof Error ? err.message : String(err) });
     }
   }
 

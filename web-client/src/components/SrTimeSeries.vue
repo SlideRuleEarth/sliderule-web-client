@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { use } from "echarts/core"; 
+import { use } from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
 import { ScatterChart } from "echarts/charts";
 import { TitleComponent, TooltipComponent, LegendComponent, DataZoomComponent } from "echarts/components";
@@ -18,13 +18,13 @@ import Dialog from 'primevue/dialog';
 import type { AppendToType } from "@/types/SrTypes";
 import SrCycleSelect from "@/components/SrCycleSelect.vue";
 import SrSimpleYatcCntrl from "./SrSimpleYatcCntrl.vue";
+import { createLogger } from '@/utils/logger';
 
-const props = defineProps({
-    startingReqId: {
-        type:Number, 
-        default:0
-    }
-});
+const logger = createLogger('SrTimeSeries');
+
+const props = defineProps<{
+    startingReqId?: number;
+}>();
 
 const chartStore = useChartStore();
 const globalChartStore = useGlobalChartStore();
@@ -128,9 +128,9 @@ const initGradientPosition = () => {
         transform: "none" // Remove centering transformation
     };
   } else {
-    console.warn('SrTimeSeries initGradientPosition - chartWrapper is null');
+    logger.warn('initGradientPosition - chartWrapper is null');
   }
-  
+
 };
 const reqId = computed(() => recTreeStore.selectedReqId);
 
@@ -145,57 +145,59 @@ const handleChartFinished = () => {
             initGradientPosition();
             chartReady.value = true;
         } else {
-            console.warn('handleChartFinished - no Y data selected');
+            logger.warn('handleChartFinished - no Y data selected');
         }
     } else {
-        console.warn('handleChartFinished - chartWrapperRef is null');
+        logger.warn('handleChartFinished - chartWrapperRef is null');
     }
 };
 
-onMounted(async () => {
-    try {
-        console.log('SrTimeSeries onMounted',props.startingReqId);
-        if(mission.value === 'ICESat-2'){
+onMounted(() => {
+    void (async () => {
+        try {
+            logger.debug('onMounted', { startingReqId: props.startingReqId });
+            if(mission.value === 'ICESat-2'){
+                globalChartStore.use_y_atc_filter = true;
+            } else {
+                globalChartStore.use_y_atc_filter = false;
+            }
             globalChartStore.use_y_atc_filter = true;
-        } else {
-            globalChartStore.use_y_atc_filter = false;
+            chartStore.setUseSelectedMinMax(recTreeStore.selectedReqIdStr, true);
+            atlChartFilterStore.setIsWarning(true);
+            atlChartFilterStore.setMessage('Loading...');
+            atlChartFilterStore.showPhotonCloud = false;
+            atlChartFilterStore.setSelectedOverlayedReqIds([]);
+            const reqId = props.startingReqId ?? 0;
+            if (reqId > 0) {
+                //console.log('SrTimeSeries onMounted: rgt:', globalChartStore.getRgt(), 'spots:', globalChartStore.getSpots(), 'cycles:', globalChartStore.getCycles());
+            } else {
+                logger.error('reqId is undefined');
+            }
+            shouldDisplayGradient.value = true;
+            await nextTick(); // Ensures Vue has completed the DOM rendering
+            initGradientPosition();
+            await checkAndSetFilterForTimeSeries();
+        } catch (error) {
+                logger.error('Error during onMounted initialization', { error: error instanceof Error ? error.message : String(error) });
+        } finally {
+            loadingComponent.value = false;
+            //console.log('SrTimeSeries onMounted completed');
         }
-        globalChartStore.use_y_atc_filter = true;
-        chartStore.setUseSelectedMinMax(recTreeStore.selectedReqIdStr, true);
-        atlChartFilterStore.setIsWarning(true);
-        atlChartFilterStore.setMessage('Loading...');
-        atlChartFilterStore.showPhotonCloud = false;
-        atlChartFilterStore.setSelectedOverlayedReqIds([]);
-        const reqId = props.startingReqId;
-        if (reqId > 0) {
-            //console.log('SrTimeSeries onMounted: rgt:', globalChartStore.getRgt(), 'spots:', globalChartStore.getSpots(), 'cycles:', globalChartStore.getCycles());
-        } else {
-            console.error('SrTimeSeries reqId is undefined');
-        }        
-        shouldDisplayGradient.value = true;
-        await nextTick(); // Ensures Vue has completed the DOM rendering
-        initGradientPosition();
-        await checkAndSetFilterForTimeSeries();
-    } catch (error) {
-            console.error('Error during onMounted initialization:', error);
-    } finally {
-        loadingComponent.value = false;
-        //console.log('SrTimeSeries onMounted completed');
-    }
+    })();
 });
 
 
-watch(() => plotRef.value, async (newPlotRef) => {
+watch(() => plotRef.value, (newPlotRef) => {
     //console.log('plotRef changed:', newPlotRef);
     if (newPlotRef) {
-        console.warn('SrTimeSeries watch plotRef changed:', newPlotRef);
+        logger.warn('watch plotRef changed', { newPlotRef });
         atlChartFilterStore.setPlotRef(plotRef.value);
         if(chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length > 0){
-            await callPlotUpdateDebounced('from SrTimeSeries watch plotRef.value');
+            void callPlotUpdateDebounced('from SrTimeSeries watch plotRef.value');
         } else {
-            console.warn('SrTimeSeries watch plotRef.value - no Y data selected');
+            logger.warn('watch plotRef.value - no Y data selected');
         }
-        nextTick(initGradientPosition); // Ensure DOM updates before repositioning
+        void nextTick(initGradientPosition); // Ensure DOM updates before repositioning
     }
 });
 

@@ -6,6 +6,9 @@ import { convexHull, isClockwise } from "@/composables/SrTurfUtils";
 import { useReqParamsStore } from '@/stores/reqParamsStore';
 import type OLMap from 'ol/Map.js';
 import type { SrLonLatPoint } from '@/types/SrTypes';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('GeoJsonUploader');
 
 export function extractSrRegionFromGeometry(geometry: any): SrRegion {
     if (geometry.type === 'Polygon') {
@@ -16,7 +19,7 @@ export function extractSrRegionFromGeometry(geometry: any): SrRegion {
                 lat: coord[1],
             }));
         } else {
-            console.error('Polygon has invalid coordinates:', JSON.stringify(geometry));
+            logger.error('Polygon has invalid coordinates', { geometry: JSON.stringify(geometry) });
             throw new Error('Polygon has invalid coordinates');
         }
     }
@@ -30,7 +33,7 @@ export function extractSrRegionFromGeometry(geometry: any): SrRegion {
                 lat: coord[1],
             }));
         } else {
-            console.error('MultiPolygon has invalid coordinates:', JSON.stringify(geometry));
+            logger.error('MultiPolygon has invalid coordinates', { geometry: JSON.stringify(geometry) });
             throw new Error('MultiPolygon has invalid coordinates');
         }
     }

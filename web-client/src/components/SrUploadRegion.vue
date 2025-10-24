@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import Dialog from 'primevue/dialog';
 import Button from 'primevue/button';
 import { useMapStore } from '@/stores/mapStore';
@@ -7,6 +7,9 @@ import SrGeoJsonFileUpload from '@/components/SrGeoJsonFileUpload.vue';
 import SrSliderInput from '@/components/SrSliderInput.vue';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
 import SrShapefileUpload from './SrShapefileUpload.vue';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrUploadRegion');
 
 const props = defineProps({
     reportUploadProgress: {
@@ -22,8 +25,8 @@ const emit = defineEmits<{
     (e: 'open'): void;
     (e: 'close'): void;
 }>();
-const computedTooltipText = props.loadReqPoly ? 'Upload a GeoJSON or Shapefile defining a polygonal region of interest' : 'Upload a GeoJSON or Shapefile defining features to add to the map';
-const computedLabelText = props.loadReqPoly ? 'Upload Region of Interest' : 'Upload Features to Map';
+const computedTooltipText = computed(() => props.loadReqPoly ? 'Upload a GeoJSON or Shapefile defining a polygonal region of interest' : 'Upload a GeoJSON or Shapefile defining features to add to the map');
+const computedLabelText = computed(() => props.loadReqPoly ? 'Upload Region of Interest' : 'Upload Features to Map');
 const mapStore = useMapStore();
 const reqParamsStore = useReqParamsStore();
 
@@ -39,7 +42,7 @@ function handleDialogHide() {
 }
 
 function handleFileUploadFinished() {
-    console.log('GeoJSON file upload finished; closing dialog.');
+    logger.debug('GeoJSON file upload finished; closing dialog');
     showDialog.value = false;
 }
 
@@ -54,13 +57,13 @@ function handleFileUploadFinished() {
             @click="openPolygonSourceDialog"
             variant="text"
             aria-label="Open Polygon Source dialog"
-            :title="computedTooltipText"
+            :title="computedTooltipText.value"
         />
 
         <!-- Dialog -->
         <Dialog
             v-model:visible="showDialog"
-            :header="computedLabelText"
+            :header="computedLabelText.value"
             modal
             :closable="true"
             :dismissableMask="true"

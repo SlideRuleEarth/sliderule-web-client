@@ -9,7 +9,7 @@
             class="sr-multi-selector" 
             :disabled="props.insensitive" 
             :maxSelectedLabels="1"
-            size="small"ß
+            size="small"
         /> 
     </div>
 </template>  
@@ -19,8 +19,9 @@
     import MultiSelect from 'primevue/multiselect';
     import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
     import type { SrMultiSelectNumberItem } from '@/types/SrTypes';
+    import { createLogger } from '@/utils/logger';
 
-
+    const logger = createLogger('SrMultiSelectNumber');
 
     const props = defineProps({
         label: {
@@ -70,7 +71,7 @@
             const values = newValue.map(item => item.value);
             emit('update:value', values);
         } else {
-            console.error(`Watch: ${props.label} No selected items?`);
+            logger.error('Watch: No selected items', { label: props.label });
         }
         //console.log(`${props.label} Selected Items: `, selectedMenuItems.value);
     });
@@ -83,7 +84,7 @@
             emit('update:value', values);
             //console.log('onMounted:', props.label, 'values:', values, 'Selected Items:', selectedMenuItems.value);
         } else {
-            console.error(`onMounted: ${props.label} No selected items?`);
+            logger.error('onMounted: No selected items', { label: props.label });
         }
     });
 </script>

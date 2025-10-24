@@ -6,6 +6,9 @@ import FloatLabel from 'primevue/floatlabel';
 import { useSrToastStore } from "@/stores/srToastStore";
 import { getCenter } from '@/utils/geoUtils';
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrEditDesc');
 
 // Define props first
 const props = defineProps({
@@ -40,18 +43,18 @@ const fetchDescription = async () => {
                     );
                     const data = await response.json();
                     const descr = data.display_name;
-                    console.log('fetchDescription New Description:', descr);
+                    logger.debug('fetchDescription New Description', { descr });
                     // If display_name is available, update the request record
                     if (data && descr) {
                         descrRef.value = descr;
-                        db.updateRequest(props.reqId, {description: descrRef.value} );
+                        void db.updateRequest(props.reqId, {description: descrRef.value} );
                     }
                 } else {
-                    console.warn('fetchDescription No extLatLon found for reqId:', props.reqId);
+                    logger.warn('fetchDescription No extLatLon found', { reqId: props.reqId });
                     // Handle the case where no extLatLon is found
                 }
             } else {
-                console.warn('fetchDescription No description available for status:', status);
+                logger.warn('fetchDescription No description available for status', { status });
             }
         } else {
             //console.log('fetchDescription Description:', descrRef.value);

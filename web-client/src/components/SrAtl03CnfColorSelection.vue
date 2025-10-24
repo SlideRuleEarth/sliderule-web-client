@@ -33,6 +33,9 @@ import Fieldset from 'primevue/fieldset';
 import Button from 'primevue/button';
 import { useColorMapStore } from '@/stores/colorMapStore';
 import { useAtl03CnfColorMapStore } from '@/stores/atl03CnfColorMapStore';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrAtl03CnfColorSelection');
 
 const props = defineProps({
     reqIdStr: {
@@ -60,7 +63,7 @@ const restoreDefaultAtl03CnfColorMap = () => {
         atl03CnfColorMapStore.value.restoreDefaultAtl03CnfColorMap();
         emit('atl03defaultsChanged', {});
     } else {
-        console.error('atl03CnfColorMapStore is not initialized');
+        logger.error('atl03CnfColorMapStore is not initialized');
     }
 };
 </script>

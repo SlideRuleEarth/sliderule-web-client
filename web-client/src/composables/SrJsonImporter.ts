@@ -1,6 +1,9 @@
 // src/composables/useJsonImporter.ts
 import { ref } from 'vue';
-import { z, ZodError } from 'zod';
+import { z } from 'zod';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrJsonImporter');
 
 export function useJsonImporter<T>(schema: z.ZodType<T>) {
   const data = ref<T | null>(null);
@@ -12,9 +15,9 @@ export function useJsonImporter<T>(schema: z.ZodType<T>) {
         }
         error.value = null;
         const parsedJson = JSON.parse(jsonString);
-        console.log('Raw JSON input:', jsonString, 'Parsed JSON:', parsedJson);
+        logger.debug('Raw JSON input', { jsonString, parsedJson });
         const validationResult = schema.safeParse(parsedJson);
-        console.log('Parsed JSON:', parsedJson,'schema:', schema, 'Validation result:', validationResult);
+        logger.debug('Parsed JSON', { parsedJson, schema, validationResult });
         if (validationResult.success) {
             data.value = validationResult.data;
         } else {
@@ -24,12 +27,12 @@ export function useJsonImporter<T>(schema: z.ZodType<T>) {
             );
             error.value = `Invalid JSON structure:\n${formattedErrors.join('\n')}`;
         }
-    } catch (e) {
+    } catch (e: unknown) {
         if (e instanceof SyntaxError) {
             error.value = `Invalid JSON format: ${e.message}`;
         } else {
             error.value = 'An unexpected error occurred during import';
-            console.error(e);
+            logger.error('Import error', { error: e instanceof Error ? e.message : String(e) });
         }
         data.value = null;
         }

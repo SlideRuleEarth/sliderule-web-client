@@ -37,6 +37,9 @@ import { selectedRgtReactive, callPlotUpdateDebounced } from "@/utils/plotUtils"
 
 import Listbox from "primevue/listbox";
 import Checkbox from "primevue/checkbox";
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrRgtSelect');
 
 const props = defineProps<{
     rgtLabel: string;
@@ -46,14 +49,14 @@ const recTreeStore = useRecTreeStore();
 const globalChartStore = useGlobalChartStore();
 const computedRgtOptions = computed(() => globalChartStore.getRgtOptions());
 
-function handleValueChange(_: any) {
+function handleValueChange() {
     const reqId = recTreeStore.selectedReqIdStr;
     if (reqId) {
-        nextTick(async () => {
+        void nextTick(async () => {
             await callPlotUpdateDebounced("SrRgtFilter:handleValueChange - RGT");
         });
     } else {
-        console.warn("SrRgtFilter:handleValueChange - RGT reqId is undefined");
+        logger.warn('handleValueChange - RGT reqId is undefined');
     }
 }
 </script>

@@ -1,6 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { type ApiName } from '@/types/SrTypes'
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('AreaThresholdsStore');
 
 
 export const useAreaThresholdsStore = defineStore('areaThresholdStore', () => {
@@ -48,7 +51,7 @@ export const useAreaThresholdsStore = defineStore('areaThresholdStore', () => {
         if (threshold >= 0) {
             areaErrorThreshold.value = { ...areaErrorThreshold.value, [api]: threshold }
         } else {
-            console.warn(`Invalid threshold value for ${api}: must be non-negative.`)
+            logger.warn('Invalid threshold value for api: must be non-negative', { api, threshold })
         }
     }
 
@@ -56,7 +59,7 @@ export const useAreaThresholdsStore = defineStore('areaThresholdStore', () => {
         if (threshold >= 0) {
             areaWarningThreshold.value = { ...areaWarningThreshold.value, [api]: threshold }
         } else {
-            console.warn(`Invalid threshold value for ${api}: must be non-negative.`)
+            logger.warn('Invalid threshold value for api: must be non-negative', { api, threshold })
         }
     }
 

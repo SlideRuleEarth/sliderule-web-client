@@ -24,6 +24,9 @@ import { streamSqlQueryToCSV } from '@/utils/SrDbShellUtils';
 import { useChartStore } from '@/stores/chartStore';
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
 import Button from 'primevue/button';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrExportSelected');
 
 const props = withDefaults(
     defineProps<{
@@ -48,10 +51,10 @@ async function exportButtonClick(){
         sqlStmnt = chartStore.getQuerySql(props.reqId.toString());
     }
     if (!sqlStmnt) {
-        console.error('No SQL statement found for the selected request ID');
+        logger.error('No SQL statement found for the selected request ID', { reqId: props.reqId });
         return;
     }
-    streamSqlQueryToCSV(duckDbClient,sqlStmnt);
+    void streamSqlQueryToCSV(duckDbClient,sqlStmnt);
 };
 const id=`sr-export-btn-${props.reqId}`;
 

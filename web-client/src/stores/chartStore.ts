@@ -1,6 +1,9 @@
 import { defineStore } from 'pinia';
 import { type MinMax, type MinMaxLowHigh } from '@/types/SrTypes';
 import type { AtlReqParams, SrMenuItem } from '@/types/SrTypes';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('ChartStore');
 
 interface ChartState {
     currentFile: string;
@@ -47,7 +50,7 @@ export const useChartStore = defineStore('chartStore', {
         // Initialize a state for a reqIdStr if it doesn't exist
         ensureState(reqIdStr: string): boolean {
             if (typeof reqIdStr !== 'string' || !/^\d+$/.test(reqIdStr)) {
-                console.warn('ensureState() encountered an invalid reqIdStr:', reqIdStr, 'Type:', typeof reqIdStr);
+                logger.warn('ensureState encountered an invalid reqIdStr', { reqIdStr, type: typeof reqIdStr });
                 console.trace('Call stack for ensureState with invalid reqIdStr');
                 return false; // Exit early to prevent further execution
             }     
@@ -124,7 +127,7 @@ export const useChartStore = defineStore('chartStore', {
                 //console.log('getMinValue() key:', key, ' min:', this.stateByReqId[reqIdStr].minMaxValues[key].min, ' for:', reqIdStr);
                 return this.stateByReqId[reqIdStr].minMaxValues[key].min;
             } else {
-                console.warn('getMinValue() key:', key, ' not found in minMaxValues for:', reqIdStr);
+                logger.warn('getMinValue key not found in minMaxValues', { key, reqIdStr });
                 //console.trace('Call stack for getMinValue()');
                 return 0;
             }
@@ -135,7 +138,7 @@ export const useChartStore = defineStore('chartStore', {
                 //console.log('getMaxValue() key:', key, ' max:', this.stateByReqId[reqIdStr].minMaxValues[key].max, ' for:', reqIdStr);
                 return this.stateByReqId[reqIdStr].minMaxValues[key].max;
             } else {
-                console.warn('getMaxValue() key:', key, ' not found in minMaxValues for:', reqIdStr);
+                logger.warn('getMaxValue key not found in minMaxValues', { key, reqIdStr });
                 return 0;
             }
         },
@@ -144,7 +147,7 @@ export const useChartStore = defineStore('chartStore', {
             if(this.stateByReqId[reqIdStr]?.minMaxLowHigh && this.stateByReqId[reqIdStr].minMaxLowHigh[key]){
                 return this.stateByReqId[reqIdStr].minMaxLowHigh[key].low;
             } else {
-                console.warn('getLow() key:', key, ' not found in minMaxLowHigh for:', reqIdStr);
+                logger.warn('getLow key not found in minMaxLowHigh', { key, reqIdStr });
                 return 0;
             }
         },
@@ -153,7 +156,7 @@ export const useChartStore = defineStore('chartStore', {
             if(this.stateByReqId[reqIdStr]?.minMaxLowHigh && this.stateByReqId[reqIdStr].minMaxLowHigh[key]){
                 return this.stateByReqId[reqIdStr].minMaxLowHigh[key].high;
             } else {
-                console.warn('getHigh() key:', key, ' not found in minMaxLowHigh for:', reqIdStr);
+                logger.warn('getHigh key not found in minMaxLowHigh', { key, reqIdStr });
                 return 0;
             }
         },
@@ -305,7 +308,7 @@ export const useChartStore = defineStore('chartStore', {
             } else if (func.includes('gedi')) {
                 this.setXDataForChart(reqIdStr,'latitude'); // this is a placeholder/HACK
             } else {
-                console.error('setXDataForChartUsingFunc() unknown function:', func);
+                logger.error('setXDataForChartUsingFunc unknown function', { func });
             }
         },
         getFile(reqIdStr: string) {

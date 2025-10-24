@@ -23,6 +23,9 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrRadioButton');
 
 const props = withDefaults(
   defineProps<{
@@ -63,14 +66,14 @@ const computedTooltipText = computed(() => {
 });
 
 const handleChange = (event: Event) => {
-  if (!isDisabled.value) { 
+  if (!isDisabled.value) {
     try {
       const target = event.target as HTMLInputElement;
       if (target) {
         emit('update:modelValue', target.value);
       }
     } catch (error) {
-      console.log(error);
+      logger.error('handleChange error', { error: error instanceof Error ? error.message : String(error) });
     }
   }
 };

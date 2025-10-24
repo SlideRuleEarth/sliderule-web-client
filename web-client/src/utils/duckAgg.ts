@@ -20,8 +20,8 @@ const TEMPORAL_TYPES = new Set([
   'DATE', 'TIME', 'TIMESTAMP', 'TIMESTAMP_S', 'TIMESTAMP_MS', 'TIMESTAMP_US', 'TIMESTAMP_NS'
 ]);
 
-export function alias(prefix: string, colName: string): string {
-    return `${prefix}_${colName.replace(/\./g, '_')}`;
+export function alias(prefix: string, _colName: string): string {
+    return `${prefix}_${_colName.replace(/\./g, '_')}`;
 }
 
 
@@ -109,7 +109,7 @@ export function getGeometryInfo(
 export async function getGeometryInfoWithTypes(reqId: number): Promise<{
   geometryInfo: GeometryInfo | undefined;
   colTypes: Array<{ name: string; type: string }>;
-  getType: (colName: string) => string;
+  getType: (_colName: string) => string;
   fileName: string;
   duckDbClient: any; // Using any to avoid importing DuckDBClient type
 }> {
@@ -118,7 +118,7 @@ export async function getGeometryInfoWithTypes(reqId: number): Promise<{
   await duckDbClient.insertOpfsParquet(fileName);
 
   const colTypes = await duckDbClient.queryColumnTypes(fileName);
-  const getType = (colName: string) => colTypes.find((c: any) => c.name === colName)?.type ?? 'UNKNOWN';
+  const getType = (_colName: string) => colTypes.find((c: any) => c.name === _colName)?.type ?? 'UNKNOWN';
   const geometryInfo = getGeometryInfo(colTypes, reqId);
 
   return { geometryInfo, colTypes, getType, fileName, duckDbClient };
@@ -131,33 +131,33 @@ export interface AggregateOptions {
 
 export function buildSafeAggregateClauses(
   columnNames: string[],
-  getType: (colName: string) => string,
-  escape: (colName: string) => string,
+  getType: (_colName: string) => string,
+  escape: (_colName: string) => string,
   geometryInfo?: GeometryInfo,
   options?: AggregateOptions
 ): string[] {
   const useApprox = options?.useApproxQuantile ?? true; // Default to true for better performance
 
   // Helper to get the expression for a column (either geometry extraction or direct column)
-  const getColumnExpression = (colName: string): string => {
+  const getColumnExpression = (_colName: string): string => {
     if (geometryInfo?.hasGeometry) {
       // Check if this column should be extracted from geometry
-      if (colName === geometryInfo.xCol) {
+      if (_colName === geometryInfo.xCol) {
         return `ST_X(${escape('geometry')})`;
-      } else if (colName === geometryInfo.yCol) {
+      } else if (_colName === geometryInfo.yCol) {
         return `ST_Y(${escape('geometry')})`;
-      } else if (colName === geometryInfo.zCol) {
+      } else if (_colName === geometryInfo.zCol) {
         return `ST_Z(${escape('geometry')})`;
       }
     }
     // Default: use the column directly
-    return escape(colName);
+    return escape(_colName);
   };
 
-  return columnNames.flatMap((colName) => {
-    const rawType = getType(colName);
+  return columnNames.flatMap((_colName) => {
+    const rawType = getType(_colName);
     const type = baseType(rawType);
-    const colExpr = getColumnExpression(colName);
+    const colExpr = getColumnExpression(_colName);
 
     // Filters
     const floatFilter = `FILTER (WHERE NOT isnan(${colExpr}) AND NOT isinf(${colExpr}))`;
@@ -172,24 +172,24 @@ export function buildSafeAggregateClauses(
     const minMaxClauses =
       FLOAT_TYPES.has(type)
         ? [
-            `MIN(${colExpr}) ${floatFilter} AS ${alias("min", colName)}`,
-            `MAX(${colExpr}) ${floatFilter} AS ${alias("max", colName)}`
+            `MIN(${colExpr}) ${floatFilter} AS ${alias("min", _colName)}`,
+            `MAX(${colExpr}) ${floatFilter} AS ${alias("max", _colName)}`
           ]
         : [
-            `MIN(${colExpr}) AS ${alias("min", colName)}`,
-            `MAX(${colExpr}) AS ${alias("max", colName)}`
+            `MIN(${colExpr}) AS ${alias("min", _colName)}`,
+            `MAX(${colExpr}) AS ${alias("max", _colName)}`
           ];
 
     // LOW/HIGH: percentile-based, using the numeric ORDER BY expression
     // Use APPROX_QUANTILE for ~10-100x speedup or PERCENTILE_CONT for exact results
     const lowHighClauses = useApprox
       ? [
-          `APPROX_QUANTILE(${colExpr}, 0.10) ${pctFilter} AS ${alias("low", colName)}`,
-          `APPROX_QUANTILE(${colExpr}, 0.90) ${pctFilter} AS ${alias("high", colName)}`
+          `APPROX_QUANTILE(${colExpr}, 0.10) ${pctFilter} AS ${alias("low", _colName)}`,
+          `APPROX_QUANTILE(${colExpr}, 0.90) ${pctFilter} AS ${alias("high", _colName)}`
         ]
       : [
-          `PERCENTILE_CONT(0.10) WITHIN GROUP (ORDER BY ${pctOrderExpr}) ${pctFilter} AS ${alias("low", colName)}`,
-          `PERCENTILE_CONT(0.90) WITHIN GROUP (ORDER BY ${pctOrderExpr}) ${pctFilter} AS ${alias("high", colName)}`
+          `PERCENTILE_CONT(0.10) WITHIN GROUP (ORDER BY ${pctOrderExpr}) ${pctFilter} AS ${alias("low", _colName)}`,
+          `PERCENTILE_CONT(0.90) WITHIN GROUP (ORDER BY ${pctOrderExpr}) ${pctFilter} AS ${alias("high", _colName)}`
         ];
 
     return [...minMaxClauses, ...lowHighClauses];

@@ -12,6 +12,9 @@ import { onMounted, ref, nextTick, computed, watch } from 'vue';
 import { Control } from 'ol/control';
 import SrMapLegendBox from '@/components/SrMapLegendBox.vue';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrLegendControl');
 
 const props = withDefaults(
   defineProps<{
@@ -54,7 +57,7 @@ onMounted(() => {
           customControl = new Control({ element: controlElement });
           emit('legend-control-created', customControl);
         } else {
-          console.error('legendBox or $el is not available');
+          logger.error('legendBox or $el is not available');
         }
       } else {
         // Cleanup when legend is hidden

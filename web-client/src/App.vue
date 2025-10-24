@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref,onMounted,watch,nextTick } from 'vue';
+import { ref,onMounted,onUnmounted,watch,nextTick } from 'vue';
 import { useToast } from "primevue/usetoast";
 import SrToast from 'primevue/toast';
 import Image from 'primevue/image';
@@ -21,6 +21,9 @@ import introJs from 'intro.js';
 import { useTourStore } from '@/stores/tourStore.js';
 import { useViewportHeight } from '@/composables/useViewportHeight';
 import { useSlideruleDefaults } from '@/stores/defaultsStore'
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('App');
 
 const srToastStore = useSrToastStore();
 const recTreeStore = useRecTreeStore();
@@ -37,7 +40,7 @@ const serverVersionInfo = ref(''); // Reactive state for server version info
 const isMounted = ref(false);
 
 const checkUnsupported = () =>{
-  console.log('checkUnsupported browser:', deviceStore.getBrowser(), 'OS:', deviceStore.getOS());
+  logger.debug('Checking browser support', { browser: deviceStore.getBrowser(), os: deviceStore.getOS() });
   if (
     (deviceStore.getBrowser() === 'Unknown Browser' || deviceStore.getOS() === 'Unknown OS')
   ) {
@@ -59,7 +62,7 @@ async function waitForElement(selector: string, timeout = 5000): Promise<void> {
                 resolve();
             } else if (performance.now() - start > timeout) {
                 clearInterval(interval);
-                console.warn(`Timeout waiting for ${selector}`);
+                logger.warn('Timeout waiting for element', { selector, timeout });
                 reject(new Error(`Timeout waiting for ${selector}`));
             }
         }, 100);
@@ -176,14 +179,14 @@ async function getCommonSteps(type: string): Promise<ReturnType<typeof introJs>[
 
 
 onMounted(async () => {
-    console.log('App onMounted');
+    logger.debug('App component mounted');
     const startTime = performance.now();
     const defaultsStore = useSlideruleDefaults();
     await defaultsStore.fetchDefaults();
-    //console.log('App onMounted - Defaults loaded');
+    //logger.debug('Defaults loaded');
     const reqId = await recTreeStore.updateRecMenu('from App');
-    await initChartStore(); 
-    //console.log('App onMounted - @ChartStore init:', performance.now() - startTime, 'ms');
+    await initChartStore();
+    //logger.debug('ChartStore initialized', { duration: `${(performance.now() - startTime).toFixed(2)}ms` });
     if ((reqId <= 0) && (recTreeStore.allReqIds.length > 0)) {
       // this covers the case that the user types a bad URL
       recTreeStore.initToFirstRecord();
@@ -200,48 +203,53 @@ onMounted(async () => {
     await nextTick();
 
     if (!tourStore.hasSeenIntro) {
-        handleQuickTourButtonClick();
+        void handleQuickTourButtonClick();
     }
 
     // Mark as mounted
     isMounted.value = true;
 
     // Start watching only after mounted
-    stopWatching = watch(() => route.params.id, async (newId) => {
+    stopWatching = watch(() => route.params.id, (newId) => {
         let newReqId = Number(newId) || 0;
         try {
             if (newReqId > 0) {
                 const first = recTreeStore.findAndSelectNode(newReqId);
                 if (!first && recTreeStore.allReqIds.length === 0) {
-                    console.warn("Ignoring newId:", newId, "newReqId:", newReqId);
+                    logger.warn('Ignoring invalid route ID', { newId, newReqId, reason: 'no records' });
                     toast.add({ severity: 'warn', summary: 'No records', detail: `There are no records. Make a request first`, life: srToastStore.getLife() });
                 }
             } else {
                 if (recTreeStore.allReqIds.length === 0) {
-                    console.warn("Ignoring newId:", newId, "newReqId:", newReqId);
+                    logger.warn('Ignoring invalid route ID', { newId, newReqId, reason: 'no records' });
                     toast.add({ severity: 'warn', summary: 'No records', detail: `There are no records. Make a request first`, life: srToastStore.getLife() });
                 }
             }
         } catch (error) {
-            console.error('Error processing route ID change:', error);
-            console.error("App watch exception setting route parameter for 'id':", newReqId);
+            logger.error('Error processing route ID change', { newReqId, error: error instanceof Error ? error.message : String(error) });
             toast.add({ severity: 'error', summary: 'Exception', detail: `Invalid (exception) route parameter for record:${newReqId}`, life: srToastStore.getLife() });
         }
     });
-    console.log('App onMounted - took', performance.now() - startTime, 'ms');
+    logger.info('App mounted', { duration: `${(performance.now() - startTime).toFixed(2)}ms` });
 });
 
-const requestButtonClick = async () => {
-    //console.log('Request button clicked');
-    router.push('/request');
+onUnmounted(() => {
+    if (stopWatching) {
+        stopWatching();
+    }
+});
+
+const requestButtonClick = () => {
+    //logger.debug('Request button clicked');
+    void router.push('/request');
 };
 
 const recordButtonClick = () => {
-  router.push('/record');
+  void router.push('/record');
 };
 
 const rectreeButtonClick = () => {
-  router.push('/rectree');
+  void router.push('/rectree');
 };
 
 const analysisButtonClick = async () => {
@@ -254,19 +262,19 @@ const analysisButtonClick = async () => {
             await router.push(`/analyze/${reqId.toString()}`);
         } else {
             if(recTreeStore.allReqIds.length > 0){
-                //console.log('analysisButtonClick num req_ids:',recTreeStore.allReqIds.length, 'recTreeStore.selectedReqId:',recTreeStore.selectedReqId);
+                //logger.debug('Setting to first record', { numReqIds: recTreeStore.allReqIds.length, selectedReqId: recTreeStore.selectedReqId });
                 toast.add({ severity: 'warn', summary: 'Invalid Record specified', detail: ' Setting to first record Id', life: srToastStore.getLife() });
-                recTreeStore.initToFirstRecord();   
+                recTreeStore.initToFirstRecord();
             }
         }
     } catch (error) {
-        console.error(`Failed analysisButtonClick`, error);
+        logger.error('Failed to navigate to analysis', { error: error instanceof Error ? error.message : String(error) });
         throw error;
     }
 };
 
 const settingsButtonClick = () => {
-  router.push('/settings');
+  void router.push('/settings');
 };
 
 const aboutButtonClick = () => {
@@ -282,12 +290,12 @@ const handleServerVersionButtonClick = async () => {
     try{
         // Fetch server version info from the store
         const info = await useSysConfigStore().fetchServerVersionInfo();
-        if(info){ 
+        if(info){
             serverVersionInfo.value = JSON.stringify(info, null, 2);
-            console.log('Server version info:', serverVersionInfo.value);
+            logger.debug('Fetched server version info', { infoLength: serverVersionInfo.value.length });
         }
     } catch (error) {
-        console.error('Error fetching server version info:', error);
+        logger.error('Failed to fetch server version info', { error: error instanceof Error ? error.message : String(error) });
         toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to fetch server version info', life: srToastStore.getLife() });
     }
     showServerVersionDialog.value = true; // Show the dialog
@@ -321,13 +329,13 @@ async function handleQuickTourButtonClick() {
     });
 
 
-    tour.start();
+    void tour.start();
 }
 
 async function handleLongTourButtonClick() {
     const isMobile = deviceStore.getUserAgent().includes('Android') || deviceStore.getUserAgent().includes('iPhone') ;
     const isAniPad = deviceStore.getUserAgent().includes('iPad');
-    console.log('handleQuickTourButtonClick','isMobile:', isMobile, 'isAniPad:', isAniPad);
+    logger.debug('Starting long tour', { isMobile, isAniPad });
 
     const tour = introJs.tour();
     let steps = await getCommonSteps('long');
@@ -352,7 +360,7 @@ async function handleLongTourButtonClick() {
             `
         });
     } else {
-        console.warn('srAppBarRightContentEl is not an HTMLElement',srAppBarRightContentEl);
+        logger.warn('Tour element not found', { element: 'srAppBarRightContentEl' });
     }
 
     if(srRequestButtonEl instanceof HTMLElement){
@@ -364,7 +372,7 @@ async function handleLongTourButtonClick() {
             `
         });
     } else {
-        console.warn('srRequestButtonEl is not an HTMLElement',srRequestButtonEl);
+        logger.warn('Tour element not found', { element: 'srRequestButtonEl' });
     }
 
     if(srRecordsButtonEl instanceof HTMLElement){
@@ -375,7 +383,7 @@ async function handleLongTourButtonClick() {
             `
         });
     } else {
-        console.warn('srRecordsButtonEl is not an HTMLElement',srRecordsButtonEl);
+        logger.warn('Tour element not found', { element: 'srRecordsButtonEl' });
     }
 
     if(srAnalysisButtonEl instanceof HTMLElement){
@@ -387,7 +395,7 @@ async function handleLongTourButtonClick() {
             `
         });
     } else {
-        console.warn('srAnalysisButtonEl is not an HTMLElement',srAnalysisButtonEl);
+        logger.warn('Tour element not found', { element: 'srAnalysisButtonEl' });
     }
 
     if(srDocsButton instanceof HTMLElement){
@@ -398,7 +406,7 @@ async function handleLongTourButtonClick() {
             `
         });
     } else {
-        console.warn('srDocsButton is not an HTMLElement',srDocsButton);
+        logger.warn('Tour element not found', { element: 'srDocsButton' });
     }
 
     if(srSettingsButton instanceof HTMLElement){
@@ -409,7 +417,7 @@ async function handleLongTourButtonClick() {
             `
         });
     } else {
-        console.warn('srSettingsButton is not an HTMLElement',srSettingsButton);
+        logger.warn('Tour element not found', { element: 'srSettingsButton' });
     }
     if(srAboutButton instanceof HTMLElement){
         steps.push({
@@ -419,7 +427,7 @@ async function handleLongTourButtonClick() {
             `
         });
     } else {
-        console.warn('srAboutButton is not an HTMLElement',srAboutButton);
+        logger.warn('Tour element not found', { element: 'srAboutButton' });
     }
 
     if (srReqDisplayBtn instanceof HTMLElement) {
@@ -433,7 +441,7 @@ async function handleLongTourButtonClick() {
             `
         });
     } else {
-        console.warn('srReqDisplayBtn is not an HTMLElement',srReqDisplayBtn);
+        logger.warn('Tour element not found', { element: 'srReqDisplayBtn' });
     }
     if(srRadioBoxContainerGenEl instanceof HTMLElement){
         steps.push({
@@ -443,7 +451,7 @@ async function handleLongTourButtonClick() {
             `
         });
     } else {
-        console.warn('srRadioBoxContainerGenEl is not an HTMLElement',srRadioBoxContainerGenEl);
+        logger.warn('Tour element not found', { element: 'srRadioBoxContainerGenEl' });
     }
     steps.push({
         intro: `
@@ -474,7 +482,7 @@ async function handleLongTourButtonClick() {
         tourStore.markSeen();
     });
 
-    tour.start();
+    void tour.start();
 }
 
 </script>

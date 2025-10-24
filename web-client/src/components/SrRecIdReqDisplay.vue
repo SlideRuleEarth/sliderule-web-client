@@ -27,6 +27,9 @@
     import { db } from "@/db/SlideRuleDb";
     import SrJsonDisplayDialog from "./SrJsonDisplayDialog.vue";
     import SrCustomTooltip from "./SrCustomTooltip.vue";
+    import { createLogger } from '@/utils/logger';
+
+    const logger = createLogger('SrRecIdReqDisplay');
 
     const props = withDefaults(
         defineProps<{
@@ -57,7 +60,7 @@
             const p = await db.getReqParams(props.reqId);
             reqParms.value = JSON.stringify(p, null, 2);
         } else {
-            console.log('SrRecReqDisplay onMounted: no reqId');
+            logger.debug('onMounted: no reqId');
         }
     });
     // Open the Parms dialog

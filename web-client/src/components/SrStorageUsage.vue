@@ -26,7 +26,9 @@ import { useToast } from "primevue/usetoast";
 import { db } from '@/db/SlideRuleDb';
 import { cleanupDelAllRequests } from '@/utils/storageUtils';
 import { nukeSlideRuleFolder } from '@/utils/SrParquetUtils';
+import { createLogger } from '@/utils/logger';
 
+const logger = createLogger('SrStorageUsage');
 const confirm = useConfirm();
 const toast = useToast();
 
@@ -40,8 +42,8 @@ const fetchStorageEstimate = async () => {
   }
 };
 
-const deleteAllData = async () => {
-  console.log('######### Delete all data #########');
+const deleteAllData = () => {
+  logger.debug('Delete all data initiated');
   confirm.require({
     message: 'Are you sure you want to delete all data?',
     header: 'Must Confirm',
@@ -50,22 +52,22 @@ const deleteAllData = async () => {
     acceptLabel: 'Delete All Data',
 
     accept: () => {
-      console.log('accept: Deleting all data');
-      cleanupDelAllRequests();
-      nukeSlideRuleFolder();
-      db.deleteDatabase();
+      logger.debug('User confirmed: Deleting all data');
+      void cleanupDelAllRequests();
+      void nukeSlideRuleFolder();
+      void db.deleteDatabase();
       toast.add({ severity: 'warn', summary: 'Confirmed', detail: 'You have delete all the data in the indexedDB', life: 3000 });
     },
     reject: () => {
-      console.log('reject: No data was deleted');
+      logger.debug('User rejected: No data was deleted');
       toast.add({ severity: 'info', summary: 'Rejected', detail: 'No data was deleted', life: 3000 });
-    }  
+    }
   });
-  console.log('%%%%%%%%%%% Delete all data %%%%%%%%%%%');
+  logger.debug('Delete all data confirmation dialog shown');
 };
 
 onMounted(() => {
-  fetchStorageEstimate();
+  void fetchStorageEstimate();
 });
 
 const percentageUsed = computed(() => {

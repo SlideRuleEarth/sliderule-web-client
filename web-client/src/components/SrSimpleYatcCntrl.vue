@@ -27,6 +27,9 @@ import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { callPlotUpdateDebounced } from "@/utils/plotUtils";
 import { ref } from 'vue';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrSimpleYatcCntrl');
 
 const globalChartStore = useGlobalChartStore();
 const tooltipRef = ref();
@@ -35,10 +38,10 @@ const widthOfCoverage = ref<number>(globalChartStore.y_atc_margin*2);
 
 
 async function handleModelValueChange(value: number) {
-    console.log('SrSimpleYatcFilterCntrl handleValueChange:', value);
+    logger.debug('handleValueChange', { value });
     globalChartStore.y_atc_margin = value/2;
     if(!value) {
-        console.warn('SrSimpleYatcFilterCntrl handleValueChange: value is undefined:', value);
+        logger.warn('handleValueChange: value is undefined', { value });
     }
     await setCyclesGtsSpotsFromFileUsingRgtYatc();
     await callPlotUpdateDebounced("SrSimpleYatcCntrl");// no need to debounce

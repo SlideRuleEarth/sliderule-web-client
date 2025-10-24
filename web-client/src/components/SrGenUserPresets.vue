@@ -4,6 +4,9 @@ import { useReqParamsStore } from '@/stores/reqParamsStore';
 import { useSlideruleDefaults } from '@/stores/defaultsStore';
 import { type SrPhoreal } from '@/types/slideruleDefaultsInterfaces';
 import { onMounted } from 'vue';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrGenUserPresets');
 
 const reqParameterStore = useReqParamsStore();
 const selectedBox = ref<number | null>(null);
@@ -25,7 +28,7 @@ const selectBox = (boxId: number) => {
   selectedBox.value = boxId;
   const selectedBoxInfo = boxes.value.find(box => box.id === boxId);
   if (!selectedBoxInfo) {
-    console.error("GenUserOptions Unknown selection.");
+    logger.error('Unknown selection', { boxId });
     return;
   }
   // initial setup
@@ -36,7 +39,7 @@ const selectBox = (boxId: number) => {
   reqParameterStore.setEnablePhoReal(false);
 
   if (selectedBoxInfo?.name) {
-    console.log(`${selectedBoxInfo.name} box selected.`);
+    logger.debug('Box selected', { name: selectedBoxInfo.name });
     switch (selectedBoxInfo.name) {
       case 'ICESat-2 Surface Elevations':
         reqParameterStore.setMissionValue('ICESat-2');
@@ -79,7 +82,7 @@ const selectBox = (boxId: number) => {
         reqParameterStore.setGediAPI('gedi01bp');
         break;
       default:
-        console.error("GenUserOptions Unknown selection.");
+        logger.error('Unknown selection', { name: selectedBoxInfo.name });
         break;
     }
     // console.log("GenUserOptions selection complete. BEFORE reqParameterStore.poly:", reqParameterStore.poly);
@@ -101,7 +104,7 @@ let defaultPhoreal = {} as SrPhoreal;
 
 onMounted(() => {
     defaultPhoreal = useSlideruleDefaults().getNestedMissionDefault('ICESat-2', 'phoreal') as SrPhoreal;
-    console.log('Default PhoReal:', defaultPhoreal);
+    logger.debug('Default PhoReal', { defaultPhoreal });
 });
 </script>
 

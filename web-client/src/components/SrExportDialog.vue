@@ -61,6 +61,9 @@ import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore';
 import {getArrowFetchUrlAndOptions} from "@/utils/fetchUtils";
 import { exportCsvStreamed, getWritableFileStream } from "@/utils/SrParquetUtils";
 import { useFieldNameStore } from '@/stores/fieldNameStore';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrExportDialog');
 
 
 const props = defineProps<{
@@ -82,7 +85,7 @@ const rowCount = ref<number | null>(null);
 
 const currentFormat = computed(() => {
     const isGeo = fieldNameStore.isGeoParquet(props.reqId);
-    console.log(`[ExportDialog] currentFormat computed - reqId: ${props.reqId}, isGeo: ${isGeo}, asGeoCache:`, fieldNameStore.asGeoCache);
+    logger.debug('currentFormat computed', { reqId: props.reqId, isGeo, asGeoCache: fieldNameStore.asGeoCache });
     return isGeo ? 'GeoParquet' : 'Parquet';
 });
 
@@ -141,7 +144,7 @@ watch(visible, async (val) => {
             rowCount.value = await duck.getTotalRowCount(`SELECT * FROM "${fileName}"`);
             headerCols.value = await duck.queryForColNames(fileName);
         } catch (err) {
-            console.warn('Failed to pre-fetch metadata:', err);
+            logger.warn('Failed to pre-fetch metadata', { error: err instanceof Error ? err.message : String(err) });
             rowCount.value = null;
         }
     }
@@ -149,12 +152,12 @@ watch(visible, async (val) => {
 
 const handleExport = async () => {
     if (!props.reqId || !selectedFormat.value) {
-        console.warn('[Export] handleExport called with invalid state — ignored');
+        logger.warn('handleExport called with invalid state — ignored', { reqId: props.reqId, selectedFormat: selectedFormat.value });
         return;
     }
     // 👇 prevent double invocation due to re-renders / rapid clicks in tests
     if (exporting.value) {
-        console.warn('[Export] handleExport called while exporting — ignored');
+        logger.warn('handleExport called while exporting — ignored');
         return;
     }
 
@@ -187,12 +190,12 @@ const handleExport = async () => {
                 life: 5000,
             });
         }
-    } catch (err: any) {
-        console.error('Export failed:', err);
+    } catch (err) {
+        logger.error('Export failed', { error: err instanceof Error ? err.message : String(err) });
         toast.add({
             severity: 'error',
             summary: 'Export Failed',
-            detail: err?.message || 'An unexpected error occurred.',
+            detail: (err instanceof Error ? err.message : undefined) || 'An unexpected error occurred.',
             life: 5000,
         });
     } finally {
@@ -205,7 +208,7 @@ const handleExport = async () => {
 
 
 async function exportParquet(fileName: string): Promise<boolean> {
-    console.log('exportParquet fileName:', fileName);
+    logger.debug('exportParquet', { fileName });
 
     const opfsRoot = await navigator.storage.getDirectory();
     const directoryHandle = await opfsRoot.getDirectoryHandle('SlideRule');
@@ -236,8 +239,10 @@ async function exportParquet(fileName: string): Promise<boolean> {
         }
         return true;
     } catch (err) {
-        console.error('Stream copy failed:', err);
-        try { await wb.abort(err); } catch {}
+        logger.error('Stream copy failed', { error: err instanceof Error ? err.message : String(err) });
+        try { await wb.abort(err); } catch {
+            // Ignore abort errors
+        }
         return false;
     }
 }
@@ -251,7 +256,7 @@ async function exportGeoParquet(fileName: string) : Promise<boolean>  {
     //console.log('exportGeoParquet - hasGeoMetadata:', hasGeoMetadata, metadata);
     if (hasGeoMetadata) {
         // File already has geo metadata, export as-is using exportParquet pattern
-        console.log('File already has geo metadata, exporting as-is');
+        logger.debug('File already has geo metadata, exporting as-is');
         const opfsRoot = await navigator.storage.getDirectory();
         const directoryHandle = await opfsRoot.getDirectoryHandle('SlideRule');
         const fileHandle = await directoryHandle.getFileHandle(fileName);
@@ -278,13 +283,15 @@ async function exportGeoParquet(fileName: string) : Promise<boolean>  {
             }
             return true;
         } catch (err) {
-            console.error('Stream copy failed:', err);
-            try { await wb.abort(err); } catch {}
+            logger.error('Stream copy failed', { error: err instanceof Error ? err.message : String(err) });
+            try { await wb.abort(err); } catch {
+                // Ignore abort errors
+            }
             return false;
         }
     } else {
         // No geo metadata, fetch from server with as_geo: true
-        console.log('No geo metadata found, fetching GeoParquet from server');
+        logger.debug('No geo metadata found, fetching GeoParquet from server');
         const { url, options } = await getArrowFetchUrlAndOptions(props.reqId, true);
 
         const baseFileName = fileName.replace(/\.parquet$/i, '');
@@ -292,7 +299,7 @@ async function exportGeoParquet(fileName: string) : Promise<boolean>  {
         if (!wb) return false;
 
         try {
-            console.log('Fetching GeoParquet export:', url, options);
+            logger.debug('Fetching GeoParquet export', { url, options });
             const response = await fetch(url, {
                 method: 'POST',
                 body: options.body,
@@ -318,8 +325,10 @@ async function exportGeoParquet(fileName: string) : Promise<boolean>  {
             }
             return true;
         } catch (err) {
-            console.error('Failed to write GeoParquet file:', err);
-            try { await wb.abort(err); } catch {}
+            logger.error('Failed to write GeoParquet file', { error: err instanceof Error ? err.message : String(err) });
+            try { await wb.abort(err); } catch {
+                // Ignore abort errors
+            }
             return false;
         }
     }

@@ -46,6 +46,9 @@
     import SrLocationFinder from "@/components/SrLocationFinder.vue";
     import { useActiveTabStore } from "@/stores/activeTabStore";
     import type { Control } from 'ol/control';
+    import { createLogger } from '@/utils/logger';
+
+    const logger = createLogger('SrAnalysisMap');
 
     const template = 'Lat:{y}\u00B0, Long:{x}\u00B0';
     const stringifyFunc = (coordinate: Coordinate) => {
@@ -103,7 +106,7 @@
     
 
     const handleEvent = (event: any) => {
-        console.log(event);
+        logger.debug('Map event', { event });
     };
     const computedProjName = computed(() => mapStore.getSrViewObj().projectionName);
     const elevationIsLoading = computed(() => analysisMapStore.getPntDataByReqId(recTreeStore.selectedReqIdStr).isLoading);
@@ -147,15 +150,14 @@
 
     // Watch for changes on reqId
     watch( () => props.selectedReqId, async (newReqId, oldReqId) => {
-        const msg = `watch props.selectedReqId reqId changed from:  value:${oldReqId} to value:${newReqId}`;
-        console.log(msg);
+        logger.debug('watch props.selectedReqId changed', { oldReqId, newReqId });
         if(newReqId !== oldReqId){
             if(newReqId > 0){
                 await fieldNameStore.loadMetaForReqId(newReqId); // async but don't await
                 globalChartStore.setAllColumnMinMaxValues({}); // reset all min/max values
                 await updateAnalysisMapView('watch selectedReqId');
             } else {
-                console.error("Error: SrAnalysisMap selectedReqId is 0?");
+                logger.error('SrAnalysisMap selectedReqId is 0');
             }
         }
     });
@@ -163,25 +165,25 @@
 
     // Watch for changes on parquetReader
     watch(() => useSrParquetCfgStore().parquetReader, async (newReader, oldReader) => {
-        console.log(`watch parquet reader changed from ${oldReader} to ${newReader}`);
+        logger.debug('watch parquet reader changed', { oldReader, newReader });
         await updateAnalysisMapView("New parquetReader");
     });
 
     watch(() => srParquetCfgStore.maxNumPntsToDisplay, async (newMaxNumPntsToDisplay, oldMaxNumPntsToDisplay) => {
-        console.log(`watch maxNumPntsToDisplay changed from ${oldMaxNumPntsToDisplay} to ${newMaxNumPntsToDisplay}`);
+        logger.debug('watch maxNumPntsToDisplay changed', { oldMaxNumPntsToDisplay, newMaxNumPntsToDisplay });
         await updateAnalysisMapView("New maxNumPntsToDisplay");
     });
 
 
     onMounted(async () => {
-        console.log("SrAnalysisMap onMounted using selectedReqId:",props.selectedReqId);
+        logger.debug('SrAnalysisMap onMounted', { selectedReqId: props.selectedReqId });
         await fieldNameStore.loadMetaForReqId(props.selectedReqId); // async but don't await
         // Bind the tooltipRef to the store
         if (tooltipRef.value) {
             analysisMapStore.tooltipRef = tooltipRef.value;
         } else {
-            console.error('tooltipRef is null on mount');
-        }        
+            logger.error('tooltipRef is null on mount');
+        }
         recordsLayer.set('name', 'Records Layer'); // for empty requests need to draw poly in this layer
         recordsLayer.set('title', 'Records Layer');
         //console.log("SrProjectionControl onMounted projectionControlElement:", projectionControlElement.value);
@@ -192,37 +194,37 @@
         register(proj4);
         const map = mapRef.value?.map;
         if(!map){
-            console.error("SrAnalysisMap onMounted Error: map is null");
+            logger.error('SrAnalysisMap onMounted: map is null');
             return;
         }
-        let srViewName = await db.getSrViewName(props.selectedReqId);
+        const srViewName = await db.getSrViewName(props.selectedReqId);
         //console.log(`SrAnalysisMap onMounted: retrieved srViewName: ${srViewName} for reqId:${props.selectedReqId}`);
         const viewObj = srViews.value[srViewName];
         //console.log(`SrAnalysisMap onMounted: retrieved viewObj.view: ${viewObj?.view} viewObj.baseLayer:${viewObj?.baseLayerName} srViewName:${srViewName} for reqId:${props.selectedReqId}`);
         if(!viewObj){
-            console.error(`SrAnalysisMap onMounted Error: No view found for srViewName: ${srViewName}`);
+            logger.error('SrAnalysisMap onMounted: No view found for srViewName', { srViewName });
             return;
         }
         mapStore.setSelectedView(viewObj.view); // Set the selected view in the map store
         //const selectedView = mapStore.getSelectedView(); // Get the selected view
         //console.log(`SrAnalysisMap onMounted: selected view is ${selectedView} with srViewName: ${srViewName}`);
-        
+
         if(viewObj.baseLayerName){
             mapStore.setSelectedBaseLayer(viewObj.baseLayerName);
             //console.log(`SrAnalysisMap onMounted: set default baseLayer to ${viewObj.baseLayerName} for selected view ${selectedView}`);
         } else {
-            console.error("SrAnalysisMap onMounted Error: defaulted baseLayer is null");
+            logger.error('SrAnalysisMap onMounted: defaulted baseLayer is null');
         }
         await updateAnalysisMapView("onMounted");
         requestsStore.displayHelpfulPlotAdvice("Click on a track in the map to display the elevation scatter plot");
-        console.log("SrAnalysisMap onMounted done");
+        logger.debug('SrAnalysisMap onMounted done');
     });
 
     const handleLegendControlCreated = (legendControl: Control | null) => {
         const analysisMap = mapRef.value?.map;
 
         if (!analysisMap) {
-            console.warn("analysisMap is null, will be set in onMounted");
+            logger.warn('analysisMap is null, will be set in onMounted');
             return;
         }
 
@@ -234,7 +236,7 @@
 
         // Add the new legend control if provided
         if (legendControl) {
-            console.log("adding legendControl");
+            logger.debug('adding legendControl');
             analysisMap.addControl(legendControl);
             legendRef.value = legendControl;
         }
@@ -246,7 +248,7 @@
             //console.log("adding colMapSelControl");
             analysisMap.addControl(colMapSelControl);
         } else {
-            console.error("Error:analysisMap is null");
+            logger.error('analysisMap is null');
         }
     };
 
@@ -257,7 +259,7 @@
             //console.log("adding baseLayerControl");
             analysisMap.addControl(recordSelectorControl);
         } else {
-            console.error("Error:analysisMap is null");
+            logger.error('analysisMap is null');
         }
     };
 
@@ -267,7 +269,7 @@
             //console.log("handleProgressSpinnerControlCreated Adding ProgressSpinnerControl");
             analysisMap.addControl(progressSpinnerControl);
         } else {
-            console.warn("handleProgressSpinnerControlCreated analysisMap is null; will be set in onMounted");
+            logger.warn('handleProgressSpinnerControlCreated: analysisMap is null, will be set in onMounted');
         }
     };
     function handleBaseLayerControlCreated(baseLayerControl: any) {
@@ -277,7 +279,7 @@
             //console.log("adding baseLayerControl");
             map.addControl(baseLayerControl);
         } else {
-            console.error("Error:map is null");
+            logger.error('map is null');
         }
     };
 
@@ -288,7 +290,7 @@
             await updateSrViewName(srViewKey.value); // Update the SrViewName in the DB based on the current selection
             //console.log("SrAnalysisMap handleUpdateBaseLayer: Updated SrViewName based on User selected view and base layer:", srViewKey.value);
         } else {
-            console.error("SrAnalysisMap Error: srViewKey is null, can't update base layer");
+            logger.error('srViewKey is null, cannot update base layer');
             return;
         }
         //console.log(`SrAnalysisMap handleUpdateBaseLayer: |${baseLayer}|`);
@@ -297,16 +299,16 @@
             if(map){
                 await updateAnalysisMapView("SrAnalysisMap handleUpdateBaseLayer");
             } else {
-                console.error("SrAnalysisMap Error:map is null");
+                logger.error('map is null');
             }
         } catch (error) {
-            console.error(`SrAnalysisMap Error: handleUpdateBaseLayer failed:`,error);
-        } 
+            logger.error('handleUpdateBaseLayer failed', { error: error instanceof Error ? error.message : String(error) });
+        }
     }
 
     function createDeckInstance(map:OLMap): void{
         //console.log('createDeckInstance');
-        const startTime = performance.now(); // Start time
+        const _startTime = performance.now(); // Start time
         try{
             const mapView =  map.getView();
             //console.log('mapView:',mapView);
@@ -326,15 +328,15 @@
                 });
                 useDeckStore().setDeckInstance(deck);
             } else {
-                console.error('createDeckInstance mapCenter or mapZoom is null mapCenter:',mapCenter,' mapZoom:',mapZoom);
+                logger.error('createDeckInstance mapCenter or mapZoom is null', { mapCenter, mapZoom });
             }
         } catch (error) {
-            console.error('Error creating DeckGL instance:',error);
+            logger.error('Error creating DeckGL instance', { error: error instanceof Error ? error.message : String(error) });
         } finally {
-            console.log('createDeckInstance end');
+            logger.debug('createDeckInstance end');
         }
         const endTime = performance.now(); // End time
-        console.log(`createDeckInstance took ${endTime - startTime} milliseconds. endTime:`,endTime);
+        logger.debug('createDeckInstance completed', { durationMs: endTime - _startTime, endTime });
     }
 
     function createOLlayerForDeck(deck:Deck,projectionUnits:string): OLlayer{
@@ -382,14 +384,14 @@
             map.addLayer(deckLayer);
             //console.log('addDeckLayerToMap: added deckLayer:',deckLayer,' deckLayer.get(\'title\'):',deckLayer.get('title'));
         } else {
-            console.error('No current_layer to add.');
+            logger.error('No current_layer to add');
         }
     }
 
     const updateAnalysisMapView = async (reason:string) => {
         const map = mapRef.value?.map;
-        let srViewName = await db.getSrViewName(props.selectedReqId);
-        console.log(`------ SrAnalysisMap updateAnalysisMapView  srViewName:${srViewName}  for ${reason} with selectedReqId:`,props.selectedReqId);
+        const srViewName = await db.getSrViewName(props.selectedReqId);
+        logger.debug('SrAnalysisMap updateAnalysisMapView start', { srViewName, reason, selectedReqId: props.selectedReqId });
 
         try {
             if(map){
@@ -397,10 +399,10 @@
                 const srViewKey = findSrViewKey(mapStore.getSelectedView(),mapStore.getSelectedBaseLayer());
                 if(srViewKey.value){
                     await updateMapView(map, srViewKey.value, reason, false, props.selectedReqId);
-                    addLayersForCurrentView(map,srViewObj.projectionName);      
+                    addLayersForCurrentView(map,srViewObj.projectionName);
                     const summary = await readOrCacheSummary(props.selectedReqId);
                     if(!summary){
-                        console.error(`Error: No summary for reqId:${props.selectedReqId} srViewName:${srViewName}`);
+                        logger.error('No summary for reqId', { reqId: props.selectedReqId, srViewName });
                         return;
                     }
                     //console.log(`summary.numPoints:${summary.numPoints} srViewName:${srViewName}`);
@@ -409,7 +411,7 @@
                     if(numPoints > 0){
                         zoomMapForReqIdUsingView(map, props.selectedReqId,srViewName);
                     } else {
-                        console.warn(`Warn: No points for reqId:${props.selectedReqId} srViewName:${srViewName}`);
+                        logger.warn('No points for reqId', { reqId: props.selectedReqId, srViewName });
                         useSrToastStore().warn('There are no data points in this region', 'Click Request then increase the area of the polygon',10000);
                         map.addLayer(recordsLayer);
                         //dumpMapLayers(map,'SrAnalysisMap');
@@ -420,14 +422,14 @@
                     addDeckLayerToMap(map);
                     await updateMapAndPlot(`SrAnalysisMap: ${reason}`);
                 } else {
-                    console.error("SrMap Error: srViewKey is null");
+                    logger.error('srViewKey is null');
                 }
 
             } else {
-                console.error("SrMap Error:map is null");
+                logger.error('map is null');
             }
         } catch (error) {
-            console.error(`SrAnalysisMap Error: updateAnalysisMapView failed for ${reason}`,error);
+            logger.error('updateAnalysisMapView failed', { reason, error: error instanceof Error ? error.message : String(error) });
 
             // Extract meaningful error information
             const errorMessage = error instanceof Error ? error.message : String(error);
@@ -455,18 +457,18 @@
             if(map){
                 //dumpMapLayers(map,'SrAnalysisMap');
             } else {
-                console.error("SrAnalysisMap Error:map is null");
+                logger.error('map is null in finally block');
             }
-            console.log("SrAnalysisMap  mapRef.value?.map.getView()",mapRef.value?.map.getView());
-            console.log(`------ SrAnalysisMap updateAnalysisMapView Done for ${reason} ------`);
+            logger.debug('SrAnalysisMap mapRef view', { view: mapRef.value?.map.getView() });
+            logger.debug('SrAnalysisMap updateAnalysisMapView done', { reason });
         }
-        console.log(`------ Done SrAnalysisMap updateAnalysisMapView srViewName:${srViewName} for ${reason} with selectedReqId:${props.selectedReqId} ------`);
+        logger.debug('Done SrAnalysisMap updateAnalysisMapView', { srViewName, reason, selectedReqId: props.selectedReqId });
     };
 
     async function handleOffPntEnable(value: number) {
-        console.log('SrAnalysisMap handleOffPntEnable:', value);
+        logger.debug('SrAnalysisMap handleOffPntEnable', { value });
         if(!value) {
-            console.log('SrAnalysisMap handleOffPntEnable: value is undefined:', value);
+            logger.debug('SrAnalysisMap handleOffPntEnable: value is undefined', { value });
         }
         if(globalChartStore.y_atc_is_valid()){
             if(value){
@@ -476,15 +478,15 @@
             }
             await callPlotUpdateDebounced("SrAnalysisMap yatc change");// no need to debounce
         } else {
-            console.error('SrAnalysisMap handleOffPntEnable: globalChartStore.y_atc_is_valid() selected_y_atc:', globalChartStore.selected_y_atc);
+            logger.error('SrAnalysisMap handleOffPntEnable: y_atc invalid', { selected_y_atc: globalChartStore.selected_y_atc });
         }
     }
-    function handleUseFullRangeUpdate(value: boolean) {
-        console.log('SrAnalysisMap handleUseFullRangeUpdate:', value);
-        if(value === undefined) {
-            console.log('SrAnalysisMap handleUseFullRangeUpdate: value is undefined:', value);
+    function handleUseFullRangeUpdate(_value: boolean) {
+        logger.debug('SrAnalysisMap handleUseFullRangeUpdate', { value: _value });
+        if(_value === undefined) {
+            logger.debug('SrAnalysisMap handleUseFullRangeUpdate: value is undefined', { value: _value });
         }
-        updateAnalysisMapView("SrAnalysisMap handleUseFullRangeUpdate");
+        void updateAnalysisMapView("SrAnalysisMap handleUseFullRangeUpdate");
     }
 
 </script>

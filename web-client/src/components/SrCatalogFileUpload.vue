@@ -6,7 +6,9 @@ import ProgressBar from 'primevue/progressbar';
 import Button from 'primevue/button';
 import Toast from 'primevue/toast';
 import { useToast } from "primevue/usetoast";
+import { createLogger } from '@/utils/logger';
 
+const logger = createLogger('SrCatalogFileUpload');
 const toast = useToast();
 const catalogStore = useCatalogStore();
 
@@ -23,7 +25,7 @@ const props = defineProps({
 
 
 const customUploader = async (event:any) => {
-    console.log('customUploader event:',event);
+    logger.debug('customUploader event', { event });
     const file = event.files[0];
     if (file) {
         const reader = new FileReader();
@@ -31,31 +33,31 @@ const customUploader = async (event:any) => {
         reader.onload = async (e) => {
             try {
                 if (e.target === null){
-                    console.error('e.target is null');
+                    logger.error('e.target is null');
                     return;
                 } else {
                     //console.log(`e.target.result: ${e.target.result}`);
-                    console.log(`e.target.result type: ${typeof e.target.result}`);
+                    logger.debug('e.target.result type', { type: typeof e.target.result });
                     if (typeof e.target.result === 'string') {
                         const data = JSON.parse(e.target.result);
                         catalogStore.setCatalogData(data);
                         toast.add({ severity: 'info', summary: 'File Load', detail: 'Catalog file successfully loaded', life: 3000});
-                
+
                     } else {
-                        console.error('Error parsing GeoJSON:', e.target.result);
+                        logger.error('Error parsing GeoJSON - invalid result type', { result: e.target.result });
                         toast.add({ severity: 'error', summary: 'Failed to parse geo json file', group: 'headless' });
                     }
                 }
             } catch (error) {
-                console.error('Error parsing GeoJSON:', error);
+                logger.error('Error parsing GeoJSON', { error: error instanceof Error ? error.message : String(error) });
                 toast.add({ severity: 'error', summary: 'Failed to parse geo json file', group: 'headless' });
             }
         };
 
         reader.onprogress = (e) => {
-            console.log('onprogress e:',e);
+            logger.debug('onprogress', { e });
             if (e.lengthComputable) {
-                console.log(`Uploading your file ${e.loaded} of ${e.total}`);
+                logger.debug('Uploading file', { loaded: e.loaded, total: e.total });
                 const percentLoaded = Math.round((e.loaded / e.total) * 100);
                 upload_progress.value = percentLoaded;
                 if (!upload_progress_visible.value) {
@@ -65,21 +67,21 @@ const customUploader = async (event:any) => {
             }
         };
     } else {
-        console.error('No file input found');
+        logger.error('No file input found');
         toast.add({ severity: 'error', summary: 'No file input found', group: 'headless' });
     };
 };
 
 const onSelect = (e:any) => {
-    console.log('onSelect e:',e);
+    logger.debug('onSelect', { e });
 };
 
 const onError = (e:any) => {
-    console.log('onError e:',e);
+    logger.error('onError', { e });
     toast.add({ severity: 'error', summary: 'Upload Error', detail: 'Error uploading file', group: 'headless' });
 };
 const onClear = () => {
-    console.log('onClear');
+    logger.debug('onClear');
 };
 
 </script>

@@ -4,6 +4,9 @@
     import { srProjections } from '@/composables/SrProjections';
     import proj4 from 'proj4';
     import { register } from 'ol/proj/proj4';
+    import { createLogger } from '@/utils/logger';
+
+    const logger = createLogger('SrProjectionControl');
 
     const projectionControlElement = ref(null);
 
@@ -12,7 +15,7 @@
     onMounted(() => {
         //console.log("SrProjectionControl onMounted projectionControlElement:", projectionControlElement.value);
         Object.values(srProjections.value).forEach(projection => {
-            console.log(`Title: ${projection.title}, Name: ${projection.name}`);
+            logger.debug('Registering projection', { title: projection.title, name: projection.name });
             proj4.defs(projection.name, projection.proj4def);
         });
         register(proj4);

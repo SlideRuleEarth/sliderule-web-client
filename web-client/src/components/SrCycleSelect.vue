@@ -47,6 +47,9 @@ import Listbox from 'primevue/listbox';
 import { selectedCyclesReactive, callPlotUpdateDebounced } from "@/utils/plotUtils";
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { resetFilterCycleOptions } from '@/utils/SrMapUtils';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrCycleSelect');
 
 const globalChartStore = useGlobalChartStore();
 const recTreeStore = useRecTreeStore();
@@ -61,17 +64,17 @@ const props = defineProps<{
 
 const displayLabel = computed(() => props.label ?? 'Cycles');
 
-async function handleValueChange(value?:any): Promise<void> {
-    //console.log('SrFilterCntrl handleValueChange:', value);
+function handleValueChange(): void {
+    //console.log('SrFilterCntrl handleValueChange');
     const reqId = recTreeStore.selectedReqIdStr;
     if (reqId) {
-        nextTick(async () => {
+        void nextTick(async () => {
             await callPlotUpdateDebounced("SrFilterCntrl:handleValueChange - RGT");
         })
     } else {
-        console.warn('reqId is undefined');
+        logger.warn('reqId is undefined');
     }
-    //console.log('SrFilterCntrl handleValueChange:', value);
+    //console.log('SrFilterCntrl handleValueChange');
 }
 
 async function filterCycles() {

@@ -10,6 +10,9 @@
     import SrCustomTooltip from './SrCustomTooltip.vue';
     import { useSrToastStore } from "@/stores/srToastStore";
     import { useServerStateStore } from '@/stores/serverStateStore';
+    import { createLogger } from '@/utils/logger';
+
+    const logger = createLogger('SrRunControl');
 
     const props = defineProps({
         includeAdvToggle: {
@@ -33,8 +36,8 @@
         return (((serverStateStore.isAborting || serverStateStore.isFetching ) && !props.includeAdvToggle) || props.includeAdvToggle);
     });
 
-    onMounted(async () => {
-        console.log('SrRunControl onMounted props.includeAdvToggle:',props.includeAdvToggle);
+    onMounted(() => {
+        logger.debug('onMounted', { includeAdvToggle: props.includeAdvToggle });
         requestsStore.setSvrMsg('');
         requestsStore.setSvrMsgCnt(0);
         if(props.includeAdvToggle) { // this means it is the Request Run button
@@ -49,24 +52,24 @@
     });
 
     onBeforeUnmount(() => {
-        console.log(`SrRunControl for ${props.buttonLabel} unmounted`);
+        logger.debug('onBeforeUnmount', { buttonLabel: props.buttonLabel });
     });
 
     async function toggleRunAbort() {
         if (serverStateStore.isFetching) {
-            console.log(`abortClicked for ${props.buttonLabel} calling processAbortClicked`);
+            logger.debug('abortClicked calling processAbortClicked', { buttonLabel: props.buttonLabel });
             processAbortClicked();
         } else {
-            console.log(`Run button pressed for ${props.buttonLabel} calling processRunSlideRuleClicked`);
+            logger.debug('Run button pressed calling processRunSlideRuleClicked', { buttonLabel: props.buttonLabel });
             if(props.includeAdvToggle){
                 try{
                     await processRunSlideRuleClicked();
                 } catch (error) {
-                    console.error('Error in processRunSlideRuleClicked:',error);
+                    logger.error('Error in processRunSlideRuleClicked', { error: error instanceof Error ? error.message : String(error) });
                     srToastStore.error(`There was a software error:${error}`);
                 }
             } else {
-                console.error('SrRunControl clicked for Overlay Photon Cloud?');
+                logger.error('SrRunControl clicked for Overlay Photon Cloud?');
             }
         }
     }

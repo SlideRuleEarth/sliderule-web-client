@@ -1,6 +1,10 @@
 // devStoreChecks.ts
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('devStoreCheck');
+
 export function logStoreMeta(store: any, label = store.$id) {
-    console.log(`[${label}] meta:`, store.__meta);
+    logger.debug(`[${label}] meta`, { meta: store.__meta });
 }
 
 export function assertNotReset(store: any, getDefaults: () => any, label = store.$id) {

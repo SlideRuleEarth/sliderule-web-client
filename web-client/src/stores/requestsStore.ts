@@ -1,12 +1,14 @@
 import { defineStore } from 'pinia';
 import { db, type SrRequestRecord } from '@/db/SlideRuleDb';
-import {type  NullReqParams } from '@/types/SrTypes';
 import { liveQuery } from 'dexie';
 import type { SrMenuNumberItem } from "@/types/SrTypes";
 import { findParam } from '@/utils/parmUtils';
 import { useSrToastStore } from './srToastStore';
 import type { TreeNode } from 'primevue/treenode';
 import { updateNumGranulesInRecord, updateAreaInRecord, updateReqParmsFromMeta } from '@/utils/SrParquetUtils';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('RequestsStore');
 
 export const useRequestsStore = defineStore('requests', {
   state: () => ({
@@ -32,7 +34,7 @@ export const useRequestsStore = defineStore('requests', {
   actions: {
     toggleStar(reqId: number) {
       const reqIndex = this.reqs.findIndex(req => req.req_id === reqId);
-      console.log(`Toggling star for req ${reqId} using reqIndex:${reqIndex}.`);
+      logger.debug('Toggling star for req', { reqId, reqIndex });
       if (reqIndex !== -1) {
         this.reqs[reqIndex].star = !this.reqs[reqIndex].star;
       }
@@ -60,46 +62,46 @@ export const useRequestsStore = defineStore('requests', {
     },    
     async createNewSrRequestRecord(): Promise<SrRequestRecord | null>  {
       // Get the new reqId from the db
-      console.log('createNewSrRequestRecord()');
+      logger.debug('createNewSrRequestRecord start');
       const newReqId = await db.addPendingRequest(); // Await the promise to get the new req_id
-      console.log('createNewSrRequestRecord() newReqId:', newReqId);
+      logger.debug('createNewSrRequestRecord created reqId', { newReqId });
       if(newReqId){
         try{
           this.reqs.push({req_id: newReqId, status: 'pending', func: '', cnt:0, parameters: {parms:{}}, start_time: new Date(), end_time: new Date(), elapsed_time: ''});
           await this.fetchReqs();  // Fetch the updated requests from the db
           const newReq = this.getReqById(newReqId);
-          console.log('New req created:', newReq);
+          logger.debug('New req created', { newReq });
           return newReq;
         } catch (error) {
-          console.error('createNewSrRequestRecord Failed to create new request:', error);
+          logger.error('createNewSrRequestRecord failed to create new request', { error: error instanceof Error ? error.message : String(error) });
           throw error;
         }
       } else {
         const errorMsg = 'createNewSrRequestRecord Error creating new request, undefined reqId ?';
-        console.error(errorMsg);
+        logger.error(errorMsg);
         throw new Error(errorMsg);
-      } 
+      }
     },
     async deleteReq(reqId: number): Promise<boolean>{
       let deleted=true;
       try {
         await db.deleteRequest(reqId);
       } catch (error) {
-        console.error('Error deleting request:', error);
+        logger.error('Error deleting request', { reqId, error: error instanceof Error ? error.message : String(error) });
         deleted=false;
       }
       try{
         await db.deleteRequestSummary(reqId);
-        console.log(`reqId:${reqId} deleted successfully`);
+        logger.debug('Request deleted successfully', { reqId });
       } catch (error) {
-        console.error(`Error with deleteRequestSummary when deleting reqId:${reqId}`, error);
+        logger.error('Error with deleteRequestSummary when deleting reqId', { reqId, error: error instanceof Error ? error.message : String(error) });
         deleted=false;
       }
       try {
         await db.removeRunContext(reqId);
 
       } catch (error) {
-        console.error(`Error with removeRunContext when deleting reqId:${reqId}`, error);
+        logger.error('Error with removeRunContext when deleting reqId', { reqId, error: error instanceof Error ? error.message : String(error) });
         deleted=false;
       }
       return deleted;
@@ -108,9 +110,9 @@ export const useRequestsStore = defineStore('requests', {
       try {
         await db.deleteAllRequests();
         await db.deleteAllRequestSummaries();
-        console.log('All SrRequestRecords deleted successfully');
+        logger.debug('All SrRequestRecords deleted successfully');
       } catch (error) {
-        console.error('Error deleting all requests:', error);
+        logger.error('Error deleting all requests', { error: error instanceof Error ? error.message : String(error) });
         throw error;
       }
     },
@@ -125,7 +127,7 @@ export const useRequestsStore = defineStore('requests', {
         this.reqs = await db.table('requests').orderBy('req_id').reverse().toArray();
         //console.log('Requests fetched successfully:', this.reqs);
       } catch (error) {
-        console.error('Error fetching requests:', error);
+        logger.error('Error fetching requests', { error: error instanceof Error ? error.message : String(error) });
         throw error;
       }
     },
@@ -135,7 +137,7 @@ export const useRequestsStore = defineStore('requests', {
         //console.log('SrRequestRecord IDs fetched successfully:', reqIds);
         return reqIds;
       } catch (error) {
-        console.error('Error fetching request IDs:', error);
+        logger.error('Error fetching request IDs', { error: error instanceof Error ? error.message : String(error) });
         return [];
       }
     },
@@ -145,23 +147,19 @@ export const useRequestsStore = defineStore('requests', {
     },   
     async getMenuItems(): Promise<SrMenuNumberItem[]> {
       const fetchedReqIds = await this.fetchReqIds();
-    
+
       // Sort reqIds in descending order
       fetchedReqIds.sort((a, b) => b - a);
-    
+
       // 1. Build an array of items
       const items = await Promise.all(
         fetchedReqIds.map(async (id: number) => {
           const status = await db.getStatus(id);
           const funcStr = await db.getFunc(id);
           const rc = await db.getRunContext(id);
-    
+
           const parentReqId = rc?.parentReqId; // Optional parentReqId
-          // Calculate spaces based on the number of digits in parentReqId
-          const parentReqIdSpaces = parentReqId
-            ? '-'.repeat(parentReqId.toString().length)
-            : '';
-    
+
           // Only include items you care about
           if (status === 'success' || status === 'imported') {
             return {
@@ -171,7 +169,7 @@ export const useRequestsStore = defineStore('requests', {
               api: funcStr,
             } as SrMenuNumberItem; // Explicitly cast to SrMenuNumberItem
           }
-    
+
           // Return undefined if it doesn't match your criteria
           return undefined;
         })
@@ -224,7 +222,7 @@ export const useRequestsStore = defineStore('requests', {
           //console.log('Requests automagically updated:', this.reqs);
         },
         error: (err) => {
-          console.error('Failed to update requests due to:', err);
+          logger.error('Failed to update requests', { error: err instanceof Error ? err.message : String(err) });
           // Optionally, update state to reflect the error
           this.consoleMsg = 'Error fetching requests'; // use this to display an error message in UI if needed
           this.autoFetchError = true; // Set a flag to indicate an error occurred
@@ -323,7 +321,7 @@ export const useRequestsStore = defineStore('requests', {
               func: child.data.func,
               description: child.data.description ?? '(No description)',
 
-              // 🔽 normalize numeric fields here
+              // Normalize numeric fields here
               cnt: child.data.cnt,
               num_bytes: child.data.num_bytes != null ? Number(child.data.num_bytes) : undefined,
               num_gran: child.data.num_gran != null ? Number(child.data.num_gran) : undefined,

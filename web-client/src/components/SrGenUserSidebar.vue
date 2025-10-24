@@ -3,7 +3,7 @@
     import { useMapStore } from "@/stores/mapStore";
     import { onMounted,defineAsyncComponent } from "vue";
     import { useSlideruleDefaults } from "@/stores/defaultsStore";
-    const SrGenUserPresets = defineAsyncComponent(() => import('./SrGenUserPresets.vue'));
+    const SrGenUserPresets = defineAsyncComponent(async () => import('./SrGenUserPresets.vue'));
 
     onMounted(() => {
         //console.log('Mounted SrGenUserSidebar');

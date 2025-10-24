@@ -1,6 +1,9 @@
 import type { SrRequestSummary } from '@/db/SlideRuleDb';
 import { createDuckDbClient, type QueryResult } from '@/utils//SrDuckDb';
 import { db as indexedDb } from '@/db/SlideRuleDb';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrDuckDbUtils');
 import type { ExtHMean,ExtLatLon } from '@/workers/workerUtils';
 import { updateDeckLayerWithObject,type ElevationDataItem } from '@/utils/SrMapUtils';
 import { useCurReqSumStore } from '@/stores/curReqSumStore';
@@ -75,7 +78,7 @@ export const readOrCacheSummary = async (req_id:number) : Promise<SrRequestSumma
         //console.log('readOrCacheSummary req_id:', req_id,'hfn:',height_fieldname, ' summary.extHMean:', summary?.extHMean);
         return summary;
     } catch (error) {
-        console.error('readOrCacheSummary error:',error);
+        logger.error('Error reading or caching summary', { reqId: req_id, error: error instanceof Error ? error.message : String(error) });
         throw error;
     }
 }
@@ -93,11 +96,11 @@ async function setElevationDataOptionsFromFieldNames(reqId: number, fieldNames: 
 
         // If funcStr not provided, fall back to expensive database lookup
         if (!funcStr) {
-            console.warn(`setElevationDataOptionsFromFieldNames: No funcStr provided for reqId ${reqId}, falling back to database`);
+            logger.warn('No funcStr provided, falling back to database', { reqId });
             const request = await indexedDb.getRequest(reqId);
             funcStr = request?.func || '';
             if (funcStr) {
-                console.log(`setElevationDataOptionsFromFieldNames: Retrieved func='${funcStr}' from database for reqId ${reqId}`);
+                logger.debug('Retrieved func from database', { reqId, func: funcStr });
             }
         }
 
@@ -109,10 +112,10 @@ async function setElevationDataOptionsFromFieldNames(reqId: number, fieldNames: 
         // Validate that the height field actually exists in the file
         // If not, the metadata is incorrect and we should use the hardcoded default
         if (!fieldNames.includes(heightFieldname)) {
-            console.warn(`Height field "${heightFieldname}" from metadata not found in file columns. Falling back to hardcoded default.`);
+            logger.warn('Height field from metadata not found in file columns, using hardcoded default', { heightFieldname, availableFields: fieldNames });
             // Get the hardcoded value by calling getHFieldName again (will now skip the cache)
             heightFieldname = fncs.getHFieldName(reqId);
-            console.log(`Using hardcoded height field: "${heightFieldname}"`);
+            logger.debug('Using hardcoded height field', { heightFieldname });
         }
 
         // Find the index of the height field name
@@ -135,7 +138,7 @@ async function setElevationDataOptionsFromFieldNames(reqId: number, fieldNames: 
         chartStore.setSelectedYData(reqIdStr,heightFieldname);
         //console.log('setElevationDataOptionsFromFieldNames', { reqIdStr, fieldNames, heightFieldname, ndx } );
     } catch (error) {
-        console.error('Error in setElevationDataOptionsFromFieldNames:', error);
+        logger.error('Error setting elevation data options from field names', { reqId, error: error instanceof Error ? error.message : String(error) });
     } finally {
         const endTime = performance.now(); // End time
         //console.log(`setElevationDataOptionsFromFieldNames using reqId:${reqIdStr} fieldNames:${fieldNames} selectedYData:${chartStore.getSelectedYData(reqIdStr)} took ${endTime - startTime} milliseconds.`);
@@ -146,11 +149,13 @@ async function _duckDbReadOrCacheSummary(req_id: number): Promise<SrRequestSumma
     const startTime = performance.now();
     let summary: SrRequestSummary | undefined = undefined;
     const unlock = await srMutex.lock();
+    let rsummary: SrRequestSummary | undefined = undefined;
 
     try {
         summary = await indexedDb.getWorkerSummary(req_id);
         if (summary?.extLatLon && summary?.extHMean) {
-            return summary;
+            rsummary = summary;
+            return rsummary;
         }
 
         const localExtLatLon: ExtLatLon = { minLat: 90, maxLat: -90, minLon: 180, maxLon: -180 };
@@ -236,17 +241,17 @@ async function _duckDbReadOrCacheSummary(req_id: number): Promise<SrRequestSumma
             throw new Error('No rows returned');
         }
 
-        const rsummary = await indexedDb.getWorkerSummary(req_id);
+        rsummary = await indexedDb.getWorkerSummary(req_id);
         //console.log('_duckDbReadOrCacheSummary returning summary:', rsummary);
-        return rsummary;
     } catch (error) {
-        console.error('_duckDbReadOrCacheSummary error:', error);
+        logger.error('Error in _duckDbReadOrCacheSummary', { reqId: req_id, error: error instanceof Error ? error.message : String(error) });
         throw error;
     } finally {
         unlock();
         const endTime = performance.now();
-        console.log(`_duckDbReadOrCacheSummary for ${req_id} took ${endTime - startTime} ms.`);
+        logger.debug('_duckDbReadOrCacheSummary performance', { reqId: req_id, durationMs: endTime - startTime });
     }
+    return rsummary;
 }
 
 export const computeSamplingRate = async(req_id:number): Promise<number> => {
@@ -259,16 +264,16 @@ export const computeSamplingRate = async(req_id:number): Promise<number> => {
             const numPoints = parseInt(String(numPointsStr));
             // console.log(`numPoints: ${numPoints}, Type: ${typeof numPoints}`);
             try{
-                sample_fraction = maxNumPnts /numPoints; 
+                sample_fraction = maxNumPnts /numPoints;
             } catch (error) {
-                console.error('computeSamplingRate sample_fraction error:', error);
+                logger.error('Error calculating sample fraction', { reqId: req_id, error: error instanceof Error ? error.message : String(error) });
             }
             //console.warn('computeSamplingRate maxNumPnts:', maxNumPnts, ' summary.numPoints:', summary.numPoints, ' numPoints:',numPoints, ' sample_fraction:', sample_fraction);
         } else {
-            console.error('computeSamplingRate summary is undefined using 1.0');
+            logger.error('Summary is undefined, using sample fraction 1.0', { reqId: req_id });
         }
     } catch (error) {
-        console.error('computeSamplingRate error:', error, 'req_id:', req_id);
+        logger.error('Error computing sampling rate', { reqId: req_id, error: error instanceof Error ? error.message : String(error) });
     }
     return sample_fraction;
 }
@@ -308,11 +313,11 @@ export async function prepareDbForReqId(reqId: number): Promise<void> {
         // Pass funcStr to avoid circular dependency on recTreeStore
         await setElevationDataOptionsFromFieldNames(reqId, scalarNumericCols, funcStr);
     } catch (error) {
-        console.error('prepareDbForReqId error:', error);
+        logger.error('Error preparing database for request', { reqId, error: error instanceof Error ? error.message : String(error) });
         throw error;
     } finally {
         const endTime = performance.now();
-        console.log(`prepareDbForReqId for ${reqId} took ${endTime - startTime} milliseconds.`);
+        logger.debug('prepareDbForReqId performance', { reqId, durationMs: endTime - startTime });
     }
 }
 
@@ -322,22 +327,22 @@ export const getColsForRgtYatcFromFile = async (
         cols: string[]
     ): Promise<Record<string, any[]> | undefined> => {
     if (!req_id) {
-        console.error(`getColsForRgtYatcFromFile ${cols} Bad req_id: ${req_id}`);
+        logger.error('Invalid req_id in getColsForRgtYatcFromFile', { reqId: req_id, columns: cols });
         return;
     }
-  
+
     const startTime = performance.now();
     let numRows = 0;
     const rowChunks: ElevationDataItem[] = [];
-  
+
     try {
         if (await indexedDb.getStatus(req_id) === 'error') {
-            console.error(`getColsForRgtYatcFromFile ${cols} req_id:${req_id} status is error, SKIPPING!`);
+            logger.error('Request status is error, skipping', { reqId: req_id, columns: cols });
             return;
         }
         const globalChartStore = useGlobalChartStore();
         if( !globalChartStore.y_atc_is_valid()){
-            console.error(`getColsForRgtYatcFromFile ${cols} req_id:${req_id} y_atc is invalid, SKIPPING!`);
+            logger.error('y_atc is invalid, skipping', { reqId: req_id, columns: cols });
             return;
         }
         // 1. Initialize DuckDB client
@@ -378,13 +383,13 @@ export const getColsForRgtYatcFromFile = async (
         }
     
     } catch (error) {
-        console.error(`getColsForRgtYatcFromFile ${cols} req_id:${req_id} error:`, error);
+        logger.error('Error in getColsForRgtYatcFromFile', { reqId: req_id, columns: cols, error: error instanceof Error ? error.message : String(error) });
         throw error;
     } finally {
         if (numRows > 0) {
-            console.log(`getColsForRgtYatcFromFile columns: ${cols}`, rowChunks);
+            logger.debug('Retrieved columns from file', { columns: cols, rowCount: numRows });
         } else {
-            console.warn(`getColsForRgtYatcFromFile ${cols} req_id:${req_id} no data items processed`);
+            logger.warn('No data items processed', { reqId: req_id, columns: cols });
         }
         
         // ──────────────────────────────────────────
@@ -412,7 +417,7 @@ export const getColsForRgtYatcFromFile = async (
         }
         
         const endTime = performance.now();
-        console.log(`getColsForRgtYatcFromFile ${cols} req_id:${req_id} retrieved ${numRows} rows in ${endTime - startTime} ms.`);
+        logger.debug('getColsForRgtYatcFromFile performance', { columns: cols, reqId: req_id, rowCount: numRows, durationMs: endTime - startTime });
         return uniqueDataByColumn;
     }
 };
@@ -456,20 +461,16 @@ export async function getRepresentativeElevationPointForReq(
     }
     return null;
   } catch (err) {
-    console.error("getRepresentativeElevationPointForReq error:", err);
+    logger.error('Error getting representative elevation point', { reqId: req_id, error: err instanceof Error ? err.message : String(err) });
     return null;
   } finally {
-    console.log(
-      "getRepresentativeElevationPointForReq took",
-      (performance.now() - start).toFixed(1),
-      "ms"
-    );
+    logger.debug('getRepresentativeElevationPointForReq performance', { reqId: req_id, durationMs: (performance.now() - start).toFixed(1) });
   }
 }
 
 
 export const duckDbReadAndUpdateElevationData = async (req_id: number, layerName: string): Promise<ElevationDataItem | null> => {
-    console.log('duckDbReadAndUpdateElevationData req_id:', req_id);
+    logger.debug('Reading and updating elevation data', { reqId: req_id, layerName });
     const startTime = performance.now();
 
     let firstRec: ElevationDataItem | null = null;
@@ -478,13 +479,13 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number, layerName
 
     if (!srViewName || srViewName === '' || srViewName === 'Global') {
         srViewName = 'Global Mercator Esri';
-        console.error(`HACK ALERT!! inserting srViewName:${srViewName} for reqId:${req_id}`);
+        logger.warn('HACK ALERT: Using fallback srViewName', { srViewName, reqId: req_id });
     }
 
     const projName = srViews.value[srViewName].projectionName;
 
     if (!req_id) {
-        console.error('duckDbReadAndUpdateElevationData Bad req_id:', req_id);
+        logger.error('Invalid req_id in duckDbReadAndUpdateElevationData', { reqId: req_id });
         return null;
     }
 
@@ -493,7 +494,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number, layerName
 
     try {
         if (await indexedDb.getStatus(req_id) === 'error') {
-            console.error('duckDbReadAndUpdateElevationData req_id:', req_id, ' status is error SKIPPING!');
+            logger.error('Request status is error, skipping', { reqId: req_id });
             return null;
         }
 
@@ -512,7 +513,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number, layerName
                 firstRec = rep;  // <- set early; we still build/render the layer from chunks below
             }
         } catch (e) {
-            console.warn('Representative point selection failed; will fall back to first clickable row:', e);
+            logger.warn('Representative point selection failed, will fall back to first clickable row', { reqId: req_id, error: e instanceof Error ? e.message : String(e) });
         }
 
         let rows: ElevationDataItem[] = [];
@@ -527,11 +528,11 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number, layerName
         const requiresTransformation = needsTransformation(sourceCrs);
 
         if (requiresTransformation && sourceCrs) {
-            console.log(`duckDbReadAndUpdateElevationData: Will transform coordinates from ${sourceCrs} to EPSG:4326`);
+            logger.debug('Will transform coordinates', { from: sourceCrs, to: 'EPSG:4326' });
         } else if (sourceCrs) {
-            console.log(`duckDbReadAndUpdateElevationData: No transformation needed, data is in ${sourceCrs}`);
+            logger.debug('No transformation needed', { crs: sourceCrs });
         } else {
-            console.log('duckDbReadAndUpdateElevationData: No geo metadata CRS found, assuming coordinates are WGS 84 (EPSG:4326)');
+            logger.debug('No geo metadata CRS found, assuming WGS 84 (EPSG:4326)');
         }
 
         try {
@@ -591,7 +592,7 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number, layerName
             if (result.totalRows) {
                 pntDataLocal.totalPnts = result.totalRows;
             } else if (result.schema === undefined) {
-                console.warn('duckDbReadAndUpdateElevationData totalRows and schema are undefined result:', result);
+                logger.warn('totalRows and schema are undefined', { reqId: req_id, result });
             }
 
             const iterator = result.readRows();
@@ -624,15 +625,15 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number, layerName
                         }
                     });
                 } else {
-                    console.warn(`No valid elevation points found in ${numRows} rows.`);
+                    logger.warn('No valid elevation points found', { reqId: req_id, numRows });
                     useSrToastStore().warn('No Data Processed', `No valid elevation points found in ${numRows} rows.`);
                 }
             } else {
-                console.warn('duckDbReadAndUpdateElevationData no data items processed');
+                logger.warn('No data items processed', { reqId: req_id });
                 useSrToastStore().warn('No Data Processed', 'No data items processed. No Data returned for this region and request parameters.');
             }
         } catch (error) {
-            console.error('duckDbReadAndUpdateElevationData error processing chunk:', error);
+            logger.error('Error processing chunk', { reqId: req_id, error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
 
@@ -649,21 +650,21 @@ export const duckDbReadAndUpdateElevationData = async (req_id: number, layerName
                 });
                 updateDeckLayerWithObject(layerName, rows, summary.extHMean, height_fieldname, positions, projName);
             } else {
-                console.error('duckDbReadAndUpdateElevationData summary is undefined');
+                logger.error('Summary is undefined', { reqId: req_id });
             }
 
             await prepareDbForReqId(req_id);
         }
     } catch (error) {
-        console.error('duckDbReadAndUpdateElevationData error:', error);
+        logger.error('Error in duckDbReadAndUpdateElevationData', { reqId: req_id, error: error instanceof Error ? error.message : String(error) });
         throw error;
     } finally {
         const pntDataFinal = useAnalysisMapStore().getPntDataByReqId(req_id.toString());
         pntDataFinal.isLoading = false;
         const endTime = performance.now();
-        console.log(`duckDbReadAndUpdateElevationData for ${req_id} took ${endTime - startTime} milliseconds.`);
-        return { firstRec, numRows };
+        logger.debug('duckDbReadAndUpdateElevationData performance', { reqId: req_id, durationMs: endTime - startTime });
     }
+    return { firstRec, numRows };
 };
 
 type Position = [number, number, number];
@@ -671,9 +672,9 @@ type Position = [number, number, number];
 export const duckDbReadAndUpdateSelectedLayer = async (
     req_id: number, layerName:string
 ) => {
-    console.log('duckDbReadAndUpdateSelectedLayer req_id:', req_id);
+    logger.debug('Reading and updating selected layer', { reqId: req_id, layerName });
     if (req_id === undefined || req_id === null || req_id === 0) {
-        console.error('duckDbReadAndUpdateSelectedLayer Bad req_id:', req_id);
+        logger.error('Invalid req_id in duckDbReadAndUpdateSelectedLayer', { reqId: req_id });
         return;
     }
 
@@ -685,7 +686,7 @@ export const duckDbReadAndUpdateSelectedLayer = async (
 
     try {
         if (await indexedDb.getStatus(req_id) === 'error') {
-            console.error('duckDbReadAndUpdateSelectedLayer req_id:', req_id, ' status is error SKIPPING!');
+            logger.error('Request status is error, skipping', { reqId: req_id });
             return;
         }
 
@@ -715,7 +716,7 @@ export const duckDbReadAndUpdateSelectedLayer = async (
             max_y_atc = (globalChartStore.selected_y_atc + y_atc_margin).toFixed(3);
         } else {
             if(!func.includes('atl08')){
-                console.warn('duckDbReadAndUpdateSelectedLayer selected_y_atc is undefined');
+                logger.warn('selected_y_atc is undefined', { reqId: req_id, func });
             }
             use_y_atc_filter = false;
         }
@@ -728,11 +729,11 @@ export const duckDbReadAndUpdateSelectedLayer = async (
         const requiresTransformation = needsTransformation(sourceCrs);
 
         if (requiresTransformation && sourceCrs) {
-            console.log(`duckDbReadAndUpdateSelectedLayer: Will transform coordinates from ${sourceCrs} to EPSG:4326`);
+            logger.debug('Will transform coordinates for selected layer', { from: sourceCrs, to: 'EPSG:4326' });
         } else if (sourceCrs) {
-            console.log(`duckDbReadAndUpdateSelectedLayer: No transformation needed, data is in ${sourceCrs}`);
+            logger.debug('No transformation needed for selected layer', { crs: sourceCrs });
         } else {
-            console.log('duckDbReadAndUpdateSelectedLayer: No geo metadata CRS found, assuming coordinates are WGS 84 (EPSG:4326)');
+            logger.debug('No geo metadata CRS found for selected layer, assuming WGS 84 (EPSG:4326)');
         }
 
         // Check if geometry column exists and build appropriate SELECT
@@ -820,10 +821,10 @@ export const duckDbReadAndUpdateSelectedLayer = async (
             }
 
             if (numRows === 0) {
-                console.warn('duckDbReadAndUpdateSelectedLayer no data items processed');
+                logger.warn('No data items processed for selected layer', { reqId: req_id });
             }
         } catch (error) {
-            console.error('duckDbReadAndUpdateSelectedLayer error processing chunk:', error);
+            logger.error('Error processing chunk for selected layer', { reqId: req_id, error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
 
@@ -836,37 +837,35 @@ export const duckDbReadAndUpdateSelectedLayer = async (
                 // Pass `positions` to the function so it's used efficiently
                 updateDeckLayerWithObject(layerName,rowChunks, summary.extHMean, height_fieldname, positions, projName);
             } else {
-                console.error('duckDbReadAndUpdateSelectedLayer summary is undefined');
+                logger.error('Summary is undefined for selected layer', { reqId: req_id });
             }
         } else {
-            console.warn('duckDbReadAndUpdateSelectedLayer no data items processed');
+            logger.warn('No data items processed for selected layer', { reqId: req_id });
         }
     } catch (error) {
-        console.error('duckDbReadAndUpdateSelectedLayer error:', error);
+        logger.error('Error in duckDbReadAndUpdateSelectedLayer', { reqId: req_id, error: error instanceof Error ? error.message : String(error) });
         throw error;
     } finally {
         filteredPntData.isLoading = false;
         const endTime = performance.now();
-        console.log(`duckDbReadAndUpdateSelectedLayer for ${req_id} took ${endTime - startTime} milliseconds.`);
+        logger.debug('duckDbReadAndUpdateSelectedLayer performance', { reqId: req_id, durationMs: endTime - startTime });
     }
 };
 
 export async function isReqFileLoaded(reqId:number): Promise<any> {
     const startTime = performance.now(); // Start time
-    let serverReq = '';
     try{
         const fileName = await indexedDb.getFilename(reqId);
         const duckDbClient = await createDuckDbClient();
         await duckDbClient.insertOpfsParquet(fileName);
         return await duckDbClient.isParquetLoaded(fileName);
     } catch (error) {
-        console.error('duckDbLoadOpfsParquetFile error:',error);
+        logger.error('Error loading parquet file', { reqId, error: error instanceof Error ? error.message : String(error) });
         throw error;
     } finally {
         const endTime = performance.now(); // End time
-        console.log(`duckDbLoadOpfsParquetFile took ${endTime - startTime} milliseconds.`);
+        logger.debug('isReqFileLoaded performance', { reqId, durationMs: endTime - startTime });
     }
-    return serverReq;   
 }
 
 
@@ -882,17 +881,17 @@ export async function duckDbLoadOpfsParquetFile(fileName: string): Promise<any> 
             if(serverReqResult){
                 serverReq = serverReqResult;
             } else {
-                console.warn('duckDbLoadOpfsParquetFile serverReqResult is null');
+                logger.warn('serverReqResult is null', { fileName });
             }
         } catch (error) {
-            console.error('duckDbLoadOpfsParquetFile Error dumping parquet metadata:', error);
+            logger.error('Error dumping parquet metadata', { fileName, error: error instanceof Error ? error.message : String(error) });
         }
     } catch (error) {
-        console.error('duckDbLoadOpfsParquetFile error:',error);
+        logger.error('Error in duckDbLoadOpfsParquetFile', { fileName, error: error instanceof Error ? error.message : String(error) });
         throw error;
     } finally {
         const endTime = performance.now(); // End time
-        console.log(`duckDbLoadOpfsParquetFile took ${endTime - startTime} milliseconds.`);
+        logger.debug('duckDbLoadOpfsParquetFile performance', { fileName, durationMs: endTime - startTime });
     }
     //console.log('duckDbLoadOpfsParquetFile serverReq:', serverReq);
     return serverReq;
@@ -909,18 +908,18 @@ export async function getGeoMetadataFromFile(fileName: string): Promise<any> {
         if (metadata?.geo) {
             try {
                 geoMetadata = JSON.parse(metadata.geo);
-                console.log('getGeoMetadataFromFile found geo metadata for', fileName);
+                logger.debug('Found geo metadata', { fileName });
             } catch (error) {
-                console.error('getGeoMetadataFromFile Error parsing geo metadata:', error);
+                logger.error('Error parsing geo metadata', { fileName, error: error instanceof Error ? error.message : String(error) });
             }
         } else {
-            console.log('getGeoMetadataFromFile no geo metadata found for', fileName);
+            logger.debug('No geo metadata found', { fileName });
         }
     } catch (error) {
-        console.error('getGeoMetadataFromFile error:', error);
+        logger.error('Error in getGeoMetadataFromFile', { fileName, error: error instanceof Error ? error.message : String(error) });
     } finally {
         const endTime = performance.now();
-        console.log(`getGeoMetadataFromFile took ${endTime - startTime} milliseconds.`);
+        logger.debug('getGeoMetadataFromFile performance', { fileName, durationMs: endTime - startTime });
     }
     return geoMetadata;
 }
@@ -945,16 +944,16 @@ export async function getAllRgtOptionsInFile(req_id: number): Promise<SrListNumb
                 if (row) {
                     rgtOptions.push({ label: row[utfn].toString(), value: row[utfn] });
                 } else {
-                    console.warn('getAllRgtOptionsInFile fetchData rowData is null');
+                    logger.warn('Row data is null in getAllRgtOptionsInFile', { reqId: req_id });
                 }
             }
-        } 
+        }
     } catch (error) {
-        console.error('getAllRgtOptionsInFile Error:', error);
+        logger.error('Error in getAllRgtOptionsInFile', { reqId: req_id, error: error instanceof Error ? error.message : String(error) });
         throw error;
     } finally {
         const endTime = performance.now(); // End time
-        console.log(`SrDuckDbUtils.getAllRgtOptionsInFile() took ${endTime - startTime} milliseconds.`,rgtOptions);
+        logger.debug('getAllRgtOptionsInFile performance', { reqId: req_id, optionsCount: rgtOptions.length, durationMs: endTime - startTime });
     }
     return rgtOptions;
 }
@@ -974,17 +973,17 @@ export async function getPairs(req_id: number): Promise<number[]> {
                     //console.log('getPairs row:', row);
                     pairs.push(row.pair);
                 } else {
-                    console.warn('getPairs fetchData rowData is null');
+                    logger.warn('Row data is null in getPairs', { reqId: req_id });
                 }
             }
-        } 
+        }
         //console.log('getPairs pairs:', pairs);
     } catch (error) {
-        console.error('getPairs Error:', error);
+        logger.error('Error in getPairs', { reqId: req_id, error: error instanceof Error ? error.message : String(error) });
         throw error;
     } finally {
         const endTime = performance.now(); // End time
-        console.log(`SrDuckDbUtils.getPairs() took ${endTime - startTime} milliseconds.`, pairs);
+        logger.debug('getPairs performance', { reqId: req_id, pairCount: pairs.length, durationMs: endTime - startTime });
     }
     return pairs;
 }
@@ -1005,17 +1004,17 @@ export async function getTracks(req_id: number): Promise<number[]> {
                     //console.log('getPairs row:', row);
                     tracks.push(row.track);
                 } else {
-                    console.warn('getTracks fetchData rowData is null');
+                    logger.warn('Row data is null in getTracks', { reqId: req_id });
                 }
             }
-        } 
+        }
         //console.log('getPairs pairs:', pairs);
     } catch (error) {
-        console.error('getTracks Error:', error);
+        logger.error('Error in getTracks', { reqId: req_id, error: error instanceof Error ? error.message : String(error) });
         throw error;
     } finally {
         const endTime = performance.now(); // End time
-        //console.log(`SrDuckDbUtils.getTracks() took ${endTime - startTime} milliseconds.`);
+        logger.debug('getTracks performance', { reqId: req_id, trackCount: tracks.length, durationMs: endTime - startTime });
     }
     return tracks;
 }
@@ -1034,17 +1033,17 @@ export async function getScOrient(req_id: number): Promise<number[]> {
                     //console.log('getScOrient row:', row);
                     scOrients.push(row.sc_orient);
                 } else {
-                    console.warn('getScOrient fetchData rowData is null');
+                    logger.warn('Row data is null in getScOrient', { reqId: req_id });
                 }
             }
-        } 
+        }
         //console.log('getScOrient scOrients:', scOrients);
     } catch (error) {
-        console.error('getScOrient Error:', error);
+        logger.error('Error in getScOrient', { reqId: req_id, error: error instanceof Error ? error.message : String(error) });
         throw error;
     } finally {
         const endTime = performance.now(); // End time
-        //console.log(`SrDuckDbUtils.getScOrient() took ${endTime - startTime} milliseconds.`);
+        logger.debug('getScOrient performance', { reqId: req_id, scOrientCount: scOrients.length, durationMs: endTime - startTime });
     }
     return scOrients;
 }
@@ -1083,10 +1082,10 @@ export async function getAllCycleOptionsInFile(req_id: number): Promise<{ cycles
         for await (const rowChunk of queryResult.readRows()) {
             for (const row of rowChunk) {
                 if (!row) {
-                    console.warn('getAllCycleOptionsInFile rowData is null or undefined');
+                    logger.warn('Row data is null or undefined in getAllCycleOptionsInFile', { reqId: req_id });
                     continue;
                 }
-                
+
                 // Convert time to a locale-based string (e.g. MM/DD/YYYY)
                 const timeStr = new Date(row.time).toLocaleDateString(undefined, {
                     year: 'numeric',
@@ -1106,11 +1105,11 @@ export async function getAllCycleOptionsInFile(req_id: number): Promise<{ cycles
             }
         }
     } catch (error) {
-        console.error('getAllCycleOptionsInFile Error:', error);
+        logger.error('Error in getAllCycleOptionsInFile', { reqId: req_id, error: error instanceof Error ? error.message : String(error) });
         throw error;
     } finally {
         const endTime = performance.now(); // End time
-        console.log(`getAllCycleOptionsInFile took ${endTime - startTime} ms.`, cycles);
+        logger.debug('getAllCycleOptionsInFile performance', { reqId: req_id, cycleCount: cycles.length, durationMs: endTime - startTime });
     }
 
     return {cycles, cycleOptions};
@@ -1158,27 +1157,17 @@ export async function getAllFilteredCycleOptionsFromFile(
                     const newLabel = `${row.cycle}: ${timeStr}`;
                     cycles.push({ label: newLabel, value: row.cycle });
                 } else {
-                    console.warn(
-                        'getAllFilteredCycleOptionsFromFile fetchData rowData is null'
-                    );
+                    logger.warn('Row data is null in getAllFilteredCycleOptionsFromFile', { reqId: req_id });
                 }
             }
         }
 
     } catch (error) {
-        console.error('getAllFilteredCycleOptionsFromFile Error:', error);
+        logger.error('Error in getAllFilteredCycleOptionsFromFile', { reqId: req_id, error: error instanceof Error ? error.message : String(error) });
         throw error;
     } finally {
         const endTime = performance.now(); // End time
-        console.log(
-            `getAllFilteredCycleOptionsFromFile took ${endTime - startTime} milliseconds.`,
-            ' req_id:',
-            req_id,
-            ' cycles:',
-            cycles,
-            'whereClause:',
-            whereClause
-        );
+        logger.debug('getAllFilteredCycleOptionsFromFile performance', { reqId: req_id, cycleCount: cycles.length, whereClause, durationMs: endTime - startTime });
     }
     return cycles;
 }
@@ -1192,11 +1181,11 @@ export async function updateAllFilterOptions(req_id: number): Promise<void> {
         const retObj = await getAllCycleOptionsInFile(req_id);
         globalChartStore.setCycleOptions(retObj.cycleOptions);
     } catch (error) {
-        console.error('updateAllFilterOptions Error:', error);
+        logger.error('Error in updateAllFilterOptions', { reqId: req_id, error: error instanceof Error ? error.message : String(error) });
         throw error;
     } finally {
         const endTime = performance.now(); // End time
-        console.log(`SrDuckDbUtils.updateAllFilterOptions() took ${endTime - startTime} milliseconds.`);
+        logger.debug('updateAllFilterOptions performance', { reqId: req_id, durationMs: endTime - startTime });
     }
 }
 export interface FetchScatterDataOptions {
@@ -1268,7 +1257,7 @@ export async function fetchScatterData(
 }> {
     const timeField = useFieldNameStore().getTimeFieldName(parseInt(reqIdStr));
     const mission = useFieldNameStore().getMissionForReqId(parseInt(reqIdStr));
-    console.log('fetchScatterData reqIdStr:', reqIdStr, ' fileName:', fileName, ' x:', x, ' y:', y, ' options:', options);
+    logger.debug('fetchScatterData called', { reqIdStr, fileName, x, y, options });
     // Ensure 'time' is in the y array
     if (!y.includes(timeField)) {
         y = [...y, timeField];
@@ -1367,13 +1356,13 @@ export async function fetchScatterData(
         const queryResultMinMax: QueryResult = await duckDbClient.query(minMaxQuery);
         //console.log('fetchScatterData queryResultMinMax:', queryResultMinMax);
         let minXtoUse: number = options.parentMinX ?? 0;
-        console.log('fetchScatterData options.parentMinX:',options.parentMinX,'minXtoUse:', minXtoUse);
+        logger.debug('fetchScatterData parentMinX', { parentMinX: options.parentMinX, minXtoUse });
 
         for await (const rowChunk of queryResultMinMax.readRows()) {
             //console.log('fetchScatterData rowChunk:', rowChunk);
             for (const row of rowChunk) {
                 if (!row) {
-                    console.warn('fetchScatterData: rowData is null in min/max query');
+                    logger.warn('Row data is null in min/max query', { reqIdStr });
                     continue;
                 }
 
@@ -1390,9 +1379,9 @@ export async function fetchScatterData(
                         minXtoUse = rawMinX;
                     }
                     if(minXtoUse === rawMinX){
-                        console.log('fetchScatterData minXtoUse:', minXtoUse, `row['min_${x}']:`, rawMinX);
+                        logger.debug('minXtoUse matches rawMinX', { minXtoUse, rawMinX });
                     } else {
-                        console.warn('fetchScatterData minXtoUse:', minXtoUse, `row['min_${x}']:`, rawMinX);
+                        logger.warn('minXtoUse differs from rawMinX', { minXtoUse, rawMinX });
                     }
                     // set min/max in the store
                     useChartStore().setRawMinX(reqIdStr, rawMinX);
@@ -1416,8 +1405,7 @@ export async function fetchScatterData(
                     }
 
                 } else {
-                    console.log('aliasKey("min", x):',aliasKey("min", `${x}`));
-                    console.error('fetchScatterData: min/max x is NaN:', minX, maxX);
+                    logger.error('min/max x is NaN', { x, minX, maxX, aliasKey: aliasKey("min", `${x}`) });
                 }
 
                 y.forEach((yName) => {
@@ -1431,7 +1419,7 @@ export async function fetchScatterData(
                         minMaxLowHigh[yName] = { min: minY, max: maxY, low: lowY, high: highY };
                     } else {
                         // Warn about columns with no valid data (likely all NULLs)
-                        console.warn(`fetchScatterData: Column '${yName}' has no valid data (all NULL or NaN values), skipping from plot`);
+                        logger.warn('Column has no valid data, skipping from plot', { yName, minY, maxY, lowY, highY });
                     }
                 });
 
@@ -1492,7 +1480,7 @@ export async function fetchScatterData(
             //console.log('fetchScatterData transformRow:', transformRow);
             for (const row of rowChunk) {
                 if (!row) {
-                    console.warn('fetchScatterData: rowData is null in main query');
+                    logger.warn('Row data is null in main query', { reqIdStr });
                     continue;
                 }
 
@@ -1562,13 +1550,13 @@ export async function fetchScatterData(
         return { chartData, minMaxLowHigh, normalizedMinMaxValues, dataOrderNdx };
 
     } catch (error) {
-        console.error('fetchScatterData Error:', error);
+        logger.error('Error in fetchScatterData', { reqIdStr, x, y, error: error instanceof Error ? error.message : String(error) });
         console.trace('fetchScatterData Error:', error);
         return { chartData: {}, minMaxLowHigh: {}, normalizedMinMaxValues: {}, dataOrderNdx: {} };
     } finally {
         const endTime = performance.now();
-        console.log(`fetchScatterData took ${endTime - startTime} ms.`);
-    }  
+        logger.debug('fetchScatterData performance', { reqIdStr, durationMs: endTime - startTime });
+    }
 }
 
 export async function getAllColumnMinMax(
@@ -1611,7 +1599,7 @@ export async function getAllColumnMinMax(
     }
 
     if (colNames.length === 0) {
-        console.warn(`No numeric columns found in ${fileName}`);
+        logger.warn('No numeric columns found', { fileName, reqId });
         return {};
     }
 
@@ -1638,12 +1626,12 @@ export async function getAllColumnMinMax(
             }
         }
     } catch (error) {
-        console.error('getAllColumnMinMax error:', error);
+        logger.error('Error in getAllColumnMinMax', { reqId, fileName, error: error instanceof Error ? error.message : String(error) });
         throw error;
     }
 
     const endTime = performance.now();
-    console.log( `getAllColumnMinMax took ${endTime - startTime} ms.\nresult:`, result);
+    logger.debug('getAllColumnMinMax performance', { reqId, columnCount: Object.keys(result).length, durationMs: endTime - startTime });
     return result;
 }
 /**
@@ -1714,7 +1702,7 @@ export async function getAtl06SlopeSegments(
             }
         }
     } catch (error) {
-        console.error('getAtl06SlopeSegments error:', error);
+        logger.error('Error in getAtl06SlopeSegments', { fileName, xField, yField, dhFitDxField, error: error instanceof Error ? error.message : String(error) });
         throw error;
     }
     return lines;

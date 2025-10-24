@@ -4,6 +4,9 @@ import { Control } from 'ol/control';
 import { getBaseLayersForView } from '@/composables/SrViews';
 import { useMapStore } from "@/stores/mapStore";
 import SrMenu from './SrMenu.vue';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrBaseLayerControl');
 
 const mapStore = useMapStore();
 const baseLayerControlElement = ref<HTMLElement | null>(null);
@@ -27,9 +30,9 @@ onUnmounted(() => {
   }
 });
 
-function updateBaseLayer(event: Event) {
+function updateBaseLayer(_event: Event) {
   emit('update-baselayer', mapStore.selectedBaseLayer);
-  console.log("updateBaseLayer:", event);
+  logger.debug('updateBaseLayer', { event: _event, selectedBaseLayer: mapStore.selectedBaseLayer });
 }
 </script>
 

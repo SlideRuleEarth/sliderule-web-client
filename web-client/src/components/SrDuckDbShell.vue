@@ -96,6 +96,9 @@ import InputNumber from 'primevue/inputnumber';
 import { Message } from 'primevue';
 import { useRequestsStore } from '@/stores/requestsStore';
 import SrExportSelected from './SrExportSelected.vue';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrDuckDbShell');
 const requestsStore = useRequestsStore();
 
 const recTreeStore = useRecTreeStore();
@@ -115,7 +118,7 @@ const limit = ref(1000);
 const computedLimitClause = computed(() => (limit.value > 0 ? `LIMIT ${limit.value}` : ''));
 const computedStartingInfoText = computed(() => {
     if(limit.value > 0){
-        return `running query adding ${computedLimitClause} ...`;
+        return `running query adding ${computedLimitClause.value} ...`;
     } else {
         return 'running query ...';
     }
@@ -129,19 +132,19 @@ let duckDbClient: DuckDBClient | null = null;
 onMounted(async () => {
     try {
         duckDbClient = await createDuckDbClient();
-        requestsStore.displayHelpfulPlotAdvice("click Run to generate a table of the selected track data");
-        requestsStore.displayHelpfulPlotAdvice("You can query the table with any valid SQL statement");
-        console.log('SrDuckDbShell onMounted: DuckDB client initialized ');
+        void requestsStore.displayHelpfulPlotAdvice("click Run to generate a table of the selected track data");
+        void requestsStore.displayHelpfulPlotAdvice("You can query the table with any valid SQL statement");
+        logger.debug('onMounted: DuckDB client initialized');
         info.value = 'Enter a SQL query and click "Run Sql Query"\nIf it "Snaps" reload the page and narrow the query and/or use LIMIT';
     } catch (err: any) {
         error.value = `Failed to initialize DuckDB: ${err?.message ?? err}`;
-        console.error(err);
+        logger.error('Failed to initialize DuckDB', { error: err instanceof Error ? err.message : String(err) });
     }
 });
 
 async function executeQuery() {
     if (!duckDbClient){
-        console.error('DuckDB client not initialized');
+        logger.error('DuckDB client not initialized');
         error.value = 'DuckDB client not initialized?';
         return;
     }
@@ -160,7 +163,7 @@ async function executeQuery() {
         }
     } catch (err: any) {
         error.value = `Query error: ${err?.message ?? err}`;
-        console.error(err);
+        logger.error('Query error', { error: err instanceof Error ? err.message : String(err) });
     } finally {
         isLoading.value = false;
         info.value= `There are ${rows.value.length} rows in the result`;

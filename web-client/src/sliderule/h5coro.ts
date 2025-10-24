@@ -49,7 +49,7 @@ const datatypes = {
 //
 // h5
 //
-export function h5( dataset:string, 
+export async function h5( dataset:string, 
                     resource:string,
                      asset:string, 
                      datatype:number=datatypes.DYNAMIC, 

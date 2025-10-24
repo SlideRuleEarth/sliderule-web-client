@@ -2,6 +2,9 @@ import { ref, computed } from 'vue';
 import { defineStore } from 'pinia';
 import colormap from 'colormap';
 import type { SrMenuNumberItem } from '@/types/SrTypes';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('ElevationColorMapStore');
 
 export const useElevationColorMapStore = defineStore('elevationColorMap', () => {
     const selectedElevationColorMap = ref('viridis');
@@ -51,9 +54,11 @@ export const useElevationColorMapStore = defineStore('elevationColorMap', () => 
                 alpha: 1
             });
         } catch (error) {
-            console.warn('updateElevationColorMapValues selectedElevationColorMap:', selectedElevationColorMap.value);
-            console.warn('updateElevationColorMapValues numShadesForElevation:', numShadesForElevation.value);
-            console.error('updateElevationColorMapValues error:', error);
+            logger.warn('updateElevationColorMapValues failed', {
+                selectedElevationColorMap: selectedElevationColorMap.value,
+                numShadesForElevation: numShadesForElevation.value
+            });
+            logger.error('updateElevationColorMapValues error', { error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }

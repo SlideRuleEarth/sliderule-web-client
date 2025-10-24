@@ -25,6 +25,9 @@ import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { watch } from 'vue';
 import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
 import { updateMapAndPlot } from '@/utils/SrMapUtils';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrMapLegendBox');
 
 const globalChartStore = useGlobalChartStore();
 const elevationColorMap = useElevationColorMapStore();
@@ -61,7 +64,7 @@ const maxValue = computed(() => {
 });
 
 onMounted(() => {
-  console.log('SrMapLegendBox onMounted: reqIdStr:', props.reqIdStr, 'data_key:', props.data_key);
+  logger.debug('onMounted', { reqIdStr: props.reqIdStr, data_key: props.data_key });
   elevationColorMap.updateElevationColorMapValues();
   emit('legendbox-created');
   //console.log("elevationColorMap.gradientColorMap:", elevationColorMap.gradientColorMap);
@@ -70,9 +73,9 @@ onMounted(() => {
 // Watch for changes in the elevation color map or the number of shades to update the gradient
 watch(
   () => [elevationColorMap.selectedElevationColorMap, elevationColorMap.numShadesForElevation],
-  async ()  => {
+  ()  => {
     elevationColorMap.updateElevationColorMapValues();
-    await updateMapAndPlot("SrMapLegendBox watch elevationColorMap change");
+    void updateMapAndPlot("SrMapLegendBox watch elevationColorMap change");
   }
 );
 

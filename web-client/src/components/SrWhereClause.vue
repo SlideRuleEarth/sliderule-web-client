@@ -8,8 +8,10 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useRecTreeStore } from '@/stores/recTreeStore';
-import { createWhereClause } from '@/utils/spotUtils'; 
+import { createWhereClause } from '@/utils/spotUtils';
+import { createLogger } from '@/utils/logger';
 
+const logger = createLogger('SrWhereClause');
 
 const recTreeStore = useRecTreeStore();
 
@@ -27,7 +29,7 @@ const whereClause = computed(() => {
     try {
         return createWhereClause(reqId.value);
     } catch (e) {
-        console.warn('SrWhereClause: failed to build where clause', e);
+        logger.warn('failed to build where clause', { error: e instanceof Error ? e.message : String(e) });
         return '';
     }
 });

@@ -2,6 +2,9 @@ import type { SysConfig } from "@/sliderule/core"
 import type { SrRunContext } from "@/db/SlideRuleDb";
 import type { ReqParams } from "@/types/SrTypes";
 import { db } from "@/db/SlideRuleDb";
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('WorkerUtils');
 // No Pinia store can be used in this file because it is called from a web worker   
 
 
@@ -66,7 +69,7 @@ export async function startedMsg(req_id:number,req_params:ReqParams): Promise<Wo
         // initialize request record in db
         await db.updateRequestRecord( {req_id:req_id,status:workerStartedMsg.status, parameters:req_params,status_details: workerStartedMsg.msg, start_time: new Date(), end_time: new Date(), elapsed_time: ''});
     } catch (error) {
-        console.error('Failed to update request status to started:', error, ' for req_id:', req_id);
+        logger.error('Failed to update request status to started', { reqId: req_id, error: error instanceof Error ? error.message : String(error) });
     }
     return workerStartedMsg;
 }
@@ -77,14 +80,14 @@ export async function abortedMsg(req_id:number, msg: string): Promise<WorkerMess
         // initialize request record in db
         await db.updateRequestRecord( {req_id:req_id, status: 'aborted',status_details: msg},true);
     } catch (error) {
-        console.error('Failed to update request status to aborted:', error, ' for req_id:', req_id);
+        logger.error('Failed to update request status to aborted', { reqId: req_id, error: error instanceof Error ? error.message : String(error) });
     }
     return workerAbortedMsg;
 }
 
-export async function progressMsg(  req_id:number, 
-                                    progress:SrProgress, 
-                                    msg: string): Promise<WorkerMessage> {
+export function progressMsg(  req_id:number,
+                                    progress:SrProgress,
+                                    msg: string): WorkerMessage {
     const workerProgressMsg: WorkerMessage =  { req_id:req_id, status: 'progress', progress:progress, msg:msg };
     //console.log(msg)
     //console.log('progressMsg  num_defs_fetched:',get_num_defs_fetched(),' get_num_defs_rd_from_cache:',get_num_defs_rd_from_cache());
@@ -96,7 +99,7 @@ export async function serverMsg(req_id:number,  msg: string): Promise<WorkerMess
     try{
         await db.updateRequestRecord( {req_id:req_id, status: 'server_msg',status_details: msg});
     } catch (error) {
-        console.error('Failed to update request status to server_msg:', error, ' for req_id:', req_id);
+        logger.error('Failed to update request status to server_msg', { reqId: req_id, error: error instanceof Error ? error.message : String(error) });
     }
     return workerServerMsg;
 }
@@ -107,10 +110,10 @@ export async function errorMsg(req_id:number=0, workerError: WorkerError): Promi
         try{
             await db.updateRequestRecord( {req_id:req_id, status: 'error',status_details: workerError.message},true);
         } catch (error) {
-            console.error('Failed to update request status to error:', error, ' for req_id:', req_id);
+            logger.error('Failed to update request status to error', { reqId: req_id, error: error instanceof Error ? error.message : String(error) });
         }
     } else {
-        console.error('req_id was not provided for errorMsg');
+        logger.error('req_id was not provided for errorMsg');
     }
     return workerErrorMsg;
 }
@@ -120,7 +123,7 @@ export async function successMsg(req_id:number, msg:string): Promise<WorkerMessa
     try{
         await db.updateRequestRecord( {req_id:req_id, status: 'success',status_details: msg},true);
     } catch (error) {
-        console.error('Failed to update request status to success:', error, ' for req_id:', req_id);
+        logger.error('Failed to update request status to success', { reqId: req_id, error: error instanceof Error ? error.message : String(error) });
     }
     return workerSuccessMsg;
 }

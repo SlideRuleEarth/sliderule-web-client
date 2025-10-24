@@ -3,6 +3,9 @@ import { ref, computed, type ComputedRef } from 'vue';
 import type { SrPrimeTreeNode, SrMenuNumberItem } from '@/types/SrTypes';
 import { useRequestsStore } from '@/stores/requestsStore';
 import { initDataBindingsToChartStore,initChartStoreFor,initSymbolSize } from '@/utils/plotUtils';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('RecTreeStore');
 
 function findNodeByKey(nodes: SrPrimeTreeNode[] | null | undefined, key: string): SrPrimeTreeNode | null {
     if (!nodes) return null;
@@ -48,6 +51,7 @@ function buildRecTree(nodes: SrMenuNumberItem[]): SrPrimeTreeNode[] {
 export const useRecTreeStore = defineStore('recTreeStore', () => {
     // State
     const treeData = ref<SrPrimeTreeNode[]>([]);
+    const isTreeLoaded = ref(false);
     const selectedValue = ref<Record<string, boolean>>({'0':false});
     const reqIdMenuItems = ref<SrMenuNumberItem[]>([]);
     const selectedNodeKey:ComputedRef<string> = computed(() => {
@@ -114,21 +118,23 @@ export const useRecTreeStore = defineStore('recTreeStore', () => {
         try {
             reqIdMenuItems.value = await useRequestsStore().getMenuItems();
             treeData.value = buildRecTree(reqIdMenuItems.value); // Transform to TreeNode structure
+            isTreeLoaded.value = true; // Mark as loaded
             if (treeData.value.length > 0) {
                 if(selectReqId && (selectReqId > 0)){
                     if(findAndSelectNode(selectReqId)){
                         //console.log('loadTreeData: Selected node with reqId:',selectReqId);
                     } else {
-                        console.warn('loadTreeData: findAndSelectNode failed to find selectReqId',selectReqId);
+                        logger.warn('Failed to find and select node', { selectReqId });
                     }
                 } else if (!selectedNodeKey.value){
-                    console.warn('loadTreeData: No selectedNodeKey available for:',selectReqId);
+                    logger.warn('No selectedNodeKey available', { selectReqId });
                 }
             } else {
-                 console.log('loadTreeData: No nodes available');
+                 logger.debug('No nodes available in tree data');
             }
         } catch (error) {
-            console.error('loadTreeData Failed to load tree data:', error);
+            logger.error('Failed to load tree data', { error: error instanceof Error ? error.message : String(error) });
+            isTreeLoaded.value = true; // Still mark as loaded even if empty/error
         }
     };
 
@@ -144,20 +150,20 @@ export const useRecTreeStore = defineStore('recTreeStore', () => {
             //     'selectedReqId:', selectedReqId.value
             //   );
         } else {
-          console.warn('setSelectedValue: Node not found in treeData');
+          logger.warn('Node not found in treeData', { key });
         }
     };
-      
+
     const initToFirstRecord = () => {
         const firstReqId = allReqIds.value[0];
         if(firstReqId > 0){
             if(findAndSelectNode(firstReqId)){
-                console.warn('initToFirstRecord set selected record to firstReqId:', firstReqId, 'selected firstReqId:', firstReqId);
+                logger.debug('Set selected record to first reqId', { firstReqId });
             } else {
-                console.error('initToFirstRecord findAndSelectNode FAILED for firstReqId:', firstReqId);
+                logger.error('findAndSelectNode FAILED for first reqId', { firstReqId });
             }
         } else {
-            console.error('initToFirstRecord found invalid reqId in first record:', firstReqId);
+            logger.error('Found invalid reqId in first record', { firstReqId });
         }
     };
 
@@ -167,17 +173,22 @@ export const useRecTreeStore = defineStore('recTreeStore', () => {
             return '';
         }
 
-        // Check if tree is empty (race condition - tree not yet loaded)
+        // Check if tree is loaded (race condition - tree not yet loaded- reactive and will update later)
+        if (!isTreeLoaded.value) {
+            logger.warn('TreeData not yet loaded for findApiForReqId', { reqId });
+            return '';
+        }
+
+        // Check if tree is empty after loading
         if (!treeData.value || treeData.value.length === 0) {
-            console.warn(`findApiForReqId: treeData not yet loaded for reqId ${reqId}, returning empty string`);
+            logger.debug('TreeData is empty after loading', { reqId });
             return '';
         }
 
         const node = findNodeByKey(treeData.value, reqId.toString());
         if (!node) {
             // Node genuinely not found in populated tree
-            console.warn(`findApiForReqId: Node with reqId ${reqId} not found in tree`);
-            console.trace(`findApiForReqId: Node with reqId ${reqId} not found. treeData has ${treeData.value.length} root nodes`);
+            logger.debug('Node not found in tree for findApiForReqId', { reqId, treeDataRootCount: treeData.value.length });
             return '';
         }
         return node?.api || '';
@@ -198,14 +209,14 @@ export const useRecTreeStore = defineStore('recTreeStore', () => {
             }
             return null;
         };
-    
+
         const node = findNode(treeData.value);
         if (node) {
             //console.log('findAndSelectNode found node:',node,' with reqId:',reqId);
             setSelectedValue(node.key);
             return true; // Node was found and selected
         } else {
-            console.warn(`findAndSelectNode Node with reqId ${reqId} not found`);
+            logger.warn('Node not found in findAndSelectNode', { reqId });
             return false; // Node not found
         }
     };
@@ -222,7 +233,7 @@ export const useRecTreeStore = defineStore('recTreeStore', () => {
                 await initSymbolSize(newReqId);
             }
         } catch (error) {
-            console.error(`updateRecMenu ${logMsg} Failed to updateRecMenu:`, error);
+            logger.error('Failed to updateRecMenu', { logMsg, newReqId, error: error instanceof Error ? error.message : String(error) });
         }
         //console.log('updateRecMenu reqIdMenuItems:', reqIdMenuItems.value, 'allreqIds:', allReqIds.value, 'selectedReqId:', selectedReqId.value);
         return selectedReqId.value? selectedReqId.value : 0;
@@ -230,6 +241,7 @@ export const useRecTreeStore = defineStore('recTreeStore', () => {
 
     return {
         treeData,
+        isTreeLoaded,
         selectedValue,
         selectedNodeKey,
         selectedNodeLabel,
@@ -243,6 +255,6 @@ export const useRecTreeStore = defineStore('recTreeStore', () => {
         updateRecMenu,
         initToFirstRecord,
         findApiForReqId,
-        countRequestsByApi, 
+        countRequestsByApi,
     };
 });

@@ -10,6 +10,9 @@ import { computed } from 'vue';
 import DatePicker from 'primevue/datepicker';
 import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrCalendar');
 
 const props = defineProps({
     label: {type:String,
@@ -43,26 +46,18 @@ const props = defineProps({
 const innerModelValue = computed({
         get(): Date {
             const value = props.getValue();
-            console.log('SrCalendar:', props.label, 'get:', value, typeof value);
-            console.log(`SrCalendar: ${value}`);
+            logger.debug('get', { label: props.label, value, type: typeof value });
             return value; // calling the getter function
         },
         set(value: Date) {
-            console.log('SrCalendar:', props.label, 'set:', value, typeof value);
+            logger.debug('set', { label: props.label, value, type: typeof value });
             props.setValue(value); // calling the setter function
         }
     });
 
 
-const emit = defineEmits(['update:modelValue']);
-
 // Generate a unique inputId based on the label prop
 const inputId = `sr-calendar-${props.label.toLowerCase().replace(/[^a-zA-Z0-9]/g, '').replace(/\s+/g, '-')}`;
-
-function handleChange(event:any) {
-    console.log(`${props.label} SrCheckbox: ${event.target.checked}`);
-    emit('update:modelValue', event.target.checked);
-}
 </script>
 
 <style scoped>

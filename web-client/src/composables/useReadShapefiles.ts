@@ -13,6 +13,9 @@ import { useMapStore } from '@/stores/mapStore';
 import type OLMap from 'ol/Map.js';
 import { handleGeoJsonLoad, zoomOutToFullMap } from '@/utils/SrMapUtils';
 import { prjToSupportedEpsg } from '@/utils/prjToEpsg';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('useReadShapefiles');
 
 // ----------  pure parser that returns raw GeoJSON ----------
 export async function parseShapefileToGeoJSON(
@@ -85,8 +88,8 @@ export async function parseShapefileToGeoJSON(
     } else if (isUrlMap(input)) {
         const entries = Object.entries(input);
         const buffers = await Promise.all(
-            entries.map(([_, url]) =>
-                fetch(url).then(resp => {
+            entries.map(async ([_ext, url]) =>
+                fetch(url).then(async resp => {
                     if (!resp.ok) throw new Error(`Failed to fetch ${url}`);
                     return resp.arrayBuffer();
                 })
@@ -141,11 +144,10 @@ export async function loadShapefileToMap(
   } = options;
 
   const geoJsonStore = useGeoJsonStore();
-  const reqParamsStore = useReqParamsStore();
   const map = options.map ?? useMapStore().getMap();
   let drawExtent: number[] | undefined;
   const { geojson, warning, detectedProjection } = await parseShapefileToGeoJSON(input);
-  console.log('Shapefile parsed:', { geojson, warning, detectedProjection });
+  logger.debug('Shapefile parsed', { geojson, warning, detectedProjection });
   if (loadReqPoly) geoJsonStore.setReqGeoJsonData(geojson);
   else geoJsonStore.setFeaturesGeoJsonData(geojson);
   if(map){
@@ -160,7 +162,7 @@ export async function loadShapefileToMap(
         }
     }
   } else {
-    console.error('loadShapefileToMap: No map available to display shapefile features.');
+    logger.error('loadShapefileToMap: No map available to display shapefile features');
   }
 
   // Only use toast if the caller passed it in
@@ -181,7 +183,7 @@ export async function loadShapefileToMap(
     }
   }
 
-  console.log('After shapefile load, reqParamsStore.poly:', reqParamsStore.poly);
+  logger.debug('After shapefile load');
   return { warning, detectedProjection, drawExtent };
 }
 
@@ -211,7 +213,7 @@ export async function readShapefileToOlFeatures(
     let warning: string | null = null;
 
     if (isZipFile(input)) {
-        console.log('readShapefileToOlFeatures: processing zip file input:', input);
+        logger.debug('readShapefileToOlFeatures: processing zip file input', { input });
 
         // 1) Extract PRJ (if present) from the zip
         const zipBuf = await input.arrayBuffer();
@@ -230,7 +232,7 @@ export async function readShapefileToOlFeatures(
             // Nice preview without always adding ellipsis
             const preview = prjLower.length > 120 ? prjLower.slice(0, 120) + '…' : prjLower;
             detectedProjection = preview;
-            console.log('Detected .prj content:', prjLower);
+            logger.debug('Detected .prj content', { prjLower });
 
             const is4326 =
                 prjLower.includes('wgs_1984') &&
@@ -240,19 +242,19 @@ export async function readShapefileToOlFeatures(
 
             if (!is4326) {
                 warning = `Warning: The shapefile's .prj indicates a non-EPSG:4326 projection. This may cause misalignment.`;
-                console.warn(warning, 'Detected .prj content:', prjLower);
+                logger.warn('Detected .prj content', { warning, prjLower });
             } else {
-                console.log('Shapefile .prj indicates EPSG:4326 projection.');
+                logger.debug('Shapefile .prj indicates EPSG:4326 projection');
             }
         } else {
-            console.log('No .prj found in zip.');
+            logger.debug('No .prj found in zip');
         }
 
         // 2) Convert to GeoJSON as before
         geojson = await shp(zipBuf);
-        console.log('readShapefileToOlFeatures: processed zip file geojson:', geojson);
+        logger.debug('readShapefileToOlFeatures: processed zip file geojson', { geojson });
     } else if (isFileList(input)) {
-        console.log('readShapefileToOlFeatures: processing FileList input:', input);
+        logger.debug('readShapefileToOlFeatures: processing FileList input', { input });
         for (const file of Array.from(input)) {
             const ext = file.name.split('.').pop()?.toLowerCase();
             if (ext) fileMap[ext] = await file.arrayBuffer();
@@ -273,11 +275,11 @@ export async function readShapefileToOlFeatures(
         }
         geojson = await shp(fileMap);
     } else if (isUrlMap(input)) {
-        console.log('readShapefileToOlFeatures: processing URL map input:', input);
+        logger.debug('readShapefileToOlFeatures: processing URL map input', { input });
         const entries = Object.entries(input);
         const buffers = await Promise.all(
-            entries.map(([_, url]) =>
-                fetch(url).then(resp => {
+            entries.map(async ([_ext, url]) =>
+                fetch(url).then(async resp => {
                     if (!resp.ok) throw new Error(`Failed to fetch ${url}`);
                     return resp.arrayBuffer();
                 })
@@ -328,7 +330,7 @@ export async function readShapefileToOlFeatures(
         dataProjection: sourceCRS,
         featureProjection: haveTarget ? targetCRS : undefined,
     });
-    console.log(`Converted GeoJSON to OL features: ${features.length} features, from ${sourceCRS} to ${targetCRS}`, { features });
+    logger.debug(`Converted GeoJSON to OL features: ${features.length} features, from ${sourceCRS} to ${targetCRS}`, { features });
     return {
         features,
         warning,

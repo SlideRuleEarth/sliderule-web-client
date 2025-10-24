@@ -8,6 +8,9 @@
 import { ref, nextTick } from 'vue';
 import { Teleport } from 'vue';
 import DOMPurify from 'dompurify';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrCustomTooltip');
 
 const props = defineProps<{ id: string }>();
 
@@ -17,7 +20,7 @@ const tooltipStyle = ref<Record<string, string>>({});
 
 const showTooltip = async (event: MouseEvent, content: string | undefined) => {
     if (!content) {
-        console.warn('Tooltip content is undefined or empty:', content);
+        logger.warn('Tooltip content is undefined or empty');
         return;
     }
 

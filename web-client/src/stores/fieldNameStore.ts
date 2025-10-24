@@ -1,9 +1,12 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { useRecTreeStore } from '@/stores/recTreeStore'; // Adjust import path if needed
+import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useChartStore } from './chartStore';
 import { createDuckDbClient } from '@/utils/SrDuckDb';
 import { db } from '@/db/SlideRuleDb';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('FieldNameStore');
 
 const curGedi2apElFieldOptions = ref(['elevation_lm','elevation_hr']); 
 const curGedi2apElevationField = ref('elevation_lm'); 
@@ -48,7 +51,7 @@ function getMissionForReqId(reqId: number): string {
     if(funcStr){
         return getMissionFromApiStr(funcStr);
     } else {
-        console.warn(`No API found for reqId:${reqId} funcStr:${funcStr} in getMissionForReqId`);
+        logger.warn('No API found in getMissionForReqId', { reqId, funcStr });
         return 'ICESat-2'; // Default to ICESat-2 if no API found
     }
 }
@@ -66,7 +69,7 @@ function getDefaultElOptions(reqId:number, funcStr?: string): string[] {
 
     // Handle case where tree data isn't loaded yet and no funcStr provided
     if (!funcStr) {
-        console.warn(`getDefaultElOptions: No API found for reqId ${reqId} (tree may not be loaded yet)`);
+        logger.warn('getDefaultElOptions: No API found (tree may not be loaded yet)', { reqId });
         return options; // Return empty array
     }
 
@@ -105,20 +108,20 @@ function getDefaultElOptions(reqId:number, funcStr?: string): string[] {
         case 'gedi01b': options = ['elevation_start', 'track', 'beam', 'orbit'];
             break;
         default:
-            console.error(`getDefaultElOptions: Unknown API '${funcStr}' for reqId ${reqId}`)
+            logger.error('getDefaultElOptions: Unknown API', { funcStr, reqId });
             //throw new Error(`Unknown height fieldname for API: ${funcStr} in getDefaultElOptions`);
             break;
     }
     const fieldNames = useChartStore().getElevationDataOptions(reqId.toString())
     if(fieldNames.includes('atl24_class')){
-        console.log('getDefaultElOptions adding atl24_class, it is in fieldNames:',fieldNames);
+        logger.debug('getDefaultElOptions adding atl24_class', { fieldNames });
         options.push('atl24_class');
     }
     if(fieldNames.includes('atl08_class')){
-        console.log('getDefaultElOptions adding atl08_class, it is in fieldNames:',fieldNames);
+        logger.debug('getDefaultElOptions adding atl08_class', { fieldNames });
         options.push('atl08_class');
     }
-    console.log(`getDefaultElOptions request for ${reqId} funcStr:${funcStr} options:`,options);
+    logger.debug('getDefaultElOptions request', { reqId, funcStr, options });
     return options;
 }
 
@@ -131,7 +134,7 @@ function getLonFieldNameForAPIStr(funcStr: string): string {
 }
 
 function getTimeFieldNameForAPIStr(funcStr: string): string {
-    console.log('getTimeFieldNameForAPIStr',funcStr);
+    logger.debug('getTimeFieldNameForAPIStr', { funcStr });
     return (funcStr.includes('x') ? 'time_ns' : 'time');
 }
 
@@ -152,7 +155,7 @@ function getUniqueTrkFieldName(reqId: number): string {
         const field = getUniqueTrkFieldNameForAPIStr(funcStr);
         return field;
     } catch (error) {
-        console.error(`Field name lookup error for reqId ${reqId}:`, error);
+        logger.error('Field name lookup error', { reqId, error: error instanceof Error ? error.message : String(error) });
         throw error;
     }
 }
@@ -172,7 +175,7 @@ function getUniqueOrbitIdFieldName(reqId: number): string {
         const field = getUniqueOrbitIdFieldNameForAPIStr(funcStr);
         return field;
     } catch (error) {
-        console.error(`Field name lookup error for reqId ${reqId}:`, error);
+        logger.error('Field name lookup error', { reqId, error: error instanceof Error ? error.message : String(error) });
         throw error;
     }
 }
@@ -192,7 +195,7 @@ function getUniqueSpotIdFieldName(reqId: number): string {
         const field = getUniqueSpotIdFieldNameForAPIStr(funcStr);
         return field;
     } catch (error) {
-        console.error(`Field name lookup error for reqId ${reqId}:`, error);
+        logger.error('Field name lookup error', { reqId, error: error instanceof Error ? error.message : String(error) });
         throw error;
     }
 }
@@ -210,7 +213,7 @@ function getDefaultColorEncoding(funcStr: string,parentFuncStr?:string): string 
         } 
     }
     catch (error) {
-        console.error(`getDefaultColorEncoding error for funcStr ${funcStr}:`, error);
+        logger.error('getDefaultColorEncoding error', { funcStr, error: error instanceof Error ? error.message : String(error) });
         return 'solid';
     }
 }
@@ -241,7 +244,7 @@ export const useFieldNameStore = defineStore('fieldNameStore', () => {
     async function cacheRecordInfoForReqId(reqId: number): Promise<void> {
         //console.log(`cacheRecordInfoForReqId: reqId ${reqId}`);
         if (reqId <= 0) {
-            console.warn(`Invalid reqId ${reqId} in cacheRecordInfoForReqId`);
+            logger.warn('Invalid reqId in cacheRecordInfoForReqId', { reqId });
             return;
         }
 
@@ -249,7 +252,7 @@ export const useFieldNameStore = defineStore('fieldNameStore', () => {
             // Get filename for this reqId
             const fileName = await db.getFilename(reqId);
             if (!fileName) {
-                console.warn(`No filename found for reqId ${reqId}`);
+                logger.warn('No filename found for reqId', { reqId });
                 recordInfoCache.value[reqId] = null;
                 return;
             }
@@ -261,16 +264,16 @@ export const useFieldNameStore = defineStore('fieldNameStore', () => {
 
             if (metadata?.recordinfo) {
                 const recordInfo: RecordInfo = JSON.parse(metadata.recordinfo);
-                console.log(`Loaded recordinfo metadata for reqId ${reqId}:`, recordInfo);
+                logger.debug('Loaded recordinfo metadata', { reqId, recordInfo });
                 recordInfoCache.value[reqId] = recordInfo;
                 return;
             } else {
-                console.log(`No recordinfo metadata found for reqId ${reqId}`);
+                logger.debug('No recordinfo metadata found', { reqId });
                 recordInfoCache.value[reqId] = null;
                 return;
             }
         } catch (error) {
-            console.warn(`Error fetching recordinfo for reqId ${reqId}:`, error);
+            logger.warn('Error fetching recordinfo', { reqId, error: error instanceof Error ? error.message : String(error) });
             recordInfoCache.value[reqId] = null;
             return;
         }
@@ -288,7 +291,7 @@ export const useFieldNameStore = defineStore('fieldNameStore', () => {
             cache[reqId] = field;
             return field;
         } catch (error) {
-            console.error(`Field name lookup error for reqId ${reqId} funcStr: ${funcStr}:`, error);
+            logger.error('Field name lookup error', { reqId, error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
@@ -304,7 +307,7 @@ export const useFieldNameStore = defineStore('fieldNameStore', () => {
             hFieldCache.value[reqId] = recordInfo.z;
             return recordInfo.z;
         }
-        console.warn(`No z field in recordinfo for reqId ${reqId}, falling back to hardcoded.`);
+        logger.debug('No z field in recordinfo, falling back to hardcoded', { reqId });
         // Fall back to hardcoded
         return getCachedValue(hFieldCache.value, reqId, getHFieldNameForAPIStr);
     }
@@ -316,7 +319,7 @@ export const useFieldNameStore = defineStore('fieldNameStore', () => {
             latFieldCache.value[reqId] = recordInfo.y;
             return recordInfo.y;
         }
-        console.warn(`No y field in recordinfo for reqId ${reqId}, falling back to hardcoded.`);
+        logger.warn('No y field in recordinfo, falling back to hardcoded', { reqId });
         // Fall back to hardcoded
         return getCachedValue(latFieldCache.value, reqId, getLatFieldNameForAPIStr);
     }
@@ -328,7 +331,7 @@ export const useFieldNameStore = defineStore('fieldNameStore', () => {
             lonFieldCache.value[reqId] = recordInfo.x;
             return recordInfo.x;
         }
-        console.warn(`No x field in recordinfo for reqId ${reqId}, falling back to hardcoded.`);
+        logger.warn('No x field in recordinfo, falling back to hardcoded', { reqId });
         // Fall back to hardcoded
         return getCachedValue(lonFieldCache.value, reqId, getLonFieldNameForAPIStr);
     }
@@ -340,7 +343,7 @@ export const useFieldNameStore = defineStore('fieldNameStore', () => {
             timeFieldCache.value[reqId] = recordInfo.time;
             return recordInfo.time;
         }
-        console.warn(`No time field in recordinfo for reqId ${reqId}, falling back to hardcoded.`);
+        logger.warn('No time field in recordinfo, falling back to hardcoded', { reqId });
         // Fall back to hardcoded
         return getCachedValue(timeFieldCache.value, reqId, getTimeFieldNameForAPIStr);
     }
@@ -352,14 +355,14 @@ export const useFieldNameStore = defineStore('fieldNameStore', () => {
         if(svrParams.output && typeof svrParams.output === 'object'){
             if(svrParams.output.as_geo !== undefined){
                 const asGeo = svrParams.output.as_geo === true;
-                console.log(`[fieldNameStore] reqId ${reqId} - output.as_geo = ${asGeo}`, svrParams.output);
+                logger.debug('extractAsGeoFromXApi: output.as_geo', { reqId, asGeo, output: svrParams.output });
                 return asGeo;
             } else {
-                console.error(`[fieldNameStore] reqId ${reqId} - output.as_geo undefined, defaulting to false`, svrParams.output);
+                logger.error('extractAsGeoFromXApi: output.as_geo undefined, defaulting to false', { reqId, output: svrParams.output });
                 return false;
             }
         } else {
-            console.error(`[fieldNameStore] reqId ${reqId} - output field missing or invalid, defaulting as_geo to false`, svrParams.output);
+            logger.error('extractAsGeoFromXApi: output field missing or invalid, defaulting as_geo to false', { reqId, output: svrParams.output });
             return false;
         }
     }
@@ -374,26 +377,26 @@ export const useFieldNameStore = defineStore('fieldNameStore', () => {
                     if(svrParams.server.rqst.parms.output && typeof svrParams.server.rqst.parms.output === 'object'){
                         if(svrParams.server.rqst.parms.output.as_geo !== undefined){
                             const asGeo = svrParams.server.rqst.parms.output.as_geo === true;
-                            console.log(`[fieldNameStore] reqId ${reqId} - output.as_geo = ${asGeo}`, svrParams.server.rqst.parms.output);
+                            logger.debug('extractAsGeoFromNonXApi: output.as_geo', { reqId, asGeo, output: svrParams.server.rqst.parms.output });
                             return asGeo;
                         } else {
-                            console.error(`[fieldNameStore] reqId ${reqId} - output.as_geo undefined, defaulting to false`, svrParams.server.rqst.parms.output);
+                            logger.error('extractAsGeoFromNonXApi: output.as_geo undefined, defaulting to false', { reqId, output: svrParams.server.rqst.parms.output });
                             return false;
                         }
                     } else {
-                        console.error(`[fieldNameStore] reqId ${reqId} - output field missing or invalid, defaulting as_geo to false`, svrParams.server.rqst.parms.output);
+                        logger.error('extractAsGeoFromNonXApi: output field missing or invalid, defaulting as_geo to false', { reqId, output: svrParams.server.rqst.parms.output });
                         return false;
                     }
                 } else {
-                    console.error(`[fieldNameStore] reqId ${reqId} - parms field missing or invalid, defaulting as_geo to false`, svrParams.server.rqst.parms);
+                    logger.error('extractAsGeoFromNonXApi: parms field missing or invalid, defaulting as_geo to false', { reqId, parms: svrParams.server.rqst.parms });
                     return false;
                 }
             } else {
-                console.error(`[fieldNameStore] reqId ${reqId} - rqst field missing or invalid, defaulting as_geo to false`, svrParams.server.rqst);
+                logger.error('extractAsGeoFromNonXApi: rqst field missing or invalid, defaulting as_geo to false', { reqId, rqst: svrParams.server.rqst });
                 return false;
             }
         } else {
-            console.error(`[fieldNameStore] reqId ${reqId} - server field missing or invalid, defaulting as_geo to false`, svrParams.server);
+            logger.error('extractAsGeoFromNonXApi: server field missing or invalid, defaulting as_geo to false', { reqId, server: svrParams.server });
             return false;
         }
     }
@@ -405,13 +408,13 @@ export const useFieldNameStore = defineStore('fieldNameStore', () => {
      */
     function setAsGeoCache(reqId: number, svrParams: any, funcStr: string): void {
         if(!svrParams){
-            console.error(`[fieldNameStore] svrParams is null/undefined for reqId ${reqId}`);
+            logger.error('setAsGeoCache: svrParams is null/undefined', { reqId });
             asGeoCache.value[reqId] = false;
             return;
         }
 
         if(!funcStr){
-            console.error(`[fieldNameStore] request.func is null/undefined for reqId ${reqId}`);
+            logger.error('setAsGeoCache: request.func is null/undefined', { reqId });
             asGeoCache.value[reqId] = false;
             return;
         }
@@ -431,7 +434,7 @@ export const useFieldNameStore = defineStore('fieldNameStore', () => {
         try {
             const request = await db.getRequest(reqId);
             if (!request) {
-                console.error(`[fieldNameStore] No request found for reqId ${reqId}`);
+                logger.error('loadAsGeoFromSvrParams: No request found', { reqId });
                 asGeoCache.value[reqId] = false;
                 return;
             }
@@ -442,12 +445,12 @@ export const useFieldNameStore = defineStore('fieldNameStore', () => {
             // If svrParams is a string, parse it
             if (typeof svrParams === 'string') {
                 svrParams = JSON.parse(svrParams);
-                console.log(`[fieldNameStore] Parsing svrParams string for reqId ${reqId}`, svrParams);
+                logger.debug('loadAsGeoFromSvrParams: Parsing svrParams string', { reqId, svrParams });
             }
 
             setAsGeoCache(reqId, svrParams, request.func || '');
         } catch (error) {
-            console.error(`[fieldNameStore] Error loading as_geo from server params for reqId ${reqId}:`, error);
+            logger.error('loadAsGeoFromSvrParams: Error loading as_geo from server params', { reqId, error: error instanceof Error ? error.message : String(error) });
             asGeoCache.value[reqId] = false;
         }
     }
@@ -470,12 +473,12 @@ export const useFieldNameStore = defineStore('fieldNameStore', () => {
         try {
             await loadAsGeoFromSvrParams(reqId);
         } catch (error) {
-            console.warn(`Error loading as_geo for reqId ${reqId}:`, error);
+            logger.warn('Error loading as_geo', { reqId, error: error instanceof Error ? error.message : String(error) });
         }
         try{
             await cacheRecordInfoForReqId(reqId);
         } catch (error) {
-            console.warn(`Error loading recordinfo for reqId ${reqId}:`, error);
+            logger.warn('Error loading recordinfo', { reqId, error: error instanceof Error ? error.message : String(error) });
         }
     }
 

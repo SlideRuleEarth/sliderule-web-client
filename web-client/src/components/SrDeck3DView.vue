@@ -13,7 +13,7 @@
             @click="handleToggleAxes"
         />
         <div>
-            <label class="sr-y-data-label":for="`srYColEncode3D-overlayed-${recTreeStore.selectedReqIdStr}`">Point Color</label>
+            <label class="sr-y-data-label" :for="`srYColEncode3D-overlayed-${recTreeStore.selectedReqIdStr}`">Point Color</label>
             <Select
                 class="sr-select-col-encode-data"
                 v-model="yColorEncodeSelectedReactive[recTreeStore.selectedReqIdStr]"
@@ -80,8 +80,11 @@ import { finalizeDeck,loadAndCachePointCloudData, updateFovy } from '@/utils/dec
 import { debouncedRender } from '@/utils/SrDebounce';
 import { yColorEncodeSelectedReactive } from '@/utils/plotUtils';
 import Select from 'primevue/select';
-import { useChartStore } from '@/stores/chartStore'; 
+import { useChartStore } from '@/stores/chartStore';
 import { checkAndSetFilterFor3D } from '@/utils/plotUtils';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrDeck3DView');
 
 const recTreeStore = useRecTreeStore();
 const chartStore = useChartStore();
@@ -111,22 +114,22 @@ const computedStepSize = computed(() => {
 
 
 async function handleColorEncodeSelectionChange() {
-    console.log('handleColorEncodeSelectionChange');
+    logger.debug('handleColorEncodeSelectionChange');
     await loadAndCachePointCloudData(reqId.value);
     debouncedRender(localDeckContainer); // Use the fast, debounced renderer
 }
 
-async function handleToggleAxes() {
+function handleToggleAxes() {
     deck3DConfigStore.showAxes = !deck3DConfigStore.showAxes;
     debouncedRender(localDeckContainer); // Use the fast, debounced renderer
 }
 
-async function handlePointSizeChange() {
+function handlePointSizeChange() {
     //console.log('Point Size Changed:', deck3DConfigStore.pointSize);
     debouncedRender(localDeckContainer); // Use the fast, debounced renderer
 }
 
-async function handleVerticalExaggerationChange() {
+function handleVerticalExaggerationChange() {
     //console.log('Vertical exaggeration changed:', deck3DConfigStore.verticalExaggeration);
     debouncedRender(localDeckContainer); // Use the fast, debounced renderer
 }
@@ -138,7 +141,7 @@ onMounted(async () => {
     await updateElevationMap(reqId.value);
     await nextTick(); // ensures DOM is updated
     elevationStore.updateElevationColorMapValues();
-    checkAndSetFilterFor3D();
+    void checkAndSetFilterFor3D();
     await nextTick(); // makes sure the gradient is available
     //console.log('onMounted Centroid:', deck3DConfigStore.centroid);
     const { width, height } = localDeckContainer.value!.getBoundingClientRect();
@@ -149,14 +152,14 @@ onMounted(async () => {
     if (localDeckContainer.value) {
         const { width, height } = localDeckContainer.value.getBoundingClientRect();
         if (width === 0 || height === 0) {
-            console.error('onMounted Deck container has zero dimensions!');
+            logger.error('onMounted Deck container has zero dimensions', { width, height });
         } else {
             deck3DConfigStore.deckContainer = localDeckContainer.value;
             //console.log('onMounted Deck container set:', deck3DConfigStore.deckContainer);
             //console.log('onMounted Deck container size:', deck3DConfigStore.deckContainer?.getBoundingClientRect());
         }
     } else {
-        console.error('onMounted localDeckContainer is null');
+        logger.error('onMounted localDeckContainer is null');
     }
 
     if (elevationStore.elevationColorMap.length > 0) {
@@ -164,7 +167,7 @@ onMounted(async () => {
         await loadAndCachePointCloudData(reqId.value);
         debouncedRender(localDeckContainer); // Use the fast, debounced renderer
     } else {
-        console.error('No color Gradient');
+        logger.error('No color Gradient');
         toast.error('No color Gradient', 'Skipping point cloud due to missing gradient.');
     }
     toast.info('3D view', 'Drag to rotate, scroll to zoom. Hold the shift key and drag to pan.', 30000);
@@ -177,7 +180,7 @@ onUnmounted(() => {
 
 watch(reqId, async (newVal, oldVal) => {
     if (newVal && newVal !== oldVal) {
-        checkAndSetFilterFor3D();
+        void checkAndSetFilterFor3D();
         await updateElevationMap(reqId.value);
         await loadAndCachePointCloudData(reqId.value);
         debouncedRender(localDeckContainer); // Use the fast, debounced renderer
@@ -185,7 +188,7 @@ watch(reqId, async (newVal, oldVal) => {
 });
 
 watch(() => deck3DConfigStore.fovy, (newFov) => {
-    console.log('FOV updated to:', newFov);
+    logger.debug('FOV updated', { newFov });
     updateFovy(newFov);
     debouncedRender(localDeckContainer); // Use the fast, debounced renderer
 });

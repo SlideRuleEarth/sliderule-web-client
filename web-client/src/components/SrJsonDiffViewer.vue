@@ -55,6 +55,9 @@ import Checkbox from 'primevue/checkbox'
 import Button from 'primevue/button'
 import { useReqParamsStore } from '@/stores/reqParamsStore'
 import { ref, watchEffect, nextTick } from 'vue'
+import { createLogger } from '@/utils/logger'
+
+const logger = createLogger('SrJsonDiffViewer')
 
 const reqParamsStore = useReqParamsStore()
 
@@ -94,8 +97,8 @@ function highlight(value: unknown): string {
 }
 
 function generateDiff(
-    before: any,
-    after: any,
+    before: unknown,
+    after: unknown,
     path: string[] = [],
     automaticFields: Set<string> = new Set()
 ): DiffRow[] {
@@ -213,8 +216,8 @@ function forceChanges() {
     reqParamsStore.forcedRemovedParams = removed
 
     if (updated) {
-        console.log('Forced Request parameters:', reqParamsStore.forcedAddedParams)
-        nextTick(() => {
+        logger.debug('Forced Request parameters', { forcedAddedParams: reqParamsStore.forcedAddedParams })
+        void nextTick(() => {
             emit('forced-req_params', 0)
         })
     }

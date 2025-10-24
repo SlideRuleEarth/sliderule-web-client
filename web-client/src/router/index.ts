@@ -17,44 +17,44 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: () => import('@/views/RequestView.vue')
+      component: async () => import('@/views/RequestView.vue')
     },
     {
       path: '/about',
       name: 'about',
-      component: () => import('@/views/AboutView.vue')
+      component: async () => import('@/views/AboutView.vue')
     },
     {
       path: '/settings',
       name: 'settings',
-      component: () => import('@/views/SettingsView.vue')
+      component: async () => import('@/views/SettingsView.vue')
     },
     {
       path: '/rectree',
       name: 'rectree',
-      component: () => import('@/views/RecTreeView.vue')
+      component: async () => import('@/views/RecTreeView.vue')
     },
     {
       path: '/request',
       name: 'request',
-      component: () => import('@/views/RequestView.vue')
+      component: async () => import('@/views/RequestView.vue')
     },
     {
       path: '/request/:reqId',
       name: 'request-with-params',
-      component: () => import('@/views/RequestView.vue'),
+      component: async () => import('@/views/RequestView.vue'),
       props: true
     },
     {
       path: '/analyze/:id',
       name: 'analyze',
-      component: () => import('@/views/AnalyzeView.vue'),
+      component: async () => import('@/views/AnalyzeView.vue'),
       props: true
     },
     {
       path: '/:pathMatch(.*)*',
       name: 'NotFound',
-      component: () => import('@/components/NotFoundComponent.vue')
+      component: async () => import('@/components/NotFoundComponent.vue')
     }  
   ]
 })

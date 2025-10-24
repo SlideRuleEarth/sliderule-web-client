@@ -19,7 +19,9 @@ import { useDeck3DConfigStore } from '@/stores/deck3DConfigStore';
 import { loadAndCachePointCloudData } from '@/utils/deck3DPlotUtils';
 import { renderCachedData } from '@/utils/deck3DPlotUtils';
 import { useSrcIdTblStore } from "@/stores/srcIdTblStore";
+import { createLogger } from '@/utils/logger';
 
+const logger = createLogger('SrPlotConfig');
 const globalChartStore = useGlobalChartStore();
 const requestsStore = useRequestsStore();
 const recTreeStore = useRecTreeStore();
@@ -47,6 +49,7 @@ const computedReqIdStr = computed(() => {
 });
 
 const computedFunc = computed(() => {
+    if (!recTreeStore.isTreeLoaded) return '';
     return recTreeStore.findApiForReqId(props.reqId);
 });
 
@@ -65,23 +68,23 @@ const computedMainLabel = computed(() => {
 const deckContainer = computed(() => deck3DConfigStore.deckContainer);
 
 
-async function onMainYDataSelectionChange(newValue: string[]) {
-    console.log("Main Y Data changed:", newValue);
+async function onMainYDataSelectionChange(_newValue: string[]) {
+    logger.debug('Main Y Data changed', { newValue: _newValue });
     await callPlotUpdateDebounced('from onMainYDataSelectionChange');
 }
 
-async function onUseSelectedMinMaxChange(newValue: string[]) {
-    console.log("Main Y Data changed:", newValue);
+async function onUseSelectedMinMaxChange(_newValue: string[]) {
+    logger.debug('Use Selected MinMax changed', { newValue: _newValue });
     await callPlotUpdateDebounced('from onUseSelectedMinMaxChange');
 }
 
-async function onUsePercentileRangeChange(newValue: boolean) {
-    console.log("Use Percentile Range changed:", newValue);
+async function onUsePercentileRangeChange(_newValue: boolean) {
+    logger.debug('Use Percentile Range changed', { newValue: _newValue });
     await callPlotUpdateDebounced('from onUsePercentileRangeChange');
 }
 
 async function handleGediFieldNameChange(event: SelectChangeEvent) {
-    console.log("Gedi El Data changed:", event.value);
+    logger.debug('Gedi El Data changed', { value: event.value });
     if(activeTabStore.isActiveTabLabel('3-D View')){
         await callPlotUpdateDebounced('from handleGediFieldNameChange');
         await loadAndCachePointCloudData(props.reqId);
@@ -91,7 +94,7 @@ async function handleGediFieldNameChange(event: SelectChangeEvent) {
     }
 }
 
-async function enableLocationFinder() {
+async function enableLocationFinder(): Promise<void> {
     const latField = fieldNameStore.getLatFieldName(props.reqId);
     const lonField = fieldNameStore.getLonFieldName(props.reqId);
     const selectedElRec = globalChartStore.getSelectedElevationRec();
@@ -113,11 +116,11 @@ async function enableLocationFinder() {
     );
 
     if (newFields.length > 0) {
-        console.log(`enableLocationFinder: Adding ${newFields.join(', ')} to yDataOptions (they exist as separate columns in file)`);
+        logger.debug('enableLocationFinder: Adding fields to yDataOptions', { newFields, reason: 'they exist as separate columns in file' });
         chartStore.setYDataOptions(reqIdStr, [...currentYData, ...newFields]);
         await refreshScatterPlot('enabled Link to Elevation Plot');
     } else if ([latField, lonField].some(field => !availableColumns.includes(field))) {
-        console.log(`enableLocationFinder: Skipping lat/lon - they don't exist as separate columns (likely geoparquet with geometry column)`);
+        logger.debug('enableLocationFinder: Skipping lat/lon', { reason: "they don't exist as separate columns (likely geoparquet with geometry column)" });
     }
 
     if (await requestsStore.needAdvice()) {
@@ -131,23 +134,27 @@ async function enableLocationFinder() {
 }
 
 onMounted(() => {
-    //console.log('SrPlotConfig onMounted props.reqId:', props.reqId);
-    //console.log('SrPlotConfig onMounted computedReqIdStr:', computedReqIdStr.value);
-    enableLocationFinder();
-    const api = recTreeStore.findApiForReqId(props.reqId);
-    console.log('SrPlotConfig onMounted api:', api);
-    if(api.includes('x')) {
-        // This sets the source table for the given request ID so tooltip uses granule name
-        srcIdTblStore.getUniqueSourceCount(props.reqId); 
-    }
+    void enableLocationFinder();
 });
 
+// Wait for tree to load before accessing API info
+watch(() => recTreeStore.isTreeLoaded, (loaded) => {
+    if (!loaded) return;
+
+    const api = recTreeStore.findApiForReqId(props.reqId);
+    logger.debug('Tree loaded, initializing', { api, reqId: props.reqId });
+    if(api.includes('x')) {
+        // This sets the source table for the given request ID so tooltip uses granule name
+        srcIdTblStore.getUniqueSourceCount(props.reqId);
+    }
+}, { immediate: true });
 
 
-watch(() => globalChartStore.enableLocationFinder, async (newVal, oldValue) => {
+
+watch(() => globalChartStore.enableLocationFinder, (newVal, oldValue) => {
     if (!oldValue && newVal) {
         //console.log('SrPlotConfig watch enableLocationFinder:', newVal);
-        enableLocationFinder();
+        void enableLocationFinder();
     }
 });
 
@@ -208,7 +215,7 @@ watch(() => globalChartStore.enableLocationFinder, async (newVal, oldValue) => {
 
         />
         <div class="sr-ged02ap-el-select" v-if="recTreeStore.selectedApi == 'gedi02ap'">
-            <label class="sr-ged02ap-elevation-label":for="`sr-ged02ap-elevation-field-select`">Gedi02a Elevation to use</label> 
+            <label class="sr-ged02ap-elevation-label" :for="`sr-ged02ap-elevation-field-select`">Gedi02a Elevation to use</label> 
             <Select 
                 class="sr-ged02ap-elevation-field-select"
                 v-model="fieldNameStore.curGedi2apElevationField"

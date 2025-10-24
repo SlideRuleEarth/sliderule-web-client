@@ -40,7 +40,9 @@ import SrCustomTooltip from '@/components/SrCustomTooltip.vue';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { callPlotUpdateDebounced } from "@/utils/plotUtils";
 import { ref, computed } from 'vue';
+import { createLogger } from '@/utils/logger';
 
+const logger = createLogger('SrYatcFilterCntrl');
 const globalChartStore = useGlobalChartStore();
 const tooltipRef = ref();
 
@@ -55,15 +57,15 @@ const computedMinYAtc = computed(() => {
 });
 
 async function handleModelValueChange(value: number) {
-    console.log('SrYatcFilterCntrl handleModelValueChange:', value);
+    logger.debug('handleModelValueChange', { value });
     if(!value) {
-        console.log('SrYatcFilterCntrl handleModelValueChange: value is undefined:', value);
+        logger.debug('handleModelValueChange: value is undefined', { value });
     }
     if(globalChartStore.y_atc_is_valid()){
         await setCyclesGtsSpotsFromFileUsingRgtYatc();
         await callPlotUpdateDebounced("SrYatcFilterCntrl");// no need to debounce
     } else {
-        console.error('SrYatcFilterCntrl handleModelValueChange: globalChartStore.y_atc_is_valid() selected_y_atc:', globalChartStore.selected_y_atc);
+        logger.error('handleModelValueChange: y_atc_is_valid() failed', { selected_y_atc: globalChartStore.selected_y_atc });
     }
 }
 

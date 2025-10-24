@@ -1,5 +1,8 @@
 import ol_control_WMSCapabilities from 'ol-ext/control/WMSCapabilities';
 import { useMapStore } from '@/stores/mapStore';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('useWmsCap');
 import BaseEvent from "ol/events/Event";
 
 const mapStore = useMapStore();
@@ -37,7 +40,7 @@ export function useWmsCap(projectionName: string) {
             'USGS Antartica': 'https://nimbus.cr.usgs.gov/arcgis/services/Antarctica/USGS_EROS_Antarctica_Reference/MapServer/WmsServer'
         }
     } else {
-        console.log(`Warn: No Services found for projectionName:${projectionName}`);
+        logger.warn('No Services found for projectionName', { projectionName });
     }
     const map = mapStore.getMap();
     if(map){
@@ -56,7 +59,7 @@ export function useWmsCap(projectionName: string) {
                 const et:any = 'load';
                 wms_capabilities_cntrl.on(et,(event: BaseEvent) => {
                     const e = event as any;
-                    console.log('wms_capabilities_cntrl:on:load', e);
+                    logger.debug('wms_capabilities_cntrl:on:load', { event: e });
                     map.addLayer(e.layer);
                     e.layer.set('legend', e.options.data.legend);
                     plink.setUrlParam('url', e.options.source.url);
@@ -64,12 +67,12 @@ export function useWmsCap(projectionName: string) {
                 });
                 return wms_capabilities_cntrl;
             } else {
-                console.log("Error:wms_capabilities_cntrl is null");
+                logger.error('wms_capabilities_cntrl is null');
             }
         } else {
-            console.log("Error:plink is null");
+            logger.error('plink is null');
         }
     } else {
-        console.log("Error:map is null");
+        logger.error('map is null');
     }
 }

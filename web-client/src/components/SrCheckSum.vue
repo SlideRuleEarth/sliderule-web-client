@@ -11,6 +11,9 @@
   <script setup lang="ts">
     import { ref, onMounted } from "vue";
     import { useRequestsStore } from "@/stores/requestsStore";
+    import { createLogger } from '@/utils/logger';
+
+    const logger = createLogger('SrCheckSum');
 
     const props = defineProps({
         reqId: {
@@ -22,7 +25,7 @@
     const checksum = ref<boolean>(false);
     onMounted(async () => {
         checksum.value = await requestsStore.has_checksum(props.reqId);
-        console.log('SrCheckSum onMounted Loading SrCheckSum with ID:', props.reqId,' checksum:', checksum.value);
+        logger.debug('onMounted Loading SrCheckSum', { reqId: props.reqId, checksum: checksum.value });
     });
     
   </script>

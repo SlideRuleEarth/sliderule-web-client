@@ -26,6 +26,9 @@ import Button from 'primevue/button';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
 import { useSrToastStore } from '@/stores/srToastStore';
 import type OLMap from 'ol/Map.js';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrExportPolygonControl');
 
 type Corner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 
@@ -112,7 +115,7 @@ function exportAsGeoJSON() {
 
     toastStore.info('Export Successful', `Polygon exported as ${filename}`);
   } catch (error) {
-    console.error('Error exporting GeoJSON:', error);
+    logger.error('Error exporting GeoJSON', { error: error instanceof Error ? error.message : String(error) });
     toastStore.error('Export Failed', 'Failed to export polygon as GeoJSON');
   }
 }

@@ -48,4 +48,4 @@ export const useColorMapStore = defineStore('colorMapStore', {
 
 // Automatically call initialize when the store is first used
 const store = useColorMapStore();
-store.initializeColorMapStore();
+void store.initializeColorMapStore();

@@ -1,4 +1,7 @@
 import { renderCachedData } from '@/utils/deck3DPlotUtils';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrDebounce');
 /**
  * Creates a debounced function that delays invoking `func` until after `wait`
  * milliseconds have elapsed since the last time the debounced function was invoked.
@@ -6,13 +9,16 @@ import { renderCachedData } from '@/utils/deck3DPlotUtils';
  * @param wait The number of milliseconds to delay.
  * @returns A new debounced function.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, no-unused-vars
 export function SrDebounce<T extends (...args: any[]) => void>(
   func: T,
   wait: number
-): (...args: Parameters<T>) => void {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, no-unused-vars
+): (...args: any[]) => void {
   let timeout: ReturnType<typeof setTimeout> | null;
 
-  return function executedFunction(...args: Parameters<T>) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, no-unused-vars
+  return function executedFunction(...args: any[]) {
     const later = () => {
       timeout = null;
       func(...args);
@@ -30,6 +36,6 @@ export const debouncedRender = SrDebounce((localDeckContainer) => {
   if (localDeckContainer) {
     renderCachedData(localDeckContainer);
   } else {
-    console.warn('debouncedRender: localDeckContainer is null or undefined');
+    logger.warn('debouncedRender: localDeckContainer is null or undefined');
   }
 }, 150); // 150ms delay is usually a good balance

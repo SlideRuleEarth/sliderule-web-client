@@ -204,7 +204,7 @@ it('exports CSV, shows success toast, and closes the dialog', async () => {
 
   // Keep first export pending so exporting=true during second click
   const d = defer<boolean>();
-  exportCsvStreamedMock.mockImplementationOnce(() => d.promise);
+  exportCsvStreamedMock.mockImplementationOnce(async () => d.promise);
 
   const exportBtn = wrapper.findAll('[data-test="btn"]').at(-1)!;
 

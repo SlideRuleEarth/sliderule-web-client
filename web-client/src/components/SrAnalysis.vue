@@ -62,7 +62,9 @@
     import SrDeck3DView from '@/components/SrDeck3DView.vue';
     import SrElRng3D from '@/components/SrElRng3D.vue';
     import SrCycleSelect from './SrCycleSelect.vue';
+    import { createLogger } from '@/utils/logger';
 
+    const logger = createLogger('SrAnalysis');
 
     const route = useRoute();
     const recTreeStore = useRecTreeStore();
@@ -120,12 +122,12 @@
     });
 
     onMounted(async () => {
-        console.log('onMounted for SrAnalysis with reqId:', reqId.value);
+        logger.debug('onMounted for SrAnalysis', { reqId: reqId.value });
         activeTabStore.setActiveTab('0');
     });
 
     onUnmounted(() => {
-        console.log('onUnmounted for SrAnalysis');
+        logger.debug('onUnmounted for SrAnalysis');
         activeTabStore.setActiveTab('0'); // reset when we leave this component
     });
 

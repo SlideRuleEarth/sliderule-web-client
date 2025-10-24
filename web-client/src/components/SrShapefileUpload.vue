@@ -12,6 +12,9 @@ import { useMapStore } from "@/stores/mapStore";
 import {
   loadShapefileToMap, // orchestrates: parse → store → draw → fit → toasts
 } from "@/composables/useReadShapefiles";
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrShapefileUpload');
 
 const props = defineProps({
   reportUploadProgress: { type: Boolean, default: false },
@@ -53,9 +56,9 @@ function openFileDialog() {
 
 onMounted(() => {
     if (props.loadReqPoly) {
-        console.log("onMounted SrShapefileUpload: will load request polygon");
+        logger.debug('onMounted: will load request polygon');
     } else {
-        console.log("onMounted SrShapefileUpload: will load features");
+        logger.debug('onMounted: will load features');
     }
 });
 const onCloseDialog = () => {
@@ -63,38 +66,41 @@ const onCloseDialog = () => {
     emit('done');
 };
 
-const onFilesSelected = async (event: Event) => {
+const onFilesSelected = (event: Event) => {
     const files = (event.target as HTMLInputElement).files;
     if (!files || files.length === 0) return;
 
-    try {
-        // If a single .zip, pass it as File; otherwise pass the FileList
-        const singleFile = files.length === 1 ? files[0] : null;
-        const input =
-        singleFile && singleFile.name.toLowerCase().endsWith(".zip")
-            ? singleFile
-            : files;
+    // Use void to indicate intentionally not awaiting the promise
+    void (async () => {
+        try {
+            // If a single .zip, pass it as File; otherwise pass the FileList
+            const singleFile = files.length === 1 ? files[0] : null;
+            const input =
+            singleFile && singleFile.name.toLowerCase().endsWith(".zip")
+                ? singleFile
+                : files;
 
-        // 1) Load → store → draw → fit (toasts included inside)
-        await loadShapefileToMap(input, {
-            loadReqPoly: props.loadReqPoly,
-            map: useMapStore().getMap() as OLMap | null, // optional; loadShapefileToMap will default to the store
-            fitToExtent: true,
-            toast: toast,
-            toastLifeMs: 10000
-        });
+            // 1) Load → store → draw → fit (toasts included inside)
+            await loadShapefileToMap(input, {
+                loadReqPoly: props.loadReqPoly,
+                map: useMapStore().getMap() as OLMap | null, // optional; loadShapefileToMap will default to the store
+                fitToExtent: true,
+                toast: toast,
+                toastLifeMs: 10000
+            });
 
-        //showDialog.value = false;
-        //emit('done');
-    } catch (err) {
-        console.error("Shapefile upload failed:", err);
-        toast.add({
-        severity: "error",
-        summary: "Upload failed",
-        detail: err instanceof Error ? err.message : String(err),
-        life: 5000
-        });
-    }
+            //showDialog.value = false;
+            //emit('done');
+        } catch (err) {
+            logger.error('Shapefile upload failed', { error: err instanceof Error ? err.message : String(err) });
+            toast.add({
+            severity: "error",
+            summary: "Upload failed",
+            detail: err instanceof Error ? err.message : String(err),
+            life: 5000
+            });
+        }
+    })();
 };
 
 

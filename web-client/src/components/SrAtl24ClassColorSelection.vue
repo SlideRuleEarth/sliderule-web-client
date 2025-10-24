@@ -33,6 +33,9 @@ import Button from 'primevue/button';
 import { useAtl24ClassColorMapStore } from '@/stores/atl24ClassColorMapStore';
 import { useColorMapStore } from '@/stores/colorMapStore';
 import { onMounted, ref } from 'vue';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrAtl24ClassColorSelection');
 
 const props = defineProps({
     reqIdStr: {
@@ -47,7 +50,7 @@ const emit = defineEmits(['atl24selectionChanged', 'atl24defaultsChanged']);
 
 // Function to handle when any SrMenu selection changes
 const handleSelectionChanged = (label: string, color: string) => {
-    console.log(`Selection changed for ${label}: ${color}`);
+    logger.debug('Selection changed', { label, color });
     emit('atl24selectionChanged', { label, color });
 };
 
@@ -57,7 +60,7 @@ const restoreDefaultAtl24ClassColorMap = () => {
 };
 
 onMounted( async () => {
-    console.log('SrAtl24ClassColorSelection mounted');
+    logger.debug('SrAtl24ClassColorSelection mounted');
     atl24ClassColorMapStore.value = await useAtl24ClassColorMapStore(props.reqIdStr);
 });
 

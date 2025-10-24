@@ -6,7 +6,9 @@ import { computed } from "vue";
 import { formatBytes } from '@/utils/SrParquetUtils';
 import { useRecTreeStore } from "@/stores/recTreeStore";
 import TreeSelect from 'primevue/treeselect';
+import { createLogger } from '@/utils/logger';
 
+const logger = createLogger('SrRecSelectControl');
 
 const recordSelectorControlElement = ref<HTMLElement | null>(null);
 const emit = defineEmits<{
@@ -26,7 +28,7 @@ const tooltipTextStr = computed(() => {
     return "Has " + getCnt.value + " records and is " + getSize.value + " in size";
 });
 
-onMounted(async () => {
+onMounted(() => {
   if (recordSelectorControlElement.value) {
     customControl = new Control({ element: recordSelectorControlElement.value });
     emit('record-selector-control-created', customControl);
@@ -58,8 +60,8 @@ onUnmounted(() => {
 //     }
 // }
 
-function nodeSelect(node:any) {
-    console.log('nodeSelect:', node);
+function nodeSelect(_node:any) {
+    // Handler for node selection event
 }
 
 </script>
