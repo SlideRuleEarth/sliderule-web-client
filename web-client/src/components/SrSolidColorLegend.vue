@@ -1,74 +1,88 @@
-  <template>
-    <div v-if=(computedDisplayIt)>
-        <div class="sr-legend-box" :style="{ background: props.transparentBackground ? 'transparent' : 'rgba(255, 255, 255, 0.25)' }" >
-            <span class="sr-legend-name"> {{ computedTitle }} </span>
-            <div class="sr-legend-row">
-                <div class="sr-solid-color-box" :style="{  background: computedSolidColor, height: '0.75rem',  width: '0.75rem', border: '1px solid transparent' }">
-                </div>
-                <span class="sr-legend-name"> {{ computedHFieldName }} </span>
-            </div>
-        </div>
+<template>
+  <div v-if="computedDisplayIt">
+    <div
+      class="sr-legend-box"
+      :style="{
+        background: props.transparentBackground ? 'transparent' : 'rgba(255, 255, 255, 0.25)'
+      }"
+    >
+      <span class="sr-legend-name"> {{ computedTitle }} </span>
+      <div class="sr-legend-row">
+        <div
+          class="sr-solid-color-box"
+          :style="{
+            background: computedSolidColor,
+            height: '0.75rem',
+            width: '0.75rem',
+            border: '1px solid transparent'
+          }"
+        ></div>
+        <span class="sr-legend-name"> {{ computedHFieldName }} </span>
+      </div>
     </div>
-  </template>
+  </div>
+</template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
-import { useChartStore } from '@/stores/chartStore';
-import { computed, watch } from 'vue';
-import { useRecTreeStore } from '@/stores/recTreeStore';
-import { useFieldNameStore } from '@/stores/fieldNameStore';
+import { onMounted, ref as _ref } from 'vue'
+import { useChartStore } from '@/stores/chartStore'
+import { computed, watch as _watch } from 'vue'
+import { useRecTreeStore } from '@/stores/recTreeStore'
+import { useFieldNameStore } from '@/stores/fieldNameStore'
 
-const recTreeStore = useRecTreeStore();
-const fncs = useFieldNameStore();
+const recTreeStore = useRecTreeStore()
+const fncs = useFieldNameStore()
 
 // Props definition
 const props = withDefaults(
   defineProps<{
-    reqIdStr: string;
-    data_key: string;
-    transparentBackground?: boolean;
+    reqIdStr: string
+    data_key: string
+    transparentBackground?: boolean
   }>(),
   {
     reqIdStr: '',
     data_key: '',
-    transparentBackground: false,
+    transparentBackground: false
   }
-);
+)
 
-const chartStore = useChartStore();
+const chartStore = useChartStore()
 
 const computedDisplayIt = computed(() => {
   // Check if min/max values exist first to avoid warnings during loading
-  if (!chartStore.hasMinMaxValues(props.reqIdStr, computedHFieldName.value)) return false;
-  return ( chartStore.getMinValue(props.reqIdStr, computedHFieldName.value) !== null && chartStore.getMaxValue(props.reqIdStr, computedHFieldName.value) !== null);
-});
+  if (!chartStore.hasMinMaxValues(props.reqIdStr, computedHFieldName.value)) return false
+  return (
+    chartStore.getMinValue(props.reqIdStr, computedHFieldName.value) !== null &&
+    chartStore.getMaxValue(props.reqIdStr, computedHFieldName.value) !== null
+  )
+})
 
 const computedSolidColor = computed(() => {
-  return chartStore.getSolidSymbolColor(props.reqIdStr);
+  return chartStore.getSolidSymbolColor(props.reqIdStr)
 })
 
 const computedReqId = computed(() => {
-  return Number(props.reqIdStr);
-});
+  return Number(props.reqIdStr)
+})
 
 const computedHFieldName = computed(() => {
-  return fncs.getHFieldName(computedReqId.value);
-});
+  return fncs.getHFieldName(computedReqId.value)
+})
 
 const computedTitle = computed(() => {
   return recTreeStore.selectedApi
-    ? recTreeStore.selectedApi.charAt(0).toUpperCase() + recTreeStore.selectedApi.slice(1) + ' Colors'
-    : 'Colors';
-});
+    ? recTreeStore.selectedApi.charAt(0).toUpperCase() +
+        recTreeStore.selectedApi.slice(1) +
+        ' Colors'
+    : 'Colors'
+})
 
+const emit = defineEmits(['color-legendbox-created'])
 
-const emit = defineEmits(['color-legendbox-created']);
-
-
-onMounted(async () => {
-  emit('color-legendbox-created');
-});
-
+onMounted(() => {
+  emit('color-legendbox-created')
+})
 </script>
 
 <style scoped>
@@ -86,11 +100,11 @@ onMounted(async () => {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 .sr-legend-row {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    gap: 0.25rem; /* 4px equivalent */
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem; /* 4px equivalent */
 }
 .sr-legend-box:hover {
   background-color: transparent;

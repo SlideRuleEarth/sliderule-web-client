@@ -1,7 +1,9 @@
 declare module 'shpjs' {
-    export default function shp(
-        input: Record<string, ArrayBuffer> | ArrayBuffer | string
-    ): Promise<GeoJSON.FeatureCollection>;
+  import type { FeatureCollection } from 'geojson'
 
-    // Optional: Add other types if needed
+  export default function shp(
+    _input: Record<string, ArrayBuffer> | ArrayBuffer | string
+  ): Promise<FeatureCollection>
+
+  // Optional: Add other types if needed
 }

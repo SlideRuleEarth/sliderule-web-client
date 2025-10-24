@@ -1,45 +1,45 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from "vue";
-import { Control } from 'ol/control';
-import { useChartStore } from "@/stores/chartStore";
-import { computed } from "vue";
-import { formatBytes } from '@/utils/SrParquetUtils';
-import { useRecTreeStore } from "@/stores/recTreeStore";
-import TreeSelect from 'primevue/treeselect';
-import { createLogger } from '@/utils/logger';
+import { ref, onMounted, onUnmounted, watch as _watch } from 'vue'
+import { Control } from 'ol/control'
+import { useChartStore } from '@/stores/chartStore'
+import { computed } from 'vue'
+import { formatBytes } from '@/utils/SrParquetUtils'
+import { useRecTreeStore } from '@/stores/recTreeStore'
+import TreeSelect from 'primevue/treeselect'
+import { createLogger } from '@/utils/logger'
 
-const logger = createLogger('SrRecSelectControl');
+const _logger = createLogger('SrRecSelectControl')
 
-const recordSelectorControlElement = ref<HTMLElement | null>(null);
+const recordSelectorControlElement = ref<HTMLElement | null>(null)
 const emit = defineEmits<{
-  (e: 'record-selector-control-created', control: Control): void;
-}>();
-const recTreeStore = useRecTreeStore();
+  (_e: 'record-selector-control-created', _control: Control): void
+}>()
+const recTreeStore = useRecTreeStore()
 
-let customControl: Control | null = null;
+let customControl: Control | null = null
 const getSize = computed(() => {
-    return formatBytes(useChartStore().getSize());
-});
+  return formatBytes(useChartStore().getSize())
+})
 const getCnt = computed(() => {
-    return new Intl.NumberFormat().format(parseInt(String(useChartStore().getRecCnt())));
-});
+  return new Intl.NumberFormat().format(parseInt(String(useChartStore().getRecCnt())))
+})
 
-const tooltipTextStr = computed(() => {
-    return "Has " + getCnt.value + " records and is " + getSize.value + " in size";
-});
+const _tooltipTextStr = computed(() => {
+  return 'Has ' + getCnt.value + ' records and is ' + getSize.value + ' in size'
+})
 
 onMounted(() => {
   if (recordSelectorControlElement.value) {
-    customControl = new Control({ element: recordSelectorControlElement.value });
-    emit('record-selector-control-created', customControl);
+    customControl = new Control({ element: recordSelectorControlElement.value })
+    emit('record-selector-control-created', customControl)
   }
-});
+})
 
 onUnmounted(() => {
   if (customControl) {
-    customControl.setMap(null); // Clean up control on unmount
+    customControl.setMap(null) // Clean up control on unmount
   }
-});
+})
 
 // async function updateRecordSelector(event: Event) {
 //     const key = Object.keys(event)[0];
@@ -60,24 +60,26 @@ onUnmounted(() => {
 //     }
 // }
 
-function nodeSelect(_node:any) {
-    // Handler for node selection event
+function nodeSelect(_node: any) {
+  // Handler for node selection event
 }
-
 </script>
 
 <template>
-    <div ref="recordSelectorControlElement" class="sr-record-selector-control ol-unselectable ol-control">
-        <TreeSelect
-            v-model="recTreeStore.selectedValue"
-            :options="recTreeStore.treeData" 
-            placeholder="Select a Record"
-            selectionMode="single"
-            size="small"
-            :filter="true"
-            @nodeSelect="nodeSelect"
-        />
-    </div>
+  <div
+    ref="recordSelectorControlElement"
+    class="sr-record-selector-control ol-unselectable ol-control"
+  >
+    <TreeSelect
+      v-model="recTreeStore.selectedValue"
+      :options="recTreeStore.treeData"
+      placeholder="Select a Record"
+      selectionMode="single"
+      size="small"
+      :filter="true"
+      @nodeSelect="nodeSelect"
+    />
+  </div>
 </template>
 
 <style scoped>
@@ -87,7 +89,7 @@ function nodeSelect(_node:any) {
 }
 
 .ol-control .sr-select-menu-item {
-  margin:0rem;
+  margin: 0rem;
   color: white;
   background-color: black;
   border-radius: var(--p-border-radius);

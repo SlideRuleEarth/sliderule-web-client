@@ -10,45 +10,47 @@ import json from 'highlight.js/lib/languages/json'
 import 'highlight.js/styles/atom-one-dark.css'
 import type { ZodTypeAny } from 'zod'
 import { useJsonImporter } from '@/composables/SrJsonImporter'
-import { importRequestJsonToStore } from '@/utils/importRequestToStore';
-import { useToast } from 'primevue/usetoast';
-import { useReqParamsStore } from '@/stores/reqParamsStore';
-import { useMapStore } from '@/stores/mapStore';
-import { fromLonLat } from 'ol/proj';
-import { Polygon as OlPolygon } from 'ol/geom';
-import { Feature } from 'ol';
-import type { Coordinate } from 'ol/coordinate';
-import { Style, Stroke, Fill } from 'ol/style';
-import { createLogger } from '@/utils/logger';
+import { importRequestJsonToStore } from '@/utils/importRequestToStore'
+import { useToast } from 'primevue/usetoast'
+import { useReqParamsStore } from '@/stores/reqParamsStore'
+import { useMapStore } from '@/stores/mapStore'
+import { fromLonLat } from 'ol/proj'
+import { Polygon as OlPolygon } from 'ol/geom'
+import { Feature } from 'ol'
+import type { Coordinate } from 'ol/coordinate'
+import { Style, Stroke, Fill } from 'ol/style'
+import { createLogger } from '@/utils/logger'
 
-const logger = createLogger('SrJsonEditDialog');
-const reqParamsStore = useReqParamsStore();
-const mapStore = useMapStore();
+const logger = createLogger('SrJsonEditDialog')
+const reqParamsStore = useReqParamsStore()
+const mapStore = useMapStore()
 
-const toast = useToast();
+const toast = useToast()
 
 hljs.registerLanguage('json', json)
 
-
 function showToast(summary: string, detail: string, severity = 'warn') {
-    toast.add({
-        severity,
-        summary,
-        detail,
-    });
+  toast.add({
+    severity,
+    summary,
+    detail
+  })
 }
 
-const props = withDefaults(defineProps<{
-  zodSchema: ZodTypeAny
-  width?: string,
-  title?: string,
-}>(), {
-  width: '60vw',
-  title: 'JSON Viewer'
-})
+const props = withDefaults(
+  defineProps<{
+    zodSchema: ZodTypeAny
+    width?: string
+    title?: string
+  }>(),
+  {
+    width: '60vw',
+    title: 'JSON Viewer'
+  }
+)
 
 const emit = defineEmits<{
-  (e: 'json-valid', value: unknown): void
+  (_e: 'json-valid', _value: unknown): void
 }>()
 
 const jsonBlock = ref<HTMLElement | null>(null)
@@ -59,25 +61,25 @@ const parsedEditableReqJson = computed(() => {
   } catch {
     return {}
   }
-}); 
+})
 const computedShowParamsDialog = computed({
-    get: () => reqParamsStore.showParamsDialog,
-    set: (val: boolean) => { reqParamsStore.showParamsDialog = val; }
-}); 
+  get: () => reqParamsStore.showParamsDialog,
+  set: (val: boolean) => {
+    reqParamsStore.showParamsDialog = val
+  }
+})
 const isValidJson = ref(true)
 const validationError = ref<string | null>(null)
 
-
-
-const currentReqObj = ref({});
+const currentReqObj = ref({})
 const currentReqJson = computed(() => {
   try {
-    logger.debug('computed currentReqObj', { currentReqObj: currentReqObj.value });
-    return JSON.stringify(currentReqObj.value, null, 2);
+    logger.debug('computed currentReqObj', { currentReqObj: currentReqObj.value })
+    return JSON.stringify(currentReqObj.value, null, 2)
   } catch {
     return 'Invalid JSON'
   }
-});
+})
 
 const parsedCurrentReqJson = computed(() => {
   try {
@@ -85,83 +87,92 @@ const parsedCurrentReqJson = computed(() => {
   } catch {
     return null
   }
-});
+})
 
 const hasChangesToApply = computed(() => {
-  if (!isValidJson.value) return false;
-  return JSON.stringify(parsedEditableReqJson.value) !== JSON.stringify(parsedCurrentReqJson.value);
-});
+  if (!isValidJson.value) return false
+  return JSON.stringify(parsedEditableReqJson.value) !== JSON.stringify(parsedCurrentReqJson.value)
+})
 
 const readonlyHighlightedJson = computed(() => {
-  return hljs.highlight(currentReqJson.value, { language: 'json' }).value;
-});
+  return hljs.highlight(currentReqJson.value, { language: 'json' }).value
+})
 
-const fileInputRef = ref<HTMLInputElement | null>(null);
+const fileInputRef = ref<HTMLInputElement | null>(null)
 
-const { data: importedData, error: importError, importJson } = useJsonImporter(props.zodSchema);
+const { data: importedData, error: importError, importJson } = useJsonImporter(props.zodSchema)
 
-const importFromFile = async () => {
-    fileInputRef.value?.click();
-};
-const handleFileChange = async (event: Event) => {
-    const input = event.target as HTMLInputElement;
-    if (!input.files?.length) return;
+const importFromFile = () => {
+  fileInputRef.value?.click()
+}
+const handleFileChange = (event: Event) => {
+  const input = event.target as HTMLInputElement
+  if (!input.files?.length) return
 
-    const file = input.files[0];
-    const reader = new FileReader();
+  const file = input.files[0]
+  const reader = new FileReader()
 
-    reader.onload = () => {
-        let content = reader.result as string;
+  reader.onload = () => {
+    let content = reader.result as string
 
-        // RTF files usually start with "{\rtf" or "{\\rtf"
-        const isRTF = content.trimStart().startsWith('{\\rtf') || content.trimStart().startsWith('{\rtf');
-        if (isRTF) {
-            isValidJson.value = false;
-            validationError.value = 'This file appears to be an RTF (Rich Text Format) file. Please save it as plain JSON (UTF-8) and try again.';
-            return;
-        }
+    // RTF files usually start with "{\rtf" or "{\\rtf"
+    const isRTF =
+      content.trimStart().startsWith('{\\rtf') || content.trimStart().startsWith('{\rtf')
+    if (isRTF) {
+      isValidJson.value = false
+      validationError.value =
+        'This file appears to be an RTF (Rich Text Format) file. Please save it as plain JSON (UTF-8) and try again.'
+      return
+    }
 
-        // Remove BOM if present
-        if (content.charCodeAt(0) === 0xFEFF) {
-            content = content.slice(1);
-        }
+    // Remove BOM if present
+    if (content.charCodeAt(0) === 0xfeff) {
+      content = content.slice(1)
+    }
 
-        content = content.trim();
-        importJson(content);
+    content = content.trim()
+    importJson(content)
 
-        if (importError.value) {
-            isValidJson.value = false;
-            validationError.value = importError.value;
-        } else if (importedData.value) {
-            editableReqJson.value = JSON.stringify(importedData.value, null, 2);
-            validateJson(); // re-validate after import
-            importToStore();
-        }
-    };
+    if (importError.value) {
+      isValidJson.value = false
+      validationError.value = importError.value
+    } else if (importedData.value) {
+      editableReqJson.value = JSON.stringify(importedData.value, null, 2)
+      validateJson() // re-validate after import
+      importToStore()
+    }
+  }
 
-    reader.onerror = () => {
-        logger.error('File reading error', { error: reader.error });
-        validationError.value = "Failed to read file.";
-        isValidJson.value = false;
-    };
+  reader.onerror = () => {
+    logger.error('File reading error', { error: reader.error })
+    validationError.value = 'Failed to read file.'
+    isValidJson.value = false
+  }
 
-    reader.readAsText(file);
-};
+  reader.readAsText(file)
+}
 
 function validateJson() {
   try {
     //const parsed = JSON.parse(editableReqJson.value)
-    logger.debug('Validating editableReqJson', { editableReqJson: editableReqJson.value, parsedEditableReqJson });
+    logger.debug('Validating editableReqJson', {
+      editableReqJson: editableReqJson.value,
+      parsedEditableReqJson
+    })
     if (props.zodSchema) {
-      const result = props.zodSchema.safeParse(parsedEditableReqJson.value);
+      const result = props.zodSchema.safeParse(parsedEditableReqJson.value)
       if (!result.success) {
         isValidJson.value = false
-        validationError.value = result.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join('\n')
+        validationError.value = result.error.errors
+          .map((e) => `${e.path.join('.')}: ${e.message}`)
+          .join('\n')
         logger.warn('Validation failed', { validationError: validationError.value })
         return
       } else {
         emit('json-valid', result.data)
-        logger.debug('Validation successful', { parsedEditableReqJson: parsedEditableReqJson.value });
+        logger.debug('Validation successful', {
+          parsedEditableReqJson: parsedEditableReqJson.value
+        })
       }
     }
     isValidJson.value = true
@@ -173,264 +184,270 @@ function validateJson() {
 }
 const copyEditableReqJsonToClipboard = async () => {
   try {
-    await navigator.clipboard.writeText(editableReqJson.value);
-    logger.debug('Raw JSON copied to clipboard');
+    await navigator.clipboard.writeText(editableReqJson.value)
+    logger.debug('Raw JSON copied to clipboard')
   } catch (err) {
-    logger.error('Failed to copy to clipboard', { error: err instanceof Error ? err.message : String(err) });
+    logger.error('Failed to copy to clipboard', {
+      error: err instanceof Error ? err.message : String(err)
+    })
   }
-};
-
+}
 
 watch(computedShowParamsDialog, (newVal) => {
-    //console.log('SrJsonEditDialog watch showParamsDialog changed:', newVal);
-    if (newVal) {
-        //console.log('SrJsonEditDialog watch showParamsDialog Dialog opened, highlighting JSON.');
-        updateEditableJsonFromStore();
-        void nextTick(() => highlightJson());
-    } else {
-        //console.log('SrJsonEditDialog watch showParamsDialog Dialog closed.');
-        // Zoom to poly if it exists
-        zoomToPoly();
-    }
-});
-
+  //console.log('SrJsonEditDialog watch showParamsDialog changed:', newVal);
+  if (newVal) {
+    //console.log('SrJsonEditDialog watch showParamsDialog Dialog opened, highlighting JSON.');
+    updateEditableJsonFromStore()
+    void nextTick(() => highlightJson())
+  } else {
+    //console.log('SrJsonEditDialog watch showParamsDialog Dialog closed.');
+    // Zoom to poly if it exists
+    zoomToPoly()
+  }
+})
 
 const highlightJson = () => {
-    logger.debug('Highlighting JSON in readonly panel');
-    if (jsonBlock.value) {
-        jsonBlock.value.removeAttribute('data-highlighted'); // allow re-highlighting
-        jsonBlock.value.innerHTML = readonlyHighlightedJson.value; // replace with fresh content
-        hljs.highlightElement(jsonBlock.value);
-    }
+  logger.debug('Highlighting JSON in readonly panel')
+  if (jsonBlock.value) {
+    jsonBlock.value.removeAttribute('data-highlighted') // allow re-highlighting
+    jsonBlock.value.innerHTML = readonlyHighlightedJson.value // replace with fresh content
+    hljs.highlightElement(jsonBlock.value)
+  }
 }
 
 function updateEditableJsonFromStore() {
-    currentReqObj.value = reqParamsStore.getAtlxxReqParams(0);
-    editableReqJson.value = JSON.stringify(currentReqObj.value, null, 2);
-    validateJson();
+  currentReqObj.value = reqParamsStore.getAtlxxReqParams(0)
+  editableReqJson.value = JSON.stringify(currentReqObj.value, null, 2)
+  validateJson()
 }
 
 onMounted(() => {
-    logger.debug('Schema in SrJsonEditDialog', { zodSchema: props.zodSchema });
-    updateEditableJsonFromStore();
-    logger.debug('Mounted SrJsonEditDialog');
+  logger.debug('Schema in SrJsonEditDialog', { zodSchema: props.zodSchema })
+  updateEditableJsonFromStore()
+  logger.debug('Mounted SrJsonEditDialog')
 })
 
 const importToStore = () => {
-    try {
-        logger.debug('Importing JSON from editableReqJson', { editableReqJson: editableReqJson.value });
-        //const parsed = JSON.parse(editableReqJson.value);
-        logger.debug('Importing JSON to store', { parsedEditableReqJson: parsedEditableReqJson.value });
-        importRequestJsonToStore(parsedEditableReqJson.value, showToast); // assumes parsed object fits expected input
-        currentReqObj.value = reqParamsStore.getAtlxxReqParams(0);
-        logger.debug('Request imported to store', { currentReqObj: currentReqObj.value });
-    } catch (err) {
-        logger.error('Import failed - Invalid JSON', { error: err instanceof Error ? err.message : String(err) });
-        validationError.value = 'Import failed: Invalid JSON';
-        isValidJson.value = false;
-    }
-};
+  try {
+    logger.debug('Importing JSON from editableReqJson', { editableReqJson: editableReqJson.value })
+    //const parsed = JSON.parse(editableReqJson.value);
+    logger.debug('Importing JSON to store', { parsedEditableReqJson: parsedEditableReqJson.value })
+    importRequestJsonToStore(parsedEditableReqJson.value, showToast) // assumes parsed object fits expected input
+    currentReqObj.value = reqParamsStore.getAtlxxReqParams(0)
+    logger.debug('Request imported to store', { currentReqObj: currentReqObj.value })
+  } catch (err) {
+    logger.error('Import failed - Invalid JSON', {
+      error: err instanceof Error ? err.message : String(err)
+    })
+    validationError.value = 'Import failed: Invalid JSON'
+    isValidJson.value = false
+  }
+}
 function exportToFile(json: string | Ref<string>) {
-    const jsonString = typeof json === 'string' ? json : json.value;
+  const jsonString = typeof json === 'string' ? json : json.value
 
-    const defaultName = `sliderule-request-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
-    const filename = prompt('Enter file name to save:', defaultName);
+  const defaultName = `sliderule-request-${new Date().toISOString().replace(/[:.]/g, '-')}.json`
+  const filename = prompt('Enter file name to save:', defaultName)
 
-    if (!filename) return; // user cancelled
+  if (!filename) return // user cancelled
 
-    const blob = new Blob([jsonString], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
+  const blob = new Blob([jsonString], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
 
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename.endsWith('.json') ? filename : `${filename}.json`;
-    a.click();
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename.endsWith('.json') ? filename : `${filename}.json`
+  a.click()
 
-    URL.revokeObjectURL(url);
+  URL.revokeObjectURL(url)
 }
 
 function handleParamsAccessed(index: number) {
-    logger.debug('Params accessed at index (pre-flush)', { index })
-    void nextTick(() => {
-        logger.debug('Params accessed at index (post-flush)', { index })
-        currentReqObj.value = reqParamsStore.getAtlxxReqParams(index);
-    });
+  logger.debug('Params accessed at index (pre-flush)', { index })
+  void nextTick(() => {
+    logger.debug('Params accessed at index (post-flush)', { index })
+    currentReqObj.value = reqParamsStore.getAtlxxReqParams(index)
+  })
 }
 
 function zoomToPoly() {
-    const map = mapStore.getMap();
-    const poly = reqParamsStore.poly;
+  const map = mapStore.getMap()
+  const poly = reqParamsStore.poly
 
-    if (!map || !poly || poly.length === 0) {
-        logger.debug('Cannot zoom to poly: map or poly not available');
-        return;
+  if (!map || !poly || poly.length === 0) {
+    logger.debug('Cannot zoom to poly: map or poly not available')
+    return
+  }
+
+  try {
+    // Find the Drawing Layer
+    const vectorLayer = map
+      .getLayers()
+      .getArray()
+      .find((layer) => layer.get('name') === 'Drawing Layer')
+    if (!vectorLayer) {
+      logger.error('Drawing Layer not found')
+      return
     }
 
-    try {
-        // Find the Drawing Layer
-        const vectorLayer = map.getLayers().getArray().find(layer => layer.get('name') === 'Drawing Layer');
-        if (!vectorLayer) {
-            logger.error('Drawing Layer not found');
-            return;
-        }
-
-        const vectorSource = (vectorLayer as any).getSource();
-        if (!vectorSource) {
-            logger.error('Drawing Layer source not found');
-            return;
-        }
-
-        // Remove existing polygon with req_id 0 or null
-        const features = vectorSource.getFeatures();
-        const existingFeature = features.find((f: any) => {
-            const reqId = f.get('req_id');
-            return reqId === 0 || reqId === null;
-        });
-        if (existingFeature) {
-            vectorSource.removeFeature(existingFeature);
-        }
-
-        // Prepare coordinates - ensure polygon is closed
-        const originalCoordinates: Coordinate[] = poly.map(p => [p.lon, p.lat]);
-        if (originalCoordinates.length > 0) {
-            const first = originalCoordinates[0];
-            const last = originalCoordinates[originalCoordinates.length - 1];
-            if (first[0] !== last[0] || first[1] !== last[1]) {
-                originalCoordinates.push(first);
-            }
-        }
-
-        // Convert to map projection
-        const projection = map.getView().getProjection();
-        let coordinates: Coordinate[];
-        if (projection.getUnits() !== 'degrees') {
-            coordinates = originalCoordinates.map(coord => fromLonLat(coord));
-        } else {
-            coordinates = originalCoordinates;
-        }
-
-        // Create and add the new polygon feature
-        const polygon = new OlPolygon([coordinates]);
-        const feature = new Feature({ geometry: polygon, req_id: null });
-
-        // Use blue style for user-drawn polygons (reqId 0)
-        const blueStyle = new Style({
-            stroke: new Stroke({
-                color: 'rgba(0, 153, 255, 1)',
-                width: 2
-            }),
-            fill: new Fill({
-                color: 'rgba(0, 153, 255, 0.1)'
-            })
-        });
-        feature.setStyle(blueStyle);
-        vectorSource.addFeature(feature);
-
-        // Zoom to the polygon
-        const extent = polygon.getExtent();
-        map.getView().fit(extent, {
-            size: map.getSize(),
-            padding: [40, 40, 40, 40]
-        });
-
-        logger.debug('Updated drawing layer and zoomed to poly');
-    } catch (err) {
-        logger.error('Error zooming to poly', { error: err instanceof Error ? err.message : String(err) });
+    const vectorSource = (vectorLayer as any).getSource()
+    if (!vectorSource) {
+      logger.error('Drawing Layer source not found')
+      return
     }
+
+    // Remove existing polygon with req_id 0 or null
+    const features = vectorSource.getFeatures()
+    const existingFeature = features.find((f: any) => {
+      const reqId = f.get('req_id')
+      return reqId === 0 || reqId === null
+    })
+    if (existingFeature) {
+      vectorSource.removeFeature(existingFeature)
+    }
+
+    // Prepare coordinates - ensure polygon is closed
+    const originalCoordinates: Coordinate[] = poly.map((p) => [p.lon, p.lat])
+    if (originalCoordinates.length > 0) {
+      const first = originalCoordinates[0]
+      const last = originalCoordinates[originalCoordinates.length - 1]
+      if (first[0] !== last[0] || first[1] !== last[1]) {
+        originalCoordinates.push(first)
+      }
+    }
+
+    // Convert to map projection
+    const projection = map.getView().getProjection()
+    let coordinates: Coordinate[]
+    if (projection.getUnits() !== 'degrees') {
+      coordinates = originalCoordinates.map((coord) => fromLonLat(coord))
+    } else {
+      coordinates = originalCoordinates
+    }
+
+    // Create and add the new polygon feature
+    const polygon = new OlPolygon([coordinates])
+    const feature = new Feature({ geometry: polygon, req_id: null })
+
+    // Use blue style for user-drawn polygons (reqId 0)
+    const blueStyle = new Style({
+      stroke: new Stroke({
+        color: 'rgba(0, 153, 255, 1)',
+        width: 2
+      }),
+      fill: new Fill({
+        color: 'rgba(0, 153, 255, 0.1)'
+      })
+    })
+    feature.setStyle(blueStyle)
+    vectorSource.addFeature(feature)
+
+    // Zoom to the polygon
+    const extent = polygon.getExtent()
+    map.getView().fit(extent, {
+      size: map.getSize(),
+      padding: [40, 40, 40, 40]
+    })
+
+    logger.debug('Updated drawing layer and zoomed to poly')
+  } catch (err) {
+    logger.error('Error zooming to poly', {
+      error: err instanceof Error ? err.message : String(err)
+    })
+  }
 }
-
 </script>
 
 <template>
-  <Dialog 
+  <Dialog
     v-model:visible="computedShowParamsDialog"
     :modal="true"
     :closable="true"
     :style="{ width: props.width }"
-    :header=props.title
+    :header="props.title"
   >
-    <div class = "sr-dialog-container">
-        <div class="json-dual-panel">
-            <!-- Editable panel -->
-            <div class="json-pane">
-                <h3 class="pane-title">Editable Request</h3>
-                <Textarea
-                    v-model="editableReqJson"
-                    autoResize
-                    rows="20"
-                    class="w-full"
-                    @input="validateJson"
-                    :class="{ 'p-invalid': !isValidJson }"
-                />
-                <div v-if="!isValidJson" class="error-text">
-                    {{ validationError }}
-                </div>
-                <div class="copy-btn-container">
-                    <Button
-                        label="Save"
-                        size="small"
-                        icon="pi pi-check"
-                        @click="importToStore"
-                        class="copy-btn"
-                        :disabled="!hasChangesToApply"
-                        severity="success"
-                    />
-                    <Button
-                        label="Import from File"
-                        size="small"
-                        icon="pi pi-file-import"
-                        @click="importFromFile"
-                        class="copy-btn"
-                    />
-                    <Button
-                        label="Copy to clipboard"
-                        size="small"
-                        icon="pi pi-copy"
-                        @click="copyEditableReqJsonToClipboard"
-                        class="copy-btn"
-                    />
-                    <input
-                        type="file"
-                        ref="fileInputRef"
-                        accept=".json"
-                        style="display: none;"
-                        @change="handleFileChange"
-                    />
-                </div>
-            </div>
-            <!-- Readonly panel -->
-            <div class="json-pane">
-                <h3 class="pane-title">Current Request State</h3>
-                <!-- eslint-disable-next-line vue/no-v-html -->
-                <pre ref="jsonBlock" v-html="readonlyHighlightedJson"></pre>
-                <div class="copy-btn-container">
-                    <Button 
-                        label="Copy to clipboard" 
-                        size="small" 
-                        icon="pi pi-copy" 
-                        @click="copyEditableReqJsonToClipboard" 
-                        class="copy-btn" 
-                    />
-                    <Button 
-                        label="Output to File" 
-                        size="small" 
-                        icon="pi pi-file-export" 
-                        @click="exportToFile(editableReqJson)" 
-                        class="copy-btn" 
-                    />
-                </div>
-            </div>
-        </div>
-        <div class = "sr-diff-footer">
-            <SrJsonDiffViewer
-                :before="parsedEditableReqJson"
-                :after="parsedCurrentReqJson"
-                :automaticFields="new Set(['asset','output','cmr'])"
-                beforeLabel="Editable Request"
-                afterLabel="Current Request State"
-                @forced-req_params="handleParamsAccessed"
+    <div class="sr-dialog-container">
+      <div class="json-dual-panel">
+        <!-- Editable panel -->
+        <div class="json-pane">
+          <h3 class="pane-title">Editable Request</h3>
+          <Textarea
+            v-model="editableReqJson"
+            autoResize
+            rows="20"
+            class="w-full"
+            @input="validateJson"
+            :class="{ 'p-invalid': !isValidJson }"
+          />
+          <div v-if="!isValidJson" class="error-text">
+            {{ validationError }}
+          </div>
+          <div class="copy-btn-container">
+            <Button
+              label="Save"
+              size="small"
+              icon="pi pi-check"
+              @click="importToStore"
+              class="copy-btn"
+              :disabled="!hasChangesToApply"
+              severity="success"
             />
+            <Button
+              label="Import from File"
+              size="small"
+              icon="pi pi-file-import"
+              @click="importFromFile"
+              class="copy-btn"
+            />
+            <Button
+              label="Copy to clipboard"
+              size="small"
+              icon="pi pi-copy"
+              @click="copyEditableReqJsonToClipboard"
+              class="copy-btn"
+            />
+            <input
+              type="file"
+              ref="fileInputRef"
+              accept=".json"
+              style="display: none"
+              @change="handleFileChange"
+            />
+          </div>
         </div>
+        <!-- Readonly panel -->
+        <div class="json-pane">
+          <h3 class="pane-title">Current Request State</h3>
+          <!-- eslint-disable-next-line vue/no-v-html -->
+          <pre ref="jsonBlock" v-html="readonlyHighlightedJson"></pre>
+          <div class="copy-btn-container">
+            <Button
+              label="Copy to clipboard"
+              size="small"
+              icon="pi pi-copy"
+              @click="copyEditableReqJsonToClipboard"
+              class="copy-btn"
+            />
+            <Button
+              label="Output to File"
+              size="small"
+              icon="pi pi-file-export"
+              @click="exportToFile(editableReqJson)"
+              class="copy-btn"
+            />
+          </div>
+        </div>
+      </div>
+      <div class="sr-diff-footer">
+        <SrJsonDiffViewer
+          :before="parsedEditableReqJson"
+          :after="parsedCurrentReqJson"
+          :automaticFields="new Set(['asset', 'output', 'cmr'])"
+          beforeLabel="Editable Request"
+          afterLabel="Current Request State"
+          @forced-req_params="handleParamsAccessed"
+        />
+      </div>
     </div>
   </Dialog>
 </template>
@@ -512,9 +529,9 @@ pre {
   padding: 0.4rem 0.75rem;
 }
 .error-text {
-    color: #ef4444;
-    margin-top: 0.5rem;
-    white-space: pre-line;
+  color: #ef4444;
+  margin-top: 0.5rem;
+  white-space: pre-line;
 }
 .import-btn-wrapper {
   display: flex;
@@ -528,5 +545,4 @@ pre {
   font-weight: bold;
   padding: 0.5rem 1rem;
 }
-
 </style>
