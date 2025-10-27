@@ -45,14 +45,9 @@ import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('SrColorPalette')
 
-interface _AtColorChangeEvent {
-  label: string
-  color?: string // color can be undefined
-}
-
 const selectedColors = computed({
   get: () => useColorMapStore().getNamedColorPalette(),
-  set: async (value) => useColorMapStore().setNamedColorPalette(value)
+  set: async (value) => await useColorMapStore().setNamedColorPalette(value)
 })
 
 // Predefined list of CSS color names

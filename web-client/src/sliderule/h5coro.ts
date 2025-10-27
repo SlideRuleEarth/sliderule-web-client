@@ -49,7 +49,8 @@ const datatypes = {
 //
 // h5
 //
-export async function h5(
+// eslint-disable-next-line @typescript-eslint/promise-function-async
+export function h5(
   dataset: string,
   resource: string,
   asset: string,
@@ -58,7 +59,7 @@ export async function h5(
   startrow: number = 0,
   numrows: number = ALL_ROWS,
   callbacks: { [key: string]: (..._args: any[]) => void } | null = null
-) {
+): Promise<any> {
   const parm = {
     asset: asset,
     resource: resource,

@@ -1,6 +1,9 @@
 <template>
   <div class="card">
-    <DataTable :value="storeInstance?.[paramsPropertyName]" :tableStyle="{ minWidth: '50rem' }">
+    <DataTable
+      :value="(storeInstance as Record<string, unknown> | null)?.[paramsPropertyName] as any[]"
+      :tableStyle="{ minWidth: '50rem' }"
+    >
       <Column
         v-for="(col, index) in columns"
         :key="index"
@@ -15,7 +18,7 @@
 import { ref } from 'vue'
 
 // Import PiniaStore type from Pinia
-import { Store } from 'pinia'
+import type { Store } from 'pinia'
 
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
@@ -65,9 +68,9 @@ void import(`@/stores/${props.storeNamePrefix}Store.ts`)
     logger.debug('paramsInterfaceName', { paramsInterfaceName })
     Params = module?.[paramsInterfaceName]
     logger.debug('Params', { Params })
-    if (storeInstance && Params) {
+    if (storeInstance && Params && typeof Params === 'function') {
       // Dynamically define columns based on the structure of Params
-      const keys = Object.keys(new Params()) // Instantiate Params to get its keys
+      const keys = Object.keys(new (Params as new () => Record<string, unknown>)()) // Instantiate Params to get its keys
       columns.value = keys.map((key) => ({
         field: key,
         header: key // You can customize header names if needed

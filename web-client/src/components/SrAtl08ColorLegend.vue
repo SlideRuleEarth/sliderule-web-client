@@ -38,7 +38,7 @@ import SrAtl08ClassColorSelection from '@/components/SrAtl08ClassColorSelection.
 import SrAtl08Colors from '@/components/SrAtl08Colors.vue'
 
 const emit = defineEmits(['restore-atl08-color-defaults-click', 'atl08ClassColorChanged'])
-const _props = defineProps({
+defineProps({
   reqIdStr: {
     type: String,
     required: true

@@ -119,8 +119,8 @@ function generateDiff(
 
   for (const key of keys) {
     const fullPath = [...path, key].join('.')
-    const bVal = before?.[key]
-    const aVal = after?.[key]
+    const bVal = (before as Record<string, unknown>)?.[key]
+    const aVal = (after as Record<string, unknown>)?.[key]
     let fieldClass = 'field-normal'
     let beforeClass = 'before-red'
     let afterClass = 'after-green'

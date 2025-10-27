@@ -16,7 +16,8 @@ const clearCacheAndReload = async () => {
     // Open cache storage and delete all caches
     if ('caches' in window) {
       const cacheKeys = await caches.keys()
-      await Promise.all(cacheKeys.map(async (key) => caches.delete(key)))
+      // eslint-disable-next-line @typescript-eslint/promise-function-async
+      await Promise.all(cacheKeys.map((key) => caches.delete(key)))
       logger.debug('Cache cleared')
     } else {
       logger.warn('Cache API not supported in this browser')

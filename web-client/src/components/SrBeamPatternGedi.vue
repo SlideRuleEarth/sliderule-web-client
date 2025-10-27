@@ -116,7 +116,7 @@ const Beam0110_tooltip = `Beam 0110 Full Power`
 const Beam1000_tooltip = `Beam 1000 Full Power`
 const Beam1011_tooltip = `Beam 1011 Full Power`
 // Define props with TypeScript types
-const _props = withDefaults(
+withDefaults(
   defineProps<{
     reqIdStr: string
   }>(),

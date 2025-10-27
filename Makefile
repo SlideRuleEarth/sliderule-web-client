@@ -172,7 +172,8 @@ lint-fix: ## Run ESLint with auto-fix
 lint-staged: ## Run lint-staged on staged files (used by pre-commit hook)
 	cd web-client && npx lint-staged
 
-pre-commit-check: lint-staged ## Manually run pre-commit checks without committing
+pre-commit-check: ## Manually run pre-commit checks without committing
+	cd web-client && npx lint-staged && npm run typecheck && npm run test:unit
 	@echo "✅ Pre-commit checks passed!"
 
 test-unit: ## Run Vitest unit tests (CI-friendly)

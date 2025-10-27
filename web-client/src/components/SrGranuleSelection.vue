@@ -21,12 +21,6 @@ const defaultEnableGranuleSelection = () => {
     ? reqParamsStore.enableGranuleSelection
     : false
 }
-const _defaultTracks = () => {
-  return reqParamsStore.tracks !== undefined ? reqParamsStore.tracks : []
-}
-const _defaultBeams = () => {
-  return reqParamsStore.beams !== undefined ? reqParamsStore.beams : []
-}
 const defaultRgt = () => {
   return reqParamsStore.rgtValue !== undefined ? reqParamsStore.rgtValue : 0
 }
@@ -62,10 +56,6 @@ onMounted(() => {
 onUnmounted(() => {
   //console.log('Unmounted SrGranuleSelection');
 })
-
-const _TracksSelection = (_tracks: SrListNumberItem[]) => {
-  logger.debug('TracksSelection')
-}
 
 const GtsSelection = (gts: SrListNumberItem[]) => {
   logger.debug('GtsSelection', { gts })

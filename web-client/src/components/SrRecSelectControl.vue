@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch as _watch } from 'vue'
 import { Control } from 'ol/control'
-import { useChartStore } from '@/stores/chartStore'
-import { computed } from 'vue'
-import { formatBytes } from '@/utils/SrParquetUtils'
+// import { useChartStore } from '@/stores/chartStore'
+// import { computed } from 'vue'
+// import { formatBytes } from '@/utils/SrParquetUtils'
 import { useRecTreeStore } from '@/stores/recTreeStore'
 import TreeSelect from 'primevue/treeselect'
-import { createLogger } from '@/utils/logger'
+// import { createLogger } from '@/utils/logger'
 
-const _logger = createLogger('SrRecSelectControl')
+// const _logger = createLogger('SrRecSelectControl')
 
 const recordSelectorControlElement = ref<HTMLElement | null>(null)
 const emit = defineEmits<{
@@ -17,16 +17,16 @@ const emit = defineEmits<{
 const recTreeStore = useRecTreeStore()
 
 let customControl: Control | null = null
-const getSize = computed(() => {
-  return formatBytes(useChartStore().getSize())
-})
-const getCnt = computed(() => {
-  return new Intl.NumberFormat().format(parseInt(String(useChartStore().getRecCnt())))
-})
+// const getSize = computed(() => {
+//   return formatBytes(useChartStore().getSize())
+// })
+// const getCnt = computed(() => {
+//   return new Intl.NumberFormat().format(parseInt(String(useChartStore().getRecCnt())))
+// })
 
-const _tooltipTextStr = computed(() => {
-  return 'Has ' + getCnt.value + ' records and is ' + getSize.value + ' in size'
-})
+// const _tooltipTextStr = computed(() => {
+//   return 'Has ' + getCnt.value + ' records and is ' + getSize.value + ' in size'
+// })
 
 onMounted(() => {
   if (recordSelectorControlElement.value) {

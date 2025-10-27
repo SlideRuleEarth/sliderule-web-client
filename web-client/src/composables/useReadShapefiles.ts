@@ -87,8 +87,10 @@ export async function parseShapefileToGeoJSON(
   } else if (isUrlMap(input)) {
     const entries = Object.entries(input)
     const buffers = await Promise.all(
-      entries.map(async ([_ext, url]) =>
-        fetch(url).then(async (resp) => {
+      // eslint-disable-next-line @typescript-eslint/promise-function-async
+      entries.map(([_ext, url]) =>
+        // eslint-disable-next-line @typescript-eslint/promise-function-async
+        fetch(url).then((resp) => {
           if (!resp.ok) throw new Error(`Failed to fetch ${url}`)
           return resp.arrayBuffer()
         })
@@ -205,7 +207,7 @@ export async function readShapefileToOlFeatures(
     typeof f === 'object' && f !== null && !isFileList(f) && !(f instanceof File)
 
   // Values we'll compute regardless of branch
-  let _detectedProjection: string | null = null
+  // let detectedProjection: string | null = null
   let warning: string | null = null
 
   if (isZipFile(input)) {
@@ -226,8 +228,8 @@ export async function readShapefileToOlFeatures(
     if (prjText) {
       const prjLower = prjText.toLowerCase()
       // Nice preview without always adding ellipsis
-      const preview = prjLower.length > 120 ? prjLower.slice(0, 120) + '…' : prjLower
-      _detectedProjection = preview
+      // const preview = prjLower.length > 120 ? prjLower.slice(0, 120) + '…' : prjLower
+      // detectedProjection = preview
       logger.debug('Detected .prj content', { prjLower })
 
       const is4326 =
@@ -258,8 +260,8 @@ export async function readShapefileToOlFeatures(
     // Detect PRJ here (existing behavior)
     if (fileMap.prj) {
       const prj = new TextDecoder('utf-8').decode(fileMap.prj).toLowerCase()
-      const preview = prj.length > 120 ? prj.slice(0, 120) + '…' : prj
-      _detectedProjection = preview
+      // const preview = prj.length > 120 ? prj.slice(0, 120) + '…' : prj
+      // detectedProjection = preview
 
       const is4326 =
         prj.includes('wgs_1984') &&
@@ -274,8 +276,10 @@ export async function readShapefileToOlFeatures(
     logger.debug('readShapefileToOlFeatures: processing URL map input', { input })
     const entries = Object.entries(input)
     const buffers = await Promise.all(
-      entries.map(async ([_ext, url]) =>
-        fetch(url).then(async (resp) => {
+      // eslint-disable-next-line @typescript-eslint/promise-function-async
+      entries.map(([_ext, url]) =>
+        // eslint-disable-next-line @typescript-eslint/promise-function-async
+        fetch(url).then((resp) => {
           if (!resp.ok) throw new Error(`Failed to fetch ${url}`)
           return resp.arrayBuffer()
         })
@@ -285,8 +289,8 @@ export async function readShapefileToOlFeatures(
 
     if (fileMap.prj) {
       const prj = new TextDecoder('utf-8').decode(fileMap.prj).toLowerCase()
-      const preview = prj.length > 120 ? prj.slice(0, 120) + '…' : prj
-      _detectedProjection = preview
+      // const preview = prj.length > 120 ? prj.slice(0, 120) + '…' : prj
+      // detectedProjection = preview
 
       const is4326 =
         prj.includes('wgs_1984') &&

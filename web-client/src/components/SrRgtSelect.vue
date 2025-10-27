@@ -39,7 +39,7 @@ import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('SrRgtSelect')
 
-const _props = defineProps<{
+defineProps<{
   rgtLabel: string
 }>()
 

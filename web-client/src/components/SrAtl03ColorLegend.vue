@@ -33,10 +33,9 @@ import { ref, onMounted } from 'vue'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
 import SrAtl03CnfColorSelection from '@/components/SrAtl03CnfColorSelection.vue'
-import { useColorMapStore } from '@/stores/colorMapStore'
 import SrAtl03CnfColors from '@/components/SrAtl03CnfColors.vue'
 
-const _props = defineProps({
+defineProps({
   reqIdStr: {
     type: String,
     required: true
@@ -44,7 +43,6 @@ const _props = defineProps({
 })
 
 const emit = defineEmits(['restore-atl03-color-defaults-click', 'atl03CnfColorChanged'])
-const _colorMapStore = useColorMapStore()
 
 // Dialog visibility state
 const showDialog = ref(false)

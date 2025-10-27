@@ -3,7 +3,8 @@ import SrReqDisplay from './SrReqDisplay.vue'
 import { useMapStore } from '@/stores/mapStore'
 import { onMounted, defineAsyncComponent } from 'vue'
 import { useSlideruleDefaults } from '@/stores/defaultsStore'
-const SrGenUserPresets = defineAsyncComponent(async () => import('./SrGenUserPresets.vue'))
+// eslint-disable-next-line @typescript-eslint/promise-function-async
+const SrGenUserPresets = defineAsyncComponent(() => import('./SrGenUserPresets.vue'))
 
 onMounted(() => {
   //console.log('Mounted SrGenUserSidebar');

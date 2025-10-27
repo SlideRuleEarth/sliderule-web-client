@@ -90,17 +90,17 @@ const initGradientPosition = () => {
   const thisChartWrapper = document.querySelector('.chart-wrapper') as HTMLElement
   if (thisChartWrapper) {
     const rect = thisChartWrapper.getBoundingClientRect()
-    const _rect_left = rect.left
-    const _rect_top = rect.top
-    const _rect_right = rect.right
-    const _rect_bottom = rect.bottom
+    // const _rect_left = rect.left
+    // const _rect_top = rect.top
+    // const _rect_right = rect.right
+    // const _rect_bottom = rect.bottom
     globalChartStore.scrollX = window.scrollX
     globalChartStore.scrollY = window.scrollY
-    const _windowScrollX = globalChartStore.scrollX
-    const _windowScrollY = globalChartStore.scrollY
+    // const _windowScrollX = globalChartStore.scrollX
+    // const _windowScrollY = globalChartStore.scrollY
     // Convert rem to pixels (1rem = 16px by default)
     const middleHorizontalOffset = rect.width / 2 // n rem from the left
-    const _middleX = rect.left + middleHorizontalOffset
+    // const _middleX = rect.left + middleHorizontalOffset
     const assumedTitleWidth =
       globalChartStore.titleOfElevationPlot.length * globalChartStore.fontSize
     const endOfTitle = rect.left + middleHorizontalOffset + assumedTitleWidth / 2

@@ -38,7 +38,7 @@ import SrAtl24ClassColorSelection from '@/components/SrAtl24ClassColorSelection.
 import SrAtl24Colors from '@/components/SrAtl24Colors.vue'
 
 const emit = defineEmits(['restore-atl24-color-defaults-click', 'atl24ClassColorChanged'])
-const _props = defineProps({
+defineProps({
   reqIdStr: {
     type: String,
     required: true

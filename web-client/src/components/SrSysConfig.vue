@@ -105,13 +105,13 @@ const orgName = ref('')
 const desiredNodes = ref(1)
 const ttl = ref(720)
 
-interface _orgnumNodesRsp {
-  status: string
-  min_nodes: number
-  current_nodes: number
-  max_nodes: number
-  version: string
-}
+// interface _orgnumNodesRsp {
+//   status: string
+//   min_nodes: number
+//   current_nodes: number
+//   max_nodes: number
+//   version: string
+// }
 
 const computedOrgIsPublic = computed(() => {
   return jwtStore.getIsPublic(sysConfigStore.getDomain(), sysConfigStore.getOrganization())

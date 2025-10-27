@@ -40,6 +40,9 @@ module.exports = {
       files: ['tests/**/*.{ts,tsx,js,jsx}'],
       env: {
         node: true
+      },
+      globals: {
+        globalThis: 'readonly'
       }
     }
   ]

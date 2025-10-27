@@ -173,7 +173,7 @@ export class DuckDBClient {
         return instance
       })()
     }
-    return this._instance
+    return await this._instance
   }
 
   // Method to initialize the database if not already done
@@ -608,5 +608,5 @@ export class DuckDBClient {
 // Factory function to create a DuckDB client
 export async function createDuckDbClient(): Promise<DuckDBClient> {
   //console.log('createDuckDbClient');
-  return DuckDBClient.getInstance()
+  return await DuckDBClient.getInstance()
 }

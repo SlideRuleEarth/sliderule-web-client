@@ -82,7 +82,7 @@ import { createLogger } from '@/utils/logger'
 const logger = createLogger('SrFilterCntrlBase')
 
 // Props that control the small differences between ICESat-2 and GEDI
-const _props = defineProps<{
+defineProps<{
   tooltipId: string // e.g. "fltr_icesat2" | "fltr_gedi"
   rgtLabel: string // e.g. "Rgts" | "Tracks"
   beamPatternComponent: any // component to render on left of bottom row

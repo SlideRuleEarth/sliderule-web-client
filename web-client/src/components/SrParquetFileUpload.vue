@@ -3,67 +3,20 @@ import { ref } from 'vue'
 import ProgressBar from 'primevue/progressbar'
 import Button from 'primevue/button'
 import SrToast from 'primevue/toast'
-import { useToast } from 'primevue/usetoast'
-import { createLogger } from '@/utils/logger'
+// import { useToast } from 'primevue/usetoast'
+// import { createLogger } from '@/utils/logger'
 
-const logger = createLogger('SrParquetFileUpload')
+// const logger = createLogger('SrParquetFileUpload')
 
 ////////////// upload toast items
-const _upload_progress_visible = ref(false)
+const upload_progress_visible = ref(false)
 const upload_progress = ref(0)
 //////////////
-
-const _customUploader = (event: { files: File[] }) => {
-  logger.debug('customUploader event', { event })
-  try {
-    const file = event.files[0]
-    if (file) {
-      logger.debug('customUploader file', { file })
-      useToast().add({
-        severity: 'info',
-        summary: 'TBD....Uploading file',
-        detail: 'Uploading file',
-        group: 'headless'
-      })
-      //duckDbLoadParquetFile(file);
-    } else {
-      logger.error('No file input found')
-      useToast().add({ severity: 'error', summary: 'No file input found', group: 'headless' })
-    }
-  } catch (error) {
-    logger.error('Error uploading file', {
-      error: error instanceof Error ? error.message : String(error)
-    })
-    useToast().add({
-      severity: 'error',
-      summary: 'Error uploading file',
-      detail: 'Error uploading file',
-      group: 'headless'
-    })
-  }
-}
-
-const _onSelect = (e: unknown) => {
-  logger.debug('onSelect', { e })
-}
-
-const _onError = (e: unknown) => {
-  logger.error('onError', { e })
-  useToast().add({
-    severity: 'error',
-    summary: 'Upload Error',
-    detail: 'Error uploading file',
-    group: 'headless'
-  })
-}
-const _onClear = () => {
-  logger.debug('onClear')
-}
 </script>
 
 <template>
   <div class="file-upload-panel">
-    <SrToast position="top-center" group="headless" @close="_upload_progress_visible = false">
+    <SrToast position="top-center" group="headless" @close="upload_progress_visible = false">
       <template #container="{ message, closeCallback }">
         <section class="toast-container">
           <i class="upload-icon"></i>

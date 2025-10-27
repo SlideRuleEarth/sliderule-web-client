@@ -7,32 +7,26 @@ import { defineAsyncComponent, ref } from 'vue'
 import { useReqParamsStore } from '@/stores/reqParamsStore'
 import { computed } from 'vue'
 
-const SrYAPC = defineAsyncComponent(async () => import('@/components/SrYAPC.vue'))
+/* eslint-disable @typescript-eslint/promise-function-async */
+const SrYAPC = defineAsyncComponent(() => import('@/components/SrYAPC.vue'))
 const SrAtl03Classification = defineAsyncComponent(
-  async () => import('@/components/SrAtl03Classification.vue')
+  () => import('@/components/SrAtl03Classification.vue')
 )
-const SrAtl08Cnf = defineAsyncComponent(async () => import('@/components/SrAtl08Cnf.vue'))
-const SrExtents = defineAsyncComponent(async () => import('@/components/SrExtents.vue'))
+const SrAtl08Cnf = defineAsyncComponent(() => import('@/components/SrAtl08Cnf.vue'))
+const SrExtents = defineAsyncComponent(() => import('@/components/SrExtents.vue'))
 const SrAncillaryFieldEditor = defineAsyncComponent(
-  async () => import('@/components/SrAncillaryFieldEditor.vue')
+  () => import('@/components/SrAncillaryFieldEditor.vue')
 )
-const SrSurfaceElevation = defineAsyncComponent(
-  async () => import('@/components/SrSurfaceElevation.vue')
-)
-const SrGranuleSelection = defineAsyncComponent(
-  async () => import('@/components/SrGranuleSelection.vue')
-)
-const SrGenUserPresets = defineAsyncComponent(
-  async () => import('@/components/SrGenUserPresets.vue')
-)
-const SrGenUserOptions = defineAsyncComponent(
-  async () => import('@/components/SrGenUserOptions.vue')
-)
-const SrVegDensity = defineAsyncComponent(async () => import('@/components/SrVegDensity.vue'))
-const SrGedi = defineAsyncComponent(async () => import('@/components/SrGedi.vue'))
-const SrRaster = defineAsyncComponent(async () => import('@/components/SrRaster.vue'))
-const SrAtl24Parms = defineAsyncComponent(async () => import('@/components/SrAtl24Parms.vue'))
-const SrAtl13Parms = defineAsyncComponent(async () => import('@/components/SrAtl13Parms.vue'))
+const SrSurfaceElevation = defineAsyncComponent(() => import('@/components/SrSurfaceElevation.vue'))
+const SrGranuleSelection = defineAsyncComponent(() => import('@/components/SrGranuleSelection.vue'))
+const SrGenUserPresets = defineAsyncComponent(() => import('@/components/SrGenUserPresets.vue'))
+const SrGenUserOptions = defineAsyncComponent(() => import('@/components/SrGenUserOptions.vue'))
+const SrVegDensity = defineAsyncComponent(() => import('@/components/SrVegDensity.vue'))
+const SrGedi = defineAsyncComponent(() => import('@/components/SrGedi.vue'))
+const SrRaster = defineAsyncComponent(() => import('@/components/SrRaster.vue'))
+const SrAtl24Parms = defineAsyncComponent(() => import('@/components/SrAtl24Parms.vue'))
+const SrAtl13Parms = defineAsyncComponent(() => import('@/components/SrAtl13Parms.vue'))
+/* eslint-enable @typescript-eslint/promise-function-async */
 
 interface Props {
   title: string

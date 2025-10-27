@@ -193,7 +193,7 @@ const GT2R_tooltip = `Ground Track 2 Right - ${GT2R}`
 const GT3L_tooltip = `Ground Track 3 Left - ${GT3L}`
 const GT3R_tooltip = `Ground Track 3 Right - ${GT3R}`
 // Define props with TypeScript types
-const _props = withDefaults(
+withDefaults(
   defineProps<{
     reqIdStr: string
   }>(),

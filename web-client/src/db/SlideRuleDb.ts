@@ -788,7 +788,7 @@ export class SlideRuleDexie extends Dexie {
           if ('values' in req) {
             req.values = req.values.map((value) =>
               JSON.parse(
-                JSON.stringify(value, (key, val) => {
+                JSON.stringify(value, (_key, val) => {
                   if (val instanceof Date) {
                     return val.toISOString()
                   } else if (typeof val === 'bigint') {
@@ -800,7 +800,7 @@ export class SlideRuleDexie extends Dexie {
               )
             )
           }
-          return downlevelTable.mutate(req)
+          return await downlevelTable.mutate(req)
         } catch (error) {
           logger.error('Error during database mutation', {
             error: error instanceof Error ? error.message : String(error)
@@ -874,7 +874,7 @@ export class SlideRuleDexie extends Dexie {
     return parts.length > 0 ? parts.join(', ') : '0 secs'
   }
   async getFilename(reqId: number): Promise<string> {
-    const _startTime = performance.now() // Start time
+    // const _startTime = performance.now() // Start time
     let fn = ''
     try {
       const request = await this.requests.get(reqId)
@@ -890,7 +890,7 @@ export class SlideRuleDexie extends Dexie {
       })
       throw error
     } finally {
-      const _endTime = performance.now() // End time
+      // const _endTime = performance.now() // End time
       //console.log(`SlideRuleDb.getFilename |${fn}| for ${reqId} took ${_endTime - _startTime} milliseconds.`);
     }
     return fn

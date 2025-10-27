@@ -43,7 +43,7 @@
 <script setup lang="ts">
 import { onMounted, computed, watch as _watch } from 'vue'
 import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue'
-import { SrMenuNumberItem } from '@/types/SrTypes'
+import type { SrMenuNumberItem } from '@/types/SrTypes'
 
 const props = defineProps({
   modelValue: Object as () => SrMenuNumberItem,

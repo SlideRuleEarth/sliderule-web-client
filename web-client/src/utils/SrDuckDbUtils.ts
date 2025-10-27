@@ -106,7 +106,7 @@ async function setElevationDataOptionsFromFieldNames(
   funcStr?: string
 ): Promise<void> {
   //console.log(`setElevationDataOptionsFromFieldNames reqId:${reqId}`, fieldNames );
-  const _startTime = performance.now() // Start time
+  // const _startTime = performance.now() // Start time
   const chartStore = useChartStore()
   try {
     const reqIdStr = reqId.toString()
@@ -167,7 +167,7 @@ async function setElevationDataOptionsFromFieldNames(
       error: error instanceof Error ? error.message : String(error)
     })
   } finally {
-    const _endTime = performance.now() // End time
+    // const _endTime = performance.now() // End time
     //console.log(`setElevationDataOptionsFromFieldNames using reqId:${reqIdStr} fieldNames:${fieldNames} selectedYData:${chartStore.getSelectedYData(reqIdStr)} took ${_endTime - _startTime} milliseconds.`);
   }
 }

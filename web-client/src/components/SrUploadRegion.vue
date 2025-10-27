@@ -62,13 +62,13 @@ function handleFileUploadFinished() {
       @click="openPolygonSourceDialog"
       variant="text"
       aria-label="Open Polygon Source dialog"
-      :title="computedTooltipText.value"
+      :title="computedTooltipText"
     />
 
     <!-- Dialog -->
     <Dialog
       v-model:visible="showDialog"
-      :header="computedLabelText.value"
+      :header="computedLabelText"
       modal
       :closable="true"
       :dismissableMask="true"

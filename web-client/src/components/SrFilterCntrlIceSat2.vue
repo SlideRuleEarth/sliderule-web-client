@@ -15,18 +15,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useGlobalChartStore } from '@/stores/globalChartStore'
-import { useRecTreeStore } from '@/stores/recTreeStore'
-import { useActiveTabStore } from '@/stores/activeTabStore'
 import SrFilterCntrlBase from './SrFilterCntrlBase.vue'
 import SrCycleSelect from '@/components/SrCycleSelect.vue'
 import SrBeamPattern from '@/components/SrBeamPattern.vue'
 import SrYatcFilterCntrl from '@/components/SrYatcFilterCntrl.vue'
 
-const recTreeStore = useRecTreeStore()
 const global = useGlobalChartStore()
-const _activeTabStore = useActiveTabStore()
-
-const _computedApi = computed(() => recTreeStore.selectedApi)
 
 const details1 = computed(() => {
   const base = [
