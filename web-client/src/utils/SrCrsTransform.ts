@@ -1,5 +1,8 @@
 import proj4 from 'proj4';
 import { srProjections } from '@/composables/SrProjections';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrCrsTransform');
 
 // Target CRS for all map display (per GeoParquet spec default)
 const TARGET_CRS = 'EPSG:4326'; // WGS 84
@@ -22,7 +25,7 @@ export function extractCrsFromGeoMetadata(geoMetadata: any): string | null {
 
     if (!columnMetadata?.crs) {
         // Per GeoParquet spec: if no CRS specified, default is OGC:CRS84 (equivalent to EPSG:4326)
-        console.log('extractCrsFromGeoMetadata: No CRS found, assuming OGC:CRS84/EPSG:4326');
+        logger.debug('extractCrsFromGeoMetadata: No CRS found, assuming OGC:CRS84/EPSG:4326');
         return 'EPSG:4326';
     }
 
@@ -31,14 +34,14 @@ export function extractCrsFromGeoMetadata(geoMetadata: any): string | null {
     // Try to extract EPSG code from id.authority and id.code
     if (crs.id?.authority && crs.id?.code) {
         const crsCode = `${crs.id.authority}:${crs.id.code}`;
-        console.log('extractCrsFromGeoMetadata: Found CRS from id:', crsCode);
+        logger.debug('extractCrsFromGeoMetadata: Found CRS from id', { crsCode });
         return crsCode;
     }
 
     // Check if it's a compound CRS with components array (PROJJSON format)
     // Extract the horizontal/geographic component for 2D map display
     if (crs.type === 'CompoundCRS' && Array.isArray(crs.components)) {
-        console.log('extractCrsFromGeoMetadata: Found CompoundCRS with components, length:', crs.components.length);
+        logger.debug('extractCrsFromGeoMetadata: Found CompoundCRS with components', { componentsLength: crs.components.length });
 
         // Find the geographic/horizontal component (usually first)
         const horizontalComponent = crs.components.find((comp: any) =>
@@ -48,18 +51,17 @@ export function extractCrsFromGeoMetadata(geoMetadata: any): string | null {
         );
 
         if (horizontalComponent) {
-            console.log('extractCrsFromGeoMetadata: Found horizontal component:', horizontalComponent.type, horizontalComponent.name);
-            console.log('extractCrsFromGeoMetadata: Component id:', horizontalComponent.id);
+            logger.debug('extractCrsFromGeoMetadata: Found horizontal component', { type: horizontalComponent.type, name: horizontalComponent.name, id: horizontalComponent.id });
 
             if (horizontalComponent.id?.authority && horizontalComponent.id?.code) {
                 const horizontalCrsCode = `${horizontalComponent.id.authority}:${horizontalComponent.id.code}`;
-                console.log('extractCrsFromGeoMetadata: Extracted horizontal CRS from compound:', horizontalCrsCode);
+                logger.debug('extractCrsFromGeoMetadata: Extracted horizontal CRS from compound', { horizontalCrsCode });
                 return horizontalCrsCode;
             } else {
-                console.warn('extractCrsFromGeoMetadata: Horizontal component found but missing id.authority or id.code');
+                logger.warn('extractCrsFromGeoMetadata: Horizontal component found but missing id.authority or id.code');
             }
         } else {
-            console.warn('extractCrsFromGeoMetadata: CompoundCRS has components but no Geographic/Projected/Geodetic component found');
+            logger.warn('extractCrsFromGeoMetadata: CompoundCRS has components but no Geographic/Projected/Geodetic component found');
         }
     }
 
@@ -67,34 +69,34 @@ export function extractCrsFromGeoMetadata(geoMetadata: any): string | null {
     // Extract the horizontal base CRS for 2D map display
     if (crs.base_crs?.id?.authority && crs.base_crs.id?.code) {
         const baseCrsCode = `${crs.base_crs.id.authority}:${crs.base_crs.id.code}`;
-        console.log('extractCrsFromGeoMetadata: Found compound CRS, using horizontal base CRS:', baseCrsCode);
+        logger.debug('extractCrsFromGeoMetadata: Found compound CRS, using horizontal base CRS', { baseCrsCode });
         return baseCrsCode;
     }
 
     // For compound CRS without base_crs.id, try to extract from datum
     if (crs.base_crs?.datum?.id?.authority && crs.base_crs.datum.id?.code) {
         const datumCode = `${crs.base_crs.datum.id.authority}:${crs.base_crs.datum.id.code}`;
-        console.log('extractCrsFromGeoMetadata: Using datum from compound CRS base:', datumCode);
+        logger.debug('extractCrsFromGeoMetadata: Using datum from compound CRS base', { datumCode });
         return datumCode;
     }
 
     // Check if it's a geographic CRS with a datum (fallback for non-compound)
     if (crs.datum?.id?.authority && crs.datum?.id?.code) {
         const datumCode = `${crs.datum.id.authority}:${crs.datum.id.code}`;
-        console.log('extractCrsFromGeoMetadata: Found CRS from datum:', datumCode);
+        logger.debug('extractCrsFromGeoMetadata: Found CRS from datum', { datumCode });
         return datumCode;
     }
 
     // If we only have a CRS name but it's not a valid proj4 identifier
     if (crs.name) {
-        console.warn(`extractCrsFromGeoMetadata: CRS name "${crs.name}" found but not parseable as proj4 code`);
-        console.warn('extractCrsFromGeoMetadata: Skipping transformation - assuming coordinates are WGS 84 compatible');
-        console.log('extractCrsFromGeoMetadata: Full CRS object for debugging:', JSON.stringify(crs, null, 2));
+        logger.warn('extractCrsFromGeoMetadata: CRS name found but not parseable as proj4 code', { crsName: crs.name });
+        logger.warn('extractCrsFromGeoMetadata: Skipping transformation - assuming coordinates are WGS 84 compatible');
+        logger.debug('extractCrsFromGeoMetadata: Full CRS object for debugging', { crs: JSON.stringify(crs, null, 2) });
         // Return null to skip transformation (treat as if already in WGS 84)
         return null;
     }
 
-    console.warn('extractCrsFromGeoMetadata: Could not extract CRS identifier');
+    logger.warn('extractCrsFromGeoMetadata: Could not extract CRS identifier');
     return null;
 }
 
@@ -112,12 +114,12 @@ function ensureCrsRegistered(crsCode: string): void {
     // Check if we have it in our srProjections
     const projection = srProjections.value[crsCode];
     if (projection?.proj4def) {
-        console.log(`Registering CRS ${crsCode} with proj4`);
+        logger.debug('Registering CRS with proj4', { crsCode });
         proj4.defs(crsCode, projection.proj4def);
         return;
     }
 
-    console.warn(`CRS ${crsCode} not found in srProjections and not registered with proj4`);
+    logger.warn('CRS not found in srProjections and not registered with proj4', { crsCode });
 }
 
 /**
@@ -147,8 +149,8 @@ export function transformCoordinate(
         const transformed = proj4(sourceCrs, TARGET_CRS, [lon, lat]);
         return [transformed[0], transformed[1]];
     } catch (error) {
-        console.error(`transformCoordinate: Failed to transform from ${sourceCrs} to ${TARGET_CRS}:`, error);
-        console.warn('transformCoordinate: Returning original coordinates without transformation');
+        logger.error('transformCoordinate: Failed to transform', { sourceCrs, targetCrs: TARGET_CRS, error: error instanceof Error ? error.message : String(error) });
+        logger.warn('transformCoordinate: Returning original coordinates without transformation');
         return [lon, lat];
     }
 }

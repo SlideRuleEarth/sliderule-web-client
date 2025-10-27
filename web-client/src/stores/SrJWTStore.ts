@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia';
 import { useSysConfigStore } from '@/stores/sysConfigStore';
+import { createLogger } from '@/utils/logger';
 
+const logger = createLogger('SrJWTStore');
 const sysConfigStore = useSysConfigStore();
 
 interface SrJWT {
@@ -57,19 +59,19 @@ export const useJwtStore = defineStore('jwtStore', {
           if(jwt){
             const nowInUnixTime = Math.floor(Date.now() / 1000);
             const expTime = new Date(jwt.expiration).getTime() / 1000;
-            console.log('nowInUnixTime:',nowInUnixTime,' Expiration:', expTime);
+            logger.debug('Checking JWT expiration', { nowInUnixTime, expTime });
             if (expTime < nowInUnixTime) {
               // Show the authentication dialog
-              console.log('JWT expired');
+              logger.debug('JWT expired');
               this.removeJwt(sysConfigStore.getDomain(), sysConfigStore.getOrganization());
             } else {
-              console.log('No authentication needed: JWT is valid');
+              logger.debug('No authentication needed: JWT is valid');
             }
           } else {
             //console.log('No JWT found:',jwt);
           }
         } catch (error) {
-            console.error('Error during get Num Nodes:', error);
+            logger.error('Error during get Num Nodes', { error: error instanceof Error ? error.message : String(error) });
         }
         return jwt;
       },

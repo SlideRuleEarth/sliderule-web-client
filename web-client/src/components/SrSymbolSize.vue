@@ -24,6 +24,9 @@
     import InputNumber from 'primevue/inputnumber';
     import { useSymbolStore } from '@/stores/symbolStore';
     import { refreshScatterPlot } from '@/utils/plotUtils';
+    import { createLogger } from '@/utils/logger';
+
+    const logger = createLogger('SrSymbolSize');
 
     const symbolStore = useSymbolStore();
 
@@ -38,7 +41,7 @@ async function handleUpdate() {
     // This function is called whenever the input value changes
     // You can add any additional logic here if needed
     // For example, you might want to log the new value or perform some validation
-    console.log(`Symbol size updated to: ${symbolStore.size[props.reqIdStr]}`);
+    logger.debug('Symbol size updated', { size: symbolStore.size[props.reqIdStr], reqIdStr: props.reqIdStr });
     await refreshScatterPlot("user changed symbol size");
 }
 

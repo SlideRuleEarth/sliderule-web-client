@@ -1,6 +1,9 @@
 import { defineStore } from 'pinia';
 import { Deck } from '@deck.gl/core';
 import { SELECTED_LAYER_NAME_PREFIX } from '@/types/SrTypes';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('DeckStore');
 
 export const useDeckStore = defineStore('deck', {
     state: () => ({
@@ -20,16 +23,16 @@ export const useDeckStore = defineStore('deck', {
         clearDeckInstance() {
             const startTime = performance.now(); // Start time
             if (this.deckInstance) {
-                console.warn('clearDeckInstance()');
+                logger.debug('clearDeckInstance start');
                 this.deckLayers = [];
                 this.getDeckInstance().setProps({layers:this.getLayers()});
                 this.deckInstance.finalize(); // This ensures all resources are properly released.
                 this.deckInstance = null;
             } else {
-                console.warn('clearDeckInstance(): deckInstance is null');
+                logger.debug('clearDeckInstance: deckInstance is null');
             }
             const now = performance.now();
-            console.log(`clearDeckInstance took ${now - startTime} milliseconds. endTime:`,now);
+            logger.debug('clearDeckInstance completed', { durationMs: now - startTime, endTime: now });
         },
         replaceOrAddLayer(layer:any,name:string): boolean {
             for (let i = 0; i < this.deckLayers.length; i++) {

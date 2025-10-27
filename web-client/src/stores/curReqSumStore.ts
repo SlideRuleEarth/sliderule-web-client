@@ -1,6 +1,9 @@
 import type { SrRequestSummary } from '@/db/SlideRuleDb';
 import type { SrParquetPathTypeJsType } from '@/utils/SrParquetUtils';
 import { defineStore } from 'pinia';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('CurReqSumStore');
 
 export const useCurReqSumStore = defineStore('curAtl06ReqSum', {
     state: () => ({
@@ -129,7 +132,7 @@ export const useCurReqSumStore = defineStore('curAtl06ReqSum', {
                 this.set_h_mean_Low(srs.extHMean.lowHMean);
                 this.set_h_mean_High(srs.extHMean.highHMean);
             } else {
-                console.error('setSummary() called with null summary:', srs);
+                logger.error('setSummary called with null summary', { srs });
             }
         },
         setPercentComplete(percentComplete: number) {

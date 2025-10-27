@@ -1,4 +1,7 @@
 import type { DuckDBClient, QueryResult } from '@/utils/SrDuckDb';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrDbShellUtils');
 
 
 /**
@@ -88,5 +91,5 @@ export async function streamSqlQueryToCSV(
     URL.revokeObjectURL(url);
 
     const endTime = performance.now();
-    console.log(`Exported ${chunkCount} chunks in ${((endTime - startTime) / 1000).toFixed(2)} seconds.`);
+    logger.debug('Exported chunks', { chunkCount, duration: ((endTime - startTime) / 1000).toFixed(2) });
 }

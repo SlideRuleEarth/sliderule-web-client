@@ -34,6 +34,9 @@
     import { useToast } from 'primevue/usetoast';
     import { useSrToastStore } from "@/stores/srToastStore";
     import Button from 'primevue/button';
+    import { createLogger } from '@/utils/logger';
+
+    const logger = createLogger('SrClusterInfo');
 
     // Use the store
     const sysConfigStore = useSysConfigStore();
@@ -47,7 +50,7 @@
     });
     // Computed properties to access state
     const computedGetType = computed(() => {
-        console.log('computedLoggedIn:', computedLoggedIn.value);
+        logger.debug('computedGetType', { computedLoggedIn: computedLoggedIn.value });
         if (!computedLoggedIn.value) {
             return 'Unknown';
         } else {
@@ -74,7 +77,7 @@
             });
             if (response.ok) {
                 const result = await response.json();
-                console.log('result:', result);
+                logger.debug('getOrgNumNodes result', { result });
                 sysConfigStore.setMinNodes(result.min_nodes);
                 sysConfigStore.setCurrentNodes(result.current_nodes);
                 sysConfigStore.setMaxNodes(result.max_nodes);
@@ -82,11 +85,11 @@
                 jwtStore.setIsPublic(sysConfigStore.getDomain(),sysConfigStore.getOrganization(),result.is_public);
                 toast.add({ severity: 'info', summary: 'Num Nodes Retrieved', detail: `Min: ${result.min_nodes}, Current: ${result.current_nodes}, Max: ${result.max_nodes}`, life: srToastStore.getLife()});
             } else {
-                console.error(`Failed to get Num Nodes: ${response.statusText}`);
+                logger.error('Failed to get Num Nodes', { statusText: response.statusText });
                 toast.add({ severity: 'error', summary: 'Failed to Retrieve Nodes', detail: `Error: ${response.statusText}`, life: srToastStore.getLife()});
-            }  
+            }
         } else {
-            console.error('Login expired or not logged in');
+            logger.error('Login expired or not logged in');
             toast.add({ severity: 'info', summary: 'Need to Login', detail: 'Please log in again', life: srToastStore.getLife()});
         }
     }

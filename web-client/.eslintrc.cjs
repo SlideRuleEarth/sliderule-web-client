@@ -24,13 +24,25 @@ module.exports = {
     // Warn about async functions that don't use await
     'require-await': 'warn',
     // Require functions that return promises to be marked async
-    '@typescript-eslint/promise-function-async': 'warn'
+    '@typescript-eslint/promise-function-async': 'warn',
+    // Allow unused vars that start with _
+    'no-unused-vars': ['error', {
+      argsIgnorePattern: '^_',
+      varsIgnorePattern: '^_'
+    }],
+    '@typescript-eslint/no-unused-vars': ['error', {
+      argsIgnorePattern: '^_',
+      varsIgnorePattern: '^_'
+    }]
   },
   overrides: [
     {
       files: ['tests/**/*.{ts,tsx,js,jsx}'],
       env: {
         node: true
+      },
+      globals: {
+        globalThis: 'readonly'
       }
     }
   ]

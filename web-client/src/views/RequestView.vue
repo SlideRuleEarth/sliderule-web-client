@@ -11,19 +11,21 @@
     import { applyParsedJsonToStores } from "@/utils/applyParsedJsonToStores";
     import { useToast } from "primevue/usetoast";
     import { useSrToastStore } from "@/stores/srToastStore";
+    import { createLogger } from '@/utils/logger';
 
+    const logger = createLogger('RequestView');
     const route = useRoute();
     const router = useRouter();
     const toast = useToast();
     const srToastStore = useSrToastStore();
 
     async function loadParametersFromRequest(reqId: number) {
-        console.log('loadParametersFromRequest called with reqId:', reqId);
+        logger.debug('Loading parameters from request', { reqId });
         // This works for both regular requests and imported requests
         try {
             // Get the request parameters from the database
             const request = await db.getRequest(reqId);
-            console.log('Retrieved request from DB:', request);
+            logger.debug('Retrieved request from DB', { reqId, hasRequest: !!request, hasRcvdParms: !!request?.rcvd_parms });
 
             // Use rcvd_parms (received parameters) which contains the actual parameters sent to server
             let parameters = null;
@@ -33,21 +35,21 @@
                     parameters = typeof request.rcvd_parms === 'string'
                         ? JSON.parse(request.rcvd_parms)
                         : request.rcvd_parms;
-                    console.log('Using rcvd_parms as parameters:', parameters);
+                    logger.debug('Using rcvd_parms as parameters', { paramCount: Object.keys(parameters).length });
                 } catch (error) {
-                    console.error('Failed to parse rcvd_parms:', error);
+                    logger.error('Failed to parse rcvd_parms', { error: error instanceof Error ? error.message : String(error), reqId });
                 }
             }
 
             // Fallback to request.parameters if rcvd_parms is not available
             if (!parameters && request?.parameters && request?.parameters.parms && Object.keys(request.parameters.parms).length > 0) {
                 parameters = request.parameters.parms;
-                console.log('Falling back to request.parameters:', parameters);
+                logger.debug('Falling back to request.parameters', { paramCount: Object.keys(parameters).length });
             }
 
             if (request && parameters && Object.keys(parameters).length > 0) {
                 // Force advanced mode when loading params from a request
-                console.log('Setting advanced mode to true');
+                logger.debug('Setting advanced mode to true');
                 useAdvancedModeStore().setAdvanced(true);
 
                 // Wait for the DOM to update with the advanced sidebar
@@ -65,7 +67,7 @@
                     errors.push(`${section}: ${message}`);
                 };
 
-                console.log('Applying parameters to stores:', parameters);
+                logger.debug('Applying parameters to stores', { paramCount: Object.keys(parameters).length });
                 applyParsedJsonToStores(parameters, reqParamsStore, rasterParamsStore, addError);
 
                 // Set mission and API based on the func field or asset field
@@ -107,11 +109,11 @@
                         }
                     }
 
-                    console.log('Set mission to:', reqParamsStore.getMissionValue(), 'API to:', reqParamsStore.getIceSat2API() || reqParamsStore.getGediAPI());
+                    logger.debug('Set mission and API', { mission: reqParamsStore.getMissionValue(), api: reqParamsStore.getIceSat2API() || reqParamsStore.getGediAPI() });
                 }
 
                 if (errors.length > 0) {
-                    console.warn('Errors loading parameters:', errors);
+                    logger.warn('Errors loading parameters', { errors, errorCount: errors.length });
                 }
 
                 // Wait one more tick to ensure stores have updated
@@ -141,11 +143,11 @@
                             padding: [40, 40, 40, 40],
                             duration: 500
                         });
-                        console.log('Zoomed to polygon extent');
+                        logger.debug('Zoomed to polygon extent');
                     }
                 }
 
-                console.log('Parameters loaded successfully, showing toast');
+                logger.info('Parameters loaded successfully', { reqId });
                 toast.add({
                     severity: 'success',
                     summary: 'Parameters Loaded',
@@ -153,7 +155,7 @@
                     life: srToastStore.getLife()
                 });
             } else {
-                console.warn('No parameters found for request:', reqId);
+                logger.warn('No parameters found for request', { reqId });
                 toast.add({
                     severity: 'warn',
                     summary: 'No Parameters',
@@ -162,7 +164,7 @@
                 });
             }
         } catch (error) {
-            console.error(`Failed to load parameters for request ${reqId}:`, error);
+            logger.error('Failed to load parameters for request', { reqId, error: error instanceof Error ? error.message : String(error) });
             toast.add({
                 severity: 'error',
                 summary: 'Load Failed',
@@ -173,18 +175,18 @@
     }
 
     onMounted(async () => {
-        console.log('RequestView onMounted, route.params:', route.params);
+        logger.debug('RequestView component mounted', { routeParams: route.params });
 
         // Check if we have a reqId in the route params
         const reqIdParam = route.params.reqId;
         if (reqIdParam) {
             const reqId = parseInt(reqIdParam as string, 10);
             if (!isNaN(reqId)) {
-                console.log('Found reqId in route params:', reqId);
+                logger.debug('Found reqId in route params', { reqId });
                 await loadParametersFromRequest(reqId);
 
                 // Navigate to the clean /request URL after loading
-                router.replace({ path: '/request' });
+                void router.replace({ path: '/request' });
             }
         }
     });
@@ -194,9 +196,9 @@
         if (newReqId) {
             const reqId = parseInt(newReqId as string, 10);
             if (!isNaN(reqId)) {
-                console.log('Route params changed, loading reqId:', reqId);
+                logger.debug('Route params changed, loading reqId', { reqId });
                 await loadParametersFromRequest(reqId);
-                router.replace({ path: '/request' });
+                void router.replace({ path: '/request' });
             }
         }
     });

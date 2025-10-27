@@ -1,6 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { CreConfig, BathyConfig, CoreConfig, Icesat2Config, SwotConfig, GediConfig } from '@/types/slideruleDefaultsInterfaces'
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('DefaultsStore');
 
 export interface SlideRuleDefaults {
     cre: CreConfig
@@ -29,7 +32,7 @@ export const useSlideruleDefaults = defineStore('slideruleDefaults', () => {
             if (!json || Object.keys(json).length === 0) throw new Error('Fetched defaults are null or empty')
             defaults.value = json as SlideRuleDefaults
             fetched.value = true
-            console.log('Fetched defaults:', defaults.value)
+            logger.debug('Fetched defaults', { defaults: defaults.value })
         } catch (err) {
             error.value = err as Error
         } finally {
@@ -42,7 +45,7 @@ export const useSlideruleDefaults = defineStore('slideruleDefaults', () => {
         const validKeys: (keyof SlideRuleDefaults)[] = ['core', 'icesat2', 'cre', 'gedi', 'swot', 'bathy'];
         if (!defaults.value) throw new Error('getNestedDefault - Defaults not yet loaded');
         if (!validKeys.includes(apiKey as keyof SlideRuleDefaults)) {
-            console.warn(`Invalid API key: ${apiKey}`);
+            logger.warn('Invalid API key', { apiKey });
             return null;
         }
 
@@ -73,7 +76,7 @@ export const useSlideruleDefaults = defineStore('slideruleDefaults', () => {
             }
             if (found) return value as T;
         }
-        console.warn(`Nested key path "${nestedPath}" not found in any fallbacks for "${apiKey}"`);
+        logger.warn('Nested key path not found in any fallbacks', { nestedPath, apiKey });
         return null;
     }
 
@@ -85,7 +88,7 @@ export const useSlideruleDefaults = defineStore('slideruleDefaults', () => {
         if (missionKey === 'GEDI') {
             return getNestedDefault<T>('gedi', nestedKey)
         }
-        console.error(`Invalid mission key: ${missionKey}`)
+        logger.error('Invalid mission key', { missionKey })
         return null
     }
 

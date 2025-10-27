@@ -1,40 +1,46 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref } from 'vue'
+import { createLogger } from '@/utils/logger'
+
+const logger = createLogger('SrClearCache')
 
 // State to track the clearing process
-const isClearing = ref(false);
-const message = ref("");
+const isClearing = ref(false)
+const message = ref('')
 
 const clearCacheAndReload = async () => {
-  isClearing.value = true;
-  message.value = "Clearing cache...";
+  isClearing.value = true
+  message.value = 'Clearing cache...'
 
   try {
     // Open cache storage and delete all caches
-    if ("caches" in window) {
-      const cacheKeys = await caches.keys();
-      await Promise.all(cacheKeys.map((key) => caches.delete(key)));
-      console.log("Cache cleared.");
+    if ('caches' in window) {
+      const cacheKeys = await caches.keys()
+      // eslint-disable-next-line @typescript-eslint/promise-function-async
+      await Promise.all(cacheKeys.map((key) => caches.delete(key)))
+      logger.debug('Cache cleared')
     } else {
-      console.warn("Cache API not supported in this browser.");
+      logger.warn('Cache API not supported in this browser')
     }
 
     // Force a hard reload (bypasses cache)
-    message.value = "Reloading...";
-    window.location.reload();
+    message.value = 'Reloading...'
+    window.location.reload()
   } catch (error) {
-    console.error("Error clearing cache:", error);
-    message.value = "Failed to clear cache.";
+    logger.error('Error clearing cache', {
+      error: error instanceof Error ? error.message : String(error)
+    })
+    message.value = 'Failed to clear cache.'
   } finally {
-    isClearing.value = false;
+    isClearing.value = false
   }
-};
+}
 </script>
 
 <template>
   <div class="cache-reload">
     <button :disabled="isClearing" @click="clearCacheAndReload">
-      {{ isClearing ? "Clearing..." : "Empty Cache & Hard Reload" }}
+      {{ isClearing ? 'Clearing...' : 'Empty Cache & Hard Reload' }}
     </button>
     <p v-if="message">{{ message }}</p>
   </div>

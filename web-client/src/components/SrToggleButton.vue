@@ -59,6 +59,9 @@
 import { ref, computed, watch } from 'vue';
 import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
 import ToggleSwitch from 'primevue/toggleswitch';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrToggleButton');
 
 const props = defineProps({
   label: {
@@ -111,7 +114,7 @@ const localChecked = computed({
 });
 
 watch(localChecked, (value) => {
-  console.log(`SrToggleButton: ${props.label} changed to: ${value}`);
+  logger.debug('Toggle changed', { label: props.label, value });
   emit('update:modelValue', value);
 });
 

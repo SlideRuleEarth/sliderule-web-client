@@ -3,43 +3,54 @@
     <table>
       <thead>
         <tr>
-            <th>Field</th>
-            <th>{{ props.beforeLabel }}</th>
-            <th>{{ props.afterLabel }}</th>
-            <th>
-                <Button
-                    label="Temp Override"
-                    icon="pi pi-check"
-                    size="small"
-                    @click="forceChanges"
-                    class="sr-glow-button"
-                />
-            </th>
+          <th>Field</th>
+          <th>{{ props.beforeLabel }}</th>
+          <th>{{ props.afterLabel }}</th>
+          <th>
+            <Button
+              label="Temp Override"
+              icon="pi pi-check"
+              size="small"
+              @click="forceChanges"
+              class="sr-glow-button"
+            />
+          </th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="(row, index) in diffRows" :key="index">
-            <td :class="row.fieldClass">{{ row.path }}</td>
-            <td :class="['before', row.beforeClass]" v-html="row.before"></td>
-            <td :class="['after', row.afterClass]" v-html="row.after"></td>
-            <td class="force-cell">
-                <template v-if="!props.automaticFields.has(row.path.split('.').at(-1)!)">
-                    <div
-                        v-if="row.aVal === undefined || row.aVal === null"
-                        class="force-checkbox"
-                    >
-                        <Checkbox v-model="row.forceAdd" :inputId="`force-add-${index}`" binary class="p-checkbox-sm" />
-                        <label :for="`force-add-${index}`">add</label>
-                    </div>
-                    <div
-                        v-if="(row.aVal !== undefined && row.aVal !== null) && (row.bVal === undefined || row.bVal === null)"
-                        class="force-checkbox"
-                    >
-                        <Checkbox v-model="row.forceRemove" :inputId="`force-remove-${index}`" binary class="p-checkbox-sm" />
-                        <label :for="`force-remove-${index}`">remove</label>
-                    </div>
-                </template>
-            </td>
+          <td :class="row.fieldClass">{{ row.path }}</td>
+          <td :class="['before', row.beforeClass]" v-html="row.before"></td>
+          <td :class="['after', row.afterClass]" v-html="row.after"></td>
+          <td class="force-cell">
+            <template v-if="!props.automaticFields.has(row.path.split('.').at(-1)!)">
+              <div v-if="row.aVal === undefined || row.aVal === null" class="force-checkbox">
+                <Checkbox
+                  v-model="row.forceAdd"
+                  :inputId="`force-add-${index}`"
+                  binary
+                  class="p-checkbox-sm"
+                />
+                <label :for="`force-add-${index}`">add</label>
+              </div>
+              <div
+                v-if="
+                  row.aVal !== undefined &&
+                  row.aVal !== null &&
+                  (row.bVal === undefined || row.bVal === null)
+                "
+                class="force-checkbox"
+              >
+                <Checkbox
+                  v-model="row.forceRemove"
+                  :inputId="`force-remove-${index}`"
+                  binary
+                  class="p-checkbox-sm"
+                />
+                <label :for="`force-remove-${index}`">remove</label>
+              </div>
+            </template>
+          </td>
         </tr>
       </tbody>
     </table>
@@ -55,35 +66,39 @@ import Checkbox from 'primevue/checkbox'
 import Button from 'primevue/button'
 import { useReqParamsStore } from '@/stores/reqParamsStore'
 import { ref, watchEffect, nextTick } from 'vue'
+import { createLogger } from '@/utils/logger'
+
+const logger = createLogger('SrJsonDiffViewer')
 
 const reqParamsStore = useReqParamsStore()
 
 hljs.registerLanguage('json', json)
 
-const internalDiff = computed(() => generateDiff(props.before, props.after, [], props.automaticFields))
+const internalDiff = computed(() =>
+  generateDiff(props.before, props.after, [], props.automaticFields)
+)
 const diffRows = ref<DiffRow[]>([])
 
 const props = defineProps<{
-    before: object
-    after: object
-    automaticFields: Set<string>
-    beforeLabel?: string
-    afterLabel?: string
+  before: object
+  after: object
+  automaticFields: Set<string>
+  beforeLabel?: string
+  afterLabel?: string
 }>()
 
 interface DiffRow {
-    path: string
-    before: string
-    after: string
-    fieldClass: string
-    beforeClass: string
-    afterClass: string
-    forceAdd?: boolean
-    forceRemove?: boolean
-    aVal?: unknown // Add this field to allow template logic
-    bVal?: unknown
+  path: string
+  before: string
+  after: string
+  fieldClass: string
+  beforeClass: string
+  afterClass: string
+  forceAdd?: boolean
+  forceRemove?: boolean
+  aVal?: unknown // Add this field to allow template logic
+  bVal?: unknown
 }
-
 
 function highlight(value: unknown): string {
   try {
@@ -94,81 +109,81 @@ function highlight(value: unknown): string {
 }
 
 function generateDiff(
-    before: any,
-    after: any,
-    path: string[] = [],
-    automaticFields: Set<string> = new Set()
+  before: unknown,
+  after: unknown,
+  path: string[] = [],
+  automaticFields: Set<string> = new Set()
 ): DiffRow[] {
-    const keys = new Set([...Object.keys(before || {}), ...Object.keys(after || {})])
-    const rows: DiffRow[] = []
+  const keys = new Set([...Object.keys(before || {}), ...Object.keys(after || {})])
+  const rows: DiffRow[] = []
 
-    for (const key of keys) {
-        const fullPath = [...path, key].join('.')
-        const bVal = before?.[key]
-        const aVal = after?.[key]
-        let fieldClass = 'field-normal';
-        let beforeClass = 'before-red';
-        let afterClass = 'after-green';
-        if (
-            bVal && aVal &&
-            typeof bVal === 'object' &&
-            typeof aVal === 'object' &&
-            !Array.isArray(bVal) &&
-            !Array.isArray(aVal)
-        ) {
-            rows.push(...generateDiff(bVal, aVal, [...path, key], automaticFields))
-        } else if (JSON.stringify(bVal) !== JSON.stringify(aVal)) {
-            let beforeDisplay: string;
-            let afterDisplay: string;
+  for (const key of keys) {
+    const fullPath = [...path, key].join('.')
+    const bVal = (before as Record<string, unknown>)?.[key]
+    const aVal = (after as Record<string, unknown>)?.[key]
+    let fieldClass = 'field-normal'
+    let beforeClass = 'before-red'
+    let afterClass = 'after-green'
+    if (
+      bVal &&
+      aVal &&
+      typeof bVal === 'object' &&
+      typeof aVal === 'object' &&
+      !Array.isArray(bVal) &&
+      !Array.isArray(aVal)
+    ) {
+      rows.push(...generateDiff(bVal, aVal, [...path, key], automaticFields))
+    } else if (JSON.stringify(bVal) !== JSON.stringify(aVal)) {
+      let beforeDisplay: string
+      let afterDisplay: string
 
-            if (bVal !== undefined) {
-                beforeDisplay = highlight(bVal);
-                if((bVal === false) && (aVal === undefined)){
-                    beforeClass = 'before-implied';
-                }
-            } else if (automaticFields.has(key)) {
-                beforeDisplay = '<i class="missing">(automatic)</i>';
-                beforeClass = 'before-automatic';
-            } else if (typeof aVal === 'boolean' || typeof bVal === 'boolean') {
-                beforeDisplay = '<i class="missing">(implied)</i>';
-                beforeClass = 'before-implied';
-            } else {
-                beforeDisplay = '<i class="missing">(missing)</i>';
-            }
+      if (bVal !== undefined) {
+        beforeDisplay = highlight(bVal)
+        if (bVal === false && aVal === undefined) {
+          beforeClass = 'before-implied'
+        }
+      } else if (automaticFields.has(key)) {
+        beforeDisplay = '<i class="missing">(automatic)</i>'
+        beforeClass = 'before-automatic'
+      } else if (typeof aVal === 'boolean' || typeof bVal === 'boolean') {
+        beforeDisplay = '<i class="missing">(implied)</i>'
+        beforeClass = 'before-implied'
+      } else {
+        beforeDisplay = '<i class="missing">(missing)</i>'
+      }
 
-            if (aVal === undefined) {
-                if (automaticFields.has(key)) {
-                    afterDisplay = '<i class="sw-error">(automatic)</i>';
-                    afterClass = 'after-automatic';
-                } else if (typeof bVal === 'boolean') {
-                    if(bVal === true){
-                        afterDisplay = '<i class="missing">(missing)</i>';
-                        afterClass = 'sw-warning';
-                    } else {
-                        afterDisplay = '<i class="missing">(implied)</i>';
-                        afterClass = 'after-implied';
-                    }
-                } else {
-                    afterDisplay = '<i class="missing">(missing)</i>';
-                }
-            } else {
-                afterDisplay = highlight(aVal);
-            }
-
-            rows.push({
-                path: fullPath,
-                before: beforeDisplay,
-                after: afterDisplay,
-                fieldClass,
-                beforeClass,
-                afterClass,
-                aVal, // include raw value for template logic
-                bVal 
-            });
-
+      if (aVal === undefined) {
+        if (automaticFields.has(key)) {
+          afterDisplay = '<i class="sw-error">(automatic)</i>'
+          afterClass = 'after-automatic'
+        } else if (typeof bVal === 'boolean') {
+          if (bVal === true) {
+            afterDisplay = '<i class="missing">(missing)</i>'
+            afterClass = 'sw-warning'
+          } else {
+            afterDisplay = '<i class="missing">(implied)</i>'
+            afterClass = 'after-implied'
+          }
         } else {
-            // OPTIONAL: show unchanged rows (up to you)
-            /*
+          afterDisplay = '<i class="missing">(missing)</i>'
+        }
+      } else {
+        afterDisplay = highlight(aVal)
+      }
+
+      rows.push({
+        path: fullPath,
+        before: beforeDisplay,
+        after: afterDisplay,
+        fieldClass,
+        beforeClass,
+        afterClass,
+        aVal, // include raw value for template logic
+        bVal
+      })
+    } else {
+      // OPTIONAL: show unchanged rows (up to you)
+      /*
             rows.push({
                 path: fullPath,
                 before: highlight(bVal),
@@ -178,48 +193,48 @@ function generateDiff(
                 afterClass: 'after-unchanged'
             });
             */
-        }
-
     }
+  }
 
-    return rows
+  return rows
 }
 
 watchEffect(() => {
-    diffRows.value = internalDiff.value
+  diffRows.value = internalDiff.value
 })
 
 const emit = defineEmits<{
-  (e: 'forced-req_params', index: number): void
+  (_e: 'forced-req_params', _index: number): void
 }>()
 
 function forceChanges() {
-    const added: Record<string, unknown> = {}
-    const removed: string[] = []
-    let updated = false;
+  const added: Record<string, unknown> = {}
+  const removed: string[] = []
+  let updated = false
 
-    for (const row of diffRows.value) {
-        if (row.forceAdd) {
-            added[row.path] = row.bVal
-            updated = true;
-        }
-        if (row.forceRemove) {
-            removed.push(row.path)
-            updated = true;
-        }
+  for (const row of diffRows.value) {
+    if (row.forceAdd) {
+      added[row.path] = row.bVal
+      updated = true
     }
-
-    reqParamsStore.forcedAddedParams = added
-    reqParamsStore.forcedRemovedParams = removed
-
-    if (updated) {
-        console.log('Forced Request parameters:', reqParamsStore.forcedAddedParams)
-        nextTick(() => {
-            emit('forced-req_params', 0)
-        })
+    if (row.forceRemove) {
+      removed.push(row.path)
+      updated = true
     }
+  }
+
+  reqParamsStore.forcedAddedParams = added
+  reqParamsStore.forcedRemovedParams = removed
+
+  if (updated) {
+    logger.debug('Forced Request parameters', {
+      forcedAddedParams: reqParamsStore.forcedAddedParams
+    })
+    void nextTick(() => {
+      emit('forced-req_params', 0)
+    })
+  }
 }
-
 </script>
 
 <style scoped>
@@ -250,8 +265,8 @@ function forceChanges() {
 }
 
 .field {
-    font-weight: bold;
-    width: 25%;
+  font-weight: bold;
+  width: 25%;
 }
 
 .field-normal {
@@ -338,5 +353,4 @@ function forceChanges() {
   gap: 0.25rem;
   margin-bottom: 0.25rem;
 }
-
 </style>

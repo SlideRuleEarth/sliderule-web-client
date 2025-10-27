@@ -2,6 +2,9 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { db as indexedDB } from '@/db/SlideRuleDb';
 import { createDuckDbClient } from '@/utils/SrDuckDb';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrcIdTblStore');
 
 export const useSrcIdTblStore = defineStore('srcIdTblStore', () => {
     const sourceTable = ref<string[]>([]);
@@ -9,7 +12,7 @@ export const useSrcIdTblStore = defineStore('srcIdTblStore', () => {
     async function setSrcIdTblWithFileName(fileName: string) {
         const db = await createDuckDbClient();
         if (!db) {
-            console.error(`Failed to create DuckDB client for file: ${fileName}`);
+            logger.error('Failed to create DuckDB client for file', { fileName });
             sourceTable.value = [];
             return;
         }
@@ -21,11 +24,14 @@ export const useSrcIdTblStore = defineStore('srcIdTblStore', () => {
                 sourceTable.value = Object.values(parsed.srctbl);
             } else {
                 sourceTable.value = [];
-                console.warn(`setSrcIdTblWithFileName: Missing or invalid 'srctbl' field in JSON for file: ${fileName}`);
+                logger.warn('setSrcIdTblWithFileName: Missing or invalid srctbl field in JSON', { fileName });
             }
         } catch (error) {
             // If meta metadata is not found, just log and continue with empty source table
-            console.warn(`setSrcIdTblWithFileName: Could not load 'meta' metadata for file: ${fileName}. Source table will be empty.`, error);
+            logger.warn('setSrcIdTblWithFileName: Could not load meta metadata, source table will be empty', {
+                fileName,
+                error: error instanceof Error ? error.message : String(error)
+            });
             sourceTable.value = [];
         }
     }

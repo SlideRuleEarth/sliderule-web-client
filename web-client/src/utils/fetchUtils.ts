@@ -2,13 +2,16 @@ import { db } from '@/db/SlideRuleDb'
 import { useSysConfigStore } from '@/stores/sysConfigStore';
 import { useJwtStore } from '@/stores/SrJWTStore';
 import { Buffer } from 'buffer/';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('FetchUtils');
 //
 // System Configuration
 //
 const sysConfigStore = useSysConfigStore();
 export function forceGeoParquet(inputReqParms: any): any {
     //There are different shapes for legacy atl06 and atl03x-surface
-    console.log('forceGeoParquet:', inputReqParms, 'inputReqParms:', inputReqParms);
+    logger.debug('forceGeoParquet', { inputReqParms });
 
     if(inputReqParms.as_geo !== undefined){
         inputReqParms.as_geo = true;
@@ -17,13 +20,13 @@ export function forceGeoParquet(inputReqParms: any): any {
             if(inputReqParms.parms.output){
                 inputReqParms.parms.output.as_geo = true;
             } else {
-                console.warn('forceGeoParquet: unrecognized shape for inputReqParms:', inputReqParms);
+                logger.warn('forceGeoParquet: unrecognized shape for inputReqParms', { inputReqParms });
             }
         } else {
-            console.warn('forceGeoParquet: unrecognized shape for inputReqParms:', inputReqParms);
+            logger.warn('forceGeoParquet: unrecognized shape for inputReqParms', { inputReqParms });
         }
     }
-    console.log('forceGeoParquet:', inputReqParms);
+    logger.debug('forceGeoParquet', { inputReqParms });
     return inputReqParms;
 }
 
@@ -61,14 +64,12 @@ export async function getArrowFetchUrlAndOptions(
     }
     // add JWT for Authorization header if present
     let srJWT = useJwtStore().getJwt(sysConfigStore.getDomain(), sysConfigStore.getOrganization());
-    let accessToken = '';
     if(srJWT){
-        accessToken = srJWT.accessToken;
         options.headers = {
             ...options.headers,
             'Authorization': `Bearer ${srJWT.accessToken}`
         };
     }
-    console.log( 'fetch url:', url,'fetch options:', options);
+    logger.debug('fetch request', { url, options });
     return { url, options };
 }

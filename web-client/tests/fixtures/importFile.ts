@@ -2,6 +2,9 @@
 import { test as skipIntroTest } from './skipIntroTour';
 import { type Page, expect } from '@playwright/test';
 import { fileURLToPath } from 'node:url';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('importFile');
 
 export const test = skipIntroTest.extend<{
     pageAfterImport: Page;
@@ -13,10 +16,9 @@ export const test = skipIntroTest.extend<{
         const fileName = 'atl03x-surface_TestParquetFile_001.parquet';
 
         if (browserName === 'webkit') {
-            console.warn('[WebKit] Fetching and injecting file into OPFS from static test server');
+            logger.warn('WebKit: Fetching and injecting file into OPFS from static test server');
             try {
                 await pageAfterTour.evaluate(async (fileName) => {
-                    console.log('Fetching', fileName)
                     const response = await fetch(`http://127.0.0.1:5174/${fileName}`);
                     if (!response.ok) {
                         throw new Error(`Failed to fetch ${fileName} from test server`);
@@ -29,10 +31,10 @@ export const test = skipIntroTest.extend<{
                     await writable.close();
                 }, fileName);
             } catch (error) {
-                console.error(`[WebKit] Failed to inject file: ${fileName}`, error);
+                logger.error('WebKit: Failed to inject file', { fileName, error: error instanceof Error ? error.message : String(error) });
                 throw new Error(`Failed to inject file: ${fileName} - ${error}`);
             }
-            console.log(`[WebKit] Successfully injected file: ${fileName} into OPFS`);
+            logger.debug('WebKit: Successfully injected file into OPFS', { fileName });
         } else {
             const filePath = fileURLToPath(new URL(`../data/${fileName}`, import.meta.url));
             const fileInput = pageAfterTour.locator('input[type="file"]');

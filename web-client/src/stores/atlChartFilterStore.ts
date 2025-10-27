@@ -1,6 +1,9 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import VChart from "vue-echarts";
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('AtlChartFilterStore');
 
 
 
@@ -82,7 +85,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
       if(!reqIdExists){
         this.selectedOverlayedReqIds.push(reqId);
       } else {
-        console.warn('appendToSelectedOverlayedReqIds: reqId:', reqId, 'already exists in selectedOverlayedReqIds:', this.selectedOverlayedReqIds);
+        logger.warn('appendToSelectedOverlayedReqIds: reqId already exists', { reqId, selectedOverlayedReqIds: this.selectedOverlayedReqIds });
       }
     },
     setShowMessage(showMessage: boolean) { 

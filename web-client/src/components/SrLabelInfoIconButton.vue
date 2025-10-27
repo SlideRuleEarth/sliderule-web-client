@@ -24,6 +24,10 @@
     import { onMounted,computed,ref } from 'vue';
     import Button from 'primevue/button';
     import SrCustomTooltip from './SrCustomTooltip.vue';
+    import { createLogger } from '@/utils/logger';
+
+    const logger = createLogger('SrLabelInfoIconButton');
+
     const tooltipRef = ref();
 
     const props = defineProps({
@@ -56,10 +60,10 @@
             if (newWindow) {
                 newWindow.focus();
             } else {
-                console.warn('Failed to open new window');
+                logger.warn('Failed to open new window');
             }
         } else {
-            console.warn('No tooltip URL provided');
+            logger.warn('No tooltip URL provided');
         }
     };
     onMounted(() => {

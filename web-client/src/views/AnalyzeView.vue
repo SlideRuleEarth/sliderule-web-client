@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { useRoute,useRouter } from 'vue-router';
 import TwoColumnLayout from "@/layouts/TwoColumnLayout.vue";
-import { onMounted, watch, computed } from 'vue';
+import { watch, computed } from 'vue';
 import SrAnalyzeOptSidebar from "@/components/SrAnalyzeOptSidebar.vue";
 import SrAnalysis from "@/components/SrAnalysis.vue";
 import { useRecTreeStore } from "@/stores/recTreeStore";
 import { useSrToastStore } from "@/stores/srToastStore";
 import { useToast } from "primevue/usetoast";
+import { createLogger } from '@/utils/logger';
 
+const logger = createLogger('AnalyzeView');
 const router = useRouter();
 
 const recTreeStore = useRecTreeStore();
@@ -19,27 +21,30 @@ const toast = useToast();
 
 const shouldDisplay = computed(() => {
     return ((recTreeStore.selectedReqId > 0)&&(recTreeStore.allReqIds.includes(reqId.value)));
-}); 
+});
 
-onMounted(async () => {
-    //console.log('AnalyzeView onMounted Loading AnalyzeView with route specified reqId:', reqId.value, ' route.params.id:', route.params.id, 'recTreeStore.selectedReqId:', recTreeStore.selectedReqId, 'recTreeStore.allReqIds:', recTreeStore.allReqIds);
-    if(recTreeStore.allReqIds.length > 0){
-        //console.log('AnalyzeView onMounted: recTreeStore.selectedReqId:', recTreeStore.selectedReqId, 'recTreeStore.allReqIds:', recTreeStore.allReqIds);
-        if(recTreeStore.allReqIds.includes(reqId.value)){
-            //console.log('AnalyzeView onMounted: GOOD route setting to reqId:', reqId.value);
+// Watch for tree data to be loaded, then validate route
+watch(() => recTreeStore.isTreeLoaded, (loaded) => {
+    if (!loaded) return;
+
+    logger.debug('Tree loaded, validating route', { reqId: reqId.value, allReqIdsCount: recTreeStore.allReqIds.length });
+
+    if (recTreeStore.allReqIds.length > 0) {
+        if (recTreeStore.allReqIds.includes(reqId.value)) {
+            logger.debug('Valid reqId in route', { reqId: reqId.value });
         } else {
-            console.warn('AnalyzeView onMounted: BAD route setting to first record recTreeStore.selectedReqId:', recTreeStore.selectedReqId, 'recTreeStore.allReqIds:', recTreeStore.allReqIds, ' router.params.id:', route.params.id);
+            logger.warn('Invalid route ID, resetting to first record', { selectedReqId: recTreeStore.selectedReqId, allReqIdsCount: recTreeStore.allReqIds.length, routeParamsId: route.params.id });
             recTreeStore.initToFirstRecord();
-            router.replace({ name: route.name, params: { id: recTreeStore.selectedReqId.toString() } });
+            void router.replace({ name: route.name, params: { id: recTreeStore.selectedReqId.toString() } });
             toast.add({ severity: 'warn', summary: 'Reset Record Selection', detail: `The record specified in the route was INVALID setting to first record`, life: srToastStore.getLife()});
         }
     } else {
-        console.warn('AnalyzeView onMounted: recTreeStore.allReqIds is empty');
+        logger.warn('No records available after tree loaded', { allReqIdsCount: 0 });
     }
-});
+}, { immediate: true });
 
-watch(() => route.params.id, async (newId) => {
-    console.log('AnalyzeView watch: Route ID changed to:', newId);
+watch(() => route.params.id, (newId) => {
+    logger.debug('Route ID changed', { newId });
 });
 
 </script>

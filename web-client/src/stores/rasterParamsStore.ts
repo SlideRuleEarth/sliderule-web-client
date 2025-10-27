@@ -1,5 +1,8 @@
 import type { SrMenuItem,SrMultiSelectTextItem } from '@/types/SrTypes';
 import { defineStore } from 'pinia';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('RasterParamsStore');
 
 export type RasterParams = {
     key: string; 
@@ -119,7 +122,7 @@ export const useRasterParamsStore = defineStore('rasterParams', {
         if (this.dataTable.length > 0 && this.dataTable.length > idx) {
             this.dataTable.splice(idx, 1); // Method to remove a raster parameter by index
         } else {
-            console.warn(`Index ${idx} is out of bounds for dataTable.`);
+            logger.warn('Index is out of bounds for dataTable', { idx, dataTableLength: this.dataTable.length });
         }
         },
         getFormattedParms() {
@@ -177,7 +180,7 @@ export const useRasterParamsStore = defineStore('rasterParams', {
 
                 this.assetOptions = rasters.map(r => ({ name: r, value: r }));
             } catch (error) {
-                console.error('Error loading asset options:', error);
+                logger.error('Error loading asset options', { error: error instanceof Error ? error.message : String(error) });
             }
         },
     }

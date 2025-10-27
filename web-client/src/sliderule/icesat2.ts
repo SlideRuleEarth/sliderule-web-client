@@ -30,8 +30,11 @@
 //import { mitt } from 'mitt';
 import {core} from '../sliderule/index';
 import type { AtlxxReqParams } from '@/types/SrTypes';
+import { createLogger } from '@/utils/logger';
 //import {Callbacks} from '../sliderule/index';
 //import { error } from 'console';
+
+const logger = createLogger('IceSat2');
 //------------------------------------
 // File Data
 //------------------------------------
@@ -72,17 +75,17 @@ const ATL08_ICE = 3;
 //
 // PhoReal Percentiles
 //
-const P = { '5':   0, '10':  1, '15':  2, '20':  3, '25':  4, '30':  5, '35':  6, '40':  7, '45':  8, '50': 9,
-      '55': 10, '60': 11, '65': 12, '70': 13, '75': 14, '80': 15, '85': 16, '90': 17, '95': 18 };
+// const P = { '5':   0, '10':  1, '15':  2, '20':  3, '25':  4, '30':  5, '35':  6, '40':  7, '45':  8, '50': 9,
+//       '55': 10, '60': 11, '65': 12, '70': 13, '75': 14, '80': 15, '85': 16, '90': 17, '95': 18 };
 
 //------------------------------------
 // Exported Functions
 //------------------------------------
 
 
-export async function atlxx(func:string,atlxxReqParams: AtlxxReqParams, callbacks: core.Callbacks ) : Promise<core.Sr_Results_type> 
+export async function atlxx(func:string,atlxxReqParams: AtlxxReqParams, callbacks: core.Callbacks ) : Promise<core.Sr_Results_type>
 {
-    console.log("atlxx params: ", atlxxReqParams);
+    logger.debug('atlxx params', { atlxxReqParams });
 
     if (callbacks == null) {
         throw new Error("SlideRuleError: atlxx requires a callback function");
@@ -103,17 +106,17 @@ export async function atlxx(func:string,atlxxReqParams: AtlxxReqParams, callback
         if(sanityCheck){
             if(func.includes('atl03x-')){
                 func = 'atl03x'; // strip -surface or -phoreal
-                console.log("atl03x-<variant> detected, server uses atl03x");
+                logger.debug('atl03x-<variant> detected, server uses atl03x');
             }
             const result = await core.source(func, atlxxReqParams, true, callbacks);
-            console.log("atlxx result: ", result);
+            logger.debug('atlxx result', { result });
             return result as core.Sr_Results_type;
         } else {
-            console.warn("atlxx error: ", "atlxx requires either a map Pin, a polygon or a resource parameter or rgt with another filter (cycle/time/region)");
+            logger.warn('atlxx error: requires either a map Pin, a polygon or a resource parameter or rgt with another filter (cycle/time/region)');
             throw new Error("SlideRuleError: atlxx requires either a polygon or a resource parameter or rgt with another filter (cycle/time/region)");
         }
     } catch (error) {
-        console.warn("atlxx error: ", error);
+        logger.warn('atlxx error', { error: error instanceof Error ? error.message : String(error) });
         throw error;
     }
 };

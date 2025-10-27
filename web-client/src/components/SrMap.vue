@@ -2,6 +2,9 @@
 import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue'
 import type OLMap from 'ol/Map.js'
 import { useToast } from 'primevue/usetoast'
+import { createLogger } from '@/utils/logger'
+
+const logger = createLogger('SrMap')
 import { findSrViewKey } from '@/composables/SrViews'
 import { useProjectionNames } from '@/composables/SrProjections'
 import { srProjections } from '@/composables/SrProjections'
@@ -157,7 +160,6 @@ const stringifyFunc = (coordinate: Coordinate) => {
 const srDrawControlRef = ref<SrDrawControlMethods | null>(null)
 const mapRef = ref<{ map: OLMap }>()
 const mapStore = useMapStore()
-const controls = ref([])
 const toast = useToast()
 const dragBox = new DragBox()
 const drawVectorSource = new VectorSource({ wrapX: false })
@@ -206,7 +208,7 @@ const drawPolygon = new Draw({
 })
 
 const handleEvent = (event: any) => {
-  console.log(event)
+  logger.debug('Map event received', { event })
 }
 const computedProjName = computed(() => mapStore.getSrViewObj().projectionName)
 
@@ -339,11 +341,11 @@ dragBox.on('boxend', function () {
     .getArray()
     .find((layer) => layer.get('name') === 'Drawing Layer')
   if (vectorLayer === undefined || vectorLayer === null) {
-    console.error('dragBox.on boxend Error: Drawing Layer is undefined')
+    logger.error('Drawing Layer is undefined in dragBox boxend handler')
     mapRef.value?.map.addLayer(drawVectorLayer)
   }
   if (!(vectorLayer instanceof Layer)) {
-    console.error('dragBox.on boxend Error: INVALID Drawing Layer?')
+    logger.error('Invalid Drawing Layer type in dragBox boxend handler')
     return
   }
   const vectorSource = vectorLayer?.getSource()
@@ -368,15 +370,15 @@ dragBox.on('boxend', function () {
       if (mapRef.value?.map) {
         enableTagDisplay(mapRef.value?.map, vectorSource)
       } else {
-        console.error('ragBox.on boxend Error:map is null')
+        logger.error('Map is null in dragBox boxend handler')
       }
       //console.log(`polyCoords:${mapStore.polyCoords}`);
       checkAreaOfConvexHullWarning()
     } else {
-      console.error('dragBox.on boxend Error:geometry is null?')
+      logger.error('Geometry is null in dragBox boxend handler')
     }
   } else {
-    console.error('dragBox.on boxend Error:vectorSource is null?')
+    logger.error('VectorSource is null in dragBox boxend handler')
   }
   disableDragBox()
   disableDrawPolygon()
@@ -509,7 +511,7 @@ drawPolygon.on('drawend', function (event) {
           if (map) {
             enableTagDisplay(map, vectorSource)
           } else {
-            console.error('Error:map is null')
+            logger.error('Map is null when enabling tag display')
           }
           //console.log('GeoJSON:', JSON.stringify(geoJson));
           const drawExtent = drawGeoJson(
@@ -530,7 +532,7 @@ drawPolygon.on('drawend', function (event) {
                 padding: [40, 40, 40, 40]
               })
             } else {
-              console.warn('Zero-area extent — skipping zoom', drawExtent)
+              logger.warn('Zero-area extent, skipping zoom', { drawExtent })
               zoomOutToFullMap(map)
             }
           }
@@ -542,20 +544,20 @@ drawPolygon.on('drawend', function (event) {
           reqParamsStore.poly = thisConvexHull
           checkAreaOfConvexHullWarning()
         } else {
-          console.error('Error:convexHull is null')
+          logger.error('ConvexHull is null after polygon draw')
         }
       } else {
-        console.error('Error: invalid Geometry is not a polygon?:', geometry)
+        logger.error('Invalid geometry, not a polygon', { geometryType: geometry?.getType() })
       }
       disableDrawPolygon()
       if (srDrawControlRef.value) {
         srDrawControlRef.value.resetPicked()
       }
     } else {
-      console.error('Error:vectorSource is null')
+      logger.error('VectorSource is null in drawend handler')
     }
   } else {
-    console.error('Error:vectorLayer is null')
+    logger.error('VectorLayer is null in drawend handler')
   }
 
   // stop listening + hide HUD (your existing tagging UI will take over)
@@ -595,10 +597,10 @@ const clearDrawingLayer = () => {
         //console.log("clearDrawingLayer vectorSource has no features:",vectorSource);
       }
     } else {
-      console.error('clearDrawingLayer Error:vectorSource is null')
+      logger.error('VectorSource is null in clearDrawingLayer')
     }
   } else {
-    console.log('clearDrawingLayer vectorLayer is null')
+    logger.debug('VectorLayer is null in clearDrawingLayer')
   }
   return cleared
 }
@@ -657,7 +659,7 @@ const handlePickedChanged = async (newPickedValue: string) => {
       records.setVisible(true)
     }
   } else {
-    console.error('unsupported draw type:', newPickedValue)
+    logger.error('Unsupported draw type', { drawType: newPickedValue })
     toast.add({ severity: 'error', summary: 'Unsupported draw type error', detail: 'Error' })
   }
 }
@@ -676,10 +678,10 @@ function onAddressChosen(evt: any) {
         zoom: 10
       })
     } else {
-      console.error('View is not defined')
+      logger.error('View is not defined in onAddressChosen')
     }
   } else {
-    console.error('Map is not defined')
+    logger.error('Map is not defined in onAddressChosen')
   }
 }
 
@@ -693,7 +695,7 @@ async function onFeatureClick(features: Feature<Geometry>[]) {
       await router.push(`/analyze/${properties.req_id.toString()}`)
     }
   } else {
-    console.error('No features found on click')
+    logger.error('No features found on click')
   }
 }
 
@@ -704,17 +706,19 @@ function loadBathymetryFeatures(features: Feature<Geometry>[]) {
     if (bathymetryFeaturesVectorLayer && bathymetryFeaturesVectorLayer instanceof Layer) {
       const vectorSource = bathymetryFeaturesVectorLayer.getSource()
       if (vectorSource) {
-        console.log('loadBathymetryFeatures: Adding features to vector source')
+        logger.debug('Adding bathymetry features to vector source', {
+          featureCount: features.length
+        })
         vectorSource.addFeatures(features)
-        console.log('loadBathymetryFeatures: Features added to vector source')
+        logger.debug('Bathymetry features added to vector source')
       }
     } else {
-      console.error('loadBathymetryFeatures Error: Vector layer not found or is not a VectorLayer')
+      logger.error('Bathymetry vector layer not found or invalid type')
       console.trace('Vector layer not found or is not a VectorLayer')
       // Handle the case where the vector layer is not found or is not a VectorLayer
     }
   } else {
-    console.error('Map is not defined')
+    logger.error('Map is not defined in loadBathymetryFeatures')
     // Handle the case where the map is not defined
   }
   defaultBathymetryFeaturesLoaded.value = true
@@ -741,7 +745,7 @@ async function loadDefaultBathymetryFeatures() {
   if (defaultBathymetryFeatures.value?.length) {
     loadBathymetryFeatures(defaultBathymetryFeatures.value)
   } else {
-    console.warn('No bathymetry features loaded from static shapefile')
+    logger.warn('No bathymetry features loaded from static shapefile')
   }
 }
 
@@ -751,7 +755,7 @@ onMounted(async () => {
   if (tooltipRef.value) {
     mapStore.tooltipRef = tooltipRef.value
   } else {
-    console.error('tooltipRef is null on mount')
+    logger.error('tooltipRef is null on mount')
   }
   // Wait for the control to be rendered in the DOM
   const button = document.querySelector<HTMLButtonElement>('.ol-control.ol-layerswitcher > button')
@@ -802,7 +806,7 @@ onMounted(async () => {
         map.addControl(geocoder)
         geocoder.on('addresschosen', onAddressChosen)
       } else {
-        console.error('SrMap Error:geocoder is null?')
+        logger.error('Geocoder is null on mount')
       }
       const projectionNames = useProjectionNames()
       projectionNames.value.forEach((name) => {
@@ -810,7 +814,7 @@ onMounted(async () => {
         if (wmsCap) {
           mapStore.cacheWmsCapForProjection(name, wmsCap)
         } else {
-          console.error(`SrMap Error: no wmsCap for projection: ${name}`)
+          logger.error('No WMS capabilities for projection', { projection: name })
         }
         //
         // TBD WMTS element is same as WMS element, can't add both?
@@ -849,7 +853,7 @@ onMounted(async () => {
           return
         }
         const features: Feature<Geometry>[] = []
-        console.log('SrMap onMounted map click, recordsLayer:', recordsLayer)
+        logger.debug('Map click event', { recordsLayer })
         map.forEachFeatureAtPixel(
           evt.pixel,
           (feature: FeatureLike) => {
@@ -874,40 +878,52 @@ onMounted(async () => {
         }
       })
     } else {
-      console.error('SrMap Error:map is null')
+      logger.error('Map is null in onMounted')
     }
     //dumpMapLayers(map, 'SrMap onMounted');
-    addRecordLayer()
+    // Note: addRecordLayer() is now handled by watch on isTreeLoaded + allReqIds with immediate:true
     if (haveReqPoly || haveReqPin) {
       //draw and zoom to the current reqParamsStore.poly
       drawCurrentReqPolyAndPin()
     }
   } else {
-    console.error('SrMap Error:mapRef.value?.map is null')
+    logger.error('mapRef.value?.map is null in onMounted')
   }
   mapRef.value?.map.getLayers().forEach((layer, idx) => {
     const name = layer.get('name') || `Unnamed Layer ${idx}`
     const z = layer.getZIndex?.() ?? '(no z-index)'
-    console.log(`${name}: Z-Index = ${z}`)
+    logger.debug('Layer z-index', { name, zIndex: z })
   })
+
+  // Load tree data after map is fully initialized to ensure records display on map
+  // This must come after updateReqMapView which adds the vector layers
+  if (!recTreeStore.isTreeLoaded) {
+    logger.debug('Loading tree data after SrMap is fully initialized')
+    await recTreeStore.loadTreeData()
+  }
+
+  // Always render record layers after map is fully initialized
+  // This handles the case where tree data was already loaded from a previous view
+  // and the watcher with immediate:true ran before layers were added
+  addRecordLayer()
 })
 
 // Call saveMapZoomState only when leaving the page
 onBeforeUnmount(() => {
-  console.log('SrMap onBeforeUnmount - Saving map zoom state')
+  logger.debug('Saving map zoom state before unmount')
   if (mapRef.value?.map) {
     saveMapZoomState(mapRef.value.map)
   } else {
-    console.error('SrMap Error: mapRef.value?.map is null on unmount')
+    logger.error('mapRef.value?.map is null on unmount')
   }
 })
 
 onActivated(() => {
-  console.log('SrMap onActivated')
+  logger.debug('SrMap activated')
 })
 
 onDeactivated(() => {
-  console.log('SrMap onDeactivated')
+  logger.debug('SrMap deactivated')
 })
 
 function handleDrawControlCreated(drawControl: any) {
@@ -916,7 +932,7 @@ function handleDrawControlCreated(drawControl: any) {
   if (map) {
     map.addControl(drawControl)
   } else {
-    console.error('handleDrawControlCreated Error:map is null')
+    logger.error('Map is null in handleDrawControlCreated')
   }
 }
 
@@ -926,7 +942,7 @@ function handlePinDropControlCreated(pinDropControl: any) {
   if (map) {
     map.addControl(pinDropControl)
   } else {
-    console.error('handlePinDropControlCreated Error:map is null')
+    logger.error('Map is null in handlePinDropControlCreated')
   }
 }
 
@@ -937,7 +953,7 @@ function handleViewControlCreated(viewControl: any) {
     //console.log("adding viewControl");
     map.addControl(viewControl)
   } else {
-    console.error('Error:map is null')
+    logger.error('Map is null in handleViewControlCreated')
   }
 }
 
@@ -948,7 +964,7 @@ function handleBaseLayerControlCreated(baseLayerControl: any) {
     //console.log("adding baseLayerControl");
     map.addControl(baseLayerControl)
   } else {
-    console.error('Error:map is null')
+    logger.error('Map is null in handleBaseLayerControlCreated')
   }
 }
 
@@ -957,7 +973,7 @@ function handleUploadRegionControlCreated(uploadControl: any) {
   if (map) {
     map.addControl(uploadControl)
   } else {
-    console.error('handleUploadRegionControlCreated Error: map is null')
+    logger.error('Map is null in handleUploadRegionControlCreated')
   }
 }
 
@@ -966,7 +982,7 @@ function handleExportPolygonControlCreated(exportControl: any) {
   if (map) {
     map.addControl(exportControl)
   } else {
-    console.error('handleExportPolygonControlCreated Error: map is null')
+    logger.error('Map is null in handleExportPolygonControlCreated')
   }
 }
 
@@ -985,14 +1001,13 @@ function addRecordLayer(): void {
       void renderSvrReqRegionMask(map, reqId)
     })
   } else {
-    console.warn('addRecordLayer SrMap skipping addRecordLayer when map is null')
+    logger.warn('Skipping addRecordLayer when map is null')
   }
   const endTime = performance.now() // End time
-  console.log(
-    'SrMap addRecordLayer for reqIds.length:',
-    reqIds.length,
-    ` took ${endTime - startTime} ms`
-  )
+  logger.debug('addRecordLayer performance', {
+    reqIdsCount: reqIds.length,
+    durationMs: endTime - startTime
+  })
 }
 
 function drawCurrentReqPolyAndPin() {
@@ -1020,18 +1035,18 @@ function drawCurrentReqPolyAndPin() {
           drawGeoJson('reqGeoJson', vectorSource, reqGeoJsonData, 'red', true)
         }
       } else {
-        console.error('drawCurrentReqPolyAndPin Error:vectorSource is null')
+        logger.error('VectorSource is null in drawCurrentReqPolyAndPin')
       }
     } else {
-      console.error('drawCurrentReqPolyAndPin Error:vectorLayer is null')
+      logger.error('VectorLayer is null in drawCurrentReqPolyAndPin')
     }
   } else {
-    console.error('drawCurrentReqPolyAndPin Error:map is null')
+    logger.error('Map is null in drawCurrentReqPolyAndPin')
   }
 }
 
 const updateReqMapView = async (reason: string, restoreView: boolean = false) => {
-  console.log(`****** SrMap updateReqMapView for ${reason} ******`)
+  logger.debug('updateReqMapView started', { reason, restoreView })
   const map = mapRef.value?.map
   try {
     if (map) {
@@ -1046,41 +1061,46 @@ const updateReqMapView = async (reason: string, restoreView: boolean = false) =>
         map.addLayer(bathymetryFeaturesVectorLayer)
         addLayersForCurrentView(map, srViewObj.projectionName)
       } else {
-        console.error('SrMap Error: srViewKey is null')
+        logger.error('srViewKey is null in updateReqMapView', { reason })
       }
     } else {
-      console.error('SrMap Error:map is null')
+      logger.error('Map is null in updateReqMapView', { reason })
     }
   } catch (error) {
-    console.error(`SrMap Error: updateMapView failed for ${reason}`, error)
+    logger.error('updateMapView failed', {
+      reason,
+      error: error instanceof Error ? error.message : String(error)
+    })
   } finally {
     if (map) {
       //dumpMapLayers(map,'SrMap updateMapView');
     } else {
-      console.error('SrMap Error:map is null')
+      logger.error('Map is null in updateReqMapView finally block', { reason })
     }
     //console.log("SrMap mapRef.value?.map.getView()",mapRef.value?.map.getView());
-    console.log(`------ SrMap updateMapView Done for ${reason} ------`)
+    logger.debug('updateReqMapView completed', { reason })
   }
 }
 
 const handleUpdateSrView = async () => {
   const srViewKey = findSrViewKey(mapStore.getSelectedView(), mapStore.getSelectedBaseLayer())
   if (srViewKey.value) {
-    console.log(`handleUpdateSrView: |${srViewKey.value}|`)
+    logger.debug('handleUpdateSrView', { srViewKey: srViewKey.value })
     const map = mapRef.value?.map
     try {
       if (map) {
         saveMapZoomState(map)
         await updateReqMapView('handleUpdateSrView', true)
       } else {
-        console.error('SrMap Error:map is null')
+        logger.error('Map is null in handleUpdateSrView')
       }
     } catch (error) {
-      console.error(`SrMap Error: handleUpdateSrView failed:`, error)
+      logger.error('handleUpdateSrView failed', {
+        error: error instanceof Error ? error.message : String(error)
+      })
     }
   } else {
-    console.error('SrMap Error: srViewKey is null')
+    logger.error('srViewKey is null in handleUpdateSrView')
   }
 }
 
@@ -1090,10 +1110,10 @@ const handleUpdateBaseLayer = async () => {
   if (srViewKey.value) {
     await updateSrViewName(srViewKey.value) // Update the SrViewName in the DB based on the current selection
   } else {
-    console.error("SrMap Error: srViewKey is null, can't update base layer")
+    logger.error("srViewKey is null, can't update base layer")
     return
   }
-  console.log(`handleUpdateBaseLayer: |${baseLayer}|`)
+  logger.debug('handleUpdateBaseLayer', { baseLayer })
   const map = mapRef.value?.map
   try {
     if (map) {
@@ -1103,29 +1123,39 @@ const handleUpdateBaseLayer = async () => {
       if (center) {
         mapStore.setCenterToRestore(center)
       } else {
-        console.error('SrMap Error: center is null')
+        logger.error('Center is null in handleUpdateBaseLayer')
       }
       const zoom = view.getZoom()
       if (zoom) {
         mapStore.setZoomToRestore(zoom)
       } else {
-        console.error('SrMap Error: zoom is null')
+        logger.error('Zoom is null in handleUpdateBaseLayer')
       }
       saveMapZoomState(map)
       await updateReqMapView('handleUpdateBaseLayer', true)
     } else {
-      console.error('SrMap Error:map is null')
+      logger.error('Map is null in handleUpdateBaseLayer')
     }
   } catch (error) {
-    console.error(`SrMap Error: handleUpdateBaseLayer failed:`, error)
+    logger.error('handleUpdateBaseLayer failed', {
+      error: error instanceof Error ? error.message : String(error)
+    })
   }
 }
 
-// Watch for changes in reqIds and handle the logic
+// Watch for tree to load and reqIds changes
 watch(
-  () => recTreeStore.allReqIds,
-  (newReqIds, oldReqIds) => {
-    console.log(`SrMap watch num reqIds changed from ${oldReqIds?.length} to ${newReqIds.length}`)
+  () => ({ isLoaded: recTreeStore.isTreeLoaded, reqIds: recTreeStore.allReqIds }),
+  (newVal, oldVal) => {
+    if (!newVal.isLoaded) {
+      logger.debug('Skipping addRecordLayer: tree not yet loaded')
+      return
+    }
+    logger.debug('Request IDs changed', {
+      oldCount: oldVal?.reqIds?.length,
+      newCount: newVal.reqIds.length,
+      isTreeLoaded: newVal.isLoaded
+    })
     void addRecordLayer()
   },
   { deep: true, immediate: true }
@@ -1137,9 +1167,7 @@ let dropPinClickListener: ((evt: any) => void) | null = null
 watch(
   () => reqParamsStore.iceSat2SelectedAPI,
   (newValue, oldValue) => {
-    console.log(
-      `SrMap watch reqParamsStore.iceSat2SelectedAPI changed from ${oldValue} to ${newValue}`
-    )
+    logger.debug('ICESat-2 API changed', { oldAPI: oldValue, newAPI: newValue })
     if (newValue === 'atl13x') {
       //console.log("ICESat-2 Inland Bodies of Water selected.");
       clearDrawingLayer()
@@ -1149,7 +1177,7 @@ watch(
       // 🔴 Remove dropped pin
       reqParamsStore.removePin()
       reqParamsStore.useAtl13RefId = false
-      console.log('Dropped pin removed due to api change')
+      logger.debug('Dropped pin removed due to API change')
     }
   }
 )
@@ -1160,7 +1188,7 @@ watch(
     //console.log(`SrMap watch reqParamsStore.dropPinEnabled changed to ${newValue}`);
     const map = mapRef.value?.map
     if (!map) {
-      console.error('Map is not available in dropPinEnabled watcher')
+      logger.error('Map is not available in dropPinEnabled watcher')
       return
     }
 
@@ -1196,7 +1224,7 @@ watch(
             view.animate({ center: coordinate, duration: 250 })
           }
         } else {
-          console.error('Current zoom level is null, cannot animate view')
+          logger.error('Current zoom level is null, cannot animate view')
         }
 
         map.getTargetElement().style.cursor = ''
@@ -1219,7 +1247,7 @@ watch(
 watch(
   () => reqParamsStore.atl13.coord,
   (newValue, oldValue) => {
-    console.log(`SrMap watch reqParamsStore.atl13.coord changed from ${oldValue} to ${newValue}`)
+    logger.debug('ATL13 coord changed', { oldValue, newValue })
     if (newValue === null) {
       // Remove the pin from map
       pinVectorSource.clear()
@@ -1250,12 +1278,9 @@ watch(showBathymetryFeatures, (newValue) => {
         @error="handleEvent"
         :loadTilesWhileAnimating="true"
         :loadTilesWhileInteracting="true"
-        :controls="controls"
         class="sr-ol-map"
       >
-        <MapControls.OlLayerswitcherControl
-          :selection="true"
-          :displayInLayerSwitcher="() => true"
+        <MapControls.OlLayerSwitcherControl
           :show_progress="true"
           :mouseover="false"
           :reordering="true"
@@ -1271,7 +1296,7 @@ watch(showBathymetryFeatures, (newValue) => {
         ></MapControls.OlMousepositionControl>
         <MapControls.OlAttributionControl :collapsible="true" :collapsed="true" />
 
-        <MapControls.OlScalelineControl />
+        <MapControls.OlScaleLineControl />
         <SrDrawControl
           ref="srDrawControlRef"
           v-if="reqParamsStore.iceSat2SelectedAPI != 'atl13x' || reqParamsStore.useAtl13Polygon"

@@ -5,10 +5,10 @@ const Coordinate = z.object({
     lat: z.number(),
 });
 
-const GeoJSONPolygon = z.object({
-    type: z.literal('Polygon'),
-    coordinates: z.array(z.array(z.array(z.number()))),
-});
+// const _GeoJSONPolygon = z.object({
+//     type: z.literal('Polygon'),
+//     coordinates: z.array(z.array(z.array(z.number()))),
+// });
 
 const YapcSchema = z.object({
     score: z.number(),

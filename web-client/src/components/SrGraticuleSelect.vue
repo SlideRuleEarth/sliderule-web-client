@@ -1,11 +1,14 @@
 <script setup lang="ts">
     import SrToggleButton from './SrToggleButton.vue';
     import { useMapStore } from '@/stores/mapStore';
+    import { createLogger } from '@/utils/logger';
+
+    const logger = createLogger('SrGraticuleSelect');
 
     const mapStore = useMapStore();
     // Handle the toggle state change
     function handleGraticuleChanged() {
-        console.log('handleGraticuleChanged:', mapStore.graticuleState);
+        logger.debug('handleGraticuleChanged', { graticuleState: mapStore.graticuleState });
         mapStore.setGraticuleForMap();
     }
 

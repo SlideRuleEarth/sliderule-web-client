@@ -15,6 +15,9 @@ import { describe, it, expect } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('parquetImportExport.spec');
 
 const TEST_FILE_NAME = 'atl03x-surface_TEST_small_GEO.parquet';
 const TEST_FILE_PLAIN = 'atl03x-surface_PLAIN.parquet';
@@ -90,7 +93,7 @@ describe('Parquet File Comparison Utilities', () => {
             expect(stats.size).toBeGreaterThan(0);
             expect(stats.isFile()).toBe(true);
 
-            console.log(`${TEST_FILE_NAME} size: ${stats.size} bytes`);
+            logger.debug('Test file size', { fileName: TEST_FILE_NAME, size: stats.size });
         });
 
         it('should have the PLAIN parquet test file available', () => {
@@ -101,7 +104,7 @@ describe('Parquet File Comparison Utilities', () => {
             expect(stats.size).toBeGreaterThan(0);
             expect(stats.isFile()).toBe(true);
 
-            console.log(`${TEST_FILE_PLAIN} size: ${stats.size} bytes`);
+            logger.debug('Test file size', { fileName: TEST_FILE_PLAIN, size: stats.size });
         });
     });
 
@@ -128,8 +131,7 @@ describe('Parquet File Comparison Utilities', () => {
             const plainChecksum = calculateChecksum(plainBuffer);
 
             expect(geoChecksum).not.toBe(plainChecksum);
-            console.log(`GEO checksum: ${geoChecksum}`);
-            console.log(`PLAIN checksum: ${plainChecksum}`);
+            logger.debug('File checksums', { geoChecksum, plainChecksum });
         });
 
         it('should handle empty buffers', () => {
@@ -189,7 +191,7 @@ describe('Parquet File Comparison Utilities', () => {
             expect(info.size).toBeGreaterThan(0);
             expect(typeof info.checksum).toBe('bigint');
 
-            console.log(`${TEST_FILE_NAME} info:`, info);
+            logger.debug('File info', { fileName: TEST_FILE_NAME, info });
         });
 
         it('should extract correct file info for PLAIN parquet', () => {
@@ -199,7 +201,7 @@ describe('Parquet File Comparison Utilities', () => {
             expect(info.size).toBeGreaterThan(0);
             expect(typeof info.checksum).toBe('bigint');
 
-            console.log(`${TEST_FILE_PLAIN} info:`, info);
+            logger.debug('File info', { fileName: TEST_FILE_PLAIN, info });
         });
 
         it('should show different sizes for GEO vs PLAIN files', () => {
@@ -213,7 +215,7 @@ describe('Parquet File Comparison Utilities', () => {
             expect(geoInfo.size).not.toBe(plainInfo.size);
             expect(geoInfo.checksum).not.toBe(plainInfo.checksum);
 
-            console.log('Size comparison:', {
+            logger.debug('Size comparison', {
                 geo: geoInfo.size,
                 plain: plainInfo.size,
                 difference: Math.abs(geoInfo.size - plainInfo.size)
@@ -271,7 +273,7 @@ describe('Parquet File Comparison Utilities', () => {
             expect(exportedInfo.size).toBe(originalInfo.size);
             expect(exportedInfo.checksum).toBe(originalInfo.checksum);
 
-            console.log('Round-trip validation passed:', {
+            logger.debug('Round-trip validation passed', {
                 size: originalInfo.size,
                 checksum: originalInfo.checksum.toString()
             });

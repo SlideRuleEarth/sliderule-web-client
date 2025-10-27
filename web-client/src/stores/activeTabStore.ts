@@ -1,5 +1,8 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('ActiveTabStore');
 
 export const useActiveTabStore = defineStore('activeTabStore', () => {
     const tabLabels: string[] = ['Elevation Plot', 'Time Series', 'Table', '3-D View'];
@@ -13,7 +16,7 @@ export const useActiveTabStore = defineStore('activeTabStore', () => {
         if (!isNaN(numericIndex) && numericIndex >= 0 && numericIndex < tabLabels.length) {
             activeTab.value = index;
         } else {
-            console.warn(`Invalid tab index: ${index}`);
+            logger.warn('Invalid tab index', { index });
         }
     };
 

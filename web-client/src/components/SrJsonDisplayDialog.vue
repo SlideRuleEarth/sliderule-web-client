@@ -5,12 +5,15 @@ import Button from 'primevue/button'
 import hljs from 'highlight.js/lib/core'
 import json from 'highlight.js/lib/languages/json'
 import 'highlight.js/styles/atom-one-dark.css'
+import { createLogger } from '@/utils/logger'
+
+const logger = createLogger('SrJsonDisplayDialog')
 
 hljs.registerLanguage('json', json)
 
 const props = defineProps<{
   jsonData: object | string | null
-  width?: string,
+  width?: string
   title?: string
 }>()
 
@@ -19,11 +22,9 @@ const jsonBlock = ref<HTMLElement | null>(null)
 
 const prettyJson = computed(() => {
   try {
-    const jsonObj = typeof props.jsonData === 'string' 
-      ? JSON.parse(props.jsonData) 
-      : props.jsonData
+    const jsonObj = typeof props.jsonData === 'string' ? JSON.parse(props.jsonData) : props.jsonData
     return JSON.stringify(jsonObj, null, 2)
-  } catch (e) {
+  } catch {
     return 'Invalid JSON'
   }
 })
@@ -36,15 +37,15 @@ const highlightedJson = computed(() => {
 const copyToClipboard = async () => {
   try {
     await navigator.clipboard.writeText(prettyJson.value)
-    console.log('Copied to clipboard')
+    logger.debug('Copied to clipboard')
   } catch (err) {
-    console.error('Failed to copy:', err)
+    logger.error('Failed to copy', { error: err instanceof Error ? err.message : String(err) })
   }
 }
 
 watch([modelValue, prettyJson], () => {
   if (modelValue.value) {
-    nextTick(() => highlightJson())
+    void nextTick(() => highlightJson())
   }
 })
 
@@ -60,23 +61,28 @@ onMounted(() => {
 </script>
 
 <template>
-<Dialog 
-    v-model:visible="modelValue" 
-    :modal="true" 
+  <Dialog
+    v-model:visible="modelValue"
+    :modal="true"
     :closable="true"
     :style="{ width: width || '50vw' }"
->
+  >
     <template #header>
-    <div class="dialog-header">
-        <Button label="Copy to clipboard" size="small" icon="pi pi-copy" @click="copyToClipboard" class="copy-btn" />
+      <div class="dialog-header">
+        <Button
+          label="Copy to clipboard"
+          size="small"
+          icon="pi pi-copy"
+          @click="copyToClipboard"
+          class="copy-btn"
+        />
         <div class="dialog-title">{{ props.title || 'JSON Data' }}</div>
-    </div>
+      </div>
     </template>
 
     <pre v-html="highlightedJson"></pre>
-</Dialog>
+  </Dialog>
 </template>
-  
 
 <style scoped>
 pre {
@@ -104,5 +110,4 @@ pre {
   font-size: 1.2rem;
   font-weight: bold;
 }
-
 </style>

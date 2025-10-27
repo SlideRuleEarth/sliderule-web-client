@@ -3,6 +3,9 @@ import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useFieldNameStore } from '@/stores/fieldNameStore';
 import { useActiveTabStore } from '@/stores/activeTabStore';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SpotUtils');
 const SPOT_1 = 1;
 const SPOT_2 = 2;
 const SPOT_3 = 3;
@@ -127,14 +130,13 @@ export function getDetailsFromSpotNumber(spot:number) {
             details[1].pair = 0;
             break;
         default:
-            console.warn('getDetailsFromSpotNumber: INVALID spot:', spot);
+            logger.warn('getDetailsFromSpotNumber: INVALID spot', { spot });
             break;
     }
     return details;
 }
 
 export function getScOrientFromSpotAndGt(spot:number, gt:number){
-    const d = getDetailsFromSpotNumber(spot);
     let sc_orient = SC_UNKNOWN;
     if (gt == GT1L && spot == SPOT_1){
         sc_orient = SC_BACKWARD;
@@ -161,7 +163,7 @@ export function getScOrientFromSpotAndGt(spot:number, gt:number){
     } else if (gt == GT3R && spot == SPOT_1){
         sc_orient = SC_FORWARD;
     } else {
-        console.warn('getScOrientFromSpotAndGt: INVALID spot:', spot, 'gt:', gt);
+        logger.warn('getScOrientFromSpotAndGt: INVALID spot', { spot, gt });
     }
 
     return sc_orient;
@@ -170,7 +172,7 @@ export function getScOrientFromSpotAndGt(spot:number, gt:number){
 export function getSqlForSpot(spot:number){
     const d= getDetailsFromSpotNumber(spot);
     const sqlStr = `((sc_orient = ${d[0].sc_orient}) AND (track = ${d[0].track}) AND (pair = ${d[0].pair})) OR ((sc_orient = ${d[1].sc_orient}) AND (track = ${d[1].track}) AND (pair = ${d[1].pair}))`;
-    console.log('getSqlForSpot: spot:', spot, 'sqlStr:', sqlStr);
+    logger.debug('getSqlForSpot', { spot, sqlStr });
     return sqlStr;
 }
 
@@ -273,7 +275,7 @@ export function createWhereClause(reqId: number) {
         whereStr = joinWhere(conds);
 
     } else {
-        console.error('createWhereClause: INVALID func:', func);
+        logger.error('createWhereClause: INVALID func', { func });
     }
 
     return whereStr;

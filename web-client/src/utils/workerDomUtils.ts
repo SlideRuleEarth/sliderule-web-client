@@ -21,7 +21,10 @@ import { useRecTreeStore } from '@/stores/recTreeStore';
 import { useServerStateStore } from '@/stores/serverStateStore';
 import { useGeoJsonStore } from '@/stores/geoJsonStore';
 import type { AtlxxReqParams } from '@/types/SrTypes';
-import { updateNumGranulesInRecord, updateAreaInRecord, updateReqParmsFromMeta } from '@/utils/SrParquetUtils'
+import { updateNumGranulesInRecord, updateAreaInRecord, updateReqParmsFromMeta } from '@/utils/SrParquetUtils';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('WorkerDomUtils');
 
 const consoleStore = useSrSvrConsoleStore();
 const sysConfigStore = useSysConfigStore();
@@ -42,7 +45,7 @@ async function getReqParamStore(reqId:number):Promise<ReturnType<typeof useReqPa
         if(rc.parentReqId && rc.parentReqId > 0){
             return useAutoReqParamsStore();
         } else {
-            console.error('getReqParamStore using useReqParamsStore for reqId:',reqId,' invalid rc?:',rc);
+            logger.error('Using useReqParamsStore - invalid rc?', { reqId, rc });
             return undefined;
         }
     } else {
@@ -75,12 +78,12 @@ async function startFetchToFileWorker(reqId:number):Promise<Worker> {
     if(!reqParamsStore){
         throw new Error('startFetchToFileWorker reqParamsStore was undefined');
     }
-    const timeoutDuration = reqParamsStore.getWorkerThreadTimeout(); 
-    console.log('startFetchToFileWorker with timeoutDuration:',timeoutDuration, ' milliseconds');
+    const timeoutDuration = reqParamsStore.getWorkerThreadTimeout();
+    logger.debug('startFetchToFileWorker', { timeoutDuration_ms: timeoutDuration });
     workerTimeoutHandle = setTimeout(async () => {
         if (worker) {
             const msg = `Timeout: Worker operation timed out in:${(timeoutDuration/1000)} secs`;
-            console.error(msg); // added to the timeout to let server timeout first
+            logger.error('Worker operation timed out', { timeout_seconds: timeoutDuration/1000 });
             //toast.add({ severity: 'info', summary: 'Timeout', detail: msg, life: srToastStore.getLife() });
             useSrToastStore().info('Timeout',msg);
             await cleanUpWorker(reqId);
@@ -98,14 +101,14 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
     let numBytes:number;
     switch(workerMsg.status){
         case 'success':
-            console.log('handleWorkerMsg success:',workerMsg.msg);
+            logger.debug('Worker success', { msg: workerMsg.msg });
            break;
         case 'started':
-            console.log('handleWorkerMsg started');
+            logger.debug('Worker started');
             useSrToastStore().info('Started',workerMsg.msg);
             break;
         case 'aborted':
-            console.log('handleWorkerMsg aborted');
+            logger.debug('Worker aborted');
             useSrToastStore().warn('Aborted',workerMsg.msg);
             requestsStore.setConsoleMsg('Job aborted');
             await cleanUpWorker(workerMsg.req_id);
@@ -142,7 +145,7 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
             }
             break;
         case 'summary':
-            console.log('handleWorkerMsg summary:',workerMsg);
+            logger.debug('Worker summary', { workerMsg });
             if(workerMsg){
                 const sMsg = workerMsg as WorkerSummary;
                 curReqSumStore.setSummary(sMsg);
@@ -150,18 +153,18 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
             break;
         case 'error':
             if(workerMsg.error){
-                console.error('handleWorkerMsg error:',workerMsg.error);
+                logger.error('Worker error', { error: workerMsg.error });
                 //toast.add({severity: 'error',summary: workerMsg.error?.type, detail: workerMsg.error?.message, life: srToastStore.getLife() });
                 useSrToastStore().error(workerMsg.error?.type,workerMsg.error?.message);
             }
             if(worker){
                 await cleanUpWorker(workerMsg.req_id);
             }
-            console.log('Error... isFetching:',serverStateStore.isFetching);
+            logger.debug('Error state', { isFetching: serverStateStore.isFetching });
             break;
 
         case 'opfs_ready':
-            console.log('handleWorkerMsg opfs_ready for req_id:',workerMsg.req_id);
+            logger.debug('OPFS ready for req_id', { req_id: workerMsg.req_id });
             if(workerMsg && workerMsg.req_id > 0){
                 const reqIdStr = workerMsg.req_id.toString();
                 let rc:SrRunContext|undefined = undefined;
@@ -186,11 +189,11 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
                         if (summary?.numPoints === 0) {
                             useSrToastStore().warn('No data found', 'File created with no points.\nAdjust your parameters or region and try again.');
                         }
-                        console.log('handleWorkerMsg opfs_ready succesMsg:',successMsg);
+                        logger.debug('OPFS ready success', { successMsg });
                     } else {
                         const newReqId = await useRecTreeStore().updateRecMenu('opfs_ready',workerMsg.req_id); // update the tree menu and use this as selected node
                         if(newReqId != workerMsg.req_id){
-                            console.error('handleWorkerMsg opfs_ready newReqId:',newReqId,' does not match workerMsg.req_id:',workerMsg.req_id);
+                            logger.error('newReqId does not match workerMsg.req_id', { newReqId, workerReqId: workerMsg.req_id });
                         }
                     }
                     await updateAreaInRecord(workerMsg.req_id);
@@ -198,27 +201,27 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
                     await updateReqParmsFromMeta(workerMsg.req_id); // for x endpoints
                 } catch (error) {
                     const emsg = `Error loading file,reading metadata or creating/updating polyhash for req_id:${workerMsg.req_id}`;
-                    console.error('handleWorkerMsg opfs_ready error:',error,emsg);
+                    logger.error('OPFS ready error', { error: error instanceof Error ? error.message : String(error), emsg });
                     useSrToastStore().error('Error',emsg);
                 }
                 try {
-                    console.log('handleWorkerMsg opfs_ready rc:',rc);
+                    logger.debug('OPFS ready rc', { rc });
                     if(rc && rc.parentReqId>0){ // this was a Photon Cloud request
-                        updateWhereClauseAndXData(workerMsg.req_id);
+                        await updateWhereClauseAndXData(workerMsg.req_id);
                         await readOrCacheSummary(workerMsg.req_id);
                         await prepareDbForReqId(workerMsg.req_id);
                         atlChartFilterStore.setSelectedOverlayedReqIds([workerMsg.req_id]);
-                        await callPlotUpdateDebounced(`opfs_ready ${workerMsg.req_id}`);
+                        void callPlotUpdateDebounced(`opfs_ready ${workerMsg.req_id}`);
                     } else {
-                        console.log('handleWorkerMsg opfs_ready router push to analyze:',workerMsg.req_id);
+                        logger.debug('OPFS ready router push to analyze', { req_id: workerMsg.req_id });
                         await router.push(`/analyze/${workerMsg.req_id}`);//see views/AnalyzeView.vue
                     }
                 } catch (error) {
-                    console.error('handleWorkerMsg opfs_ready error:',error);
+                    logger.error('OPFS ready error', { error: error instanceof Error ? error.message : String(error) });
                     useSrToastStore().error('Error','Error loading file');
                 }
             } else {
-                console.error('handleWorkerMsg opfs_ready req_id is undefined or 0');
+                logger.error('OPFS ready req_id is undefined or 0');
             }
             if(worker){
                 await cleanUpWorker(workerMsg.req_id);
@@ -226,17 +229,17 @@ const handleWorkerMsg = async (workerMsg:WorkerMessage) => {
             break;
 
         default:
-            console.error('handleWorkerMsg unknown status?:',workerMsg.status);
+            logger.error('Unknown worker status', { status: workerMsg.status });
             break;
     }     
 }
 
-const handleWorkerMsgEvent = async (event: MessageEvent) => {
+const handleWorkerMsgEvent = (event: MessageEvent) => {
     if(worker){
         const workerMsg:WorkerMessage = event.data;
-        handleWorkerMsg(workerMsg);
+        void handleWorkerMsg(workerMsg);
     } else {
-        console.error('handleWorkerMsgEvent: worker was undefined?');
+        logger.error('handleWorkerMsgEvent: worker was undefined');
     }
 }
 
@@ -245,22 +248,22 @@ export function processAbortClicked() {
         serverStateStore.isAborting = true; 
         const cmd = {type:'abort',req_id:mapStore.currentReqId} as WebWorkerCmd;
         worker.postMessage(JSON.stringify(cmd));
-        console.log('abortClicked isAborting:',serverStateStore.isAborting,' isFetching:',serverStateStore.isFetching);
+        logger.debug('abortClicked', { isAborting: serverStateStore.isAborting, isFetching: serverStateStore.isFetching });
         requestsStore.setConsoleMsg('Abort Clicked');
         useSrToastStore().info('Abort Clicked','Aborting request');
     } else {
         //toast.add({severity: 'error',summary: 'Error', detail: 'Worker was undefined', life: srToastStore.getLife() });
         useSrToastStore().error('Error','Worker was undefined');
-        console.error('abortClicked worker was undefined');
+        logger.error('abortClicked worker was undefined');
         useRequestsStore().setConsoleMsg('Abort Clicked');
     }
 }
 
 function handleWorkerError(reqId:number,error:ErrorEvent, errorMsg:string) {
-    console.error('Error:', error);
+    logger.error('Worker error', { error: error.message, errorMsg });
     //toast.add({ severity: 'error', summary: 'Error', detail: errorMsg, life: srToastStore.getLife() });
     useSrToastStore().error('Error',errorMsg);
-    cleanUpWorker(reqId);
+    void cleanUpWorker(reqId);
 }
 
 async function cleanUpWorker(reqId:number){
@@ -281,10 +284,10 @@ async function cleanUpWorker(reqId:number){
     if(reqParamsStore){
         reqParamsStore.using_worker = false;
     } else {
-        console.error('cleanUpWorker reqParamsStore was undefined');
+        logger.error('cleanUpWorker reqParamsStore was undefined');
     }
     serverStateStore.isFetching = false;
-    console.log('cleanUpWorker -- iserverStateStore.isFetching:',serverStateStore.isFetching);
+    logger.debug('cleanUpWorker', { isFetching: serverStateStore.isFetching });
 }
 
 function parseCompletionPercentage(message: string): number | null {
@@ -305,30 +308,30 @@ function parseCompletionPercentage(message: string): number | null {
 
 async function runFetchToFileWorker(srReqRec:SrRequestRecord) : Promise<void> {
     try{
-        console.log('runFetchToFileWorker srReqRec:',srReqRec);
+        logger.debug('runFetchToFileWorker', { srReqRec });
         if(srReqRec.req_id){
-            await db.updateRequest(srReqRec.req_id,srReqRec); 
-            mapStore.setCurrentReqId(srReqRec.req_id);            
+            await db.updateRequest(srReqRec.req_id,srReqRec);
+            mapStore.setCurrentReqId(srReqRec.req_id);
             const reqParamsStore = await getReqParamStore(srReqRec.req_id);
             if(reqParamsStore){
                 serverStateStore.isFetching = true;
             } else {
-                console.error('runFetchToFileWorker reqParamsStore was undefined');
+                logger.error('reqParamsStore was undefined');
             }
             worker = await startFetchToFileWorker(srReqRec.req_id);
             worker.onmessage = handleWorkerMsgEvent;
             worker.onerror = async (error) => {
                 if(worker){
-                    console.error('Worker error:', error);
+                    logger.error('Worker error', { error });
                     if(srReqRec.req_id){
                         handleWorkerError(srReqRec.req_id, error, 'Worker faced an unexpected error');
                     } else {
-                        console.error('runFetchToFileWorker req_id is undefined FAILED to handleWorkerError');
+                        logger.error('req_id is undefined, failed to handleWorkerError');
                     }
                     if(srReqRec.req_id){
                         await cleanUpWorker(srReqRec.req_id);
                     } else {
-                        console.error('runFetchToFileWorker req_id is undefined FAILED to cleanup worker');
+                        logger.error('req_id is undefined, failed to cleanup worker');
                     }
                     requestsStore.setConsoleMsg('Worker faced an unexpected error');
                     requestsStore.setSvrMsg('');
@@ -340,17 +343,17 @@ async function runFetchToFileWorker(srReqRec:SrRequestRecord) : Promise<void> {
                 accessToken = srJWT.accessToken;
             }
             const cmd = {type:'run',req_id:srReqRec.req_id, sysConfig: {domain:sysConfigStore.getDomain(),organization:sysConfigStore.getOrganization(), jwt:accessToken}, func:srReqRec.func, parameters:srReqRec.parameters} as WebWorkerCmd;
-            console.log('runFetchToFileWorker cmd:',cmd);
+            logger.debug('runFetchToFileWorker cmd', { cmd });
             worker.postMessage(JSON.stringify(cmd));
         } else {
-            console.error('runFetchToFileWorker req_id is undefined');
+            logger.error('req_id is undefined');
             //toast.add({severity: 'error',summary: 'Error', detail: 'There was an error' });
             useSrToastStore().error('Error','There was an error');
             requestsStore.setConsoleMsg('There was an error');
             requestsStore.setSvrMsg('');
         }
     } catch (error) {
-        console.error('runFetchToFileWorker error:',error);
+        logger.error('runFetchToFileWorker error', { error: error instanceof Error ? error.message : String(error) });
         //toast.add({severity: 'error',summary: 'Error', detail: 'An error occurred running the worker', life: srToastStore.getLife() });
         useSrToastStore().error('Error','An error occurred running the worker');
         requestsStore.setConsoleMsg('There was an error');
@@ -370,7 +373,7 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
     }
     //mapStore.setIsLoading(true);
     serverStateStore.isAborting = false;
-    console.log('runSlideRuleClicked');
+    logger.debug('runSlideRuleClicked');
     curReqSumStore.setNumExceptions(0);
     curReqSumStore.setTgtExceptions(0);
     curReqSumStore.setNumArrowDataRecs(0);
@@ -382,7 +385,7 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
     curReqSumStore.setPercentComplete(0);
     const srReqRec = await requestsStore.createNewSrRequestRecord();
     if (srReqRec) {
-        console.log('runSlideRuleClicked srReqRec:', srReqRec);
+        logger.debug('runSlideRuleClicked srReqRec', { srReqRec });
         if (srReqRec.req_id) {
             requestsStore.setConsoleMsg('loading params...');
             if (rc) {
@@ -400,13 +403,13 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
                     (useGeoJsonStore().reqHasPoly() === false) &&
                     !(reqParamsStore.getMissionValue() === 'ICESat-2' && reqParamsStore.getIceSat2API().includes('atl13'))
                 ) {
-                    console.warn('No geographic region defined reqParamsStore.poly:', reqParamsStore.poly, ' reqParamsStore.ignorePolygon:', reqParamsStore.ignorePolygon);
+                    logger.warn('No geographic region defined', { poly: reqParamsStore.poly, ignorePolygon: reqParamsStore.ignorePolygon });
                     if (rc === null) {
                         useSrToastStore().error('Error', 'You must define a geographic region or a resource or use advanced filters');
                         useSrToastStore().info('Helpful Advice', 'To start: Try zooming in and selecting a geographic region about 10x10 km or smaller');
                         requestsStore.setConsoleMsg('You need to supply a geographic region or a resource or advanced filters...');
                     } else {
-                        console.error('runSlideRuleClicked INVALID reqParamsStore.poly:', reqParamsStore.poly, ' reqParamsStore.ignorePolygon:', reqParamsStore.ignorePolygon);
+                        logger.error('runSlideRuleClicked INVALID poly', { poly: reqParamsStore.poly, ignorePolygon: reqParamsStore.ignorePolygon });
                     }
                     return;
                 }
@@ -417,7 +420,7 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
             if (srViewKey.value) {
                 srReqRec.srViewName = srViewKey.value;
             } else {
-                console.error('runSlideRuleClicked srViewKey was undefined');
+                logger.error('runSlideRuleClicked srViewKey was undefined');
                 useSrToastStore().error('Error', 'There was an error. srViewKey was undefined');
                 requestsStore.setConsoleMsg('stopped...');
                 return;
@@ -443,40 +446,40 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
                         await runFetchToFileWorker(srReqRec);
                     }
                 } else {
-                    console.error('runSlideRuleClicked IceSat2API was undefined');
+                    logger.error('runSlideRuleClicked IceSat2API was undefined');
                     useSrToastStore().error('Error', 'There was an error. IceSat2API was undefined');
                     requestsStore.setConsoleMsg('stopped...');
                 }
             } else if (reqParamsStore.getMissionValue() === 'GEDI') {
                 if (reqParamsStore.getGediAPI()) {
-                    console.log('runSlideRuleClicked GediAPI:', reqParamsStore.getGediAPI());
+                    logger.debug('runSlideRuleClicked GediAPI', { gediAPI: reqParamsStore.getGediAPI() });
                     srReqRec.func = reqParamsStore.getGediAPI();
                     srReqRec.parameters = reqParamsStore.getAtlxxReqParams(srReqRec.req_id);
                     const fileName = srReqRec.parameters?.parms?.output?.path;
                     srReqRec.file = fileName;
-                    console.log('runSlideRuleClicked will create fileName:', fileName, srReqRec);
+                    logger.debug('runSlideRuleClicked will create fileName', { fileName, srReqRec });
                     if (srViewKey.value) {
                         srReqRec.start_time = new Date();
                         srReqRec.end_time = new Date();
                         await runFetchToFileWorker(srReqRec);
                     }
                 } else {
-                    console.error('runSlideRuleClicked GediAPI was undefined');
+                    logger.error('runSlideRuleClicked GediAPI was undefined');
                     useSrToastStore().error('Error', 'There was an error. GediAPI was undefined');
                     requestsStore.setConsoleMsg('stopped...');
                 }
             } else {
-                console.error('runSlideRuleClicked mission was undefined');
+                logger.error('runSlideRuleClicked mission was undefined');
                 useSrToastStore().error('Error', 'There was an error. Mission was undefined');
                 requestsStore.setConsoleMsg('stopped...');
             }
         } else {
-            console.error('runSlideRuleClicked req_id is undefined');
+            logger.error('runSlideRuleClicked req_id is undefined');
             useSrToastStore().error('Error', 'There was an error');
             return;
         }
     } else {
-        console.error('runSlideRuleClicked srReqRec was undefined');
+        logger.error('runSlideRuleClicked srReqRec was undefined');
         useSrToastStore().error('Error', 'There was an error');
         requestsStore.setConsoleMsg('stopped...');
     }

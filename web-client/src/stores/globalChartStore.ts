@@ -5,6 +5,9 @@ import { gtsOptions, tracksOptions, pairOptions } from '@/utils/parmUtils';
 import { SC_FORWARD,SC_BACKWARD } from '@/sliderule/icesat2';
 import { getDetailsFromSpotNumber, getScOrientFromSpotAndGt } from '@/utils/spotUtils';
 import { resetCycleOptions, type ElevationDataItem } from '@/utils/SrMapUtils';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('GlobalChartStore');
 
 
 export const useGlobalChartStore = defineStore('globalChartStore', () => {
@@ -57,7 +60,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
 
     function setCycles(cycles: number[]) {
         if (!Array.isArray(cycles)) {
-            console.error('setCycles received invalid cycles:', cycles);
+            logger.error('setCycles received invalid cycles', { cycles });
             selectedCycleOptions.value = [];
             return;
         }
@@ -70,7 +73,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
 
     function getCycles(): number[] {
         if (!Array.isArray(selectedCycleOptions.value)) {
-            console.error(`getCycles: selectedCycleOptions is not an array`, selectedCycleOptions.value);
+            logger.error('getCycles: selectedCycleOptions is not an array', { selectedCycleOptions: selectedCycleOptions.value });
             return [];
         }
         return selectedCycleOptions.value.map(cycle => cycle.value);
@@ -78,7 +81,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
 
     function setSelectedCycleOptions(cycleOptions: SrListNumberItem[]) {
         if (!Array.isArray(cycleOptions)) {
-            console.error('setSelectedCycleOptions received invalid cycleOptions:', cycleOptions);
+            logger.error('setSelectedCycleOptions received invalid cycleOptions', { cycleOptions });
             selectedCycleOptions.value = [];
             return;
         }
@@ -92,7 +95,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
 
     function getMaxSelectedCycle(): number {
         if (!Array.isArray(selectedCycleOptions.value) || selectedCycleOptions.value.length === 0) {
-            console.error(`getMaxSelectedCycle: selectedCycleOptions is not an array or is empty`, selectedCycleOptions.value);
+            logger.error('getMaxSelectedCycle: selectedCycleOptions is not an array or is empty', { selectedCycleOptions: selectedCycleOptions.value });
             return -1;
         }
         return Math.max(...selectedCycleOptions.value.map(cycle => cycle.value));
@@ -100,7 +103,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
 
     function getMinSelectedCycle(): number {
         if (!Array.isArray(selectedCycleOptions.value) || selectedCycleOptions.value.length === 0) {
-            console.error(`getMinSelectedCycle: selectedCycleOptions is not an array or is empty`, selectedCycleOptions.value);
+            logger.error('getMinSelectedCycle: selectedCycleOptions is not an array or is empty', { selectedCycleOptions: selectedCycleOptions.value });
             return -1;
         }
         return Math.min(...selectedCycleOptions.value.map(cycle => cycle.value));
@@ -125,14 +128,14 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
 
     function setSelectedRgtOptions(rgtOptions: SrListNumberItem[]): void {
         if (!Array.isArray(rgtOptions)) {
-            console.error('setSelectedRgtOptions received invalid rgtOptions:', rgtOptions);
+            logger.error('setSelectedRgtOptions received invalid rgtOptions', { rgtOptions });
             selectedRgtOption.value = undefined;
             return;
         }
         selectedRgtOption.value = rgtOptions.find(option => option.value === getRgt()) || { label: 'None', value: -1 };
         //console.log('setSelectedRgtOptions rgtOptions:', rgtOptions, ' selectedRgtOption:', selectedRgtOption.value);
         if (selectedRgtOption.value === undefined) {
-            console.error('setSelectedRgtOptions: selectedRgtOption is undefined', selectedRgtOption.value);
+            logger.error('setSelectedRgtOptions: selectedRgtOption is undefined', { selectedRgtOption: selectedRgtOption.value });
             selectedRgtOption.value = { label: 'None', value: -1 };
         }
         //console.log('setSelectedRgtOptions rgtOptions:', rgtOptions, ' selectedRgtOption:', selectedRgtOption.value);
@@ -155,7 +158,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
 
     function setSpots(spots: number[]) {
         if (!Array.isArray(spots)) {
-            console.error('setSpots received invalid spots:', spots);
+            logger.error('setSpots received invalid spots', { spots });
             selectedSpots.value = [];
             return;
         }
@@ -164,7 +167,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
 
     function getSpots(): number[] {
         if (!Array.isArray(selectedSpots.value)) {
-            console.error(`getSpots: selectedSpots is not an array`, selectedSpots.value);
+            logger.error('getSpots: selectedSpots is not an array', { selectedSpots: selectedSpots.value });
             return [];
         }
         return selectedSpots.value;
@@ -172,7 +175,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
 
     function setTracks(tracks: number[]) {
         if (!Array.isArray(tracks)) {
-            console.error('setTracks received invalid tracks:', tracks);
+            logger.error('setTracks received invalid tracks', { tracks });
             selectedTrackOptions.value = [];
             return;
         }
@@ -189,7 +192,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
 
     function getTracks() : number[] {
         if(!Array.isArray(selectedTrackOptions.value)) {
-            console.error(`getTracks: selectedTrackOptions is not an array`, selectedTrackOptions.value);
+            logger.error('getTracks: selectedTrackOptions is not an array', { selectedTrackOptions: selectedTrackOptions.value });
             return [];
         }
         return selectedTrackOptions.value.map(track => track.value);
@@ -201,7 +204,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
 
     function setGts(gts: number[]) {
         if (!Array.isArray(gts)) {
-            console.error('setGts received invalid gts:', gts);
+            logger.error('setGts received invalid gts', { gts });
             selectedGtOptions.value = [];
             return;
         }
@@ -213,7 +216,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
 
     function getGts(): number[] {
         if (!Array.isArray(selectedGtOptions.value)) {
-            console.error(`getGts: selectedGtOptions is not an array`, selectedGtOptions.value);
+            logger.error('getGts: selectedGtOptions is not an array', { selectedGtOptions: selectedGtOptions.value });
             return [];
         }
         return selectedGtOptions.value.map(gt => gt.value);
@@ -232,7 +235,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
 
     function setSelectedGtOptions(gtOptions: SrListNumberItem[]) {
         if (!Array.isArray(gtOptions)) {
-            console.error('setSelectedGtOptions received invalid gtOptions:', gtOptions);
+            logger.error('setSelectedGtOptions received invalid gtOptions', { gtOptions });
             selectedGtOptions.value = [];
             return;
         }
@@ -275,7 +278,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
 
     function setPairs(pairs: number[]) {
         if (!Array.isArray(pairs)) {
-            console.error('setPairs received invalid pairs:', pairs);
+            logger.error('setPairs received invalid pairs', { pairs });
             selectedPairOptions.value = [];
             return;
         }
@@ -302,7 +305,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
 
     function setSelectedPairOptions(pairOptions: SrListNumberItem[]) {
         if (!Array.isArray(pairOptions)) {
-            console.error('setSelectedPairOptions received invalid pairOptions:', pairOptions);
+            logger.error('setSelectedPairOptions received invalid pairOptions', { pairOptions });
             selectedPairOptions.value = [];
             return;
         }
@@ -364,7 +367,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
         const max_y_atc_str = max_y_atc !== undefined ? max_y_atc.toFixed(2) : '';
         let nameSuffix = `-${req_id}-${rgt}-${cycles.join('-')}-${spots.join('-')}`;
 
-        if (use_y_atc_filter && min_y_atc !== undefined && max_y_atc !== undefined) {
+        if (use_y_atc_filter.value && min_y_atc !== undefined && max_y_atc !== undefined) {
             nameSuffix += `-${min_y_atc_str}-${max_y_atc_str}`;
         }
         return nameSuffix;

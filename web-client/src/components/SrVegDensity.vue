@@ -9,6 +9,9 @@ import { onMounted, computed } from 'vue';
 import { useSlideruleDefaults } from '@/stores/defaultsStore';
 import SrLabelInfoIconButton from '@/components/SrLabelInfoIconButton.vue';
 import { type SrPhoreal } from '@/types/slideruleDefaultsInterfaces';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrVegDensity');
 
 const defaultsStore = useSlideruleDefaults();
 const reqParamsStore = useReqParamsStore();
@@ -20,7 +23,7 @@ const geoLocationLabelClass = computed(() => {
 });
 onMounted(() => {
     defaultPhoreal = defaultsStore.getNestedMissionDefault('ICESat-2', 'phoreal') as SrPhoreal;
-    console.log('Default PhoReal:', defaultPhoreal);
+    logger.debug('Default PhoReal', { defaultPhoreal });
     reqParamsStore.phoRealGeoLocation = defaultPhoreal['geoloc'];
     reqParamsStore.phoRealBinSize = defaultPhoreal['binsize'];
     reqParamsStore.usePhoRealAbsoluteHeights = defaultPhoreal['use_abs_h'];

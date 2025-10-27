@@ -7,16 +7,17 @@ import Button from 'primevue/button';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
 import { onMounted } from 'vue';
 import { useSlideruleDefaults } from '@/stores/defaultsStore';
+import { createLogger } from '@/utils/logger';
 
-
+const logger = createLogger('SrGenUserOptions');
 
 //const mapStore = useMapStore();
 const reqParamsStore = useReqParamsStore();
 const defaultValServerTimeout = () => {
     const value = useSlideruleDefaults().getNestedDefault<number>('core', 'timeout');
-    console.log('SrGenUserOptions: defaultValServerTimeout:', value);
+    logger.debug('defaultValServerTimeout', { value });
     if(value === undefined || value === null || value <= 0) {
-        console.error('SrGenUserOptions: defaultValServerTimeout is undefined or null, or <= 0:', value);
+        logger.error('defaultValServerTimeout is undefined or null, or <= 0', { value });
         return 0; // default to 0 seconds if no valid default
     }
     return value;
@@ -24,9 +25,9 @@ const defaultValServerTimeout = () => {
 
 const defaultValRqstTimeout = () => {
     const value = useSlideruleDefaults().getNestedDefault<number>('core', 'rqst_timeout');
-    console.log('SrGenUserOptions: defaultValRequestTimeout:', value);
+    logger.debug('defaultValRequestTimeout', { value });
     if(value === undefined || value === null || value <= 0) {
-        console.error('SrGenUserOptions: defaultValRequestTimeout is undefined or null, or <= 0:', value);
+        logger.error('defaultValRequestTimeout is undefined or null, or <= 0', { value });
         return 0; // default to 0 seconds if no valid default
     }
     return value;
@@ -34,9 +35,9 @@ const defaultValRqstTimeout = () => {
 
 const defaultValNodeTimeout = () => {
     const value = useSlideruleDefaults().getNestedDefault<number>('core', 'node_timeout');
-    console.log('SrGenUserOptions: defaultValNodeTimeout:', value);
+    logger.debug('defaultValNodeTimeout', { value });
     if(value === undefined || value === null || value <= 0) {
-        console.error('SrGenUserOptions: defaultValNodeTimeout is undefined or null, or <= 0:', value);
+        logger.error('defaultValNodeTimeout is undefined or null, or <= 0', { value });
         return 0; // default to 0 seconds if no valid default
     }
     return value;
@@ -44,9 +45,9 @@ const defaultValNodeTimeout = () => {
 
 const defaultValReadTimeout = () => {
     const value = useSlideruleDefaults().getNestedDefault<number>('core', 'read_timeout');
-    console.log('SrGenUserOptions: defaultValReadTimeout:', value);
+    logger.debug('defaultValReadTimeout', { value });
     if(value === undefined || value === null || value <= 0) {
-        console.error('SrGenUserOptions: defaultValReadTimeout is undefined or null, or <= 0:', value);
+        logger.error('defaultValReadTimeout is undefined or null, or <= 0', { value });
         return 0; // default to 0 seconds if no valid default
     }
     return value;

@@ -27,6 +27,10 @@
     import SrSliderInput from './SrSliderInput.vue';
     import SrCheckbox from './SrCheckbox.vue';
     import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue';
+    import { createLogger } from '@/utils/logger';
+
+    const logger = createLogger('SrSwitchedSliderInput');
+
     const props = defineProps({
         getValue: {
             type: Function,
@@ -127,7 +131,7 @@
         //console.log('SrSwitchedSliderInput:', combinedLabel.value,'currentCheckboxValue:', currentCheckboxValue, 'defaultValue:', defaultValue);
         if(!currentCheckboxValue) {// 'use' is falsey
             if( defaultValue === undefined || defaultValue === null || defaultValue < props.min) {
-                console.error('SrSwitchedSliderInput:', combinedLabel.value, 'defaultValue is undefined or null, or < min:',props.defaultValue);
+                logger.error('defaultValue is undefined or null, or < min', { label: combinedLabel.value, defaultValue: props.defaultValue, min: props.min });
             }
             if(props.defaultValue >= props.min) {
                 props.setValue(defaultValue);

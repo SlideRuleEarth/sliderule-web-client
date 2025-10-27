@@ -5,6 +5,9 @@ import { fromLonLat } from 'ol/proj';
 import { useGlobalChartStore } from '@/stores/globalChartStore';
 import { containsCoordinate } from 'ol/extent';
 import { getScrollableAncestors } from '@/utils/SrMapUtils';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrLocationFinder');
 
 const props = defineProps<{
     map: OLMap | null;
@@ -97,7 +100,7 @@ onMounted(() => {
     highlightEl.className = 'map-highlight-marker';
     document.body.appendChild(highlightEl);
 
-    console.log('Highlight marker appended to <body>', highlightEl);
+    logger.debug('Highlight marker appended to <body>');
     props.map.on('movestart', hideMarker);
     props.map.on('moveend', () => {
         if (globalChartStore.enableLocationFinder) {
@@ -143,7 +146,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <!-- No DOM rendered by this component -->
+    <div></div>
 </template>
 
 <style>

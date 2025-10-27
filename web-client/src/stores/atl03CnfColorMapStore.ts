@@ -1,6 +1,9 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { db } from '@/db/SlideRuleDb';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('Atl03CnfColorMapStore');
 
 
 /**
@@ -9,8 +12,7 @@ import { db } from '@/db/SlideRuleDb';
 export async function useAtl03CnfColorMapStore(reqIdStr: string) {
     const store = defineStore(`atl03CnfStore-${reqIdStr}`, () => {
         const isInitialized = ref(false);
-        let debugCnt = 0;
-        let dataOrderNdx = {} as Record<string, number>;
+        let dataOrderNdx: Record<string, number> = {};
         const atl03CnfColorMap = ref([] as string[]);
         const atl03CnfOptions = [
             {label:'atl03_tep',value:-2}, 
@@ -82,7 +84,7 @@ export async function useAtl03CnfColorMapStore(reqIdStr: string) {
         async function setColorForAtl03CnfValue(value:number,namedColorValue:string) { // value is the atl03_cnf value -2 to 4
             const ndx = value + 2;
             if(ndx < 0 || ndx > 6){
-                console.error('setColorForAtl03CnfValue invalid value:',value);
+                logger.error('setColorForAtl03CnfValue invalid value', { value });
                 return;
             }
             resetColorCache();
@@ -94,7 +96,7 @@ export async function useAtl03CnfColorMapStore(reqIdStr: string) {
             //debugCnt = 0;
             Object.keys(colorCache).forEach(key => delete colorCache[Number(key)]);
             ndx = -1; // Reset index so it is recalculated
-            console.log(`Cache for atl03_cnf reset.`);
+            logger.debug('Cache for atl03_cnf reset');
         }
 
         return {

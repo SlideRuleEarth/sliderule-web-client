@@ -1,6 +1,9 @@
 import { useToast } from 'primevue/usetoast';
 import { useGeoJsonStore } from '@/stores/geoJsonStore';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('useGeoJsonUploader');
 import type OLMap from 'ol/Map.js';
 import type { FileUploadUploaderEvent } from 'primevue/fileupload';
 import { useMapStore } from '@/stores/mapStore';
@@ -16,11 +19,11 @@ export function useGeoJsonUploader(
     const geoJsonStore = useGeoJsonStore();
     const reqParamsStore = useReqParamsStore();
 
-    async function handleUpload(event: FileUploadUploaderEvent) {
+    function handleUpload(event: FileUploadUploaderEvent) {
 
         const files = Array.isArray(event.files) ? event.files : [event.files];
         const file = files[0];
-        console.log('handleUpload called with file:', file, props.loadReqPoly ? '(request upload)' : '(features upload)');
+        logger.debug('handleUpload called', { file: file.name, loadReqPoly: props.loadReqPoly });
         if (!file) {
             toast.add({ severity: 'error', summary: 'Upload Error', detail: 'No file provided' });
             return;
@@ -30,7 +33,7 @@ export function useGeoJsonUploader(
         reader.readAsText(file);
 
         reader.onerror = (e) => {
-            console.error('Error reading file:', e);
+            logger.error('Error reading file', { error: e });
             toast.add({ severity: 'error', summary: 'File Read Error', detail: 'Unable to read the uploaded file' });
         };
 
@@ -45,7 +48,7 @@ export function useGeoJsonUploader(
                 }
 
                 const geoJsonData = JSON.parse(e.target.result);
-                console.log('Parsed GeoJSON data:', geoJsonData, props.loadReqPoly ? '(request upload)' : '(features upload)');
+                logger.debug('Parsed GeoJSON data', { geoJsonData, uploadType: props.loadReqPoly ? 'request upload' : 'features upload' });
                 if (props.loadReqPoly) {
                     geoJsonStore.setReqGeoJsonData(geoJsonData);
                 } else {
@@ -55,9 +58,9 @@ export function useGeoJsonUploader(
                 // 👉 NEW: call the util version, pass loadReqPoly from props
                 drawExtent = await handleGeoJsonLoad(map, geoJsonData, { loadReqPoly: !!props.loadReqPoly });
 
-                console.log('After handleGeoJsonLoad, reqParamsStore.poly:', reqParamsStore.poly);
+                logger.debug('After handleGeoJsonLoad', { poly: reqParamsStore.poly });
             } catch (err: any) {
-                console.error('Error parsing or loading GeoJSON:', err);
+                logger.error('Error parsing or loading GeoJSON', { error: err instanceof Error ? err.message : String(err) });
                 toast.add({ severity: 'error', summary: 'Parse Error', detail: String(err) });
             }
 
@@ -72,14 +75,14 @@ export function useGeoJsonUploader(
                         padding: [40, 40, 40, 40],
                     });
                 } else {
-                    console.warn('Zero-area extent, zooming out to full map.');
+                    logger.warn('Zero-area extent, zooming out to full map');
                     zoomOutToFullMap(map);
                 }
             }
         };
 
         reader.onloadend = (e) => {
-            console.log('File read completed:', e);
+            logger.debug('File read completed', { event: e });
             toast.add({ severity: 'success', summary: 'Upload Complete', detail: `File "${file.name}" uploaded successfully.`, life: 5000 });
             upload_progress.value = 100;
             upload_progress_visible.value = false;

@@ -14,6 +14,9 @@ import type { SrView } from '@/composables/SrViews';
 import { findSrView } from '@/composables/SrViews';
 import type { SrLayer } from '@/composables/SrLayers.js';
 import { ref, type Ref } from 'vue';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('MapStore');
 
 
 interface LayerCache {
@@ -80,21 +83,21 @@ export const useMapStore = defineStore('map', {
       this.wmsCapCache.set(projectionName, wmsCapInstance);
     },
     updateWmsCap(projectionName: string)  {
-      console.log('updateWmsCap:', projectionName);
+      logger.debug('updateWmsCap', { projectionName });
       const currentWmsCapCntrl = this.getWmsCapFromCache(this.currentWmsCapProjectionName );
       if(currentWmsCapCntrl){
         this.map?.removeControl(currentWmsCapCntrl);
       } else {
-        console.log(`currentWmsCapCntrl for '${this.currentWmsCapProjectionName}' not found in cache`);
+        logger.debug('currentWmsCapCntrl not found in cache', { projectionName: this.currentWmsCapProjectionName });
       }
       this.setCurrentWmsCap(projectionName);
     },
     // WMTS Capabilities
     setCurrentWmtsCap(projectionName: string) {
       const wmtsCap = this.getWmtsCapFromCache(projectionName);
-      console.log('setCurrentWmtsCap:', projectionName, wmtsCap);
+      logger.debug('setCurrentWmtsCap', { projectionName, wmtsCap });
       if(this.map){
-        console.log('adding wmtsCap to map:', wmtsCap);
+        logger.debug('adding wmtsCap to map', { wmtsCap });
         this.map?.addControl(wmtsCap);
         this.currentWmtsCapProjectionName = projectionName;
       }
@@ -103,16 +106,16 @@ export const useMapStore = defineStore('map', {
       return this.wmtsCapCache.get(projectionName);
     },
     cacheWmtsCapForProjection(projectionName:string, wmtsCapInstance: ol_control_WMTSCapabilities) {
-      console.log('cacheWmtsCapForProjection:', projectionName);
+      logger.debug('cacheWmtsCapForProjection', { projectionName });
       this.wmtsCapCache.set(projectionName, wmtsCapInstance);
     },
     updateWmtsCap(projectionName: string)  {
-      console.log('updateWmtsCap:', projectionName);
+      logger.debug('updateWmtsCap', { projectionName });
       const currentWmtsCapCntrl = this.getWmtsCapFromCache(this.currentWmtsCapProjectionName );
       if(currentWmtsCapCntrl){
         this.map?.removeControl(currentWmtsCapCntrl);
       } else {
-        console.log(`currentWmtsCapCntrl for '${this.currentWmtsCapProjectionName}' not found in cache`);
+        logger.debug('currentWmtsCapCntrl not found in cache', { projectionName: this.currentWmtsCapProjectionName });
       }
       this.setCurrentWmtsCap(projectionName);
     },
@@ -200,7 +203,8 @@ export const useMapStore = defineStore('map', {
     },
     setSrView(srView: string) {
         this.selectedView = srView;
-        const srViewObj = srViews.value[srView] as SrView;
+        // Note: srViewObj is intentionally not used - it's here for potential future use
+        // const srViewObj = srViews.value[srView] as SrView;
     },
     getSrView() {
         return this.selectedView;
@@ -222,7 +226,7 @@ export const useMapStore = defineStore('map', {
         //console.trace('setSelectedBaseLayer:', baseLayer);
     },
     getSelectedBaseLayer() {
-      console.log('getSelectedBaseLayer:', this.selectedBaseLayer);
+      logger.debug('getSelectedBaseLayer', { selectedBaseLayer: this.selectedBaseLayer });
       return this.selectedBaseLayer;
     },
     setSelectedView(view: string) {
@@ -249,11 +253,11 @@ export const useMapStore = defineStore('map', {
         return this.centerToRestore;
     },
     setCenterToRestore(center: number[]) {
-      console.log('setCenterToRestore:', center);
+      logger.debug('setCenterToRestore', { center });
       if (center) {
         this.centerToRestore = center;
       } else {
-        console.warn('setCenterToRestore: center was null?');
+        logger.warn('setCenterToRestore: center was null');
       }
     },
     getZoomToRestore() {

@@ -3,6 +3,9 @@ import { defineStore } from 'pinia';
 import colormap from 'colormap';
 import { db } from '@/db/SlideRuleDb';
 import { createUnifiedColorMapper } from '@/utils/colorUtils';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('GradientColorMapStore');
 
 export function useGradientColorMapStore(reqIdStr: string) {
     return defineStore(`gradientColorMapStore-${reqIdStr}`, () => {
@@ -32,7 +35,7 @@ export function useGradientColorMapStore(reqIdStr: string) {
                 });
                 gradientColorMapRGBA.value = rawColorArray;
             } catch (error) {
-                console.error(`updateGradientColorMapValues ${reqIdStr} error:`, error);
+                logger.error('updateGradientColorMapValues error', { reqIdStr, error: error instanceof Error ? error.message : String(error) });
                 throw error;
             }
         }
@@ -52,7 +55,7 @@ export function useGradientColorMapStore(reqIdStr: string) {
                 selectedGradientColorMapName.value = plotConfig.defaultGradientColorMapName;
                 numShadesForGradient.value = plotConfig.defaultGradientNumShades;
             } else {
-                console.error(`restoreDefaultGradientColorMap ${reqIdStr}: no plotConfig`);
+                logger.error('restoreDefaultGradientColorMap: no plotConfig', { reqIdStr });
             }
         }
 

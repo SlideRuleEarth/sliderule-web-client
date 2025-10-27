@@ -50,10 +50,11 @@ import { toRefs, computed } from 'vue';
 import { useDeck3DConfigStore } from '@/stores/deck3DConfigStore';
 import { loadAndCachePointCloudData,renderCachedData } from '@/utils/deck3DPlotUtils';
 import { useRecTreeStore } from '@/stores/recTreeStore';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrElRng3D');
 
 const recTreeStore = useRecTreeStore();
-
-const emit = defineEmits(['change']);
 
 const deck3DConfigStore = useDeck3DConfigStore();
 const { elDataRange } = toRefs(deck3DConfigStore);
@@ -61,7 +62,7 @@ const deckContainerStored = computed(() => deck3DConfigStore.deckContainer);
 const reqId = computed(() => recTreeStore.selectedReqId);
 
 async function handleChange() {
-    console.log('ElRange3D handleChange:', elDataRange.value);
+    logger.debug('handleChange', { elDataRange: elDataRange.value });
     await loadAndCachePointCloudData(reqId.value);
     if(deckContainerStored.value){
         renderCachedData(deckContainerStored);

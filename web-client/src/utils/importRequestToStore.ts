@@ -3,6 +3,9 @@ import { ICESat2RequestSchema } from '@/zod/ICESat2Schemas';
 import { useReqParamsStore } from '@/stores/reqParamsStore';
 import { useRasterParamsStore } from '@/stores/rasterParamsStore';
 import { applyParsedJsonToStores } from '@/utils/applyParsedJsonToStores';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('ImportRequestToStore');
 
 const userFacingErrors: Record<string, string[]> = {};
 
@@ -11,11 +14,11 @@ function addError(section: string, message: string) {
     userFacingErrors[section].push(message);
 }
 
-type ToastFn = (summary: string, detail: string, severity?: string) => void;
+type ToastFn = (_summary: string, _detail: string, _severity?: string) => void;
 
 function showGroupedErrors(
     errors: Record<string, string[]>,
-    summary: string,
+    _summary: string,
     fallbackDetail?: string,
     toastFn?: ToastFn
 ) {
@@ -29,23 +32,23 @@ function showGroupedErrors(
             .join('\n\n');
 
         // Log detailed error structure for debugging
-        console.log('[showGroupedErrors] Grouped error details:', {
-            summary,
+        logger.debug('showGroupedErrors: Grouped error details', {
+            summary: _summary,
             errors,
             formattedDetail: detail
         });
     } else {
         detail = fallbackDetail ?? 'An unknown error occurred.';
-        console.log('[showGroupedErrors] No specific errors. Using fallback:', {
-            summary,
+        logger.debug('showGroupedErrors: No specific errors. Using fallback', {
+            summary: _summary,
             fallbackDetail: detail
         });
     }
 
     if (toastFn) {
-        toastFn(summary, detail, 'warn');
+        toastFn(_summary, detail, 'warn');
     } else {
-        console.warn(`[toast missing] ${summary}: ${detail}`);
+        logger.warn('toast missing', { summary: _summary, detail });
     }
 }
 
@@ -68,7 +71,7 @@ export function importRequestJsonToStore(
         }
     }
     const result = ICESat2RequestSchema.safeParse(json);
-    console.log('Zod validation for', json, ' result:', result);
+    logger.debug('Zod validation', { json, result });
     if (!result.success) {
         result.error.errors.forEach(e => {
             const key = e.path.join('.') || 'unknown';

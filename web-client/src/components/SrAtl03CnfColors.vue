@@ -21,6 +21,9 @@
 import { onMounted, computed, watch, ref } from 'vue';
 import Fieldset from 'primevue/fieldset';
 import { useAtl03CnfColorMapStore } from '@/stores/atl03CnfColorMapStore';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SrAtl03CnfColors');
 
 const emit = defineEmits(['restore-atl03-color-defaults-click', 'atl03CnfColorChanged']);
 const props = defineProps({
@@ -42,11 +45,11 @@ const atl03CnfOptions = computed(() => atl03CnfColorMapStore.value.atl03CnfOptio
 
 // Watch for changes in the color map and trigger reactivity
 watch(
-    () => atl03CnfColorMapStore.value?.atl03CnfColorMap, 
-    (newMap, oldMap) => {
+    () => atl03CnfColorMapStore.value?.atl03CnfColorMap,
+    (newMap, _oldMap) => {
         // Emit an event or trigger any logic when the color map changes
         emit('atl03CnfColorChanged', newMap);
-        console.log('SrAtl03CnfColors Color map changed:', newMap);
+        logger.debug('Color map changed', { newMap });
     },
     { deep: true } // Deep watch for changes inside the object
 );

@@ -20,6 +20,9 @@ import { useChartStore } from '@/stores/chartStore';
 
 import { toRaw, isProxy } from 'vue';
 import { formatTime } from '@/utils/formatUtils';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('Deck3DPlotUtils');
 
 const deck3DConfigStore = useDeck3DConfigStore();
 const recTreeStore = useRecTreeStore();
@@ -69,7 +72,7 @@ export function sanitizeDeckData<T extends Record<string, any>>(data: T[]): T[] 
     }
 
     // ✅ Log sanitized output once
-    console.log('Sanitized Deck.gl data sample:', sanitized.slice(0, 5),' num:',sanitized.length); // limit to 5 for readability
+    logger.debug('Sanitized Deck.gl data sample', { sample: sanitized.slice(0, 5), total: sanitized.length }); // limit to 5 for readability
     return sanitized;
 }
 
@@ -95,13 +98,13 @@ function computeCentroid(position: [number, number, number][]) {
 function initDeckIfNeeded(deckContainer: Ref<HTMLDivElement | null>): boolean {
     const container = deckContainer.value;
     if (!container) {
-        console.warn('Deck container is null');
+        logger.warn('Deck container is null');
         return false;
     }
 
     const { width, height } = container.getBoundingClientRect();
     if (width === 0 || height === 0) {
-        console.warn('Deck container has zero size:', width, height);
+        logger.warn('Deck container has zero size', { width, height });
         return false;
     }
 
@@ -195,7 +198,7 @@ export function finalizeDeck() {
         deckInstance.value = null;
         //console.log('Deck instance finalized');
     } else {
-        console.warn('No Deck instance to finalize');
+        logger.warn('No Deck instance to finalize');
     }
 }
 
@@ -332,7 +335,7 @@ export async function loadAndCachePointCloudData(reqId: number) {
             toast.warn('No Data Processed', 'No elevation data returned from query.');
         }
     } catch (err) {
-        console.error('Error loading 3D view data:', err);
+        logger.error('Error loading 3D view data', { error: err instanceof Error ? err.message : String(err) });
         toast.error('Error', 'Failed to load elevation data.');
         cachedRawData = [];
         lastLoadedReqId = null;
@@ -347,7 +350,7 @@ export async function loadAndCachePointCloudData(reqId: number) {
 
 export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
     if (!deckContainer || !deckContainer.value) {
-        console.warn('Deck container is null or undefined');
+        logger.warn('Deck container is null or undefined');
         return;
     }
     if (!initDeckIfNeeded(deckContainer)) return;
@@ -357,7 +360,7 @@ export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
     const fieldStore = useFieldNameStore();
 
     if (!cachedRawData.length || lastLoadedReqId === null) {
-        console.warn('No cached data available or last request ID is null');
+        logger.warn('No cached data available or last request ID is null');
         deckInstance.value?.setProps({ layers: [] });
         return;
     }

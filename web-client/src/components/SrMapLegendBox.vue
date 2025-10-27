@@ -1,10 +1,11 @@
 <template>
   <div
     class="sr-legend-box"
-    :style="{ background: props.transparentBackground ? 'transparent' : 'rgba(255, 255, 255, 0.25)' }"
+    :style="{
+      background: props.transparentBackground ? 'transparent' : 'rgba(255, 255, 255, 0.25)'
+    }"
   >
-    <div class="sr-color-map-gradient" :style="elevationColorMap.getColorGradientStyle">
-    </div>
+    <div class="sr-color-map-gradient" :style="elevationColorMap.getColorGradientStyle"></div>
     <div class="sr-legend-minmax">
       <span class="sr-legend-min">
         {{ minValue }}
@@ -20,62 +21,64 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue';
-import { useGlobalChartStore } from '@/stores/globalChartStore';
-import { watch } from 'vue';
-import { useElevationColorMapStore } from '@/stores/elevationColorMapStore';
-import { updateMapAndPlot } from '@/utils/SrMapUtils';
+import { onMounted, ref as _ref, computed } from 'vue'
+import { useGlobalChartStore } from '@/stores/globalChartStore'
+import { watch } from 'vue'
+import { useElevationColorMapStore } from '@/stores/elevationColorMapStore'
+import { updateMapAndPlot } from '@/utils/SrMapUtils'
+import { createLogger } from '@/utils/logger'
 
-const globalChartStore = useGlobalChartStore();
-const elevationColorMap = useElevationColorMapStore();
+const logger = createLogger('SrMapLegendBox')
+
+const globalChartStore = useGlobalChartStore()
+const elevationColorMap = useElevationColorMapStore()
 
 // Props definition
 const props = withDefaults(
   defineProps<{
-    reqIdStr: string;
-    data_key: string;
-    transparentBackground?: boolean;
+    reqIdStr: string
+    data_key: string
+    transparentBackground?: boolean
   }>(),
   {
     reqIdStr: '',
     data_key: '',
-    transparentBackground: false,
+    transparentBackground: false
   }
-);
+)
 
-const emit = defineEmits(['legendbox-created', 'picked-changed']);
+const emit = defineEmits(['legendbox-created', 'picked-changed'])
 
 // Computed properties for min/max values based on toggle state
 const minValue = computed(() => {
   const value = globalChartStore.useMapLegendFullRange
     ? globalChartStore.getMin(props.data_key)
-    : globalChartStore.getLow(props.data_key);
-  return value !== null && value !== undefined ? value.toFixed(1) : '?';
-});
+    : globalChartStore.getLow(props.data_key)
+  return value !== null && value !== undefined ? value.toFixed(1) : '?'
+})
 
 const maxValue = computed(() => {
   const value = globalChartStore.useMapLegendFullRange
     ? globalChartStore.getMax(props.data_key)
-    : globalChartStore.getHigh(props.data_key);
-  return value !== null && value !== undefined ? value.toFixed(1) : '?';
-});
+    : globalChartStore.getHigh(props.data_key)
+  return value !== null && value !== undefined ? value.toFixed(1) : '?'
+})
 
 onMounted(() => {
-  console.log('SrMapLegendBox onMounted: reqIdStr:', props.reqIdStr, 'data_key:', props.data_key);
-  elevationColorMap.updateElevationColorMapValues();
-  emit('legendbox-created');
+  logger.debug('onMounted', { reqIdStr: props.reqIdStr, data_key: props.data_key })
+  elevationColorMap.updateElevationColorMapValues()
+  emit('legendbox-created')
   //console.log("elevationColorMap.gradientColorMap:", elevationColorMap.gradientColorMap);
-});
+})
 
 // Watch for changes in the elevation color map or the number of shades to update the gradient
 watch(
   () => [elevationColorMap.selectedElevationColorMap, elevationColorMap.numShadesForElevation],
-  async ()  => {
-    elevationColorMap.updateElevationColorMapValues();
-    await updateMapAndPlot("SrMapLegendBox watch elevationColorMap change");
+  () => {
+    elevationColorMap.updateElevationColorMapValues()
+    void updateMapAndPlot('SrMapLegendBox watch elevationColorMap change')
   }
-);
-
+)
 </script>
 
 <style scoped>

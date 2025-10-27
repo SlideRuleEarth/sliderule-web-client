@@ -35,7 +35,7 @@ export function createUnifiedColorMapper(options: {
     colorMap: ColorArray;
     min: number;
     max: number;
-    valueAccessor: (input: any) => number;
+    valueAccessor: (_input: any) => number;
 }) {
     const { colorMap, valueAccessor } = options;
     // Convert BigInt to Number if necessary
@@ -61,8 +61,8 @@ export function createUnifiedColorMapperRGBA(options: {
     colorMap: number[][];
     min: number;
     max: number;
-    valueAccessor: (input: any) => number;
-}): (input: any) => [number, number, number, number] {
+    valueAccessor: (_input: any) => number;
+}): (_input: any) => [number, number, number, number] {
     const { colorMap, valueAccessor } = options;
     // Convert BigInt to Number if necessary
     const min = typeof options.min === 'bigint' ? Number(options.min) : options.min;

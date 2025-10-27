@@ -1,11 +1,14 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useReqParamsStore } from '@/stores/reqParamsStore'
+import { createLogger } from '@/utils/logger'
+
+const logger = createLogger('router')
 // Note: using route level code-splitting
 // this generates a separate chunk (<route>.[hash].js) for this route
 // which is lazy-loaded when the route is visited.
 
 const router = createRouter({
-  scrollBehavior(to, from, savedPosition) {
+  scrollBehavior(_to, _from, savedPosition) {
     if (savedPosition) {
       return savedPosition
     } else {
@@ -13,6 +16,7 @@ const router = createRouter({
     }
   },
   history: createWebHistory(import.meta.env.BASE_URL),
+  /* eslint-disable @typescript-eslint/promise-function-async */
   routes: [
     {
       path: '/',
@@ -55,13 +59,14 @@ const router = createRouter({
       path: '/:pathMatch(.*)*',
       name: 'NotFound',
       component: () => import('@/components/NotFoundComponent.vue')
-    }  
+    }
   ]
+  /* eslint-enable @typescript-eslint/promise-function-async */
 })
 // router.ts (or wherever you create the router)
 router.afterEach(() => {
-    const req = useReqParamsStore();
-    console.debug(`[${req.$id}] afterEach meta:`, req.__meta);
-});
+  const req = useReqParamsStore()
+  logger.debug('afterEach meta', { storeId: req.$id, meta: req.__meta })
+})
 
 export default router

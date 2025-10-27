@@ -8,19 +8,16 @@
     aria-label="Upload Region control"
     :style="varStyle"
   >
-    <SrUploadRegion
-      :reportUploadProgress="reportUploadProgress"
-      :loadReqPoly="loadReqPoly"
-    />
+    <SrUploadRegion :reportUploadProgress="reportUploadProgress" :loadReqPoly="loadReqPoly" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
-import Control from 'ol/control/Control';
-import SrUploadRegion from '@/components/SrUploadRegion.vue';
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import Control from 'ol/control/Control'
+import SrUploadRegion from '@/components/SrUploadRegion.vue'
 
-type Corner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+type Corner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
 
 const props = defineProps({
   reportUploadProgress: { type: Boolean, default: false },
@@ -34,26 +31,26 @@ const props = defineProps({
   offsetY: { type: [Number, String], default: '19rem' },
 
   /** Style knobs (optional) */
-  bg:     { type: String, default: 'black' },
-  color:  { type: String, default: 'var(--ol-font-color)' },
+  bg: { type: String, default: 'black' },
+  color: { type: String, default: 'var(--ol-font-color)' },
   radius: { type: String, default: 'var(--p-border-radius)' },
-  zIndex: { type: [Number, String], default: undefined },
-});
+  zIndex: { type: [Number, String], default: undefined }
+})
 
 const emit = defineEmits<{
   /** Parent (SrMap.vue) listens and calls map.addControl(control) */
-  (e: 'upload-region-control-created', control: Control): void;
-}>();
+  (_e: 'upload-region-control-created', _control: Control): void
+}>()
 
-const toCss = (v: number | string) => typeof v === 'number' ? `${v}px` : v;
+const toCss = (v: number | string) => (typeof v === 'number' ? `${v}px` : v)
 
 const varStyle = computed(() => {
-  const x = toCss(props.offsetX);
-  const y = toCss(props.offsetY);
-  const top    = props.corner.startsWith('top')    ? y : 'auto';
-  const bottom = props.corner.startsWith('bottom') ? y : 'auto';
-  const left   = props.corner.endsWith('left')     ? x : 'auto';
-  const right  = props.corner.endsWith('right')    ? x : 'auto';
+  const x = toCss(props.offsetX)
+  const y = toCss(props.offsetY)
+  const top = props.corner.startsWith('top') ? y : 'auto'
+  const bottom = props.corner.startsWith('bottom') ? y : 'auto'
+  const left = props.corner.endsWith('left') ? x : 'auto'
+  const right = props.corner.endsWith('right') ? x : 'auto'
 
   return {
     // Placement via CSS vars:
@@ -68,21 +65,21 @@ const varStyle = computed(() => {
     '--sr-radius': props.radius,
 
     // Extra (non-var) styling:
-    ...(props.zIndex != null ? { zIndex: String(props.zIndex) } : {}),
-  } as Record<string, string>;
-});
+    ...(props.zIndex != null ? { zIndex: String(props.zIndex) } : {})
+  } as Record<string, string>
+})
 
-const containerEl = ref<HTMLDivElement | null>(null);
-let control: Control | null = null;
+const containerEl = ref<HTMLDivElement | null>(null)
+let control: Control | null = null
 
 onMounted(() => {
-  if (!containerEl.value) return;
-  control = new Control({ element: containerEl.value });
-  emit('upload-region-control-created', control);
-});
+  if (!containerEl.value) return
+  control = new Control({ element: containerEl.value })
+  emit('upload-region-control-created', control)
+})
 
 onBeforeUnmount(() => {
-  control?.setMap?.(null);
-  control = null;
-});
+  control?.setMap?.(null)
+  control = null
+})
 </script>

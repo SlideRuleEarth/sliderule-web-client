@@ -9,6 +9,7 @@ export class SrMutex {
         });
 
         const oldMutex = this.mutex;
+        // eslint-disable-next-line @typescript-eslint/promise-function-async
         this.mutex = oldMutex.then(() => promise);
 
         await oldMutex; // Wait for the previous lock to be released
