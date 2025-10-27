@@ -381,7 +381,7 @@ export const useFieldNameStore = defineStore('fieldNameStore', () => {
       latFieldCache.value[reqId] = recordInfo.y
       return recordInfo.y
     }
-    logger.warn('No y field in recordinfo, falling back to hardcoded', { reqId })
+    logger.debug('No y field in recordinfo, falling back to hardcoded', { reqId })
     // Fall back to hardcoded
     return getCachedValue(latFieldCache.value, reqId, getLatFieldNameForAPIStr)
   }
@@ -393,7 +393,7 @@ export const useFieldNameStore = defineStore('fieldNameStore', () => {
       lonFieldCache.value[reqId] = recordInfo.x
       return recordInfo.x
     }
-    logger.warn('No x field in recordinfo, falling back to hardcoded', { reqId })
+    logger.debug('No x field in recordinfo, falling back to hardcoded', { reqId })
     // Fall back to hardcoded
     return getCachedValue(lonFieldCache.value, reqId, getLonFieldNameForAPIStr)
   }
@@ -405,7 +405,7 @@ export const useFieldNameStore = defineStore('fieldNameStore', () => {
       timeFieldCache.value[reqId] = recordInfo.time
       return recordInfo.time
     }
-    logger.warn('No time field in recordinfo, falling back to hardcoded', { reqId })
+    logger.debug('No time field in recordinfo, falling back to hardcoded', { reqId })
     // Fall back to hardcoded
     return getCachedValue(timeFieldCache.value, reqId, getTimeFieldNameForAPIStr)
   }
