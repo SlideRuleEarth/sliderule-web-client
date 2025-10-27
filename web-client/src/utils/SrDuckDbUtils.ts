@@ -826,8 +826,8 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, layerName
       min_y_atc = (globalChartStore.selected_y_atc - y_atc_margin).toFixed(3)
       max_y_atc = (globalChartStore.selected_y_atc + y_atc_margin).toFixed(3)
     } else {
-      if (!func.includes('atl08')) {
-        logger.warn('selected_y_atc is undefined', { reqId: req_id, func })
+      if (!func.includes('atl08') && use_y_atc_filter) {
+        logger.debug('selected_y_atc is undefined, disabling y_atc filter', { reqId: req_id, func })
       }
       use_y_atc_filter = false
     }
@@ -933,10 +933,6 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, layerName
           })
         }
       }
-
-      if (numRows === 0) {
-        logger.warn('No data items processed for selected layer', { reqId: req_id })
-      }
     } catch (error) {
       logger.error('Error processing chunk for selected layer', {
         reqId: req_id,
@@ -964,7 +960,7 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, layerName
         logger.error('Summary is undefined for selected layer', { reqId: req_id })
       }
     } else {
-      logger.warn('No data items processed for selected layer', { reqId: req_id })
+      logger.debug('No data items match filter criteria for selected layer', { reqId: req_id })
     }
   } catch (error) {
     logger.error('Error in duckDbReadAndUpdateSelectedLayer', {

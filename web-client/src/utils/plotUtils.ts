@@ -1243,7 +1243,7 @@ const initScatterPlotWith = async (reqId: number) => {
   //console.log(`initScatterPlotWith ${reqId} y_options:`, y_options);
   atlChartFilterStore.setShowMessage(false)
   if (!y_options.length || y_options[0] === 'not_set') {
-    logger.warn('No y options selected', { reqId })
+    logger.debug('No y options selected (UI message will be displayed)', { reqId })
     atlChartFilterStore.setShowMessage(true)
     atlChartFilterStore.setIsWarning(true)
     atlChartFilterStore.setMessage('No Y options selected')
