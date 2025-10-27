@@ -349,16 +349,19 @@ onmessage = async (event) => {
           }
 
           switch (result.code) {
-            case 0: { // RTE_INFO
+            case 0: {
+              // RTE_INFO
               postMessage(await serverMsg(reqID, `RTE_INFO msg: ${result.text}`))
               break
             }
-            case -1: { // RTE_ERROR
+            case -1: {
+              // RTE_ERROR
               //console.warn('RTE_ERROR: exceptrec result:', result.text);
               postMessage(await serverMsg(reqID, `RTE_ERROR msg:${result.text}`))
               break
             }
-            case -2: { // RTE_TIMEOUT
+            case -2: {
+              // RTE_TIMEOUT
               //console.warn('RTE_TIMEOUT: exceptrec result:', result.text);
               postMessage(await serverMsg(reqID, `RTE_TIMEOUT msg: ${result.text}`))
               const msg = `RTE_TIMEOUT Received ${num_svr_exceptions}/${target_numSvrExceptions} notifications.`
@@ -384,17 +387,20 @@ onmessage = async (event) => {
               //console.log(msg);
               break
             }
-            case -3: { // RTE_RESOURCE_DOES_NOT_EXIST
+            case -3: {
+              // RTE_RESOURCE_DOES_NOT_EXIST
               //console.warn('RTE_RESOURCE_DOES_NOT_EXIST: exceptrec result:', result.text);
               postMessage(await serverMsg(reqID, `RTE_RESOURCE_DOES_NOT_EXIST msg:${result.text}`))
               break
             }
-            case -4: { // RTE_EMPTY_SUBSET
+            case -4: {
+              // RTE_EMPTY_SUBSET
               //console.warn('RTE_EMPTY_SUBSET: exceptrec result:', result.text);
               postMessage(await serverMsg(reqID, `RTE_EMPTY_SUBSET msg:${result.text}`))
               break
             }
-            case -5: { // RTE_SIMPLIFY
+            case -5: {
+              // RTE_SIMPLIFY
               //console.warn('RTE_SIMPLIFY: exceptrec result:', result.text);
               postMessage(await serverMsg(reqID, `RTE_SIMPLIFY msg:${result.text}`))
               break
@@ -490,13 +496,23 @@ onmessage = async (event) => {
                   'arrowrec.meta' in read_result ? Number(read_result['arrowrec.meta']) : 0
                 target_numEOFRecs =
                   'arrowrec.eof' in read_result ? Number(read_result['arrowrec.eof']) : 0
+                const decodeErrors =
+                  'decode_errors' in read_result ? Number(read_result['decode_errors']) : 0
                 logger.debug('Done reading data', {
                   func: cmd.func,
                   read_result,
                   target_numSvrExceptions,
                   target_numArrowDataRecs,
-                  target_numArrowMetaRecs
+                  target_numArrowMetaRecs,
+                  decodeErrors
                 })
+
+                // Check for decode errors which indicate connection/CORS issues
+                if (decodeErrors > 0) {
+                  throw new Error(
+                    'Failed to fetch: Unable to decode server response. This may be due to CORS restrictions or server connectivity issues.'
+                  )
+                }
               } else {
                 logger.error('Failed to get result from SlideRule', {
                   func: cmd.func,
