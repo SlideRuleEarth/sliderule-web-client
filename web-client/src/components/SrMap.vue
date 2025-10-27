@@ -160,7 +160,6 @@ const stringifyFunc = (coordinate: Coordinate) => {
 const srDrawControlRef = ref<SrDrawControlMethods | null>(null)
 const mapRef = ref<{ map: OLMap }>()
 const mapStore = useMapStore()
-const controls = ref([])
 const toast = useToast()
 const dragBox = new DragBox()
 const drawVectorSource = new VectorSource({ wrapX: false })
@@ -1279,12 +1278,9 @@ watch(showBathymetryFeatures, (newValue) => {
         @error="handleEvent"
         :loadTilesWhileAnimating="true"
         :loadTilesWhileInteracting="true"
-        :controls="controls"
         class="sr-ol-map"
       >
-        <MapControls.OlLayerswitcherControl
-          :selection="true"
-          :displayInLayerSwitcher="() => true"
+        <MapControls.OlLayerSwitcherControl
           :show_progress="true"
           :mouseover="false"
           :reordering="true"

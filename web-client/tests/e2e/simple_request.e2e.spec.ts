@@ -10,6 +10,28 @@ test.skip(
 // Skip if running in local dev mode
 test.skip(Boolean(process.env.LOCAL_DEV), 'Skipping in local dev environment')
 
+test('layer switcher is visible on map', async ({ pageAfterTour }) => {
+  const page = pageAfterTour
+
+  // Wait for the map to load
+  await page.waitForSelector('canvas', { timeout: 10000 })
+
+  // Check that the layer switcher control is present (ol-ext uses ol-layerswitcher class)
+  const layerSwitcher = page.locator('.ol-control.ol-layerswitcher')
+  await expect(layerSwitcher).toBeVisible({ timeout: 5000 })
+
+  // Check that the layer switcher button is present
+  const layerSwitcherButton = layerSwitcher.locator('button')
+  await expect(layerSwitcherButton).toBeVisible()
+
+  // The control should have the ol-collapsed class initially (collapsed by default)
+  await expect(layerSwitcher).toHaveClass(/ol-collapsed/)
+
+  // Verify the panel is initially hidden (control is collapsed)
+  const panel = layerSwitcher.locator('.panel')
+  await expect(panel).toBeHidden()
+})
+
 test('draw rectangle and run SlideRule', async ({ pageAfterTour }) => {
   const page = pageAfterTour
 

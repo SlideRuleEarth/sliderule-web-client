@@ -10,6 +10,8 @@ import PrimeVue from 'primevue/config'
 import { definePreset } from '@primeuix/themes'
 import 'intro.js/introjs.css'
 import '@/styles/sr-common-styles.css'
+import 'vue3-openlayers/vue3-openlayers.css'
+import 'ol-ext/dist/ol-ext.css'
 
 import Menubar from 'primevue/menubar'
 import ToastService from 'primevue/toastservice'
