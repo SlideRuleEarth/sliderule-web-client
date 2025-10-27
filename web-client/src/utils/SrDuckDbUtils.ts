@@ -149,7 +149,22 @@ async function setElevationDataOptionsFromFieldNames(
     // Retrieve the existing Y data for the chart
     // Pass the func to avoid redundant lookups (from tree or database above)
     const defElOptions = fncs.getDefaultElOptions(reqId, funcStr)
-    for (const elevationOption of defElOptions) {
+
+    // Filter default options to only include those that actually exist in the file
+    const validDefElOptions = defElOptions.filter((option) => fieldNames.includes(option))
+
+    if (validDefElOptions.length !== defElOptions.length) {
+      const missingOptions = defElOptions.filter((option) => !fieldNames.includes(option))
+      logger.debug('Some default elevation options not present in file', {
+        reqId,
+        totalDefault: defElOptions.length,
+        validCount: validDefElOptions.length,
+        missingCount: missingOptions.length,
+        missingOptions
+      })
+    }
+
+    for (const elevationOption of validDefElOptions) {
       const existingYdata = chartStore.getYDataOptions(reqIdStr)
       // Check if the elevation option is already in the Y data
       if (!existingYdata.includes(elevationOption)) {
@@ -159,7 +174,20 @@ async function setElevationDataOptionsFromFieldNames(
         chartStore.setYDataOptions(reqIdStr, newYdata)
       }
     }
-    chartStore.setSelectedYData(reqIdStr, heightFieldname)
+
+    // Set selected Y data to height field if it exists in the file, otherwise use first available field
+    let selectedYField = heightFieldname
+    if (!fieldNames.includes(heightFieldname)) {
+      // Height field doesn't exist - use first available numeric field
+      selectedYField = fieldNames[0] || ''
+      logger.warn('Height field not found in file, using first available field', {
+        reqId,
+        heightFieldname,
+        selectedYField,
+        availableFields: fieldNames
+      })
+    }
+    chartStore.setSelectedYData(reqIdStr, selectedYField)
     //console.log('setElevationDataOptionsFromFieldNames', { reqIdStr, fieldNames, heightFieldname, ndx } );
   } catch (error) {
     logger.error('Error setting elevation data options from field names', {
@@ -375,11 +403,30 @@ export async function prepareDbForReqId(reqId: number): Promise<void> {
       .filter((c) => isScalarNumericDuckType(c.type))
       .map((c) => c.name)
 
+    // Check if file has geometry column and add geometry-derived field names
+    // These fields (height, longitude, latitude) are extracted at query time using ST_Z, ST_X, ST_Y
+    // but don't exist as actual columns in the parquet file
+    const geometryInfo = getGeometryInfo(colTypes, reqId)
+    const fieldNamesForChart = [...scalarNumericCols]
+    if (geometryInfo?.hasGeometry) {
+      // Always add longitude and latitude since they're always extracted from geometry
+      if (geometryInfo.xCol && !fieldNamesForChart.includes(geometryInfo.xCol)) {
+        fieldNamesForChart.push(geometryInfo.xCol)
+      }
+      if (geometryInfo.yCol && !fieldNamesForChart.includes(geometryInfo.yCol)) {
+        fieldNamesForChart.push(geometryInfo.yCol)
+      }
+      // Only add height if Z is stored in geometry (not as separate column)
+      if (geometryInfo.zCol && !fieldNamesForChart.includes(geometryInfo.zCol)) {
+        fieldNamesForChart.push(geometryInfo.zCol)
+      }
+    }
+
     await updateAllFilterOptions(reqId)
     //console.trace(`prepareDbForReqId reqId:${reqId} colNames:`, scalarNumericCols);
     // Use filtered names so arrays never reach the chart store
     // Pass funcStr to avoid circular dependency on recTreeStore
-    await setElevationDataOptionsFromFieldNames(reqId, scalarNumericCols, funcStr)
+    await setElevationDataOptionsFromFieldNames(reqId, fieldNamesForChart, funcStr)
   } catch (error) {
     logger.error('Error preparing database for request', {
       reqId,

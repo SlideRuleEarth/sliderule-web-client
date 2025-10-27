@@ -37,6 +37,7 @@ import {
   needsTransformation
 } from '@/utils/SrCrsTransform'
 import { createLogger } from '@/utils/logger'
+import { getGeometryInfo } from '@/utils/duckAgg'
 
 const logger = createLogger('PlotUtils')
 
@@ -737,7 +738,27 @@ async function getSeriesFor(reqIdStr: string, isOverlay = false): Promise<SrScat
   const x = chartStore.getXDataForChart(reqIdStr)
   const duckDbClient = await createDuckDbClient()
   await duckDbClient.insertOpfsParquet(fileName)
-  const existingColumns = await duckDbClient.queryForColNames(fileName)
+  let existingColumns = await duckDbClient.queryForColNames(fileName)
+
+  // Check if file has geometry column and add geometry-derived field names
+  // These fields (height, longitude, latitude) are extracted at query time using ST_Z, ST_X, ST_Y
+  // but don't exist as actual columns in the parquet file
+  const colTypes = await duckDbClient.queryColumnTypes(fileName)
+  const geometryInfo = getGeometryInfo(colTypes, reqId)
+  if (geometryInfo?.hasGeometry) {
+    // Always add longitude and latitude since they're always extracted from geometry
+    if (geometryInfo.xCol && !existingColumns.includes(geometryInfo.xCol)) {
+      existingColumns.push(geometryInfo.xCol)
+    }
+    if (geometryInfo.yCol && !existingColumns.includes(geometryInfo.yCol)) {
+      existingColumns.push(geometryInfo.yCol)
+    }
+    // Only add height if Z is stored in geometry (not as separate column)
+    if (geometryInfo.zCol && !existingColumns.includes(geometryInfo.zCol)) {
+      existingColumns.push(geometryInfo.zCol)
+    }
+  }
+
   const all_y = chartStore.getYDataOptions(reqIdStr)
   const y = all_y.filter((col) => existingColumns.includes(col))
   // console.log('all_y:', all_y);
