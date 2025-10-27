@@ -620,10 +620,11 @@ export function clearPlot() {
       plotRef.chart.clear()
       logger.debug('Plot chart cleared')
     } else {
-      logger.warn('Plot chart is undefined')
+      logger.debug('Plot chart is undefined, skipping clear')
     }
   } else {
-    logger.warn('Plot ref is undefined')
+    // Plot component hasn't mounted yet - this is normal during initialization
+    logger.debug('Plot ref not yet initialized, skipping clear')
   }
 }
 

@@ -65,7 +65,10 @@ function getMissionForReqId(reqId: number): string {
   if (funcStr) {
     return getMissionFromApiStr(funcStr)
   } else {
-    logger.warn('No API found in getMissionForReqId', { reqId, funcStr })
+    logger.debug('No API found in getMissionForReqId (reactivity should retry when loaded)', {
+      reqId,
+      funcStr
+    })
     return 'ICESat-2' // Default to ICESat-2 if no API found
   }
 }
