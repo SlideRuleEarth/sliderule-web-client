@@ -10,7 +10,7 @@ test.skip(
 // Skip if running in local dev mode
 test.skip(Boolean(process.env.LOCAL_DEV), 'Skipping in local dev environment')
 
-test('layer switcher is visible on map', async ({ pageAfterTour }) => {
+test('map controls are visible', async ({ pageAfterTour }) => {
   const page = pageAfterTour
 
   // Wait for the map to load
@@ -30,6 +30,14 @@ test('layer switcher is visible on map', async ({ pageAfterTour }) => {
   // Verify the panel is initially hidden (control is collapsed)
   const panel = layerSwitcher.locator('.panel')
   await expect(panel).toBeHidden()
+
+  // Check that the scale line control is present (bottom-left of map)
+  const scaleLine = page.locator('.ol-scale-line')
+  await expect(scaleLine).toBeVisible({ timeout: 5000 })
+
+  // Verify the scale line has inner content showing the scale
+  const scaleLineInner = scaleLine.locator('.ol-scale-line-inner')
+  await expect(scaleLineInner).toBeVisible()
 })
 
 test('draw rectangle and run SlideRule', async ({ pageAfterTour }) => {

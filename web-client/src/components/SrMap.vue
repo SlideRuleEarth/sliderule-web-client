@@ -1296,7 +1296,7 @@ watch(showBathymetryFeatures, (newValue) => {
         ></MapControls.OlMousepositionControl>
         <MapControls.OlAttributionControl :collapsible="true" :collapsed="true" />
 
-        <MapControls.OlScalelineControl />
+        <MapControls.OlScaleLineControl />
         <SrDrawControl
           ref="srDrawControlRef"
           v-if="reqParamsStore.iceSat2SelectedAPI != 'atl13x' || reqParamsStore.useAtl13Polygon"
