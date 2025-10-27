@@ -707,7 +707,9 @@ function loadBathymetryFeatures(features: Feature<Geometry>[]) {
     if (bathymetryFeaturesVectorLayer && bathymetryFeaturesVectorLayer instanceof Layer) {
       const vectorSource = bathymetryFeaturesVectorLayer.getSource()
       if (vectorSource) {
-        logger.debug('Adding bathymetry features to vector source', { featureCount: features.length })
+        logger.debug('Adding bathymetry features to vector source', {
+          featureCount: features.length
+        })
         vectorSource.addFeatures(features)
         logger.debug('Bathymetry features added to vector source')
       }
@@ -893,6 +895,18 @@ onMounted(async () => {
     const z = layer.getZIndex?.() ?? '(no z-index)'
     logger.debug('Layer z-index', { name, zIndex: z })
   })
+
+  // Load tree data after map is fully initialized to ensure records display on map
+  // This must come after updateReqMapView which adds the vector layers
+  if (!recTreeStore.isTreeLoaded) {
+    logger.debug('Loading tree data after SrMap is fully initialized')
+    await recTreeStore.loadTreeData()
+  }
+
+  // Always render record layers after map is fully initialized
+  // This handles the case where tree data was already loaded from a previous view
+  // and the watcher with immediate:true ran before layers were added
+  addRecordLayer()
 })
 
 // Call saveMapZoomState only when leaving the page
@@ -991,7 +1005,10 @@ function addRecordLayer(): void {
     logger.warn('Skipping addRecordLayer when map is null')
   }
   const endTime = performance.now() // End time
-  logger.debug('addRecordLayer performance', { reqIdsCount: reqIds.length, durationMs: endTime - startTime })
+  logger.debug('addRecordLayer performance', {
+    reqIdsCount: reqIds.length,
+    durationMs: endTime - startTime
+  })
 }
 
 function drawCurrentReqPolyAndPin() {
@@ -1051,7 +1068,10 @@ const updateReqMapView = async (reason: string, restoreView: boolean = false) =>
       logger.error('Map is null in updateReqMapView', { reason })
     }
   } catch (error) {
-    logger.error('updateMapView failed', { reason, error: error instanceof Error ? error.message : String(error) })
+    logger.error('updateMapView failed', {
+      reason,
+      error: error instanceof Error ? error.message : String(error)
+    })
   } finally {
     if (map) {
       //dumpMapLayers(map,'SrMap updateMapView');
@@ -1076,7 +1096,9 @@ const handleUpdateSrView = async () => {
         logger.error('Map is null in handleUpdateSrView')
       }
     } catch (error) {
-      logger.error('handleUpdateSrView failed', { error: error instanceof Error ? error.message : String(error) })
+      logger.error('handleUpdateSrView failed', {
+        error: error instanceof Error ? error.message : String(error)
+      })
     }
   } else {
     logger.error('srViewKey is null in handleUpdateSrView')
@@ -1116,7 +1138,9 @@ const handleUpdateBaseLayer = async () => {
       logger.error('Map is null in handleUpdateBaseLayer')
     }
   } catch (error) {
-    logger.error('handleUpdateBaseLayer failed', { error: error instanceof Error ? error.message : String(error) })
+    logger.error('handleUpdateBaseLayer failed', {
+      error: error instanceof Error ? error.message : String(error)
+    })
   }
 }
 
@@ -1125,10 +1149,14 @@ watch(
   () => ({ isLoaded: recTreeStore.isTreeLoaded, reqIds: recTreeStore.allReqIds }),
   (newVal, oldVal) => {
     if (!newVal.isLoaded) {
-      logger.debug('Skipping addRecordLayer: tree not yet loaded');
-      return;
+      logger.debug('Skipping addRecordLayer: tree not yet loaded')
+      return
     }
-    logger.debug('Request IDs changed', { oldCount: oldVal?.reqIds?.length, newCount: newVal.reqIds.length, isTreeLoaded: newVal.isLoaded })
+    logger.debug('Request IDs changed', {
+      oldCount: oldVal?.reqIds?.length,
+      newCount: newVal.reqIds.length,
+      isTreeLoaded: newVal.isLoaded
+    })
     void addRecordLayer()
   },
   { deep: true, immediate: true }

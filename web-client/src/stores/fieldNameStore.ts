@@ -22,6 +22,7 @@ function getHFieldNameForAPIStr(funcStr: string): string {
       return 'h_li'
     case 'atl03vp':
       return 'segment_ph_cnt'
+    case 'atl03s':
     case 'atl03sp':
       return 'height'
     case 'atl03x-surface':
@@ -108,6 +109,7 @@ function getDefaultElOptions(reqId: number, funcStr?: string): string[] {
     case 'atl03vp':
       options = ['segment_ph_cnt']
       break
+    case 'atl03s':
     case 'atl03sp':
       options = ['height', 'atl03_cnf', 'atl08_class', 'y_atc', 'cycle']
       break

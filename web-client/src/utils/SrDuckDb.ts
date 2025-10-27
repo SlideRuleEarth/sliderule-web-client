@@ -92,7 +92,7 @@ const getType = (type: string) => {
 
 // Function to create the DuckDB instance with dynamic imports
 export async function createDb(): Promise<AsyncDuckDB> {
-  const { selectBundle, AsyncDuckDB, ConsoleLogger } = await import('@duckdb/duckdb-wasm')
+  const { selectBundle, AsyncDuckDB, ConsoleLogger, LogLevel } = await import('@duckdb/duckdb-wasm')
   // Dynamically import WASM and worker modules to enable code splitting
   const duckdb_wasm = (await import('@duckdb/duckdb-wasm/dist/duckdb-mvp.wasm?url')).default
   const mvp_worker = (await import('@duckdb/duckdb-wasm/dist/duckdb-browser-mvp.worker.js?url'))
@@ -114,9 +114,42 @@ export async function createDb(): Promise<AsyncDuckDB> {
   const { mvp, eh } = MANUAL_BUNDLES
   const bundle = await selectBundle({ mvp, eh })
   const worker = new Worker(bundle.mainWorker!)
-  const logger = new ConsoleLogger()
-  const duckDB = new AsyncDuckDB(logger, worker)
+
+  // Configure DuckDB logger
+  // LogLevel: NONE=0, DEBUG=1, INFO=2, WARNING=3, ERROR=4
+  // Determine log level based on environment or localStorage override
+  let logLevel: number
+  const duckLogLevel = localStorage.getItem('duckDbLogLevel')
+  if (duckLogLevel) {
+    logLevel = parseInt(duckLogLevel, 10)
+  } else if (import.meta.env.PROD) {
+    logLevel = LogLevel.ERROR // ERROR only in production
+  } else {
+    logLevel = LogLevel.WARNING // WARNING and above in development
+  }
+
+  const duckLogger = new ConsoleLogger(logLevel)
+  const duckDB = new AsyncDuckDB(duckLogger, worker)
   await duckDB.instantiate(bundle.mainModule, bundle.pthreadWorker)
+
+  // Expose DuckDB logger and LogLevel enum in dev environments
+  const isLocalDev = import.meta.env.DEV
+  const isTestDomain =
+    typeof window !== 'undefined' && window.location.hostname.includes('testsliderule.org')
+  const debugEnabled =
+    typeof window !== 'undefined' && localStorage.getItem('enableLogger') === 'true'
+
+  if (isLocalDev || isTestDomain || debugEnabled) {
+    if (typeof window !== 'undefined') {
+      ;(window as any).duckLogger = duckLogger
+      ;(window as any).DuckDBLogLevel = LogLevel
+      console.log('🦆 DuckDB logger exposed to window.duckLogger')
+      console.log('   Use localStorage.setItem("duckDbLogLevel", N) where N is:')
+      console.log('   0=NONE, 1=DEBUG, 2=INFO, 3=WARNING, 4=ERROR')
+      console.log('   Then reload the page.')
+    }
+  }
+
   return duckDB
 }
 
