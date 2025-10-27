@@ -117,15 +117,13 @@ export async function createDb(): Promise<AsyncDuckDB> {
 
   // Configure DuckDB logger
   // LogLevel: NONE=0, DEBUG=1, INFO=2, WARNING=3, ERROR=4
-  // Determine log level based on environment or localStorage override
+  // Determine log level based on localStorage override, otherwise default to WARNING
   let logLevel: number
   const duckLogLevel = localStorage.getItem('duckDbLogLevel')
   if (duckLogLevel) {
     logLevel = parseInt(duckLogLevel, 10)
-  } else if (import.meta.env.PROD) {
-    logLevel = LogLevel.ERROR // ERROR only in production
   } else {
-    logLevel = LogLevel.WARNING // WARNING and above in development
+    logLevel = LogLevel.WARNING // WARNING and above by default
   }
 
   const duckLogger = new ConsoleLogger(logLevel)
