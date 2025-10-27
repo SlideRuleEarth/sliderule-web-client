@@ -79,25 +79,19 @@ async function onMainYDataSelectionChange(_newValue: string[]) {
   // This is necessary because the column order in the data array changes when Y data selection changes,
   // and the cached index in color functions becomes stale
   const api = recTreeStore.findApiForReqId(props.reqId)
-  if (api === 'atl03x' || api === 'atl03s' || api === 'atl03sp') {
+  if (api.includes('atl03')) {
     const { useAtl03CnfColorMapStore } = await import('@/stores/atl03CnfColorMapStore')
     const atl03CnfStore = await useAtl03CnfColorMapStore(props.reqId.toString())
     atl03CnfStore.resetColorCache()
     logger.debug('Reset atl03_cnf color cache due to Y data selection change')
   }
-  if (
-    api === 'atl03x' ||
-    api === 'atl03s' ||
-    api === 'atl03sp' ||
-    api === 'atl08' ||
-    api === 'atl08p'
-  ) {
+  if (api.includes('atl03') || api.includes('atl08')) {
     const { useAtl08ClassColorMapStore } = await import('@/stores/atl08ClassColorMapStore')
     const atl08ClassStore = await useAtl08ClassColorMapStore(props.reqId.toString())
     atl08ClassStore.resetAtl08ClassColorCaches()
     logger.debug('Reset atl08_class color cache due to Y data selection change')
   }
-  if (api === 'atl03x' || api.includes('atl24')) {
+  if (api.includes('atl03') || api.includes('atl24')) {
     const { useAtl24ClassColorMapStore } = await import('@/stores/atl24ClassColorMapStore')
     const atl24ClassStore = await useAtl24ClassColorMapStore(props.reqId.toString())
     atl24ClassStore.resetAtl24ClassColorCaches()
