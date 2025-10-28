@@ -49,6 +49,7 @@ const currentReqParms = ref('')
 const currentRcvdReqParms = ref('')
 const hasReqParms = ref(false)
 const hasRcvdParms = ref(false)
+const defaultTab = ref('0')
 
 // -- Dialog state for "geo_metadata"
 const showGeoMetadataDialog = ref(false)
@@ -82,8 +83,16 @@ function openGeoMetadataDialog(metadata: string | object) {
 
 // Open the Combined Parameters dialog with tabs
 function openCombinedParmsDialog(reqParms: any, rcvdParms: any) {
-  hasReqParms.value = !!reqParms
-  hasRcvdParms.value = !!rcvdParms
+  // Check if parameters have actual content (not null, not empty string, not empty object)
+  const hasReqContent =
+    reqParms &&
+    (typeof reqParms === 'string' ? reqParms.trim() !== '' : Object.keys(reqParms).length > 0)
+  const hasRcvdContent =
+    rcvdParms &&
+    (typeof rcvdParms === 'string' ? rcvdParms.trim() !== '' : Object.keys(rcvdParms).length > 0)
+
+  hasReqParms.value = hasReqContent
+  hasRcvdParms.value = hasRcvdContent
 
   if (hasReqParms.value) {
     currentReqParms.value =
@@ -94,6 +103,9 @@ function openCombinedParmsDialog(reqParms: any, rcvdParms: any) {
     currentRcvdReqParms.value =
       typeof rcvdParms === 'object' ? JSON.stringify(rcvdParms, null, 2) : rcvdParms
   }
+
+  // Set default tab to the one with content, prefer "Sent to Server" if both have content
+  defaultTab.value = hasReqContent ? '0' : '1'
 
   showCombinedParmsDialog.value = true
 }
@@ -612,10 +624,30 @@ onUnmounted(() => {
     :modal="true"
     :dismissableMask="true"
   >
-    <Tabs v-if="hasReqParms || hasRcvdParms" :value="hasReqParms ? '0' : '1'">
+    <Tabs v-if="hasReqParms || hasRcvdParms" :value="defaultTab">
       <TabList>
-        <Tab v-if="hasReqParms" value="0">Sent to Server</Tab>
-        <Tab v-if="hasRcvdParms" value="1">Received from Server</Tab>
+        <Tab
+          v-if="hasReqParms"
+          value="0"
+          :pt="{
+            root: {
+              title: 'Parameters sent to the server in the original request'
+            }
+          }"
+        >
+          Sent to Server
+        </Tab>
+        <Tab
+          v-if="hasRcvdParms"
+          value="1"
+          :pt="{
+            root: {
+              title: 'Parameters used by the server, returned in its response'
+            }
+          }"
+        >
+          Used by Server
+        </Tab>
       </TabList>
       <TabPanels>
         <TabPanel v-if="hasReqParms" value="0">
