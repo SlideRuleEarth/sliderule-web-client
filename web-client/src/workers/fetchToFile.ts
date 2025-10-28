@@ -606,6 +606,14 @@ onmessage = async (event) => {
                   num_arrow_dataFile_data_recs_processed,
                   num_arrow_metaFile_data_recs_processed
                 })
+                postMessage(
+                  await errorMsg(reqID, {
+                    type: 'runWorkerError',
+                    code: 'TIMEOUT',
+                    message:
+                      'Server stopped sending data before all records were received. The request may have timed out or the server encountered an error.'
+                  })
+                )
                 //if(num_retries_left === 0) throw new Error('SlideRuleError:The server quit unexpectedly.');
               }
               logger.debug('Final callback counts', {
@@ -701,6 +709,14 @@ onmessage = async (event) => {
                 logger.debug('Finally: file written', { fileName, offset: arrowDataFileOffset })
               } else {
                 logger.error('Finally: No arrow Data File data records were processed')
+                postMessage(
+                  await errorMsg(reqID, {
+                    type: 'runWorkerError',
+                    code: 'NO_DATA',
+                    message:
+                      'No data was received from the server. The request may have failed, returned empty results, or encountered a server error.'
+                  })
+                )
               }
               await checkDoneProcessing(
                 reqID,
