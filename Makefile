@@ -6,13 +6,14 @@
 
 SHELL := /bin/bash
 ROOT = $(shell pwd)
-DOMAIN ?= 
+DOMAIN ?=
 DOMAIN_ROOT = $(firstword $(subst ., ,$(DOMAIN)))
 DOMAIN_APEX ?= $(DOMAIN)
-S3_BUCKET ?= 
+S3_BUCKET ?=
 DISTRIBUTION_ID = $(shell aws cloudfront list-distributions --query "DistributionList.Items[?Aliases.Items[0]=='$(DOMAIN)'].Id" --output text)
 BUILD_ENV = $(shell git --git-dir .git --work-tree . describe --abbrev --dirty --always --tags --long)
 VERSION ?= latest
+BANNER_TEXT ?=
 
 
 clean-all: # Clean up the web client dependencies 
@@ -88,20 +89,24 @@ build: convert-icons ## Build the web client and update the dist folder
 	export VITE_BUILD_ENV=$(BUILD_ENV); \
 	export VITE_APP_BUILD_DATE=$$(date +"%Y-%m-%d %T"); \
 	export VITE_APP_VERSION=$$(git describe --tags --abbrev=0); \
+	export VITE_BANNER_TEXT='$(BANNER_TEXT)'; \
 	cd web-client && \
 	echo "VITE_APP_BUILD_DATE=$$VITE_APP_BUILD_DATE" && \
 	echo "VITE_APP_VERSION=$$VITE_APP_VERSION" && \
 	echo "VITE_BUILD_ENV=$$VITE_BUILD_ENV" && \
+	echo "VITE_BANNER_TEXT=$$VITE_BANNER_TEXT" && \
 	npm run build
 
 run: ## Run the web client locally for development
 	export VITE_BUILD_ENV=$(BUILD_ENV); \
 	export VITE_RUN_DEV_DATE=$$(date +"%Y-%m-%d %T"); \
 	export VITE_APP_VERSION=$$(git describe --tags --abbrev=0); \
+	export VITE_BANNER_TEXT='$(BANNER_TEXT)'; \
 	cd web-client && \
 	echo "VITE_RUN_DEV_DATE=$$VITE_RUN_DEV_DATE" && \
 	echo "VITE_APP_VERSION=$$VITE_APP_VERSION" && \
 	echo "VITE_BUILD_ENV=$$VITE_BUILD_ENV" && \
+	echo "VITE_BANNER_TEXT=$$VITE_BANNER_TEXT" && \
 	npm run dev
 
 preview: build ## Preview the web client production build locally for development 

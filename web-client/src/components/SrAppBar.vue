@@ -11,6 +11,7 @@ import { createLogger } from '@/utils/logger'
 const logger = createLogger('SrAppBar')
 
 const build_env = import.meta.env.VITE_BUILD_ENV
+const banner_text = import.meta.env.VITE_BANNER_TEXT
 const sysConfigStore = useSysConfigStore()
 const deviceStore = useDeviceStore()
 const route = useRoute()
@@ -242,6 +243,14 @@ const testVersionWarning = computed(() => {
   return tvw
 })
 
+const showBanner = computed(() => {
+  return typeof banner_text === 'string' && banner_text.trim() !== ''
+})
+
+const bannerText = computed(() => {
+  return banner_text || ''
+})
+
 const computedServerVersionLabel = computed(() => {
   return sysConfigStore.version || 'v?.?.?'
 })
@@ -426,6 +435,7 @@ function hideTooltip() {
           @click="openMailClient"
         ></Button>
       </div>
+      <span v-if="showBanner" class="sr-banner-text">{{ bannerText }}</span>
       <div class="sr-tooltip-style" id="tooltip">
         <SrCustomTooltip ref="tooltipRef" id="appBarTooltip" />
       </div>
@@ -553,6 +563,13 @@ function hideTooltip() {
   font-size: smaller;
   color: red;
   margin-left: 0.5rem;
+}
+.sr-banner-text {
+  font-size: smaller;
+  color: red;
+  margin-left: 0.5rem;
+  max-width: 20rem;
+  word-wrap: break-word;
 }
 @media (min-width: 600px) {
   /* Adjust the breakpoint as needed */
