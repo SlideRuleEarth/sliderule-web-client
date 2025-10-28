@@ -6,6 +6,12 @@ import type { TreeNode } from 'primevue/treenode'
 import Button from 'primevue/button'
 import { useToast } from 'primevue/usetoast'
 import router from '@/router/index.js'
+import Tabs from 'primevue/tabs'
+import TabList from 'primevue/tablist'
+import Tab from 'primevue/tab'
+import TabPanels from 'primevue/tabpanels'
+import TabPanel from 'primevue/tabpanel'
+import Dialog from 'primevue/dialog'
 
 import { useRequestsStore } from '@/stores/requestsStore'
 import { useRecTreeStore } from '@/stores/recTreeStore'
@@ -33,17 +39,16 @@ const toast = useToast()
 const treeNodes = ref<TreeNode[]>([])
 const tooltipRef = ref()
 
-// -- Dialog state for "parameters"
-const showParmsDialog = ref(false)
-const currentParms = ref('')
-
 // -- Dialog state for "svr_parms"
 const showSvrParmsDialog = ref(false)
 const currentSvrParms = ref('')
 
-// -- Dialog state for "rcvd_parms"
-const showRcvdParmsDialog = ref(false)
-const currentRcvdParms = ref('')
+// -- Dialog state for combined parameters view with tabs
+const showCombinedParmsDialog = ref(false)
+const currentReqParms = ref('')
+const currentRcvdReqParms = ref('')
+const hasReqParms = ref(false)
+const hasRcvdParms = ref(false)
 
 // -- Dialog state for "geo_metadata"
 const showGeoMetadataDialog = ref(false)
@@ -55,16 +60,6 @@ const exportReqId = ref(0)
 const showExportDialog = ref(false)
 const isCleaningUp = ref(false)
 
-// Open the Req Parms dialog
-function openParmsDialog(params: string | object) {
-  if (typeof params === 'object') {
-    currentParms.value = JSON.stringify(params, null, 2)
-  } else {
-    currentParms.value = params
-  }
-  showParmsDialog.value = true
-}
-
 // Open the Svr Parms dialog
 function openSvrParmsDialog(params: string | object) {
   if (typeof params === 'object') {
@@ -75,16 +70,6 @@ function openSvrParmsDialog(params: string | object) {
   showSvrParmsDialog.value = true
 }
 
-// Open the Rcvd Parms dialog
-function openRcvdParmsDialog(params: string | object) {
-  if (typeof params === 'object') {
-    currentRcvdParms.value = JSON.stringify(params, null, 2)
-  } else {
-    currentRcvdParms.value = params
-  }
-  showRcvdParmsDialog.value = true
-}
-
 // Open the Geo Metadata dialog
 function openGeoMetadataDialog(metadata: string | object) {
   if (typeof metadata === 'object') {
@@ -93,6 +78,71 @@ function openGeoMetadataDialog(metadata: string | object) {
     currentGeoMetadata.value = metadata
   }
   showGeoMetadataDialog.value = true
+}
+
+// Open the Combined Parameters dialog with tabs
+function openCombinedParmsDialog(reqParms: any, rcvdParms: any) {
+  hasReqParms.value = !!reqParms
+  hasRcvdParms.value = !!rcvdParms
+
+  if (hasReqParms.value) {
+    currentReqParms.value =
+      typeof reqParms === 'object' ? JSON.stringify(reqParms, null, 2) : reqParms
+  }
+
+  if (hasRcvdParms.value) {
+    currentRcvdReqParms.value =
+      typeof rcvdParms === 'object' ? JSON.stringify(rcvdParms, null, 2) : rcvdParms
+  }
+
+  showCombinedParmsDialog.value = true
+}
+
+// Copy to clipboard functions
+const copyReqParmsToClipboard = async () => {
+  try {
+    await navigator.clipboard.writeText(currentReqParms.value)
+    logger.debug('Request parameters copied to clipboard')
+    toast.add({
+      severity: 'success',
+      summary: 'Copied',
+      detail: 'Request parameters copied to clipboard',
+      life: srToastStore.getLife()
+    })
+  } catch (err) {
+    logger.error('Failed to copy request parameters', {
+      error: err instanceof Error ? err.message : String(err)
+    })
+    toast.add({
+      severity: 'error',
+      summary: 'Copy Failed',
+      detail: 'Failed to copy to clipboard',
+      life: srToastStore.getLife()
+    })
+  }
+}
+
+const copyRcvdParmsToClipboard = async () => {
+  try {
+    await navigator.clipboard.writeText(currentRcvdReqParms.value)
+    logger.debug('Received parameters copied to clipboard')
+    toast.add({
+      severity: 'success',
+      summary: 'Copied',
+      detail: 'Received parameters copied to clipboard',
+      life: srToastStore.getLife()
+    })
+  } catch (err) {
+    logger.error('Failed to copy received parameters', {
+      error: err instanceof Error ? err.message : String(err)
+    })
+    toast.add({
+      severity: 'error',
+      summary: 'Copy Failed',
+      detail: 'Failed to copy to clipboard',
+      life: srToastStore.getLife()
+    })
+  }
 }
 
 const analyze = async (id: number) => {
@@ -315,17 +365,10 @@ onUnmounted(() => {
           label="Parms"
           class="sr-glow-button"
           @click="
-            slotProps.node.data.rcvd_parms
-              ? openRcvdParmsDialog(slotProps.node.data.rcvd_parms)
-              : openParmsDialog(slotProps.node.data.parameters)
+            openCombinedParmsDialog(slotProps.node.data.parameters, slotProps.node.data.rcvd_parms)
           "
           @mouseover="
-            tooltipRef?.showTooltip(
-              $event,
-              slotProps.node.data.rcvd_parms
-                ? 'View request parameters received by server and returned from server'
-                : 'View Request Parameters sent to server'
-            )
+            tooltipRef?.showTooltip($event, 'View request parameters (sent and received)')
           "
           @mouseleave="tooltipRef?.hideTooltip"
           variant="text"
@@ -360,7 +403,7 @@ onUnmounted(() => {
           "
           @mouseleave="tooltipRef?.hideTooltip"
         >
-          Svr Parms
+          Svr State
         </div>
       </template>
       <template #body="slotProps">
@@ -561,20 +604,48 @@ onUnmounted(() => {
     </Column>
   </TreeTable>
 
-  <!-- Request Parameters Dialog -->
-  <SrJsonDisplayDialog
-    v-model:visible="showParmsDialog"
-    :json-data="currentParms"
-    title="Request Parameters"
-    width="50vw"
-  />
-  <!-- Received Parameters Dialog -->
-  <SrJsonDisplayDialog
-    v-model:visible="showRcvdParmsDialog"
-    :json-data="currentRcvdParms"
-    title="Received Parameters"
-    width="50vw"
-  />
+  <!-- Combined Request Parameters Dialog with Tabs -->
+  <Dialog
+    v-model:visible="showCombinedParmsDialog"
+    header="Request Parameters"
+    :style="{ width: '60vw' }"
+    :modal="true"
+    :dismissableMask="true"
+  >
+    <Tabs v-if="hasReqParms || hasRcvdParms" :value="hasReqParms ? '0' : '1'">
+      <TabList>
+        <Tab v-if="hasReqParms" value="0">Sent to Server</Tab>
+        <Tab v-if="hasRcvdParms" value="1">Received from Server</Tab>
+      </TabList>
+      <TabPanels>
+        <TabPanel v-if="hasReqParms" value="0">
+          <div class="tab-content">
+            <Button
+              label="Copy to clipboard"
+              size="small"
+              icon="pi pi-copy"
+              @click="copyReqParmsToClipboard"
+              class="copy-btn"
+            />
+            <pre class="json-content">{{ currentReqParms }}</pre>
+          </div>
+        </TabPanel>
+        <TabPanel v-if="hasRcvdParms" value="1">
+          <div class="tab-content">
+            <Button
+              label="Copy to clipboard"
+              size="small"
+              icon="pi pi-copy"
+              @click="copyRcvdParmsToClipboard"
+              class="copy-btn"
+            />
+            <pre class="json-content">{{ currentRcvdReqParms }}</pre>
+          </div>
+        </TabPanel>
+      </TabPanels>
+    </Tabs>
+    <div v-else style="padding: 1rem; text-align: center; color: #999">No parameters available</div>
+  </Dialog>
   <!-- Server Parameters Dialog -->
   <SrJsonDisplayDialog
     v-model:visible="showSvrParmsDialog"
@@ -659,5 +730,28 @@ onUnmounted(() => {
   color: #999;
   text-align: center;
   width: 100%;
+}
+
+.tab-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.tab-content .copy-btn {
+  align-self: flex-start;
+}
+
+.tab-content .json-content {
+  background-color: #1e1e1e;
+  padding: 1rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-height: 60vh;
+  overflow-y: auto;
+  font-size: 0.9rem;
+  margin: 0;
 }
 </style>
