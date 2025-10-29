@@ -41,6 +41,7 @@ const atl08ClassOptions = computed(() => atl08ClassColorMapStore.value?.atl08Cla
 
 // Function to format the label
 const formatLabel = (label: string): string => {
+  if (!label) return ''
   return label.replace(/^atl08_/, '').replace(/_/g, ' ')
 }
 </script>

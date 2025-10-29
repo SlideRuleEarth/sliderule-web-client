@@ -41,6 +41,7 @@ const atl24ClassOptions = computed(() => atl24ClassColorMapStore.value?.atl24Cla
 
 // Function to format the label
 const formatLabel = (label: string): string => {
+  if (!label) return ''
   return label.replace(/^atl24_/, '').replace(/_/g, ' ')
 }
 </script>
