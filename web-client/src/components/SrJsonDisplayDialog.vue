@@ -22,16 +22,38 @@ const jsonBlock = ref<HTMLElement | null>(null)
 
 const prettyJson = computed(() => {
   try {
+    // Handle null, undefined, or empty string
+    if (!props.jsonData || (typeof props.jsonData === 'string' && props.jsonData.trim() === '')) {
+      return 'No data available'
+    }
+
+    // Handle empty object
+    if (typeof props.jsonData === 'object' && Object.keys(props.jsonData).length === 0) {
+      return 'No data available'
+    }
+
     const jsonObj = typeof props.jsonData === 'string' ? JSON.parse(props.jsonData) : props.jsonData
     return JSON.stringify(jsonObj, null, 2)
-  } catch {
-    return 'Invalid JSON'
+  } catch (error) {
+    logger.warn('Failed to parse JSON data', {
+      error: error instanceof Error ? error.message : String(error),
+      dataType: typeof props.jsonData
+    })
+    return 'Invalid JSON format'
   }
 })
 
 const highlightedJson = computed(() => {
-  const result = hljs.highlight(prettyJson.value, { language: 'json' })
-  return result.value
+  try {
+    const result = hljs.highlight(prettyJson.value, { language: 'json' })
+    return result.value
+  } catch (error) {
+    logger.warn('Failed to highlight JSON', {
+      error: error instanceof Error ? error.message : String(error)
+    })
+    // Return plain text if highlighting fails
+    return prettyJson.value
+  }
 })
 
 const copyToClipboard = async () => {

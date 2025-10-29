@@ -143,7 +143,18 @@ function getServerParams(request: SrRequestRecord): any {
   if (request.svr_parms) {
     return request.svr_parms
   } else {
-    logger.error('No svr_parms found for request', { reqId: request.req_id })
+    const isSuccess = request?.status === 'success'
+    if (isSuccess) {
+      logger.error('No svr_parms found for request', {
+        reqId: request.req_id,
+        status: request.status
+      })
+    } else {
+      logger.warn('No svr_parms found for request', {
+        reqId: request.req_id,
+        status: request.status
+      })
+    }
     return {}
   }
 }
@@ -997,10 +1008,22 @@ export class SlideRuleDexie extends Dexie {
         return {}
       }
     } catch (error) {
-      logger.error('Failed to get svr_parms', {
-        reqId: req_id,
-        error: error instanceof Error ? error.message : String(error)
-      })
+      const request = await this.requests.get(req_id)
+      const isSuccess = request?.status === 'success'
+
+      if (isSuccess) {
+        logger.error('Failed to get svr_parms', {
+          reqId: req_id,
+          status: request?.status,
+          error: error instanceof Error ? error.message : String(error)
+        })
+      } else {
+        logger.warn('Failed to get svr_parms', {
+          reqId: req_id,
+          status: request?.status,
+          error: error instanceof Error ? error.message : String(error)
+        })
+      }
       throw error
     }
   }
@@ -1008,6 +1031,7 @@ export class SlideRuleDexie extends Dexie {
   async getSvrReqPoly(req_id: number): Promise<SrRegion> {
     try {
       const request = await this.requests.get(req_id)
+      const isSuccess = request?.status === 'success'
 
       const svrParmsUsedStr = getServerParams(request as SrRequestRecord)
 
@@ -1020,24 +1044,54 @@ export class SlideRuleDexie extends Dexie {
           if (svrParmsUsed.server.rqst.parms) {
             return svrParmsUsed.server.rqst.parms.poly
           } else {
-            logger.error('No svr_parms.server.rqst.parms found', { reqId: req_id })
+            if (isSuccess) {
+              logger.error('No svr_parms.server.rqst.parms found', {
+                reqId: req_id,
+                status: request?.status
+              })
+            } else {
+              logger.warn('No svr_parms.server.rqst.parms found', {
+                reqId: req_id,
+                status: request?.status
+              })
+            }
             return {} as SrRegion
           }
         } else if (svrParmsUsed.poly) {
           return svrParmsUsed.poly //atl24x with new server format
         } else {
-          logger.error('No svr_parms.poly found', { reqId: req_id })
+          if (isSuccess) {
+            logger.error('No svr_parms.poly found', { reqId: req_id, status: request?.status })
+          } else {
+            logger.warn('No svr_parms.poly found', { reqId: req_id, status: request?.status })
+          }
           return {} as SrRegion
         }
       } else {
-        logger.error('No svr_parms found', { reqId: req_id })
+        if (isSuccess) {
+          logger.error('No svr_parms found', { reqId: req_id, status: request?.status })
+        } else {
+          logger.warn('No svr_parms found', { reqId: req_id, status: request?.status })
+        }
         return {} as SrRegion
       }
     } catch (error) {
-      logger.error('Failed to get svr_parms poly', {
-        reqId: req_id,
-        error: error instanceof Error ? error.message : String(error)
-      })
+      const request = await this.requests.get(req_id)
+      const isSuccess = request?.status === 'success'
+
+      if (isSuccess) {
+        logger.error('Failed to get svr_parms poly', {
+          reqId: req_id,
+          status: request?.status,
+          error: error instanceof Error ? error.message : String(error)
+        })
+      } else {
+        logger.warn('Failed to get svr_parms poly', {
+          reqId: req_id,
+          status: request?.status,
+          error: error instanceof Error ? error.message : String(error)
+        })
+      }
       throw error
     }
   }

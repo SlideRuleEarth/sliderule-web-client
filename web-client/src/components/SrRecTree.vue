@@ -62,7 +62,24 @@ const showExportDialog = ref(false)
 const isCleaningUp = ref(false)
 
 // Open the Svr Parms dialog
-function openSvrParmsDialog(params: string | object) {
+function openSvrParmsDialog(params: string | object | null | undefined) {
+  // Check if params is null, undefined, or empty
+  if (!params) {
+    logger.warn('openSvrParmsDialog called with no params')
+    srToastStore.warn(
+      'No Server Parameters',
+      'This request does not have server parameters available. The request may still be processing or failed before the server could return parameters.'
+    )
+    return
+  }
+
+  // Check if params is an empty object
+  if (typeof params === 'object' && Object.keys(params).length === 0) {
+    logger.warn('openSvrParmsDialog called with empty params object')
+    srToastStore.warn('No Server Parameters', 'Server parameters are empty for this request.')
+    return
+  }
+
   if (typeof params === 'object') {
     currentSvrParms.value = JSON.stringify(params, null, 2)
   } else {
