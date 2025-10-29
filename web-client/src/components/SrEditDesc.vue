@@ -4,7 +4,7 @@ import { ref, watch, onMounted } from 'vue'
 import InputText from 'primevue/inputtext'
 import FloatLabel from 'primevue/floatlabel'
 import { useSrToastStore } from '@/stores/srToastStore'
-import { getCenter } from '@/utils/geoUtils'
+import { getCenter, calculateBounds } from '@/utils/geoUtils'
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue'
 import { createLogger } from '@/utils/logger'
 
@@ -32,38 +32,98 @@ const fetchDescription = async () => {
     descrRef.value = await db.getDescription(props.reqId)
     //console.log('fetchDescription called with reqId:', props.reqId,'descrRef.value:', descrRef.value);
     if (!descrRef.value) {
-      const status = await db.getStatus(props.reqId)
-      if (status === 'success' || status === 'imported') {
-        const summary = await db.getWorkerSummary(props.reqId)
-        if (summary && summary.extLatLon) {
-          const c = getCenter(summary.extLatLon)
-          // Fetch address data from OpenStreetMap
-          const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${c.lat}&lon=${c.lon}`
-          )
-          const data = await response.json()
-          const descr = data.display_name
-          logger.debug('fetchDescription New Description', { descr })
-          // If display_name is available, update the request record
-          if (data && descr) {
-            descrRef.value = descr
+      try {
+        const poly = await db.getSvrReqPoly(props.reqId)
+
+        // Check if poly is valid array with data
+        // getSvrReqPoly returns {} as SrRegion when svr_parms doesn't have polygon data
+        const isValidPoly = poly && Array.isArray(poly) && poly.length > 0
+
+        if (isValidPoly) {
+          const bounds = calculateBounds(poly)
+          if (!bounds) {
+            logger.warn('fetchDescription Failed to calculate bounds from polygon', {
+              reqId: props.reqId
+            })
+            descrRef.value = 'Location data unavailable'
+            return
+          }
+
+          const c = getCenter(bounds)
+
+          // Validate coordinates before attempting fetch
+          if (c.lat === 0 && c.lon === 0) {
+            logger.warn('fetchDescription Invalid coordinates (0,0), skipping geocoding', {
+              reqId: props.reqId
+            })
+            descrRef.value = 'Location unavailable'
+            return
+          }
+
+          // Validate coordinates are within valid range
+          if (Math.abs(c.lat) > 90 || Math.abs(c.lon) > 180) {
+            logger.warn('fetchDescription Invalid coordinates out of range', {
+              reqId: props.reqId,
+              lat: c.lat,
+              lon: c.lon
+            })
+            descrRef.value = 'Invalid location coordinates'
+            return
+          }
+
+          try {
+            // Fetch address data from OpenStreetMap
+            const response = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${c.lat}&lon=${c.lon}`,
+              { signal: AbortSignal.timeout(5000) } // 5 second timeout
+            )
+
+            if (!response.ok) {
+              throw new Error(`Geocoding failed with status ${response.status}`)
+            }
+
+            const data = await response.json()
+            const descr = data.display_name
+            logger.debug('fetchDescription New Description', { descr })
+            // If display_name is available, update the request record
+            if (data && descr) {
+              descrRef.value = descr
+              void db.updateRequest(props.reqId, { description: descrRef.value })
+            }
+          } catch (error) {
+            logger.warn('fetchDescription Failed to fetch location name', {
+              error: error instanceof Error ? error.message : String(error),
+              lat: c.lat,
+              lon: c.lon
+            })
+            // Set a fallback description with coordinates
+            descrRef.value = `Location: ${c.lat.toFixed(4)}, ${c.lon.toFixed(4)}`
             void db.updateRequest(props.reqId, { description: descrRef.value })
           }
         } else {
-          logger.debug('fetchDescription No extLatLon found (data may still be processing)', {
-            reqId: props.reqId
+          // No valid polygon found in svr_parms
+          logger.warn('fetchDescription No valid polygon in svr_parms', {
+            reqId: props.reqId,
+            polyType: typeof poly,
+            isArray: Array.isArray(poly),
+            polyLength: Array.isArray(poly) ? poly.length : 'N/A'
           })
-          // Handle the case where no extLatLon is found
+          descrRef.value = 'Location data not available'
         }
-      } else {
-        logger.warn('fetchDescription No description available for status', { status })
+      } catch (error) {
+        // Error accessing svr_parms or request record
+        logger.error('fetchDescription Error getting svr_parms polygon', {
+          reqId: props.reqId,
+          error: error instanceof Error ? error.message : String(error)
+        })
+        descrRef.value = 'Unable to determine location'
       }
     } else {
       //console.log('fetchDescription Description:', descrRef.value);
       // Update the store with the fetched description
     }
   } else {
-    descrRef.value = 'fetchDescription No description available'
+    descrRef.value = `fetchDescription No description available for props:${props.reqId}`
   }
   //console.log('fetchDescription FINAL Description:', descrRef.value);
 }
