@@ -112,10 +112,22 @@ const fetchDescription = async () => {
         }
       } catch (error) {
         // Error accessing svr_parms or request record
-        logger.error('fetchDescription Error getting svr_parms polygon', {
-          reqId: props.reqId,
-          error: error instanceof Error ? error.message : String(error)
-        })
+        const request = await db.getRequest(props.reqId)
+        const isSuccess = request?.status === 'success'
+
+        if (isSuccess) {
+          logger.error('fetchDescription Error getting svr_parms polygon', {
+            reqId: props.reqId,
+            status: request?.status,
+            error: error instanceof Error ? error.message : String(error)
+          })
+        } else {
+          logger.warn('fetchDescription Error getting svr_parms polygon', {
+            reqId: props.reqId,
+            status: request?.status,
+            error: error instanceof Error ? error.message : String(error)
+          })
+        }
         descrRef.value = 'Unable to determine location'
       }
     } else {
