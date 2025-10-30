@@ -48,6 +48,7 @@ import { format } from 'ol/coordinate.js'
 import SrViewControl from './SrViewControl.vue'
 import SrBaseLayerControl from './SrBaseLayerControl.vue'
 import SrDrawControl from '@/components/SrDrawControl.vue'
+import SrRasterizeControl from '@/components/SrRasterizeControl.vue'
 import { Map, MapControls } from 'vue3-openlayers'
 import { useRequestsStore } from '@/stores/requestsStore'
 import VectorLayer from 'ol/layer/Vector.js'
@@ -331,6 +332,7 @@ dragBox.on('boxend', function () {
     { lat: topLeft[1], lon: topLeft[0] } // close the loop by repeating the first point
   ]
   reqParamsStore.setPoly(poly)
+  reqParamsStore.setPolygonSource('box')
   //console.log("Poly:", poly);
   reqParamsStore.setConvexHull(convexHull(poly))
   const tag = reqParamsStore.getFormattedAreaOfConvexHull()
@@ -489,6 +491,7 @@ drawPolygon.on('drawend', function (event) {
           ////console.log('poly is counter-clockwise');
           reqParamsStore.setPoly(srLonLatCoordinates)
         }
+        reqParamsStore.setPolygonSource('polygon')
         //console.log('reqParamsStore.poly:',reqParamsStore.poly);
 
         //console.log('srLonLatCoordinates:',srLonLatCoordinates);
@@ -936,6 +939,15 @@ function handleDrawControlCreated(drawControl: any) {
   }
 }
 
+function handleRasterizeControlCreated(rasterizeControl: any) {
+  const map = mapRef.value?.map
+  if (map) {
+    map.addControl(rasterizeControl)
+  } else {
+    logger.error('Map is null in handleRasterizeControlCreated')
+  }
+}
+
 function handlePinDropControlCreated(pinDropControl: any) {
   //console.log(drawControl);
   const map = mapRef.value?.map
@@ -1303,6 +1315,13 @@ watch(showBathymetryFeatures, (newValue) => {
           @draw-control-created="handleDrawControlCreated"
           @picked-changed="handlePickedChanged"
         />
+        <SrRasterizeControl
+          v-if="reqParamsStore.iceSat2SelectedAPI != 'atl13x' || reqParamsStore.useAtl13Polygon"
+          @rasterize-control-created="handleRasterizeControlCreated"
+          corner="top-left"
+          :offsetX="'0.125rem'"
+          :offsetY="'18.5rem'"
+        />
         <SrViewControl
           @view-control-created="handleViewControlCreated"
           @update-view="handleUpdateSrView"
@@ -1310,19 +1329,6 @@ watch(showBathymetryFeatures, (newValue) => {
         <SrBaseLayerControl
           @baselayer-control-created="handleBaseLayerControlCreated"
           @update-baselayer="handleUpdateBaseLayer"
-        />
-        <SrDropPinControl
-          v-if="reqParamsStore.iceSat2SelectedAPI === 'atl13x'"
-          @drop-pin-control-created="handlePinDropControlCreated"
-        />
-        <SrUploadRegionControl
-          v-if="reqParamsStore.iceSat2SelectedAPI != 'atl13x'"
-          :reportUploadProgress="true"
-          :loadReqPoly="true"
-          corner="top-left"
-          :offsetX="'0.5rem'"
-          :offsetY="'19rem'"
-          @upload-region-control-created="handleUploadRegionControlCreated"
         />
         <SrUploadRegionControl
           v-if="reqParamsStore.iceSat2SelectedAPI != 'atl13x'"
@@ -1335,12 +1341,25 @@ watch(showBathymetryFeatures, (newValue) => {
           color="black"
           @upload-region-control-created="handleUploadRegionControlCreated"
         />
+        <SrDropPinControl
+          v-if="reqParamsStore.iceSat2SelectedAPI === 'atl13x'"
+          @drop-pin-control-created="handlePinDropControlCreated"
+        />
+        <SrUploadRegionControl
+          v-if="reqParamsStore.iceSat2SelectedAPI != 'atl13x'"
+          :reportUploadProgress="true"
+          :loadReqPoly="true"
+          corner="top-left"
+          :offsetX="'0.5rem'"
+          :offsetY="'22rem'"
+          @upload-region-control-created="handleUploadRegionControlCreated"
+        />
         <SrExportPolygonControl
           v-if="reqParamsStore.iceSat2SelectedAPI != 'atl13x'"
           :map="mapRef?.map"
           corner="top-left"
           :offsetX="'0.5rem'"
-          :offsetY="'20.5rem'"
+          :offsetY="'24.25rem'"
           @export-polygon-control-created="handleExportPolygonControlCreated"
         />
       </Map.OlMap>

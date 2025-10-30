@@ -39,6 +39,7 @@ export function getDefaultReqParamsState(): SrReqParamsState {
     rasterizePolyCellSize: 0.01,
     ignorePolygon: false,
     poly: null as SrRegion | null,
+    polygonSource: null as 'polygon' | 'box' | 'upload' | null,
     convexHull: null as SrRegion | null,
     areaOfConvexHull: 0.0 as number,
     urlValue: 'slideruleearth.io',
@@ -1143,6 +1144,12 @@ const createReqParamsStore = (id: string) =>
       },
       setPoly(poly: SrRegion | null) {
         this.poly = poly
+      },
+      setPolygonSource(source: 'polygon' | 'box' | 'upload' | null) {
+        this.polygonSource = source
+      },
+      getPolygonSource(): 'polygon' | 'box' | 'upload' | null {
+        return this.polygonSource
       },
       // setCmr(cmr: { polygon: SrRegion }) {
       //   this.poly = cmr.polygon;
