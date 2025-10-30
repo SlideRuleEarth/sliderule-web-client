@@ -7,7 +7,11 @@
     aria-label="Rasterize control"
     :style="varStyle"
   >
-    <SrRasterize ref="rasterize" :disabled="mapStore.polygonSource !== 'Draw on Map'" />
+    <SrRasterize
+      ref="rasterize"
+      :disabled="mapStore.polygonSource !== 'Draw on Map'"
+      @rasterize-changed="handleRasterizeChanged"
+    />
   </div>
 </template>
 
@@ -39,9 +43,15 @@ const mapStore = useMapStore()
 const emit = defineEmits<{
   /** Parent (SrMap.vue) listens and calls map.addControl(control) */
   (_e: 'rasterize-control-created', _control: Control): void
+  /** Emitted when rasterize checkbox state changes */
+  (_e: 'rasterize-changed', _enabled: boolean): void
 }>()
 
 const toCss = (v: number | string) => (typeof v === 'number' ? `${v}px` : v)
+
+function handleRasterizeChanged(enabled: boolean) {
+  emit('rasterize-changed', enabled)
+}
 
 const varStyle = computed(() => {
   const x = toCss(props.offsetX)

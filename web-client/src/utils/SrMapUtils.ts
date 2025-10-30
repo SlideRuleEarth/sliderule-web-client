@@ -1142,8 +1142,11 @@ export function renderRequestPolygon(
     feature.setStyle(createRedReqPolygonStyle())
     feature.setId(`Record:${reqId}-${api}`)
   } else {
-    feature.setStyle(createBlueReqPolygonStyle(reqId.toString()))
-    feature.setId(`Record:${reqId}-${api}`)
+    // Don't show label when reqId is 0 (current request being edited)
+    const label = reqId > 0 ? reqId.toString() : ''
+    feature.setStyle(createBlueReqPolygonStyle(label))
+    // Give convex hull a unique ID so it doesn't replace the raw polygon
+    feature.setId(`Record:${reqId}-${api}-hull`)
   }
   vectorSource.addFeature(feature)
 

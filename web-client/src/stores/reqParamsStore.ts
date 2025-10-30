@@ -505,14 +505,32 @@ const createReqParamsStore = (id: string) =>
             req.surface = true
           }
         }
-        if (this.poly?.length && !this.ignorePolygon) {
-          req.poly = this.poly
-        }
         const geojsonStore = useGeoJsonStore()
+        const rasterizeEnabled = geojsonStore.getReqGeoJsonData() != null
         logger.debug('GeoJSON data in getAtlReqParams', {
-          geoJsonData: geojsonStore.getReqGeoJsonData()
+          geoJsonData: geojsonStore.getReqGeoJsonData(),
+          rasterizeEnabled
         })
-        if (geojsonStore.getReqGeoJsonData() != null) {
+
+        // Choose which polygon to send based on rasterize state
+        if (!this.ignorePolygon) {
+          if (rasterizeEnabled && this.poly?.length) {
+            // Rasterize is enabled: use RAW polygon for accurate area of interest
+            req.poly = this.poly
+            logger.debug('Using RAW polygon (rasterize enabled)')
+          } else if (!rasterizeEnabled && this.convexHull?.length) {
+            // Rasterize is NOT enabled: use convex hull for performance
+            req.poly = this.convexHull
+            logger.debug('Using convex hull polygon (rasterize disabled)')
+          } else if (this.poly?.length) {
+            // Fallback: use poly if convexHull not available
+            req.poly = this.poly
+            logger.debug('Using RAW polygon (fallback)')
+          }
+        }
+
+        // Set region_mask when rasterize is enabled
+        if (rasterizeEnabled) {
           if (geojsonStore.reqHasPoly()) {
             req.region_mask = {
               geojson: JSON.stringify(geojsonStore.getReqGeoJsonData()),

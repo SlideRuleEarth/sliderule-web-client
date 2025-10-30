@@ -8,6 +8,7 @@ import { db } from '@/db/SlideRuleDb'
 import { useReqParamsStore } from '@/stores/reqParamsStore'
 import { useRasterParamsStore } from '@/stores/rasterParamsStore'
 import { useAdvancedModeStore } from '@/stores/advancedModeStore'
+import { useGeoJsonStore } from '@/stores/geoJsonStore'
 import { applyParsedJsonToStores } from '@/utils/applyParsedJsonToStores'
 import { useToast } from 'primevue/usetoast'
 import { useSrToastStore } from '@/stores/srToastStore'
@@ -22,6 +23,56 @@ const srToastStore = useSrToastStore()
 
 async function loadParametersFromRequest(reqId: number) {
   logger.debug('Loading parameters from request', { reqId })
+
+  // Clear ALL layers (Drawing, Records, Pin) to remove any old polygons before loading new ones
+  const mapStore = await import('@/stores/mapStore').then((m) => m.useMapStore())
+  const map = mapStore.getMap()
+  if (map) {
+    const { clearPolyCoords, clearReqGeoJsonData } = await import('@/utils/SrMapUtils')
+
+    // Clear Drawing Layer
+    const drawingLayer = map
+      .getLayers()
+      .getArray()
+      .find((layer: any) => layer.get('name') === 'Drawing Layer')
+    if (drawingLayer) {
+      const drawingSource = (drawingLayer as any).getSource()
+      if (drawingSource) {
+        drawingSource.clear()
+        logger.debug('Cleared Drawing Layer before loading new request')
+      }
+    }
+
+    // Clear Records Layer
+    const recordsLayer = map
+      .getLayers()
+      .getArray()
+      .find((layer: any) => layer.get('name') === 'Records Layer')
+    if (recordsLayer) {
+      const recordsSource = (recordsLayer as any).getSource()
+      if (recordsSource) {
+        recordsSource.clear()
+        logger.debug('Cleared Records Layer before loading new request')
+      }
+    }
+
+    // Clear Pin Layer
+    const pinLayer = map
+      .getLayers()
+      .getArray()
+      .find((layer: any) => layer.get('name') === 'Pin Layer')
+    if (pinLayer) {
+      const pinSource = (pinLayer as any).getSource()
+      if (pinSource) {
+        pinSource.clear()
+        logger.debug('Cleared Pin Layer before loading new request')
+      }
+    }
+
+    clearPolyCoords()
+    clearReqGeoJsonData()
+  }
+
   // This works for both regular requests and imported requests
   try {
     // Get the request parameters from the database
@@ -88,6 +139,16 @@ async function loadParametersFromRequest(reqId: number) {
       logger.debug('Applying parameters to stores', { paramCount: Object.keys(parameters).length })
       applyParsedJsonToStores(parameters, reqParamsStore, rasterParamsStore, addError)
 
+      // Calculate and store convex hull from loaded polygon
+      if (reqParamsStore.poly && reqParamsStore.poly.length > 0) {
+        const { convexHull } = await import('@/composables/SrTurfUtils')
+        const hull = convexHull(reqParamsStore.poly)
+        reqParamsStore.setConvexHull(hull)
+
+        // Set polygon source to 'polygon' for loaded requests (enables rasterize checkbox)
+        reqParamsStore.setPolygonSource('polygon')
+      }
+
       // Set mission and API based on the func field or asset field
       if (request.func) {
         const func = request.func.toLowerCase()
@@ -146,20 +207,43 @@ async function loadParametersFromRequest(reqId: number) {
       // Wait one more tick to ensure stores have updated
       await nextTick()
 
-      // Draw and zoom to the polygon from request parameters (works for both success and error status)
+      // Restore rasterize state if region_mask was present in the request
+      if (parameters.region_mask && parameters.region_mask.geojson) {
+        const geoJsonStore = useGeoJsonStore()
+        try {
+          const geoJsonData =
+            typeof parameters.region_mask.geojson === 'string'
+              ? JSON.parse(parameters.region_mask.geojson)
+              : parameters.region_mask.geojson
+          geoJsonStore.setReqGeoJsonData(geoJsonData)
+          logger.debug('Restored rasterize GeoJSON from region_mask', {
+            reqId,
+            hasGeoJson: !!geoJsonData,
+            featureCount: geoJsonData?.features?.length
+          })
+        } catch (error) {
+          logger.error('Failed to parse region_mask.geojson', {
+            error: error instanceof Error ? error.message : String(error),
+            reqId
+          })
+        }
+      } else {
+        logger.debug('No region_mask found in parameters', {
+          reqId,
+          hasRegionMask: !!parameters.region_mask,
+          hasGeoJson: !!parameters.region_mask?.geojson
+        })
+      }
+
+      // Zoom to the polygon extent (don't draw on Records Layer - we'll draw on Drawing Layer below)
       if (parameters.poly && parameters.poly.length > 0) {
         const mapStore = await import('@/stores/mapStore').then((m) => m.useMapStore())
         const map = mapStore.getMap()
 
         if (map) {
           // Import the necessary functions
-          const { renderRequestPolygon } = await import('@/utils/SrMapUtils')
           const { fromLonLat } = await import('ol/proj')
           const { boundingExtent } = await import('ol/extent')
-
-          // Draw the polygon from request parameters on the Records Layer
-          renderRequestPolygon(map as OLMap, parameters.poly, 'blue', reqId, 'Records Layer', false)
-          logger.debug('Rendered request polygon', { reqId })
 
           // Get the current projection
           const currentProjection = mapStore.getSrViewObj()?.projectionName || 'EPSG:3857'
@@ -178,6 +262,63 @@ async function loadParametersFromRequest(reqId: number) {
           })
           logger.debug('Zoomed to polygon extent')
         }
+      }
+
+      // Redraw the polygon on the Drawing Layer with the newly loaded parameters
+      const map = mapStore.getMap()
+      logger.debug('Attempting to redraw polygons on Drawing Layer', {
+        hasMap: !!map,
+        hasPoly: !!reqParamsStore.poly,
+        polyLength: reqParamsStore.poly?.length || 0
+      })
+
+      if (map && reqParamsStore.poly && reqParamsStore.poly.length > 0) {
+        const vectorLayer = map
+          .getLayers()
+          .getArray()
+          .find((layer: any) => layer.get('name') === 'Drawing Layer')
+
+        logger.debug('Found Drawing Layer', { hasLayer: !!vectorLayer })
+
+        if (vectorLayer) {
+          const vectorSource = (vectorLayer as any).getSource()
+          logger.debug('Got vector source', { hasSource: !!vectorSource })
+
+          if (vectorSource) {
+            // Draw the raw polygon
+            const { renderRequestPolygon } = await import('@/utils/SrMapUtils')
+            const { hullColor } = await import('@/types/SrTypes')
+
+            // Draw raw polygon on Drawing Layer (explicitly specify layer and reqId=0 to avoid Records layer confusion)
+            renderRequestPolygon(
+              map as OLMap,
+              reqParamsStore.poly,
+              'red',
+              0,
+              'Drawing Layer',
+              false
+            )
+
+            // Always recalculate convex hull right before drawing
+            const poly = reqParamsStore.poly
+            const { convexHull: convexHullCalc } = await import('@/composables/SrTurfUtils')
+            const hull = convexHullCalc(poly)
+            reqParamsStore.setConvexHull(hull)
+
+            if (hull && hull.length > 0) {
+              renderRequestPolygon(map as OLMap, hull, hullColor, 0, 'Drawing Layer', false)
+            }
+          } else {
+            logger.error('Vector source is null when trying to redraw')
+          }
+        } else {
+          logger.error('Drawing Layer not found when trying to redraw')
+        }
+      } else {
+        logger.warn('Cannot redraw: missing map or poly', {
+          hasMap: !!map,
+          hasPoly: !!reqParamsStore.poly
+        })
       }
 
       logger.info('Parameters loaded successfully', { reqId })

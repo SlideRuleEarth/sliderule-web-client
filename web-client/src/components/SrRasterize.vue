@@ -17,6 +17,7 @@ import { ref, computed, watch } from 'vue'
 import Checkbox from 'primevue/checkbox'
 import { useReqParamsStore } from '@/stores/reqParamsStore'
 import { useGeoJsonStore } from '@/stores/geoJsonStore'
+import { isClockwise } from '@/composables/SrTurfUtils'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('SrRasterize')
@@ -27,6 +28,10 @@ defineProps({
     default: false
   }
 })
+
+const emit = defineEmits<{
+  (_e: 'rasterize-changed', _enabled: boolean): void
+}>()
 
 const reqParamsStore = useReqParamsStore()
 const geoJsonStore = useGeoJsonStore()
@@ -61,22 +66,49 @@ watch(
   }
 )
 
+// Watch for geoJsonStore changes (e.g., when loading a previous request with rasterize enabled)
+watch(
+  () => geoJsonStore.getReqGeoJsonData(),
+  (newData) => {
+    // If geoJsonData is set, check the rasterize checkbox
+    if (newData && hasPolygon.value) {
+      rasterizeEnabled.value = true
+      logger.debug('Rasterize enabled from geoJsonStore change', { hasGeoJson: !!newData })
+    } else if (!newData) {
+      rasterizeEnabled.value = false
+      logger.debug('Rasterize disabled from geoJsonStore cleared')
+    }
+  },
+  { immediate: true } // Check immediately when component mounts
+)
+
 // Handle rasterize checkbox change
 function handleRasterizeChange() {
   logger.debug('Rasterize checkbox changed', { enabled: rasterizeEnabled.value })
 
   if (rasterizeEnabled.value) {
-    // Convert the drawn polygon to GeoJSON and store it
+    // Use the RAW drawn polygon (not convex hull) for rasterization
     const poly = reqParamsStore.poly
     if (poly && poly.length > 0) {
-      // Create a GeoJSON FeatureCollection from the polygon
-      const coordinates = poly.map((point) => [point.lon, point.lat])
-      // Close the polygon if not already closed
+      // Validate and ensure counter-clockwise direction
+      let validatedPoly = [...poly]
+
+      // If polygon IS clockwise, reverse it to make it counter-clockwise
+      if (isClockwise(validatedPoly)) {
+        logger.debug('Polygon is clockwise, reversing to make it counter-clockwise')
+        validatedPoly = validatedPoly.reverse()
+      }
+
+      // Convert to coordinate array [lon, lat]
+      const coordinates = validatedPoly.map((point) => [point.lon, point.lat])
+
+      // Ensure polygon is closed (first and last points are the same)
       if (coordinates.length > 0) {
         const first = coordinates[0]
         const last = coordinates[coordinates.length - 1]
         if (first[0] !== last[0] || first[1] !== last[1]) {
           coordinates.push([...first])
+          logger.debug('Closed polygon by adding first point at end')
         }
       }
 
@@ -95,13 +127,19 @@ function handleRasterizeChange() {
       }
 
       geoJsonStore.setReqGeoJsonData(geoJson)
-      logger.debug('Stored polygon as GeoJSON for rasterization', { geoJson })
+      logger.debug('Stored RAW polygon (counter-clockwise) as GeoJSON for rasterization', {
+        pointCount: coordinates.length,
+        wasReversed: isClockwise(poly)
+      })
     }
   } else {
     // Clear the GeoJSON data when unchecked
     geoJsonStore.clearReqGeoJsonData()
     logger.debug('Cleared GeoJSON data (rasterize disabled)')
   }
+
+  // Emit the rasterize state change
+  emit('rasterize-changed', rasterizeEnabled.value)
 }
 
 // Expose reset function for parent components
