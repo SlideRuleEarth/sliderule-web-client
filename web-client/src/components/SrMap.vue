@@ -48,6 +48,7 @@ import { format } from 'ol/coordinate.js'
 import SrViewControl from './SrViewControl.vue'
 import SrBaseLayerControl from './SrBaseLayerControl.vue'
 import SrDrawControl from '@/components/SrDrawControl.vue'
+import SrRasterizeControl from '@/components/SrRasterizeControl.vue'
 import { Map, MapControls } from 'vue3-openlayers'
 import { useRequestsStore } from '@/stores/requestsStore'
 import VectorLayer from 'ol/layer/Vector.js'
@@ -104,6 +105,7 @@ const tooltipRef = ref()
 
 const wasRecordsLayerVisible = ref(false)
 const isDrawing = ref(false)
+const drawnPolygonFeature = ref<Feature<Geometry> | null>(null)
 
 function unwrapClusterToArray(item: MiniFeature): FeatureLike[] {
   const inner = item.get?.('features')
@@ -298,6 +300,10 @@ dragBox.on('boxdrag', () => {
 
 dragBox.on('boxend', function () {
   //console.log("dragBox.on boxend");
+  // Clear any existing drawing before starting new one
+  clearDrawingLayer()
+  clearPolyCoords()
+
   isDrawing.value = true
   const map = mapRef.value?.map
   const records = getLayerByName('Records Layer')
@@ -331,6 +337,8 @@ dragBox.on('boxend', function () {
     { lat: topLeft[1], lon: topLeft[0] } // close the loop by repeating the first point
   ]
   reqParamsStore.setPoly(poly)
+  reqParamsStore.setPolygonSource('box')
+  drawnPolygonFeature.value = null // Clear polygon reference for box (no rasterize for box)
   //console.log("Poly:", poly);
   reqParamsStore.setConvexHull(convexHull(poly))
   const tag = reqParamsStore.getFormattedAreaOfConvexHull()
@@ -414,6 +422,10 @@ function enableDrawPolygon() {
 }
 // Show live area while drawing a polygon
 drawPolygon.on('drawstart', (evt) => {
+  // Clear any existing drawing before starting new one
+  clearDrawingLayer()
+  clearPolyCoords()
+
   const map = mapRef.value?.map
   const feature = evt.feature
 
@@ -452,6 +464,7 @@ drawPolygon.on('drawend', function (event) {
       // Access the feature that was drawn
       const feature = event.feature
       feature.setStyle(polygonStyle)
+      drawnPolygonFeature.value = feature // Store reference for rasterize styling
       //console.log("feature:", feature);
       // Get the geometry of the feature
       const geometry = feature.getGeometry() as Polygon
@@ -489,13 +502,15 @@ drawPolygon.on('drawend', function (event) {
           ////console.log('poly is counter-clockwise');
           reqParamsStore.setPoly(srLonLatCoordinates)
         }
+        reqParamsStore.setPolygonSource('polygon')
         //console.log('reqParamsStore.poly:',reqParamsStore.poly);
 
         //console.log('srLonLatCoordinates:',srLonLatCoordinates);
-        reqParamsStore.setConvexHull(convexHull(srLonLatCoordinates)) // this also poplates the area
+        // Calculate convex hull (used when rasterize is NOT enabled)
+        const thisConvexHull = convexHull(srLonLatCoordinates)
+        reqParamsStore.setConvexHull(thisConvexHull) // this also populates the area
         //console.log('reqParamsStore.poly:',reqParamsStore.convexHull);
-        // Create GeoJSON from reqParamsStore.convexHull
-        const thisConvexHull = reqParamsStore.getConvexHull()
+        // Create GeoJSON from reqParamsStore.convexHull for display
         const tag = reqParamsStore.getFormattedAreaOfConvexHull()
         if (thisConvexHull) {
           const geoJson = {
@@ -541,7 +556,9 @@ drawPolygon.on('drawend', function (event) {
           //console.log("drawExtent in projName:",drawExtent.map(coord => toLonLat(coord,projName)));
           //console.log("drawExtent in projName:",drawExtent.map(coord => toLonLat(coord,projName)));
           //console.log("reqParamsStore.poly:",reqParamsStore.poly);
-          reqParamsStore.poly = thisConvexHull
+          // Note: reqParamsStore.poly keeps the RAW polygon (not convex hull)
+          // The convex hull is stored in reqParamsStore.convexHull
+          // Request building logic will decide which to use based on rasterize state
           checkAreaOfConvexHullWarning()
         } else {
           logger.error('ConvexHull is null after polygon draw')
@@ -593,6 +610,7 @@ const clearDrawingLayer = () => {
         cleared = true
         reqParamsStore.poly = []
         reqParamsStore.setConvexHull([])
+        drawnPolygonFeature.value = null // Clear the polygon reference
       } else {
         //console.log("clearDrawingLayer vectorSource has no features:",vectorSource);
       }
@@ -607,6 +625,7 @@ const clearDrawingLayer = () => {
 
 const handlePickedChanged = async (newPickedValue: string) => {
   //console.log(`handlePickedChanged: ${newPickedValue}`);
+
   if (newPickedValue === 'Box') {
     if ((await useRequestsStore().getNumReqs()) < useRequestsStore().helpfulReqAdviceCnt + 2) {
       toast.add({
@@ -618,16 +637,12 @@ const handlePickedChanged = async (newPickedValue: string) => {
     }
     disableDragBox()
     disableDrawPolygon()
-    clearDrawingLayer()
-    clearPolyCoords()
-    clearReqGeoJsonData()
+    // Don't clear existing polygons - let user draw new box which will replace it
     enableDragBox()
   } else if (newPickedValue === 'Polygon') {
     disableDragBox()
     disableDrawPolygon()
-    clearDrawingLayer()
-    clearPolyCoords()
-    clearReqGeoJsonData()
+    // Don't clear existing polygons - let user draw new polygon which will replace it
     enableDrawPolygon()
     if ((await useRequestsStore().getNumReqs()) < useRequestsStore().helpfulReqAdviceCnt + 2) {
       toast.add({
@@ -936,6 +951,38 @@ function handleDrawControlCreated(drawControl: any) {
   }
 }
 
+function handleRasterizeControlCreated(rasterizeControl: any) {
+  const map = mapRef.value?.map
+  if (map) {
+    map.addControl(rasterizeControl)
+  } else {
+    logger.error('Map is null in handleRasterizeControlCreated')
+  }
+}
+
+function handleRasterizeChanged(enabled: boolean) {
+  if (!drawnPolygonFeature.value) {
+    logger.debug('No drawn polygon feature to update style')
+    return
+  }
+
+  // Create style with or without fill based on rasterize state
+  const newStyle = new Style({
+    stroke: new Stroke({
+      color: 'Red',
+      width: 2
+    }),
+    fill: enabled
+      ? new Fill({
+          color: 'rgba(255, 0, 0, 0.2)' // Red fill with 20% opacity when rasterize is enabled
+        })
+      : undefined
+  })
+
+  drawnPolygonFeature.value.setStyle(newStyle)
+  logger.debug('Updated polygon style', { rasterizeEnabled: enabled })
+}
+
 function handlePinDropControlCreated(pinDropControl: any) {
   //console.log(drawControl);
   const map = mapRef.value?.map
@@ -989,10 +1036,20 @@ function handleExportPolygonControlCreated(exportControl: any) {
 function addRecordLayer(): void {
   const startTime = performance.now() // Start time
   const reqIds = recTreeStore.allReqIds
+  const selectedReqId = recTreeStore.selectedReqId
   const map = mapRef.value?.map
   if (map) {
     assignStyleFunctionToPinLayer(map, useMapStore().getMinZoomToShowPin())
     reqIds.forEach((reqId) => {
+      // Skip the currently selected request - it's being edited on Drawing Layer
+      // Only render it if it's a different request (for viewing past requests)
+      if (reqId === selectedReqId && reqParamsStore.poly) {
+        logger.debug('Skipping selected reqId in addRecordLayer (it is on Drawing Layer)', {
+          reqId
+        })
+        return
+      }
+
       const api = recTreeStore.findApiForReqId(reqId)
       if (api.includes('atl13')) {
         void renderSvrReqPin(map, reqId)
@@ -1020,9 +1077,22 @@ function drawCurrentReqPolyAndPin() {
     if (vectorLayer && vectorLayer instanceof Layer) {
       const vectorSource = vectorLayer.getSource()
       if (vectorSource) {
+        // Draw the raw polygon
         if (reqParamsStore.poly) {
           renderRequestPolygon(map, reqParamsStore.poly, 'red')
         }
+
+        // Always recalculate convex hull right before drawing
+        if (reqParamsStore.poly && reqParamsStore.poly.length > 0) {
+          const hull = convexHull(reqParamsStore.poly)
+          reqParamsStore.setConvexHull(hull)
+
+          if (hull && hull.length > 0) {
+            // Draw convex hull in a different color (using hullColor)
+            renderRequestPolygon(map, hull, hullColor, 0, 'Drawing Layer', false)
+          }
+        }
+
         // check and see if pinCoordinate is defined
         if (reqParamsStore.useAtl13Point) {
           if (reqParamsStore.atl13.coord) {
@@ -1303,6 +1373,14 @@ watch(showBathymetryFeatures, (newValue) => {
           @draw-control-created="handleDrawControlCreated"
           @picked-changed="handlePickedChanged"
         />
+        <SrRasterizeControl
+          v-if="reqParamsStore.iceSat2SelectedAPI != 'atl13x' || reqParamsStore.useAtl13Polygon"
+          @rasterize-control-created="handleRasterizeControlCreated"
+          @rasterize-changed="handleRasterizeChanged"
+          corner="top-left"
+          :offsetX="'0.125rem'"
+          :offsetY="'18.5rem'"
+        />
         <SrViewControl
           @view-control-created="handleViewControlCreated"
           @update-view="handleUpdateSrView"
@@ -1310,19 +1388,6 @@ watch(showBathymetryFeatures, (newValue) => {
         <SrBaseLayerControl
           @baselayer-control-created="handleBaseLayerControlCreated"
           @update-baselayer="handleUpdateBaseLayer"
-        />
-        <SrDropPinControl
-          v-if="reqParamsStore.iceSat2SelectedAPI === 'atl13x'"
-          @drop-pin-control-created="handlePinDropControlCreated"
-        />
-        <SrUploadRegionControl
-          v-if="reqParamsStore.iceSat2SelectedAPI != 'atl13x'"
-          :reportUploadProgress="true"
-          :loadReqPoly="true"
-          corner="top-left"
-          :offsetX="'0.5rem'"
-          :offsetY="'19rem'"
-          @upload-region-control-created="handleUploadRegionControlCreated"
         />
         <SrUploadRegionControl
           v-if="reqParamsStore.iceSat2SelectedAPI != 'atl13x'"
@@ -1335,12 +1400,25 @@ watch(showBathymetryFeatures, (newValue) => {
           color="black"
           @upload-region-control-created="handleUploadRegionControlCreated"
         />
+        <SrDropPinControl
+          v-if="reqParamsStore.iceSat2SelectedAPI === 'atl13x'"
+          @drop-pin-control-created="handlePinDropControlCreated"
+        />
+        <SrUploadRegionControl
+          v-if="reqParamsStore.iceSat2SelectedAPI != 'atl13x'"
+          :reportUploadProgress="true"
+          :loadReqPoly="true"
+          corner="top-left"
+          :offsetX="'0.5rem'"
+          :offsetY="'22rem'"
+          @upload-region-control-created="handleUploadRegionControlCreated"
+        />
         <SrExportPolygonControl
           v-if="reqParamsStore.iceSat2SelectedAPI != 'atl13x'"
           :map="mapRef?.map"
           corner="top-left"
           :offsetX="'0.5rem'"
-          :offsetY="'20.5rem'"
+          :offsetY="'24.25rem'"
           @export-polygon-control-created="handleExportPolygonControlCreated"
         />
       </Map.OlMap>

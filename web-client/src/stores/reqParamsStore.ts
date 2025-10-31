@@ -39,6 +39,7 @@ export function getDefaultReqParamsState(): SrReqParamsState {
     rasterizePolyCellSize: 0.01,
     ignorePolygon: false,
     poly: null as SrRegion | null,
+    polygonSource: null as 'polygon' | 'box' | 'upload' | null,
     convexHull: null as SrRegion | null,
     areaOfConvexHull: 0.0 as number,
     urlValue: 'slideruleearth.io',
@@ -504,14 +505,32 @@ const createReqParamsStore = (id: string) =>
             req.surface = true
           }
         }
-        if (this.poly?.length && !this.ignorePolygon) {
-          req.poly = this.poly
-        }
         const geojsonStore = useGeoJsonStore()
+        const rasterizeEnabled = geojsonStore.getReqGeoJsonData() != null
         logger.debug('GeoJSON data in getAtlReqParams', {
-          geoJsonData: geojsonStore.getReqGeoJsonData()
+          geoJsonData: geojsonStore.getReqGeoJsonData(),
+          rasterizeEnabled
         })
-        if (geojsonStore.getReqGeoJsonData() != null) {
+
+        // Choose which polygon to send based on rasterize state
+        if (!this.ignorePolygon) {
+          if (rasterizeEnabled && this.poly?.length) {
+            // Rasterize is enabled: use RAW polygon for accurate area of interest
+            req.poly = this.poly
+            logger.debug('Using RAW polygon (rasterize enabled)')
+          } else if (!rasterizeEnabled && this.convexHull?.length) {
+            // Rasterize is NOT enabled: use convex hull for performance
+            req.poly = this.convexHull
+            logger.debug('Using convex hull polygon (rasterize disabled)')
+          } else if (this.poly?.length) {
+            // Fallback: use poly if convexHull not available
+            req.poly = this.poly
+            logger.debug('Using RAW polygon (fallback)')
+          }
+        }
+
+        // Set region_mask when rasterize is enabled
+        if (rasterizeEnabled) {
           if (geojsonStore.reqHasPoly()) {
             req.region_mask = {
               geojson: JSON.stringify(geojsonStore.getReqGeoJsonData()),
@@ -1143,6 +1162,12 @@ const createReqParamsStore = (id: string) =>
       },
       setPoly(poly: SrRegion | null) {
         this.poly = poly
+      },
+      setPolygonSource(source: 'polygon' | 'box' | 'upload' | null) {
+        this.polygonSource = source
+      },
+      getPolygonSource(): 'polygon' | 'box' | 'upload' | null {
+        return this.polygonSource
       },
       // setCmr(cmr: { polygon: SrRegion }) {
       //   this.poly = cmr.polygon;
