@@ -144,7 +144,7 @@ const debugEnabled = localStorage.getItem('enableLogger') === 'true'
 if (isLocalDev || isTestDomain || debugEnabled) {
   ;(window as any).log = log
   console.log(
-    '🔍 Logger exposed to window.log - Use log.setLevel("debug"|"info"|"warn"|"error"|"silent")'
+    '🔍 Logger exposed to window.log - Use localStorage.setItem("logLevel", "debug") then reload to enable debug logging'
   )
 }
 

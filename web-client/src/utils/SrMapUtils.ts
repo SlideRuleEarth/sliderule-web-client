@@ -1002,7 +1002,11 @@ export function canRestoreZoomCenter(_map: OLMap): boolean {
   return centerToRestore !== null && zoomToRestore !== null && extentToRestore !== null
 }
 
-export function restoreMapView(proj: ProjectionLike): OlView | null {
+export function restoreMapView(
+  proj: ProjectionLike,
+  minZoom?: number,
+  maxZoom?: number
+): OlView | null {
   const mapStore = useMapStore()
   const extentToRestore = mapStore.getExtentToRestore()
   const centerToRestore = mapStore.getCenterToRestore()
@@ -1022,7 +1026,9 @@ export function restoreMapView(proj: ProjectionLike): OlView | null {
       projection: proj,
       extent: extentToRestore,
       center: centerToRestore,
-      zoom: zoomToRestore
+      zoom: zoomToRestore,
+      minZoom: minZoom,
+      maxZoom: maxZoom
     })
   }
   return newView
@@ -1129,12 +1135,35 @@ export function renderRequestPolygon(
   }
 
   const projection = map.getView().getProjection()
+  const projectionCode = projection.getCode()
   let coordinates: Coordinate[]
   if (projection.getUnits() !== 'degrees') {
     coordinates = originalCoordinates.map((coord) => fromLonLat(coord))
+
+    // Validate that transformation produced finite coordinates
+    const hasInvalidCoords = coordinates.some(
+      (coord) => !Number.isFinite(coord[0]) || !Number.isFinite(coord[1])
+    )
+
+    if (hasInvalidCoords) {
+      logger.warn('renderRequestPolygon: Transformation produced invalid coordinates', {
+        projectionCode,
+        reqId,
+        originalCoordinates: originalCoordinates.slice(0, 3), // Log first 3 coords
+        transformedCoordinates: coordinates.slice(0, 3)
+      })
+      // Don't add the polygon if coordinates are invalid
+      useSrToastStore().warn(
+        'Cannot display polygon in current projection',
+        `The polygon for request ${reqId} cannot be displayed in ${projectionCode}. The data may be outside the projection's valid geographic extent.`,
+        8000
+      )
+      return
+    }
   } else {
     coordinates = originalCoordinates
   }
+
   const api = useRecTreeStore().findApiForReqId(reqId)
   const polygon = new OlPolygon([coordinates])
   const feature = new Feature({ geometry: polygon, req_id: reqId > 0 ? reqId : null })
@@ -1152,11 +1181,17 @@ export function renderRequestPolygon(
 
   if (reqId === 0) {
     if (!canRestoreZoomCenter(map)) {
-      map.getView().fit(polygon.getExtent(), { size: map.getSize(), padding: [20, 20, 20, 20] })
+      const extent = polygon.getExtent()
+      if (extent.every((val) => Number.isFinite(val))) {
+        map.getView().fit(extent, { size: map.getSize(), padding: [20, 20, 20, 20] })
+      }
     }
   } else {
     if (forceZoom) {
-      map.getView().fit(polygon.getExtent(), { size: map.getSize(), padding: [20, 20, 20, 20] })
+      const extent = polygon.getExtent()
+      if (extent.every((val) => Number.isFinite(val))) {
+        map.getView().fit(extent, { size: map.getSize(), padding: [20, 20, 20, 20] })
+      }
     }
   }
 }
@@ -1467,11 +1502,13 @@ export function updateMapView(
           projection: newProj,
           extent: extent,
           center: center,
-          zoom: srProjObj.default_zoom
+          zoom: srProjObj.default_zoom,
+          minZoom: srProjObj.min_zoom,
+          maxZoom: srProjObj.max_zoom
         })
         useMapStore().setExtentToRestore(extent)
         if (restore) {
-          const restoredView = restoreMapView(newProj)
+          const restoredView = restoreMapView(newProj, srProjObj.min_zoom, srProjObj.max_zoom)
           if (restoredView) {
             newView = restoredView
           } else {
@@ -1510,20 +1547,65 @@ export async function zoomMapForReqIdUsingView(map: OLMap, reqId: number, srView
             extremeLatLon.maxLat
           ]
         } else {
+          console.error('ERROR: Invalid lat-lon data for request', { reqId })
           logger.error('Invalid lat-lon data for request', { reqId })
         }
       } else {
+        console.error('ERROR: Invalid workerSummary for request', { reqId })
         logger.error('Invalid workerSummary for request', { reqId })
       }
     }
     const srViewObj = (srViews as any).value[`${srViewKey}`]
-    let newProj = getProjection(srViewObj.projectionName)
+    const projectionName = srViewObj.projectionName
+    let newProj = getProjection(projectionName)
     let view_extent = reqExtremeLatLon
+
+    logger.debug('zoomMapForReqIdUsingView', {
+      reqId,
+      projectionName,
+      dataExtentWGS84: reqExtremeLatLon
+    })
+
     if (newProj?.getUnits() !== 'degrees') {
-      const fromLonLatFn = getTransform('EPSG:4326', srViewObj.projectionName)
+      const fromLonLatFn = getTransform('EPSG:4326', projectionName)
       view_extent = applyTransform(reqExtremeLatLon, fromLonLatFn, undefined, 8)
+
+      logger.debug('Transformed extent for projection', {
+        projectionName,
+        transformedExtent: view_extent
+      })
+
+      // Check if transformation produced invalid values
+      if (view_extent.some((val: number) => !Number.isFinite(val))) {
+        logger.warn('Invalid extent after transformation - data may be outside projection bounds', {
+          projectionName,
+          dataExtentWGS84: reqExtremeLatLon,
+          transformedExtent: view_extent
+        })
+
+        // Use projection's default view instead of trying to fit invalid extent
+        const srProjObj = srProjections.value[projectionName]
+        const view = map.getView()
+        if (srProjObj?.center) {
+          view.setCenter(srProjObj.center)
+          logger.debug('Using default center', { center: srProjObj.center })
+        }
+        if (srProjObj?.default_zoom) {
+          view.setZoom(srProjObj.default_zoom)
+          logger.debug('Using default zoom', { zoom: srProjObj.default_zoom })
+        }
+
+        useSrToastStore().warn(
+          'Data outside projection bounds',
+          `The data (lat: ${reqExtremeLatLon[1].toFixed(1)}° to ${reqExtremeLatLon[3].toFixed(1)}°) cannot be displayed in ${srProjObj?.title || projectionName}. Using default view. Consider switching to a global projection to view this data.`,
+          10000
+        )
+        return
+      }
     }
+
     map.getView().fit(view_extent, { size: map.getSize(), padding: [40, 40, 40, 40] })
+    logger.debug('View fitted to extent', { view_extent })
   } catch (error) {
     logger.error('zoomMapForReqIdUsingView failed', {
       reqId,

@@ -15,6 +15,7 @@ import { useMapStore } from '@/stores/mapStore'
 import { useGeoCoderStore } from '@/stores/geoCoderStore'
 import { get as getProjection } from 'ol/proj.js'
 import { addLayersForCurrentView } from '@/composables/SrLayers'
+import { isCoordinateInProjectionExtent } from '@/utils/SrCrsTransform'
 import { Layer } from 'ol/layer.js'
 import { useWmsCap } from '@/composables/useWmsCap'
 import Feature from 'ol/Feature.js'
@@ -1115,6 +1116,165 @@ function drawCurrentReqPolyAndPin() {
   }
 }
 
+/**
+ * Apply extent-based filtering to a vector layer for polar projections.
+ * Features outside the projection's valid extent are temporarily removed
+ * from the source to prevent transformation errors.
+ *
+ * @param vectorLayer - The vector layer to filter
+ * @param targetProjection - Target projection name (e.g., "EPSG:5936")
+ * @param currentMap - The current map (to get current projection)
+ */
+const applyProjectionExtentFiltering = (
+  vectorLayer: VectorLayer<VectorSource>,
+  targetProjection: string,
+  currentMap: OLMap | undefined
+) => {
+  try {
+    const source = vectorLayer.getSource()
+    if (!source) {
+      return
+    }
+
+    // Check if this is a polar projection that needs filtering
+    const isPolarProjection =
+      targetProjection === 'EPSG:5936' ||
+      targetProjection === 'EPSG:3413' ||
+      targetProjection === 'EPSG:3031'
+
+    const features = source.getFeatures()
+    if (features.length === 0) {
+      return
+    }
+
+    // Store filtered features on the layer for later restoration
+    const filteredFeatures: Feature<Geometry>[] = []
+
+    if (isPolarProjection) {
+      // Get current map projection to transform coordinates to WGS84
+      const currentProjection = currentMap?.getView().getProjection()
+      const currentProjCode = currentProjection?.getCode() || 'EPSG:3857'
+
+      logger.debug('Filtering features for polar projection', {
+        targetProjection,
+        currentProjection: currentProjCode,
+        featureCount: features.length
+      })
+
+      features.forEach((feature) => {
+        const geometry = feature.getGeometry()
+        if (!geometry) {
+          return
+        }
+
+        try {
+          // Get the first coordinate to check (representative of the feature location)
+          const geometryType = geometry.getType()
+          let testCoord: Coordinate | null = null
+
+          if (geometryType === 'Point') {
+            const point = geometry as Point
+            testCoord = point.getCoordinates()
+          } else if (geometryType === 'Polygon') {
+            const polygon = geometry as Polygon
+            const coords = polygon.getCoordinates()[0]
+            if (coords.length > 0) {
+              testCoord = coords[0]
+            }
+          } else if (geometryType === 'LineString') {
+            const lineString = geometry as any
+            const coords = lineString.getCoordinates()
+            if (coords.length > 0) {
+              testCoord = coords[0]
+            }
+          }
+
+          if (testCoord) {
+            // First check if the source coordinate is valid
+            if (!Number.isFinite(testCoord[0]) || !Number.isFinite(testCoord[1])) {
+              logger.warn('Invalid source coordinate found, removing feature', {
+                coord: testCoord,
+                geometryType
+              })
+              filteredFeatures.push(feature)
+              source.removeFeature(feature)
+              return
+            }
+
+            // Transform coordinates from current projection to WGS84
+            let wgs84Coord: Coordinate
+            try {
+              wgs84Coord = toLonLat(testCoord, currentProjCode)
+            } catch (error) {
+              logger.warn('Failed to transform coordinate to WGS84, removing feature', {
+                error: error instanceof Error ? error.message : String(error),
+                testCoord,
+                currentProjCode
+              })
+              filteredFeatures.push(feature)
+              source.removeFeature(feature)
+              return
+            }
+
+            const [lon, lat] = wgs84Coord
+
+            // Validate transformed coordinates are finite
+            if (!Number.isFinite(lon) || !Number.isFinite(lat)) {
+              logger.warn('Invalid WGS84 coordinates after transformation, removing feature', {
+                original: testCoord,
+                transformed: wgs84Coord
+              })
+              filteredFeatures.push(feature)
+              source.removeFeature(feature)
+              return
+            }
+
+            // Check if within projection extent
+            const isInExtent = isCoordinateInProjectionExtent(lon, lat, targetProjection)
+            if (!isInExtent) {
+              filteredFeatures.push(feature)
+              source.removeFeature(feature)
+            }
+          }
+        } catch (error) {
+          logger.warn('Error checking feature extent', {
+            error: error instanceof Error ? error.message : String(error)
+          })
+        }
+      })
+
+      if (filteredFeatures.length > 0) {
+        // Store filtered features on the layer so they can be restored later
+        vectorLayer.set('filteredFeatures', filteredFeatures)
+        logger.info('Filtered features for polar projection', {
+          projection: targetProjection,
+          filtered: filteredFeatures.length,
+          remaining: source.getFeatures().length
+        })
+      }
+    } else {
+      // For non-polar projections, restore any previously filtered features
+      const previouslyFiltered = vectorLayer.get('filteredFeatures') as
+        | Feature<Geometry>[]
+        | undefined
+      if (previouslyFiltered && previouslyFiltered.length > 0) {
+        previouslyFiltered.forEach((feature) => {
+          source.addFeature(feature)
+        })
+        vectorLayer.unset('filteredFeatures')
+        logger.info('Restored filtered features for non-polar projection', {
+          restored: previouslyFiltered.length
+        })
+      }
+    }
+  } catch (error) {
+    logger.error('applyProjectionExtentFiltering failed', {
+      targetProjection,
+      error: error instanceof Error ? error.message : String(error)
+    })
+  }
+}
+
 const updateReqMapView = async (reason: string, restoreView: boolean = false) => {
   logger.debug('updateReqMapView started', { reason, restoreView })
   const map = mapRef.value?.map
@@ -1123,6 +1283,13 @@ const updateReqMapView = async (reason: string, restoreView: boolean = false) =>
       const srViewObj = mapStore.getSrViewObj()
       const srViewKey = findSrViewKey(mapStore.getSelectedView(), mapStore.getSelectedBaseLayer())
       if (srViewKey.value) {
+        // Filter features BEFORE changing projection to prevent transformation errors
+        applyProjectionExtentFiltering(drawVectorLayer, srViewObj.projectionName, map)
+        applyProjectionExtentFiltering(pinVectorLayer, srViewObj.projectionName, map)
+        applyProjectionExtentFiltering(recordsLayer, srViewObj.projectionName, map)
+        applyProjectionExtentFiltering(uploadedFeaturesVectorLayer, srViewObj.projectionName, map)
+        applyProjectionExtentFiltering(bathymetryFeaturesVectorLayer, srViewObj.projectionName, map)
+
         await updateMapView(map, srViewKey.value, reason, restoreView)
         map.addLayer(drawVectorLayer)
         map.addLayer(pinVectorLayer)
