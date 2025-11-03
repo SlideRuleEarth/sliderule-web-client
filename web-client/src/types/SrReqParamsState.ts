@@ -19,6 +19,7 @@ export interface SrReqParamsState {
   polygonSource: 'polygon' | 'box' | 'upload' | null
   convexHull: SrRegion | null
   areaOfConvexHull: number
+  isAtl24PhotonOverlay: boolean
   urlValue: string
   enableGranuleSelection: boolean
   tracks: SrListNumberItem[]
