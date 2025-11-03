@@ -42,6 +42,7 @@ export function getDefaultReqParamsState(): SrReqParamsState {
     polygonSource: null as 'polygon' | 'box' | 'upload' | null,
     convexHull: null as SrRegion | null,
     areaOfConvexHull: 0.0 as number,
+    isAtl24PhotonOverlay: false,
     urlValue: 'slideruleearth.io',
     enableGranuleSelection: false,
     tracks: [] as SrListNumberItem[],
@@ -281,6 +282,7 @@ const createReqParamsStore = (id: string) =>
           this.enableAtl08Classification = false
           this.atl24_class_ph = atl24_class_ph_Options
           this.useDatum = true
+          this.isAtl24PhotonOverlay = true
         } else {
           this.enableAtl24Classification = false
           this.enableAtl08Classification = true
@@ -292,6 +294,7 @@ const createReqParamsStore = (id: string) =>
             'atl08_unclassified'
           ]
           this.useDatum = false
+          this.isAtl24PhotonOverlay = false
         }
         this.enableYAPC = true
         this.YAPCVersion = 0
@@ -350,6 +353,11 @@ const createReqParamsStore = (id: string) =>
           else if (this.gediSelectedAPI === 'gedi04ap') req.asset = 'gedil4a'
         } else {
           logger.error('Mission not recognized in getAtlReqParams', { mission: this.missionValue })
+        }
+
+        // Add CMR version for ATL24 photon cloud overlay
+        if (this.isAtl24PhotonOverlay && this.iceSat2SelectedAPI.includes('atl03')) {
+          req.cmr = { version: '006' }
         }
 
         if (this.iceSat2SelectedAPI === 'atl08p' || this.iceSat2SelectedAPI.includes('atl03')) {
