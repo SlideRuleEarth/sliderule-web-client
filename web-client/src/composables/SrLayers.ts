@@ -4,6 +4,7 @@ import TileWMS from 'ol/source/TileWMS' // Import the TileWMS module
 import { useMapStore } from '@/stores/mapStore.js'
 import type { ServerType } from 'ol/source/wms.js'
 import { XYZ } from 'ol/source.js'
+import TileGrid from 'ol/tilegrid/TileGrid.js'
 import type OLMap from 'ol/Map.js'
 // import { srViews } from "./SrViews"; // Unused import
 import { createLogger } from '@/utils/logger'
@@ -75,6 +76,20 @@ export interface SrLayer {
 
 // Temporarily commented out - not currently used but may be needed in the future
 // const antarticTileGrid = new TileGrid(antarticTileGrid_Options);
+
+// EPSG:5936 (Alaska Polar Stereographic) tile grid configuration
+// Based on ArcGIS Arctic Ocean Base/Reference service metadata
+const arcticTileGrid = new TileGrid({
+  origin: [-28567784.109255, 32567784.109255],
+  resolutions: [
+    238810.813354, 119405.406677, 59702.7033384999, 29851.3516692501, 14925.675834625,
+    7462.83791731252, 3731.41895865626, 1865.70947932813, 932.854739664063, 466.427369832032,
+    233.213684916016, 116.606842458008, 58.303421229004, 29.151710614502, 14.575855307251,
+    7.2879276536255, 3.64396382681275, 1.82198191340637, 0.910990956703186, 0.455495478351593,
+    0.227747739175797, 0.113873869587898, 0.0569369347939492, 0.0284684673969746
+  ],
+  tileSize: [256, 256]
+})
 
 export const layers = ref<{ [key: string]: SrLayer }>({
   'Esri World Topo': {
@@ -398,11 +413,21 @@ export const getLayer = (projectionName: string, title: string): TileLayer | und
         })
       } else if (srLayer.type === 'xyz') {
         //console.log(`XYZ ${srLayer.serverType} Layer: url: ${srLayer.url} layer:${(srLayer.layerName || srLayer.title)} proj:${mapStore.getProjection()}`);
-        const xyzOptions = {
+        // Disable tile wrapping for polar projections
+        const isPolarProjection =
+          srLayer.source_projection === 'EPSG:5936' ||
+          srLayer.source_projection === 'EPSG:3413' ||
+          srLayer.source_projection === 'EPSG:3031'
+        const xyzOptions: any = {
           url: srLayer.url,
           //extent: mapStore.extent,
           projection: srLayer.source_projection,
-          attributions: srAttributions[srLayer.attributionKey]
+          attributions: srAttributions[srLayer.attributionKey],
+          wrapX: !isPolarProjection // Don't wrap tiles for polar projections
+        }
+        // Add custom tile grid for EPSG:5936 to ensure proper tile loading
+        if (srLayer.source_projection === 'EPSG:5936') {
+          xyzOptions.tileGrid = arcticTileGrid
         }
         layerInstance = new TileLayer({
           source: new XYZ(xyzOptions),

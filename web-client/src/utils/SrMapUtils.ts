@@ -1457,6 +1457,7 @@ export function updateMapView(
         if (extent === undefined || extent === null) {
           if (srProjObj.extent) {
             extent = srProjObj.extent
+            newProj.setExtent(extent) // Set the extent on the projection
           } else {
             let bbox = srProjObj.bbox
             if (srProjObj.bbox[0] > srProjObj.bbox[2]) {
@@ -1498,9 +1499,17 @@ export function updateMapView(
         if (srProjObj.center) {
           center = srProjObj.center
         }
+
+        // For polar projections, don't set extent constraint on View (causes snapping/off-center)
+        // The projection itself already has the extent set via newProj.setExtent()
+        const isPolarProjection =
+          srViewObj.projectionName === 'EPSG:5936' ||
+          srViewObj.projectionName === 'EPSG:3413' ||
+          srViewObj.projectionName === 'EPSG:3031'
+
         let newView = new OlView({
           projection: newProj,
-          extent: extent,
+          extent: isPolarProjection ? undefined : extent,
           center: center,
           zoom: srProjObj.default_zoom,
           minZoom: srProjObj.min_zoom,

@@ -115,11 +115,12 @@ const currentZoom = ref<number>(0)
 let zoomListener: any = null
 let originalErrorHandler: OnErrorEventHandler | null = null
 
-// Cleanup zoom listener and error handler on unmount
+// Cleanup listeners and error handler on unmount
 onBeforeUnmount(() => {
   if (mapRef.value?.map && zoomListener) {
     const view = mapRef.value.map.getView()
     view.un('change:resolution', zoomListener)
+    view.un('change:center', zoomListener)
     view.un('change', zoomListener)
   }
   // Restore original error handler
@@ -258,21 +259,31 @@ onMounted(async () => {
   const view = map.getView()
   zoomListener = () => {
     const zoom = view.getZoom()
-    if (zoom !== undefined) {
+    const center = view.getCenter()
+    const extent = view.calculateExtent(map.getSize())
+    if (zoom !== undefined && center && extent) {
       currentZoom.value = zoom
-      logger.debug('Zoom changed', { zoom })
+      logger.debug('View changed', { zoom, center, extent, projection: computedProjName.value })
     }
   }
 
-  // Set initial zoom
+  // Set initial view state
   const initialZoom = view.getZoom()
-  if (initialZoom !== undefined) {
+  const initialCenter = view.getCenter()
+  const initialExtent = view.calculateExtent(map.getSize())
+  if (initialZoom !== undefined && initialCenter && initialExtent) {
     currentZoom.value = initialZoom
-    logger.debug('Initial zoom set', { initialZoom })
+    logger.debug('Initial view set', {
+      zoom: initialZoom,
+      center: initialCenter,
+      extent: initialExtent,
+      projection: computedProjName.value
+    })
   }
 
-  // Listen for zoom changes
+  // Listen for view changes
   view.on('change:resolution', zoomListener)
+  view.on('change:center', zoomListener)
   view.on('change', zoomListener)
 
   // Add error handler for projection errors during rendering

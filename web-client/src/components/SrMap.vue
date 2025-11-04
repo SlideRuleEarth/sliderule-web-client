@@ -5,6 +5,10 @@ import { useToast } from 'primevue/usetoast'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('SrMap')
+
+// Debug panel control - set to false to hide the debug info overlay
+const SHOW_DEBUG_PANEL = false
+
 import { findSrViewKey } from '@/composables/SrViews'
 import { useProjectionNames } from '@/composables/SrProjections'
 import { srProjections } from '@/composables/SrProjections'
@@ -70,6 +74,7 @@ import SrCustomTooltip from '@/components//SrCustomTooltip.vue'
 import SrDropPinControl from '@/components//SrDropPinControl.vue'
 import SrUploadRegionControl from '@/components/SrUploadRegionControl.vue'
 import SrExportPolygonControl from '@/components/SrExportPolygonControl.vue'
+import SrMapDebugInfo from '@/components/SrMapDebugInfo.vue'
 import Point from 'ol/geom/Point.js'
 import { readShapefileToOlFeatures } from '@/composables/useReadShapefiles'
 import { useGeoJsonStore } from '@/stores/geoJsonStore'
@@ -1327,7 +1332,7 @@ const handleUpdateSrView = async () => {
     try {
       if (map) {
         saveMapZoomState(map)
-        await updateReqMapView('handleUpdateSrView', true)
+        await updateReqMapView('handleUpdateSrView', false) // Don't restore - use projection defaults
       } else {
         logger.error('Map is null in handleUpdateSrView')
       }
@@ -1589,6 +1594,7 @@ watch(showBathymetryFeatures, (newValue) => {
           @export-polygon-control-created="handleExportPolygonControlCreated"
         />
       </Map.OlMap>
+      <SrMapDebugInfo v-if="SHOW_DEBUG_PANEL" :map="mapRef?.map" />
     </div>
     <SrCustomTooltip ref="tooltipRef" id="MainMapTooltip" />
     <SrFeatureMenuOverlay ref="featureMenuOverlayRef" @select="onFeatureMenuSelect" />
