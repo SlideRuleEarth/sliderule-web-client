@@ -91,10 +91,10 @@ export const srProjections = ref<{ [key: string]: SrProjection }>({
     label: 'North Sea Ice',
     proj4def:
       '+proj=stere +lat_0=90 +lat_ts=70 +lon_0=-45 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs +type=crs',
-    default_zoom: 3.06, // Optimal zoom for centered circular view
-    min_zoom: 0,
+    default_zoom: 5.8, // Optimal zoom for centered circular view
+    min_zoom: 5,
     max_zoom: 10, // Limited by Arctic Ocean Base tile availability
-    center: [-1220247.96, 2116545.79], // Centered view for North NSIDC projection
+    center: [-2101846.95, 2124970.85], // Centered view for North NSIDC projection
     extent: [-3314693.24, -3314693.24, 3314693.24, 3314693.24],
     bbox: [-180.0, 60.0, 180.0, 89.9] // minx, miny, maxx, maxy - avoid pole singularity
   },

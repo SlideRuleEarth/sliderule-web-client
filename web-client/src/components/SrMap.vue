@@ -7,7 +7,7 @@ import { createLogger } from '@/utils/logger'
 const logger = createLogger('SrMap')
 
 // Debug panel control - set to false to hide the debug info overlay
-const SHOW_DEBUG_PANEL = false
+const SHOW_DEBUG_PANEL = true
 
 import { findSrViewKey } from '@/composables/SrViews'
 import { useProjectionNames } from '@/composables/SrProjections'

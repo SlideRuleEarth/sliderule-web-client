@@ -91,6 +91,14 @@ const arcticTileGrid = new TileGrid({
   tileSize: [256, 256]
 })
 
+// EPSG:3413 (NSIDC Sea Ice Polar Stereographic North) tile grid configuration
+// Based on ArcGIS Arctic Imagery service metadata
+const nsidcTileGrid = new TileGrid({
+  origin: [-4194304, 4194304],
+  resolutions: [16384, 8192, 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1, 0.5],
+  tileSize: [256, 256]
+})
+
 export const layers = ref<{ [key: string]: SrLayer }>({
   'Esri World Topo': {
     title: 'Esri World Topo',
@@ -156,7 +164,18 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Polar/Arctic_Ocean_Base/MapServer/tile/{z}/{y}/{x}',
     attributionKey: 'esri',
     source_projection: 'EPSG:5936',
-    allowed_reprojections: ['EPSG:5936', 'EPSG:4326', 'EPSG:3413'],
+    allowed_reprojections: ['EPSG:5936', 'EPSG:4326'],
+    init_visibility: true,
+    init_opacity: 1
+  },
+  'Arctic Imagery NSIDC': {
+    title: 'Arctic Imagery NSIDC',
+    type: 'xyz',
+    isBaseLayer: true,
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Polar/Arctic_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attributionKey: 'esri',
+    source_projection: 'EPSG:3413',
+    allowed_reprojections: ['EPSG:3413'],
     init_visibility: true,
     init_opacity: 1
   },
@@ -177,7 +196,7 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Polar/Arctic_Ocean_Reference/MapServer/tile/{z}/{y}/{x}',
     attributionKey: 'esri',
     source_projection: 'EPSG:5936',
-    allowed_reprojections: ['EPSG:5936', 'EPSG:3413'],
+    allowed_reprojections: ['EPSG:5936'],
     init_visibility: true,
     init_opacity: 1
   },
@@ -428,6 +447,10 @@ export const getLayer = (projectionName: string, title: string): TileLayer | und
         // Add custom tile grid for EPSG:5936 to ensure proper tile loading
         if (srLayer.source_projection === 'EPSG:5936') {
           xyzOptions.tileGrid = arcticTileGrid
+        }
+        // Add custom tile grid for EPSG:3413 to ensure proper tile loading
+        if (srLayer.source_projection === 'EPSG:3413') {
+          xyzOptions.tileGrid = nsidcTileGrid
         }
         layerInstance = new TileLayer({
           source: new XYZ(xyzOptions),
