@@ -92,7 +92,9 @@ const hasLinkToElevationPlot = computed(() => {
 
 const recordsVectorSource = new VectorSource({ wrapX: false })
 const recordsLayer = new VectorLayer({
-  source: recordsVectorSource
+  source: recordsVectorSource,
+  minZoom: 0,
+  maxZoom: 28 // Allow rendering at all zoom levels, but features will be clipped by projection extent
 })
 
 const mapRefComputed = computed(() => {
@@ -111,13 +113,18 @@ const computedProjName = computed(() => mapStore.getSrViewObj().projectionName)
 // Track current zoom level (DEBUG)
 const currentZoom = ref<number>(0)
 let zoomListener: any = null
+let originalErrorHandler: OnErrorEventHandler | null = null
 
-// Cleanup zoom listener on unmount
+// Cleanup zoom listener and error handler on unmount
 onBeforeUnmount(() => {
   if (mapRef.value?.map && zoomListener) {
     const view = mapRef.value.map.getView()
     view.un('change:resolution', zoomListener)
     view.un('change', zoomListener)
+  }
+  // Restore original error handler
+  if (originalErrorHandler !== null) {
+    window.onerror = originalErrorHandler
   }
 })
 
@@ -267,6 +274,28 @@ onMounted(async () => {
   // Listen for zoom changes
   view.on('change:resolution', zoomListener)
   view.on('change', zoomListener)
+
+  // Add error handler for projection errors during rendering
+  // This catches errors when vector features are rendered outside projection extent
+  originalErrorHandler = window.onerror
+  window.onerror = (message, source, lineno, colno, error) => {
+    if (typeof message === 'string' && message.includes('coordinates must be finite numbers')) {
+      logger.warn(
+        'Caught projection error during map rendering - likely zoom beyond projection extent',
+        {
+          zoom: view.getZoom(),
+          projectionName: computedProjName.value
+        }
+      )
+      // Prevent error from bubbling up
+      return true
+    }
+    // Call original handler for other errors
+    if (originalErrorHandler) {
+      return originalErrorHandler(message, source, lineno, colno, error)
+    }
+    return false
+  }
 
   void requestsStore.displayHelpfulPlotAdvice(
     'Click on a track in the map to display the elevation scatter plot'
@@ -419,8 +448,21 @@ function createOLlayerForDeck(
     }) => {
       const [width, height] = size
       let [longitude, latitude] = viewState.center
+
+      // Transform coordinates from projection to WGS84 if needed
       if (projectionUnits !== 'degrees') {
-        ;[longitude, latitude] = toLonLat(viewState.center, projection)
+        try {
+          ;[longitude, latitude] = toLonLat(viewState.center, projection)
+        } catch (error) {
+          logger.warn('Failed to transform coordinates - likely outside projection extent', {
+            originalCenter: viewState.center,
+            projectionUnits,
+            zoom: viewState.zoom,
+            error: error instanceof Error ? error.message : String(error)
+          })
+          // Don't update deck.gl when transformation fails
+          return document.createElement('div')
+        }
       }
 
       // Validate converted coordinates

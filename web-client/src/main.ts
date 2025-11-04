@@ -92,7 +92,15 @@ pinia.use(piniaMetaPlugin)
 
 export const app = createApp(App)
 app.config.errorHandler = (err, _vm, info) => {
-  log.error('Global Vue error', { error: err instanceof Error ? err.message : String(err), info })
+  // Suppress projection errors that occur when zooming beyond projection extent
+  const errorMessage = err instanceof Error ? err.message : String(err)
+  if (errorMessage.includes('coordinates must be finite numbers')) {
+    log.warn('Projection error caught in Vue - likely zoom beyond projection extent', {
+      error: errorMessage
+    })
+    return // Suppress error from propagating
+  }
+  log.error('Global Vue error', { error: errorMessage, info })
 }
 const vue3_openlayer_options: Vue3OpenlayersGlobalOptions = {
   debug: false
