@@ -200,6 +200,19 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     init_visibility: true,
     init_opacity: 1
   },
+  // 'Arctic Reference NSIDC': {
+  //   title: 'Arctic Reference NSIDC',
+  //   type: 'xyz',
+  //   isBaseLayer: false,
+  //   // Note: Arctic Connect tiles appear to be unavailable or using incompatible tile scheme
+  //   // url: 'https://tiles.arcticconnect.ca/osm_3413/{z}/{x}/{y}.png',
+  //   url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Polar/Arctic_Imagery/MapServer/tile/{z}/{y}/{x}',
+  //   attributionKey: 'esri',
+  //   source_projection: 'EPSG:3413',
+  //   allowed_reprojections: ['EPSG:3413'],
+  //   init_visibility: true,
+  //   init_opacity: 0.3
+  // },
   // "Artic Imagery": {
   //   //type: "ArcGisRest",
   //   type: "xyz",
@@ -387,8 +400,10 @@ export const getLayer = (projectionName: string, title: string): TileLayer | und
   const srLayer = Object.values(layers.value).find((layer) => layer.title === title)
   let layerInstance
   if (srLayer) {
-    const mapStore = useMapStore()
-    const cachedLayer = mapStore.getLayerFromCache(projectionName, title)
+    // Temporarily disable caching to debug black screen issue
+    // const mapStore = useMapStore()
+    // const cachedLayer = mapStore.getLayerFromCache(projectionName, title)
+    const cachedLayer = null
     let lname = srLayer.title
     if (srLayer.isBaseLayer) {
       lname = 'Base Layer'
@@ -403,7 +418,7 @@ export const getLayer = (projectionName: string, title: string): TileLayer | und
     }
     if (cachedLayer) {
       layerInstance = cachedLayer // Return the cached layer if it exists
-      logger.debug('Using cached layer', { cachedLayer })
+      logger.debug('Using cached layer', { title, projectionName })
     } else {
       if (srLayer.type === 'wmts') {
         logger.debug('WMTS Layer TBD')
@@ -448,8 +463,8 @@ export const getLayer = (projectionName: string, title: string): TileLayer | und
         if (srLayer.source_projection === 'EPSG:5936') {
           xyzOptions.tileGrid = arcticTileGrid
         }
-        // Add custom tile grid for EPSG:3413 to ensure proper tile loading
-        if (srLayer.source_projection === 'EPSG:3413') {
+        // Add custom tile grid for EPSG:3413 ArcGIS tiles only (not for OSM tiles)
+        if (srLayer.source_projection === 'EPSG:3413' && srLayer.url.includes('arcgisonline')) {
           xyzOptions.tileGrid = nsidcTileGrid
         }
         layerInstance = new TileLayer({
@@ -470,7 +485,8 @@ export const getLayer = (projectionName: string, title: string): TileLayer | und
       }
       if (layerInstance) {
         //console.log('Caching layer', title);
-        mapStore.addLayerToCache(projectionName, lname, layerInstance)
+        // Temporarily disable caching to debug black screen issue
+        // mapStore.addLayerToCache(projectionName, title, layerInstance)
       }
     }
     //console.log (`getLayer returning: ${lname} isBaseLayer:${srLayer.isBaseLayer} title:${title}`);
