@@ -6,7 +6,6 @@ import type { ServerType } from 'ol/source/wms.js'
 import { XYZ } from 'ol/source.js'
 import TileGrid from 'ol/tilegrid/TileGrid.js'
 import type OLMap from 'ol/Map.js'
-// import { srViews } from "./SrViews"; // Unused import
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('SrLayers')
@@ -336,34 +335,25 @@ export const layers = ref<{ [key: string]: SrLayer }>({
   // }
 })
 
-export const getSrLayersForCurrentView = () => {
-  const mapStore = useMapStore()
-  const srViewObj = mapStore.getSrViewObj()
-  const projName = srViewObj.projectionName
+
+export const getSrLayersForProjection = (projectionName: string) => {
   return Object.values(layers.value).filter((layer) =>
-    layer.allowed_reprojections.includes(projName)
+    layer.allowed_reprojections.includes(projectionName)
   )
 }
 
-export const getSrLayersForCurrentProjection = () => {
-  const mapStore = useMapStore()
-  return Object.values(layers.value).filter((layer) =>
-    layer.allowed_reprojections.includes(mapStore.getSrViewObj().projectionName)
-  )
-}
-
-export const getSrBaseLayersForCurrentView = () => {
+export const getSrBaseLayersForProjection = (projectionName: string) => {
   //console.log('getSrBaseLayersForCurrentView', view);
-  const allLayersList = getSrLayersForCurrentView()
+  const allLayersList = getSrLayersForProjection(projectionName)
   const layerList = Object.values(allLayersList).filter((layer) => layer.isBaseLayer)
   //console.log('getSrBaseLayersForCurrentView', layerList);
   return layerList
 }
 
-export const addLayersForCurrentView = (map: OLMap, projectionName: string) => {
+export const addLayersForProjection = (map: OLMap, projectionName: string) => {
   //console.log('--------------------addLayersForCurrentView--------------------');
   try {
-    const srLayersForView = getSrLayersForCurrentView()
+    const srLayersForView = getSrLayersForProjection(projectionName)
     srLayersForView.forEach((srLayerForView) => {
       if (!srLayerForView.isBaseLayer) {
         // base layer is managed by baseLayerControl
@@ -393,6 +383,26 @@ export const addLayersForCurrentView = (map: OLMap, projectionName: string) => {
     })
   }
 }
+
+/**
+ * Get the default base layer for a projection (first compatible one)
+ */
+export const getDefaultBaseLayerForProjection = (projectionName: string): string | null => {
+  const compatible = getSrBaseLayersForProjection(projectionName)
+  return compatible.length > 0 ? compatible[0].title : null
+}
+
+/**
+ * Check if a projection + base layer combination is valid
+ */
+export const isValidProjectionLayerCombo = (
+  projectionName: string,
+  baseLayerName: string
+): boolean => {
+  const layer = layers.value[baseLayerName]
+  return layer?.allowed_reprojections.includes(projectionName) ?? false
+}
+
 
 export const getLayer = (projectionName: string, title: string): TileLayer | undefined => {
   //console.log(`getLayer ${title}`);

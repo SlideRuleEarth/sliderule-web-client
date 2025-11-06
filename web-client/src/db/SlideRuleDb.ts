@@ -54,7 +54,9 @@ export interface SrRequestRecord {
   cnt?: number // number of points
   num_bytes?: number // number of bytes
   description?: string // description
-  srViewName?: string
+  srViewName?: string // DEPRECATED: composite key like 'Global Mercator Esri' - use projectionName + baseLayerName instead
+  projectionName?: string // EPSG projection code (e.g., 'EPSG:3857')
+  baseLayerName?: string // Base layer name (e.g., 'Esri World Topo')
   num_gran?: number // number of granules involved in the request
   area_of_poly?: number // area (e.g., km^2) of the request polygon (if any)
 }
@@ -117,6 +119,78 @@ export interface SrPlotConfig {
   defaultAtl03xSymbolSize: number
 }
 
+/**
+ * Migration mapping from old srViewName composite keys to new projectionName + baseLayerName
+ * This mapping is defined here to avoid circular dependencies during database initialization
+ */
+const SR_VIEW_MIGRATION_MAP: Record<string, { projectionName: string; baseLayerName: string }> = {
+  'Global Mercator Esri': {
+    projectionName: 'EPSG:3857',
+    baseLayerName: 'Esri World Topo'
+  },
+  'Global Esri': {
+    projectionName: 'EPSG:4326',
+    baseLayerName: 'Esri World Topo'
+  },
+  'Global Mercator Google': {
+    projectionName: 'EPSG:3857',
+    baseLayerName: 'Google'
+  },
+  'Global Google': {
+    projectionName: 'EPSG:4326',
+    baseLayerName: 'Google'
+  },
+  'Global Mercator OSM': {
+    projectionName: 'EPSG:3857',
+    baseLayerName: 'OpenStreet'
+  },
+  'Global OSM': {
+    projectionName: 'EPSG:4326',
+    baseLayerName: 'OpenStreet'
+  },
+  'North Alaska': {
+    projectionName: 'EPSG:5936',
+    baseLayerName: 'Arctic Ocean Base'
+  },
+  'North NSIDC': {
+    projectionName: 'EPSG:3413',
+    baseLayerName: 'Arctic Imagery NSIDC'
+  },
+  'South Antarctic Polar Stereographic': {
+    projectionName: 'EPSG:3031',
+    baseLayerName: 'Antarctic Imagery'
+  }
+}
+
+/**
+ * Migrate old srViewName to new projectionName + baseLayerName fields
+ * This function extracts the projection and base layer from composite keys like 'Global Mercator Esri'
+ */
+export function migrateSrViewNameToNewFields(
+  srViewName: string | undefined
+): { projectionName: string; baseLayerName: string } {
+  if (!srViewName || srViewName === '') {
+    // Default fallback
+    return {
+      projectionName: 'EPSG:3857',
+      baseLayerName: 'Esri World Topo'
+    }
+  }
+
+  // Look up in the migration map
+  const migrated = SR_VIEW_MIGRATION_MAP[srViewName]
+  if (migrated) {
+    return migrated
+  }
+
+  // Fallback for unknown view names
+  logger.warn('Unknown srViewName during migration, using default', { srViewName })
+  return {
+    projectionName: 'EPSG:3857',
+    baseLayerName: 'Esri World Topo'
+  }
+}
+
 export function hashPoly(poly: { lat: number; lon: number }[]): string {
   // Serialize the poly array into a JSON string
   const serializedPoly = JSON.stringify(
@@ -173,38 +247,81 @@ export class SlideRuleDexie extends Dexie {
 
   constructor() {
     super('SlideRuleDataBase')
+
+    // Version 11 - plotConfig updates
     this.version(11)
       .stores({
-        requests: '++req_id', // req_id is auto-incrementing and the primary key here, no other keys required
+        requests: '++req_id',
         summary: '++db_id, &req_id',
         colors: '&color',
         atl03CnfColors: 'number',
         atl08ClassColors: 'number',
         atl24ClassColors: 'number',
-        //find runContexts by (parentReqId + rgt + cycle + beam +track) in one go, define a compound index:
         runContexts: `
-                ++id, 
-                &reqId, 
-                parentReqId, 
-                rgt, 
-                cycle, 
-                beam, 
-                track, 
+                ++id,
+                &reqId,
+                parentReqId,
+                rgt,
+                cycle,
+                beam,
+                track,
                 [parentReqId+rgt+cycle+beam+track]`,
-        plotConfig: 'id' // single record table
+        plotConfig: 'id'
       })
       .upgrade(async (tx) => {
         const table = tx.table<SrPlotConfig>('plotConfig')
         await table.toCollection().modify((rec) => {
-          // If the record does not have the new fields, add them with defaults
           if (rec.defaultAtl24SymbolSize === undefined) {
             rec.defaultAtl24SymbolSize = 4
           }
           if (rec.defaultAtl03xSymbolSize === undefined) {
             rec.defaultAtl03xSymbolSize = 3
           }
-          // modify callback doesn't need a return value
         })
+      })
+
+    // Version 12 - Migrate srViewName to projectionName + baseLayerName
+    this.version(12)
+      .stores({
+        requests: '++req_id',
+        summary: '++db_id, &req_id',
+        colors: '&color',
+        atl03CnfColors: 'number',
+        atl08ClassColors: 'number',
+        atl24ClassColors: 'number',
+        runContexts: `
+                ++id,
+                &reqId,
+                parentReqId,
+                rgt,
+                cycle,
+                beam,
+                track,
+                [parentReqId+rgt+cycle+beam+track]`,
+        plotConfig: 'id'
+      })
+      .upgrade(async (tx) => {
+        logger.warn('Upgrading database to version 12 - migrating srViewName to projectionName + baseLayerName')
+        const requestsTable = tx.table<SrRequestRecord>('requests')
+        await requestsTable.toCollection().modify((rec) => {
+          // If record already has the new fields, skip migration
+          if (rec.projectionName && rec.baseLayerName) {
+            return
+          }
+
+          // Migrate from old srViewName
+          const migrated = migrateSrViewNameToNewFields(rec.srViewName)
+          rec.projectionName = migrated.projectionName
+          rec.baseLayerName = migrated.baseLayerName
+
+          logger.debug('Migrated request record', {
+            reqId: rec.req_id,
+            oldSrViewName: rec.srViewName,
+            newProjectionName: rec.projectionName,
+            newBaseLayerName: rec.baseLayerName
+          })
+        })
+        logger.warn('Database migration to version 12 complete')
       })
 
     this._initializeDefaultColors()
@@ -1180,6 +1297,61 @@ export class SlideRuleDexie extends Dexie {
     }
   }
 
+  /**
+   * Get projection and base layer for a request, with automatic migration from old srViewName
+   */
+  async getProjectionAndBaseLayer(
+    req_id: number
+  ): Promise<{ projectionName: string; baseLayerName: string }> {
+    try {
+      if (!req_id || req_id <= 0) {
+        logger.warn('Invalid req_id for getProjectionAndBaseLayer', { reqId: req_id })
+        return { projectionName: 'EPSG:3857', baseLayerName: 'Esri World Topo' }
+      }
+
+      const request = await this.requests.get(req_id)
+      if (!request) {
+        logger.error('No request found for getProjectionAndBaseLayer', { reqId: req_id })
+        return { projectionName: 'EPSG:3857', baseLayerName: 'Esri World Topo' }
+      }
+
+      // If we have the new fields, use them
+      if (request.projectionName && request.baseLayerName) {
+        return {
+          projectionName: request.projectionName,
+          baseLayerName: request.baseLayerName
+        }
+      }
+
+      // Otherwise, migrate from old srViewName and save the new values
+      const migrated = migrateSrViewNameToNewFields(request.srViewName)
+
+      // Update the record with the new fields
+      await this.updateRequest(req_id, {
+        projectionName: migrated.projectionName,
+        baseLayerName: migrated.baseLayerName
+      })
+
+      logger.debug('Auto-migrated request projection and base layer', {
+        reqId: req_id,
+        oldSrViewName: request.srViewName,
+        newProjectionName: migrated.projectionName,
+        newBaseLayerName: migrated.baseLayerName
+      })
+
+      return migrated
+    } catch (error) {
+      logger.error('Failed to get projection and base layer', {
+        reqId: req_id,
+        error: error instanceof Error ? error.message : String(error)
+      })
+      return { projectionName: 'EPSG:3857', baseLayerName: 'Esri World Topo' }
+    }
+  }
+
+  /**
+   * @deprecated Use getProjectionAndBaseLayer() instead
+   */
   async getSrViewName(req_id: number): Promise<string> {
     try {
       if (req_id && req_id > 0) {

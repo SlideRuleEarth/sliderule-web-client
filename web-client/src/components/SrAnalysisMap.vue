@@ -18,7 +18,7 @@ import { db } from '@/db/SlideRuleDb'
 import { type Coordinate } from 'ol/coordinate'
 import { toLonLat } from 'ol/proj'
 import { format } from 'ol/coordinate'
-import { updateMapView, renderSvrReqPoly, resetFilterUsingSelectedRec } from '@/utils/SrMapUtils'
+import { renderSvrReqPoly, resetFilterUsingSelectedRec } from '@/utils/SrMapUtils'
 import SrRecSelectControl from '@/components/SrRecSelectControl.vue'
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue'
 import { useRecTreeStore } from '@/stores/recTreeStore'
@@ -36,11 +36,10 @@ import { OL_DECK_LAYER_NAME } from '@/types/SrTypes'
 import { useAnalysisMapStore } from '@/stores/analysisMapStore'
 import { useGlobalChartStore } from '@/stores/globalChartStore'
 import { callPlotUpdateDebounced } from '@/utils/plotUtils'
-import { setCyclesGtsSpotsFromFileUsingRgtYatc, updateSrViewName } from '@/utils/SrMapUtils'
+import { setCyclesGtsSpotsFromFileUsingRgtYatc } from '@/utils/SrMapUtils'
 import Checkbox from 'primevue/checkbox'
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore'
 import SrBaseLayerControl from '@/components/SrBaseLayerControl.vue'
-import { findSrViewKey, srViews } from '@/composables/SrViews'
 import { addLayersForCurrentView } from '@/composables/SrLayers'
 import { useFieldNameStore } from '@/stores/fieldNameStore'
 import SrLocationFinder from '@/components/SrLocationFinder.vue'
@@ -108,7 +107,17 @@ const locationFinderReady = computed(() => {
 const handleEvent = (event: any) => {
   logger.debug('Map event', { event })
 }
-const computedProjName = computed(() => mapStore.getSrViewObj().projectionName)
+const computedProjName = computed(() => {
+  // Get projection directly from the current map's view
+  // This is used for coordinate display formatting
+  const map = mapRef.value?.map
+  if (map) {
+    const view = map.getView()
+    const projection = view.getProjection()
+    return projection.getCode()
+  }
+  return 'EPSG:3857' // fallback to Web Mercator
+})
 
 // Track current zoom level (DEBUG)
 const currentZoom = ref<number>(0)
@@ -224,7 +233,6 @@ onMounted(async () => {
   }
   recordsLayer.set('name', 'Records Layer') // for empty requests need to draw poly in this layer
   recordsLayer.set('title', 'Records Layer')
-  //console.log("SrProjectionControl onMounted projectionControlElement:", projectionControlElement.value);
   Object.values(srProjections.value).forEach((projection) => {
     //console.log(`Title: ${projection.title}, Name: ${projection.name}`);
     proj4.defs(projection.name, projection.proj4def)
@@ -235,25 +243,47 @@ onMounted(async () => {
     logger.error('SrAnalysisMap onMounted: map is null')
     return
   }
-  const srViewName = await db.getSrViewName(props.selectedReqId)
-  //console.log(`SrAnalysisMap onMounted: retrieved srViewName: ${srViewName} for reqId:${props.selectedReqId}`);
-  const viewObj = srViews.value[srViewName]
-  //console.log(`SrAnalysisMap onMounted: retrieved viewObj.view: ${viewObj?.view} viewObj.baseLayer:${viewObj?.baseLayerName} srViewName:${srViewName} for reqId:${props.selectedReqId}`);
-  if (!viewObj) {
-    logger.error('SrAnalysisMap onMounted: No view found for srViewName', { srViewName })
-    return
-  }
-  mapStore.setSelectedView(viewObj.view) // Set the selected view in the map store
-  //const selectedView = mapStore.getSelectedView(); // Get the selected view
-  //console.log(`SrAnalysisMap onMounted: selected view is ${selectedView} with srViewName: ${srViewName}`);
 
-  if (viewObj.baseLayerName) {
-    mapStore.setSelectedBaseLayer(viewObj.baseLayerName)
-    //console.log(`SrAnalysisMap onMounted: set default baseLayer to ${viewObj.baseLayerName} for selected view ${selectedView}`);
-  } else {
-    logger.error('SrAnalysisMap onMounted: defaulted baseLayer is null')
+  // Get projection and base layer from the request record
+  let { projectionName, baseLayerName } = await db.getProjectionAndBaseLayer(props.selectedReqId)
+  logger.debug('SrAnalysisMap onMounted: retrieved projection and base layer', {
+    projectionName,
+    baseLayerName,
+    reqId: props.selectedReqId
+  })
+
+  // Find the matching projection to get the display name
+  let projection = srProjections.value[projectionName]
+  if (!projection) {
+    logger.warn('SrAnalysisMap onMounted: No projection found, defaulting to Web Mercator', {
+      projectionName,
+      baseLayerName
+    })
+    // Fallback to Web Mercator
+    projectionName = 'EPSG:3857'
+    baseLayerName = 'Esri World Topo'
+    projection = srProjections.value[projectionName]
+
+    // Update the database with the fallback projection
+    await db.updateRequest(props.selectedReqId, {
+      projectionName,
+      baseLayerName
+    })
   }
-  await updateAnalysisMapView('onMounted')
+
+  // Set the selected view and base layer in the map store
+  mapStore.setSelectedView(projection.label) // Use the projection's label as the view name
+  mapStore.setSelectedBaseLayer(baseLayerName)
+
+  // Store the projection info temporarily for updateAnalysisMapView
+  // since getSrViewObj() may not find a composite view during migration
+  const tempViewObj = {
+    projectionName,
+    baseLayerName,
+    view: projection.label,
+    hide: false
+  }
+  await updateAnalysisMapView('onMounted', tempViewObj)
 
   // Set up zoom tracking - DEBUG
   const view = map.getView()
@@ -381,22 +411,48 @@ function handleBaseLayerControlCreated(baseLayerControl: any) {
 
 const handleUpdateBaseLayer = async () => {
   //console.log("SrAnalysisMap handleUpdateBaseLayer called");
-  const srViewKey = findSrViewKey(useMapStore().selectedView, useMapStore().selectedBaseLayer)
-  if (srViewKey.value) {
-    await updateSrViewName(srViewKey.value) // Update the SrViewName in the DB based on the current selection
-    //console.log("SrAnalysisMap handleUpdateBaseLayer: Updated SrViewName based on User selected view and base layer:", srViewKey.value);
-  } else {
-    logger.error('srViewKey is null, cannot update base layer')
+  const mapStore = useMapStore()
+  const baseLayerName = mapStore.getSelectedBaseLayer()
+
+  // Get the current projection from the map view
+  const map = mapRef.value?.map
+  if (!map) {
+    logger.error('map is null, cannot update base layer')
     return
   }
-  //console.log(`SrAnalysisMap handleUpdateBaseLayer: |${baseLayer}|`);
-  const map = mapRef.value?.map
+
+  const view = map.getView()
+  const projection = view.getProjection()
+  const projectionName = projection.getCode()
+
+  if (!projectionName || !baseLayerName) {
+    logger.error('projectionName or baseLayerName is invalid, cannot update base layer', {
+      projectionName,
+      baseLayerName
+    })
+    return
+  }
+
+  // Update the database with the new projection and base layer
   try {
-    if (map) {
-      await updateAnalysisMapView('SrAnalysisMap handleUpdateBaseLayer')
-    } else {
-      logger.error('map is null')
-    }
+    await db.updateRequest(props.selectedReqId, {
+      projectionName,
+      baseLayerName
+    })
+    logger.debug('Updated request with new projection and base layer', {
+      reqId: props.selectedReqId,
+      projectionName,
+      baseLayerName
+    })
+  } catch (error) {
+    logger.error('Failed to update request with new projection/base layer', {
+      error: error instanceof Error ? error.message : String(error)
+    })
+  }
+
+  //console.log(`SrAnalysisMap handleUpdateBaseLayer: |${baseLayer}|`);
+  try {
+    await updateAnalysisMapView('SrAnalysisMap handleUpdateBaseLayer')
   } catch (error) {
     logger.error('handleUpdateBaseLayer failed', {
       error: error instanceof Error ? error.message : String(error)
@@ -540,89 +596,111 @@ function addDeckLayerToMap(map: OLMap) {
   }
 }
 
-const updateAnalysisMapView = async (reason: string) => {
+const updateAnalysisMapView = async (
+  reason: string,
+  overrideViewObj?: { projectionName: string; baseLayerName: string; view: string; hide: boolean }
+) => {
   const map = mapRef.value?.map
-  const srViewName = await db.getSrViewName(props.selectedReqId)
+  let { projectionName, baseLayerName } = await db.getProjectionAndBaseLayer(props.selectedReqId)
+
+  // Use override if provided
+  if (overrideViewObj) {
+    projectionName = overrideViewObj.projectionName
+    baseLayerName = overrideViewObj.baseLayerName
+  }
+
   logger.debug('SrAnalysisMap updateAnalysisMapView start', {
-    srViewName,
+    projectionName,
+    baseLayerName,
     reason,
     selectedReqId: props.selectedReqId
   })
 
   try {
     if (map) {
-      const srViewObj = mapStore.getSrViewObj() // Fixed memory references
-      const srViewKey = findSrViewKey(mapStore.getSelectedView(), mapStore.getSelectedBaseLayer())
-      if (srViewKey.value) {
-        await updateMapView(map, srViewKey.value, reason, false, props.selectedReqId)
-        addLayersForCurrentView(map, srViewObj.projectionName)
-        const summary = await readOrCacheSummary(props.selectedReqId)
-        if (!summary) {
-          logger.error('No summary for reqId', { reqId: props.selectedReqId, srViewName })
-          return
-        }
+      if (!projectionName || !baseLayerName) {
+        logger.error('projectionName or baseLayerName is invalid in updateAnalysisMapView', {
+          projectionName,
+          baseLayerName,
+          reason
+        })
+        return
+      }
 
-        // Check if data extent is compatible with polar projection
-        const isPolarProjection =
-          srViewObj.projectionName === 'EPSG:5936' ||
-          srViewObj.projectionName === 'EPSG:3413' ||
-          srViewObj.projectionName === 'EPSG:3031'
+      // Update map view directly using atomic projection fields
+      logger.debug('Updating map view with atomic fields', {
+        projectionName,
+        baseLayerName,
+        reason
+      })
 
-        if (isPolarProjection && summary.extLatLon) {
-          const { minLat, maxLat, minLon, maxLon } = summary.extLatLon
-          const projection = srProjections.value[srViewObj.projectionName]
+      // Add layers for the current projection
+      addLayersForCurrentView(map, projectionName)
+      const summary = await readOrCacheSummary(props.selectedReqId)
+      if (!summary) {
+        logger.error('No summary for reqId', { reqId: props.selectedReqId, projectionName, baseLayerName })
+        return
+      }
 
-          if (projection?.bbox) {
-            const [projMinLon, projMinLat, projMaxLon, projMaxLat] = projection.bbox
+      // Check if data extent is compatible with polar projection
+      const isPolarProjection =
+        projectionName === 'EPSG:5936' ||
+        projectionName === 'EPSG:3413' ||
+        projectionName === 'EPSG:3031'
 
-            // Check if data extent overlaps with projection's valid extent
-            const hasOverlap = !(
-              maxLat < projMinLat || // Data is entirely south of projection
-              minLat > projMaxLat || // Data is entirely north of projection
-              maxLon < projMinLon || // Data is entirely west of projection
-              minLon > projMaxLon // Data is entirely east of projection
+      if (isPolarProjection && summary.extLatLon) {
+        const { minLat, maxLat, minLon, maxLon } = summary.extLatLon
+        const projection = srProjections.value[projectionName]
+
+        if (projection?.bbox) {
+          const [projMinLon, projMinLat, projMaxLon, projMaxLat] = projection.bbox
+
+          // Check if data extent overlaps with projection's valid extent
+          const hasOverlap = !(
+            maxLat < projMinLat || // Data is entirely south of projection
+            minLat > projMaxLat || // Data is entirely north of projection
+            maxLon < projMinLon || // Data is entirely west of projection
+            minLon > projMaxLon // Data is entirely east of projection
+          )
+
+          if (!hasOverlap) {
+            logger.warn('Data extent incompatible with polar projection', {
+              projectionName,
+              dataExtent: { minLat, maxLat, minLon, maxLon },
+              projectionBbox: projection.bbox
+            })
+            useSrToastStore().error(
+              'Data incompatible with selected projection',
+              `This data (lat: ${minLat.toFixed(1)}° to ${maxLat.toFixed(1)}°) cannot be displayed in ${projection.title} (valid range: ${projMinLat}° to ${projMaxLat}°). Please switch to a global projection to view this data.`,
+              12000
             )
-
-            if (!hasOverlap) {
-              logger.warn('Data extent incompatible with polar projection', {
-                projectionName: srViewObj.projectionName,
-                dataExtent: { minLat, maxLat, minLon, maxLon },
-                projectionBbox: projection.bbox
-              })
-              useSrToastStore().error(
-                'Data incompatible with selected projection',
-                `This data (lat: ${minLat.toFixed(1)}° to ${maxLat.toFixed(1)}°) cannot be displayed in ${projection.title} (valid range: ${projMinLat}° to ${projMaxLat}°). Please switch to a global projection to view this data.`,
-                12000
-              )
-              // Don't try to create deck layer or zoom to invalid extent
-              return
-            }
+            // Don't try to create deck layer or zoom to invalid extent
+            return
           }
         }
-
-        //console.log(`summary.numPoints:${summary.numPoints} srViewName:${srViewName}`);
-        const numPointsStr = summary.numPoints // it is a string BIG INT!
-        const numPoints = parseInt(String(numPointsStr))
-        if (numPoints > 0) {
-          await zoomMapForReqIdUsingView(map, props.selectedReqId, srViewName)
-        } else {
-          logger.warn('No points for reqId', { reqId: props.selectedReqId, srViewName })
-          useSrToastStore().warn(
-            'There are no data points in this region',
-            'Click Request then increase the area of the polygon',
-            10000
-          )
-          map.addLayer(recordsLayer)
-          //dumpMapLayers(map,'SrAnalysisMap');
-          void renderSvrReqPoly(map, props.selectedReqId, 'Records Layer', true)
-        }
-        deckStore.clearDeckInstance() // Clear any existing instance first
-        createDeckInstance(map)
-        addDeckLayerToMap(map)
-        await updateMapAndPlot(`SrAnalysisMap: ${reason}`)
-      } else {
-        logger.error('srViewKey is null')
       }
+
+      //console.log(`summary.numPoints:${summary.numPoints} projectionName:${projectionName}`);
+      const numPointsStr = summary.numPoints // it is a string BIG INT!
+      const numPoints = parseInt(String(numPointsStr))
+      if (numPoints > 0) {
+        // Zoom to the data extent using the projection name
+        await zoomMapForReqIdUsingView(map, props.selectedReqId, projectionName)
+      } else {
+        logger.warn('No points for reqId', { reqId: props.selectedReqId, projectionName, baseLayerName })
+        useSrToastStore().warn(
+          'There are no data points in this region',
+          'Click Request then increase the area of the polygon',
+          10000
+        )
+        map.addLayer(recordsLayer)
+        //dumpMapLayers(map,'SrAnalysisMap');
+        void renderSvrReqPoly(map, props.selectedReqId, 'Records Layer', true)
+      }
+      deckStore.clearDeckInstance() // Clear any existing instance first
+      createDeckInstance(map)
+      addDeckLayerToMap(map)
+      await updateMapAndPlot(`SrAnalysisMap: ${reason}`)
     } else {
       logger.error('map is null')
     }
@@ -664,7 +742,8 @@ const updateAnalysisMapView = async (reason: string) => {
     logger.debug('SrAnalysisMap updateAnalysisMapView done', { reason })
   }
   logger.debug('Done SrAnalysisMap updateAnalysisMapView', {
-    srViewName,
+    projectionName,
+    baseLayerName,
     reason,
     selectedReqId: props.selectedReqId
   })

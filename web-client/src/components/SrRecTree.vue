@@ -465,7 +465,7 @@ onUnmounted(() => {
           icon="pi pi-chart-line"
           class="sr-glow-button p-button-icon-only"
           @click="analyze(slotProps.node.data.reqId)"
-          @mouseover="tooltipRef?.showTooltip($event, `Analyze ${slotProps.node.data.reqId}`)"
+          @mouseover="tooltipRef?.showTooltip($event, `Analyze ${slotProps.node.data.reqId}${slotProps.node.data.projectionName ? ` in ${slotProps.node.data.projectionName}` : ''}`)"
           @mouseleave="tooltipRef?.hideTooltip"
           variant="text"
           rounded
@@ -515,7 +515,7 @@ onUnmounted(() => {
     </Column>
     <Column field="crs" style="width: 10rem">
       <template #header>
-        <div style="text-align: center; width: 100%">CRS</div>
+        <div style="text-align: center; width: 100%">Data CRS</div>
       </template>
       <template #body="slotProps">
         <span v-if="slotProps.node.data.geo_metadata?.columns?.geometry?.crs?.id">

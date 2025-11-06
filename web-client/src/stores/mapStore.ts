@@ -9,9 +9,6 @@ import { Stroke } from 'ol/style';
 import { type Coordinate } from "ol/coordinate";
 import type { EventsKey } from 'ol/events';
 import {type Type as OlGeometryType} from 'ol/geom/Geometry';
-import { srViews } from '@/composables/SrViews';
-import type { SrView } from '@/composables/SrViews';
-import { findSrView } from '@/composables/SrViews';
 import type { SrLayer } from '@/composables/SrLayers.js';
 import { ref, type Ref } from 'vue';
 import { createLogger } from '@/utils/logger';
@@ -201,17 +198,6 @@ export const useMapStore = defineStore('map', {
         this.drawType = '' as string;
         this.layerCache = {} as LayerCache;
     },
-    setSrView(srView: string) {
-        this.selectedView = srView;
-        // Note: srViewObj is intentionally not used - it's here for potential future use
-        // const srViewObj = srViews.value[srView] as SrView;
-    },
-    getSrView() {
-        return this.selectedView;
-    },
-    getSrViewObj() : SrView {
-        return findSrView(this.selectedView,this.selectedBaseLayer).value as SrView;
-    },
     getDrawType(): string {
         return this.drawType;
     },
@@ -234,14 +220,6 @@ export const useMapStore = defineStore('map', {
     },
     getSelectedView() {
         return this.selectedView;
-    },
-    getUniqueBaseLayersForView(view: string): string[] {
-        const baseLayerSet = new Set<string>(
-          Object.values(srViews.value)
-            .filter((srView) => srView.view === view)
-            .map((srView) => srView.baseLayerName)
-        );
-        return Array.from(baseLayerSet);
     },
     getExtentToRestore(): number[] | null {
         return this.extentToRestore;

@@ -45,7 +45,7 @@ export const srViews = ref<{ [key: string]: SrView }>({
     projectionName: 'EPSG:4326',
     baseLayerName: 'OpenStreet'
   },
-  North: {
+  'North Alaska': {
     hide: false,
     view: 'North Alaska',
     projectionName: 'EPSG:5936',

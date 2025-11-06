@@ -14,19 +14,22 @@ export interface SrProjection {
   center?: number[]
   extent?: number[]
   bbox: number[]
+  defaultBaseLayerName?: string
 }
+// if it has a defaultBaseLayerName, it is selectable on the Request Map
 export const srProjections = ref<{ [key: string]: SrProjection }>({
   'EPSG:3857': {
     // This is the default projection for openlayers (coordinate units in meters)
     title: 'Web Mercator',
-    label: 'Web Mercator',
+    label: 'Global Mercator',
     name: 'EPSG:3857',
     proj4def:
       '+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs +type=crs',
     default_zoom: 2,
     min_zoom: 0,
     max_zoom: 19,
-    bbox: [-180.0, -85.06, 180.0, 85.06]
+    bbox: [-180.0, -85.06, 180.0, 85.06],
+    defaultBaseLayerName: 'Esri World Topo'
   },
   'EPSG:4326': {
     // Web Mercator -- This is the 'standard' projection for web maps (coordinate units in lon lat)
@@ -37,7 +40,8 @@ export const srProjections = ref<{ [key: string]: SrProjection }>({
     default_zoom: 2.85,
     min_zoom: 0, // really 1 because
     max_zoom: 16,
-    bbox: [-180.0, -90.0, 180.0, 90.0]
+    bbox: [-180.0, -90.0, 180.0, 90.0],
+    defaultBaseLayerName: ''
   },
   'EPSG:7912': {
     // ITRF2014 (3D) - used for high-precision geodetic data (e.g., ICESat-2)
@@ -48,7 +52,8 @@ export const srProjections = ref<{ [key: string]: SrProjection }>({
     default_zoom: 2.85,
     min_zoom: 0,
     max_zoom: 16,
-    bbox: [-180.0, -90.0, 180.0, 90.0]
+    bbox: [-180.0, -90.0, 180.0, 90.0],
+    defaultBaseLayerName: ''
   },
   'EPSG:9000': {
     // ITRF2014 (2D) - horizontal component for compound CRS
@@ -59,7 +64,8 @@ export const srProjections = ref<{ [key: string]: SrProjection }>({
     default_zoom: 2.85,
     min_zoom: 0,
     max_zoom: 16,
-    bbox: [-180.0, -90.0, 180.0, 90.0]
+    bbox: [-180.0, -90.0, 180.0, 90.0],
+    defaultBaseLayerName: ''
   },
   'EPSG:9989': {
     // ITRF2014 (height) - vertical component for compound CRS, use 2D for map display
@@ -70,7 +76,8 @@ export const srProjections = ref<{ [key: string]: SrProjection }>({
     default_zoom: 2.85,
     min_zoom: 0,
     max_zoom: 16,
-    bbox: [-180.0, -90.0, 180.0, 90.0]
+    bbox: [-180.0, -90.0, 180.0, 90.0],
+    defaultBaseLayerName: ''
   },
   'EPSG:5936': {
     title: 'North: Alaska Polar Stereographic',
@@ -83,7 +90,8 @@ export const srProjections = ref<{ [key: string]: SrProjection }>({
     max_zoom: 7.2, // Limited by Arctic Ocean Base tile availability
     center: [2000000, 2000000], // North Pole in projection coordinates (accounting for false easting/northing)
     extent: [-1402023.01, -1402023.01, 5402023.01, 5402023.01], // Square extent for proper centering
-    bbox: [-180.0, 60.0, 180.0, 89.9] // minx, miny, maxx, maxy - avoid pole singularity
+    bbox: [-180.0, 60.0, 180.0, 89.9], // minx, miny, maxx, maxy - avoid pole singularity
+    defaultBaseLayerName: 'Arctic Ocean Base'
   },
   'EPSG:3413': {
     title: 'NSIDC Sea Ice Polar Stereographic North',
@@ -96,7 +104,8 @@ export const srProjections = ref<{ [key: string]: SrProjection }>({
     max_zoom: 10, // Limited by Arctic Ocean Base tile availability
     center: [-2101846.95, 2124970.85], // Centered view for North NSIDC projection
     extent: [-3314693.24, -3314693.24, 3314693.24, 3314693.24],
-    bbox: [-180.0, 60.0, 180.0, 89.9] // minx, miny, maxx, maxy - avoid pole singularity
+    bbox: [-180.0, 60.0, 180.0, 89.9], // minx, miny, maxx, maxy - avoid pole singularity
+    defaultBaseLayerName: 'Arctic Imagery NSIDC'
   },
   'EPSG:3031': {
     title: 'South: Antarctic Polar Stereographic',
@@ -109,7 +118,8 @@ export const srProjections = ref<{ [key: string]: SrProjection }>({
     max_zoom: 10, // Limited by Antarctic Imagery tile availability
     center: [0, 0], // South Pole in projection coordinates
     extent: [-3299207.53, -3333134.03, 3299207.53, 3333134.03],
-    bbox: [-180.0, -89.9, 180.0, -60.0] // minx, miny, maxx, maxy - avoid pole singularity
+    bbox: [-180.0, -89.9, 180.0, -60.0], // minx, miny, maxx, maxy - avoid pole singularity
+    defaultBaseLayerName: 'Antarctic Imagery'
   }
 })
 

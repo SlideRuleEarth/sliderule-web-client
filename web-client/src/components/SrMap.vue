@@ -9,9 +9,7 @@ const logger = createLogger('SrMap')
 // Debug panel control - set to false to hide the debug info overlay
 const SHOW_DEBUG_PANEL = false
 
-import { findSrViewKey } from '@/composables/SrViews'
-import { useProjectionNames } from '@/composables/SrProjections'
-import { srProjections } from '@/composables/SrProjections'
+import { useProjectionNames, srProjections } from '@/composables/SrProjections'
 import proj4 from 'proj4'
 import { register } from 'ol/proj/proj4.js'
 import 'ol-geocoder/dist/ol-geocoder.min.css'
@@ -43,10 +41,10 @@ import {
 import { onActivated } from 'vue'
 import { onDeactivated } from 'vue'
 import type { Ref } from 'vue'
-import { checkAreaOfConvexHullWarning, updateSrViewName, renderReqPin } from '@/utils/SrMapUtils'
+import { checkAreaOfConvexHullWarning, renderReqPin } from '@/utils/SrMapUtils'
 import { toLonLat } from 'ol/proj.js'
 import { useReqParamsStore } from '@/stores/reqParamsStore'
-import { convexHull, isClockwise } from '@/composables/SrTurfUtils'
+import { convexHull, convexHullInProjection, isClockwise } from '@/composables/SrTurfUtils'
 import { type Coordinate } from 'ol/coordinate.js'
 import { hullColor, type SrRegion } from '@/types/SrTypes'
 import { format } from 'ol/coordinate.js'
@@ -58,7 +56,11 @@ import { Map, MapControls } from 'vue3-openlayers'
 import { useRequestsStore } from '@/stores/requestsStore'
 import VectorLayer from 'ol/layer/Vector.js'
 import { useDebugStore } from '@/stores/debugStore'
-import { updateMapView } from '@/utils/SrMapUtils'
+import { getTransform } from 'ol/proj.js'
+import { applyTransform, getCenter as getExtentCenter } from 'ol/extent'
+import View from 'ol/View'
+import { getLayer } from '@/composables/SrLayers'
+import type OLlayer from 'ol/layer/Layer'
 import {
   renderSvrReqPoly,
   renderSvrReqRegionMask,
@@ -67,6 +69,7 @@ import {
 } from '@/utils/SrMapUtils'
 import router from '@/router/index.js'
 import { useRecTreeStore } from '@/stores/recTreeStore'
+import { db } from '@/db/SlideRuleDb'
 import SrFeatureMenuOverlay from '@/components/SrFeatureMenuOverlay.vue'
 import type { Source } from 'ol/source.js'
 import type LayerRenderer from 'ol/renderer/Layer.js'
@@ -149,7 +152,8 @@ const geoCoderStore = useGeoCoderStore()
 const lonlat_template = 'Latitude:{y}\u00B0, Longitude:{x}\u00B0'
 const meters_template = 'y:{y}m, x:{x}m'
 const stringifyFunc = (coordinate: Coordinate) => {
-  const projName = useMapStore().getSrViewObj().projectionName
+  const map = useMapStore().getMap()
+  const projName = map ? map.getView().getProjection().getCode() : 'EPSG:3857'
   let newProj = getProjection(projName)
   let newCoord = coordinate
   if (!debugStore.useMetersForMousePosition) {
@@ -218,7 +222,10 @@ const drawPolygon = new Draw({
 const handleEvent = (event: any) => {
   logger.debug('Map event received', { event })
 }
-const computedProjName = computed(() => mapStore.getSrViewObj().projectionName)
+const computedProjName = computed(() => {
+  const map = mapStore.getMap()
+  return map ? map.getView().getProjection().getCode() : 'EPSG:3857'
+})
 
 function getLayerByName(name: string): Layer<Source, LayerRenderer<any>> | undefined {
   const baseLayer = mapRef.value?.map
@@ -443,15 +450,41 @@ drawPolygon.on('drawstart', (evt) => {
     const geom = feature.getGeometry() as Polygon
     if (!map || !geom) return
 
-    // geodesic area in m² using current view projection
-    const m2 = Math.abs(geodesicArea(geom, { projection: map.getView().getProjection() }))
-    dragAreaEl.textContent = formatArea(m2)
+    try {
+      // geodesic area in m² using current view projection
+      const m2 = Math.abs(geodesicArea(geom, { projection: map.getView().getProjection() }))
 
-    // position HUD near the latest vertex (fallback: interior of polygon)
-    const rings = geom.getCoordinates()
-    const last = rings?.[0]?.[rings[0].length - 1]
-    const pos = last ?? geom.getInteriorPoint().getCoordinates()
-    dragAreaOverlay.value?.setPosition(pos as [number, number])
+      // Validate the area is a valid number
+      if (!Number.isFinite(m2)) {
+        logger.warn('Invalid area calculated during polygon drawing', { m2 })
+        dragAreaEl.textContent = ''
+        return
+      }
+
+      dragAreaEl.textContent = formatArea(m2)
+
+      // position HUD near the latest vertex (fallback: interior of polygon)
+      const rings = geom.getCoordinates()
+      const last = rings?.[0]?.[rings[0].length - 1]
+
+      // Validate coordinates before positioning overlay
+      if (last && Number.isFinite(last[0]) && Number.isFinite(last[1])) {
+        dragAreaOverlay.value?.setPosition(last as [number, number])
+      } else {
+        // Try interior point as fallback
+        const interior = geom.getInteriorPoint().getCoordinates()
+        if (interior && Number.isFinite(interior[0]) && Number.isFinite(interior[1])) {
+          dragAreaOverlay.value?.setPosition(interior as [number, number])
+        } else {
+          logger.warn('Cannot position overlay - invalid coordinates', { last, interior })
+        }
+      }
+    } catch (error) {
+      logger.error('Error during polygon drawing geometry change', {
+        error: error instanceof Error ? error.message : String(error)
+      })
+      dragAreaEl.textContent = ''
+    }
   })
 })
 
@@ -482,15 +515,38 @@ drawPolygon.on('drawend', function (event) {
         const rings = geometry.getCoordinates() // This retrieves all rings
         //console.log("Original polyCoords:", rings);
 
-        const projName = useMapStore().getSrViewObj().projectionName
+        const map = useMapStore().getMap()
+        const projName = map ? map.getView().getProjection().getCode() : 'EPSG:3857'
         let thisProj = getProjection(projName)
+        const isPolarProjection = projName === 'EPSG:5936' || projName === 'EPSG:3413' || projName === 'EPSG:3031'
+
+        logger.debug('Polygon drawend - starting coordinate transformation', {
+          projection: projName,
+          isPolarProjection,
+          ringCount: rings.length,
+          firstRingCoordCount: rings[0]?.length,
+          firstCoord: rings[0]?.[0]
+        })
+
+        // Store the original projection coordinates for convex hull calculation
+        const projectionCoords = rings[0] // Get the outer ring in projection coordinates
+
         let flatLonLatPairs
         if (thisProj?.getUnits() !== 'degrees') {
           //Convert each ring's coordinates to lon/lat using toLonLat
           const convertedRings: Coordinate[][] = rings.map((ring: Coordinate[]) =>
-            ring.map((coord) => toLonLat(coord) as Coordinate)
+            ring.map((coord) => {
+              const lonLat = toLonLat(coord, projName)
+              return lonLat as Coordinate
+            })
           )
-          //console.log("Converted polyCoords:", convertedRings);
+
+          logger.debug('Coordinates converted to lon/lat', {
+            projection: projName,
+            firstConvertedCoord: convertedRings[0]?.[0],
+            coordCount: convertedRings.flatMap(r => r).length
+          })
+
           mapStore.polyCoords = convertedRings
           flatLonLatPairs = convertedRings.flatMap((ring) => ring)
         } else {
@@ -501,6 +557,31 @@ drawPolygon.on('drawend', function (event) {
           lon: coord[0],
           lat: coord[1]
         }))
+
+        // Validate coordinates are finite
+        const hasInvalidCoords = srLonLatCoordinates.some(
+          (coord) => !Number.isFinite(coord.lon) || !Number.isFinite(coord.lat)
+        )
+        if (hasInvalidCoords) {
+          logger.error('Polygon has invalid coordinates after transformation', {
+            projection: projName,
+            coordinates: srLonLatCoordinates
+          })
+          toast.add({
+            severity: 'error',
+            summary: 'Invalid polygon',
+            detail: 'The drawn polygon contains invalid coordinates. Please try drawing in a different location.',
+            life: 8000
+          })
+          // Clear the invalid drawing
+          vectorSource.removeFeature(feature)
+          disableDrawPolygon()
+          if (srDrawControlRef.value) {
+            srDrawControlRef.value.resetPicked()
+          }
+          return
+        }
+
         if (isClockwise(srLonLatCoordinates)) {
           //console.log('poly is clockwise, reversing');
           reqParamsStore.setPoly(srLonLatCoordinates.reverse())
@@ -513,12 +594,84 @@ drawPolygon.on('drawend', function (event) {
 
         //console.log('srLonLatCoordinates:',srLonLatCoordinates);
         // Calculate convex hull (used when rasterize is NOT enabled)
-        const thisConvexHull = convexHull(srLonLatCoordinates)
+        // For polar projections, calculate hull in projection space for accuracy
+        let thisConvexHull: SrRegion
+        let convexHullProjectionCoords: Coordinate[] | undefined
+
+        try {
+          if (isPolarProjection && projectionCoords) {
+            // Calculate convex hull in projection coordinates (more accurate for polar projections)
+            logger.debug('Calculating convex hull in projection space', {
+              projection: projName,
+              coordCount: projectionCoords.length
+            })
+
+            convexHullProjectionCoords = convexHullInProjection(projectionCoords)
+
+            // Convert the projection-space convex hull to lon/lat for storage
+            thisConvexHull = convexHullProjectionCoords.map((coord) => {
+              const lonLat = toLonLat(coord, projName)
+              return { lon: lonLat[0], lat: lonLat[1] }
+            })
+
+            logger.debug('Convex hull calculated in projection space', {
+              projection: projName,
+              hullCoordCount: thisConvexHull.length,
+              firstPoint: thisConvexHull[0]
+            })
+          } else {
+            // For non-polar projections, use the standard lon/lat method
+            thisConvexHull = convexHull(srLonLatCoordinates)
+          }
+        } catch (error) {
+          logger.error('Failed to calculate convex hull', {
+            error: error instanceof Error ? error.message : String(error),
+            coordinates: srLonLatCoordinates,
+            isPolarProjection
+          })
+          toast.add({
+            severity: 'error',
+            summary: 'Convex hull error',
+            detail: 'Unable to calculate convex hull for the drawn polygon. Please try drawing a different shape.',
+            life: 8000
+          })
+          // Clear the invalid drawing
+          vectorSource.removeFeature(feature)
+          disableDrawPolygon()
+          if (srDrawControlRef.value) {
+            srDrawControlRef.value.resetPicked()
+          }
+          return
+        }
         reqParamsStore.setConvexHull(thisConvexHull) // this also populates the area
         //console.log('reqParamsStore.poly:',reqParamsStore.convexHull);
         // Create GeoJSON from reqParamsStore.convexHull for display
         const tag = reqParamsStore.getFormattedAreaOfConvexHull()
-        if (thisConvexHull) {
+        if (thisConvexHull && thisConvexHull.length > 0) {
+          // Validate convex hull coordinates are finite
+          const hasInvalidHullCoords = thisConvexHull.some(
+            (coord) => !Number.isFinite(coord.lon) || !Number.isFinite(coord.lat)
+          )
+          if (hasInvalidHullCoords) {
+            logger.error('Convex hull has invalid coordinates', {
+              projection: projName,
+              convexHull: thisConvexHull
+            })
+            toast.add({
+              severity: 'error',
+              summary: 'Invalid convex hull',
+              detail: 'The convex hull contains invalid coordinates. The polygon may be outside the valid area for this projection.',
+              life: 8000
+            })
+            // Clear the invalid drawing
+            vectorSource.removeFeature(feature)
+            disableDrawPolygon()
+            if (srDrawControlRef.value) {
+              srDrawControlRef.value.resetPicked()
+            }
+            return
+          }
+
           const geoJson = {
             type: 'Feature',
             geometry: {
@@ -530,10 +683,19 @@ drawPolygon.on('drawend', function (event) {
             }
           }
           if (map) {
-            enableTagDisplay(map, vectorSource)
+            enableTagDisplay(map as OLMap, vectorSource)
           } else {
             logger.error('Map is null when enabling tag display')
           }
+
+          logger.debug('Drawing convex hull', {
+            projection: projName,
+            convexHullPoints: thisConvexHull.length,
+            firstPoint: thisConvexHull[0],
+            lastPoint: thisConvexHull[thisConvexHull.length - 1],
+            tag
+          })
+
           //console.log('GeoJSON:', JSON.stringify(geoJson));
           const drawExtent = drawGeoJson(
             'userDrawn',
@@ -543,19 +705,78 @@ drawPolygon.on('drawend', function (event) {
             false,
             tag
           )
+
+          logger.debug('drawGeoJson returned', {
+            drawExtent,
+            hasExtent: drawExtent !== undefined,
+            extentIsFinite: drawExtent ? drawExtent.every(v => Number.isFinite(v)) : false
+          })
+
+          // Check if we're in a polar projection
+          const isPolarProjection = projName === 'EPSG:5936' || projName === 'EPSG:3413' || projName === 'EPSG:3031'
+
           if (map && drawExtent) {
             const [minX, minY, maxX, maxY] = drawExtent
-            const isZeroArea = minX === maxX || minY === maxY
 
-            if (!isZeroArea) {
-              map.getView().fit(drawExtent, {
-                size: map.getSize(),
-                padding: [40, 40, 40, 40]
+            // Validate all coordinates are finite before attempting to fit view
+            const hasInvalidCoords = !Number.isFinite(minX) || !Number.isFinite(minY) ||
+                                     !Number.isFinite(maxX) || !Number.isFinite(maxY)
+
+            if (hasInvalidCoords) {
+              logger.warn('Invalid extent after drawing polygon, skipping zoom', {
+                drawExtent,
+                projection: map.getView().getProjection().getCode()
               })
+              // Don't zoom, keep current view
             } else {
-              logger.warn('Zero-area extent, skipping zoom', { drawExtent })
-              zoomOutToFullMap(map)
+              const isZeroArea = minX === maxX || minY === maxY
+
+              if (!isZeroArea) {
+                // For polar projections, be very conservative with zooming to avoid tile loading issues
+                if (isPolarProjection) {
+                  const currentZoom = map.getView().getZoom()
+                  const maxZoom = srProjections.value[projName]?.max_zoom || 7
+
+                  logger.info('Skipping automatic zoom for polar projection to prevent tile loading issues', {
+                    projection: projName,
+                    currentZoom,
+                    maxZoom,
+                    extent: drawExtent
+                  })
+
+                  // Don't zoom automatically in polar projections - tiles may not be available
+                  // User can manually zoom if needed
+                  toast.add({
+                    severity: 'info',
+                    summary: 'Polygon drawn',
+                    detail: 'Automatic zoom disabled in polar projections. Use the zoom controls if needed.',
+                    life: 5000
+                  })
+                } else {
+                  map.getView().fit(drawExtent, {
+                    size: map.getSize(),
+                    padding: [40, 40, 40, 40]
+                  })
+                }
+              } else {
+                logger.warn('Zero-area extent, skipping zoom', { drawExtent })
+                // Don't zoom out to full map in polar projections
+                if (!isPolarProjection) {
+                  zoomOutToFullMap(map as OLMap)
+                }
+              }
             }
+          } else if (!drawExtent) {
+            logger.error('drawGeoJson returned undefined - convex hull may be outside valid projection area', {
+              projection: projName,
+              convexHullLength: thisConvexHull?.length
+            })
+            toast.add({
+              severity: 'warn',
+              summary: 'Polygon may be outside valid area',
+              detail: `The drawn polygon may extend outside the valid area for ${projName}. The convex hull could not be displayed.`,
+              life: 8000
+            })
           }
           //console.log("drawExtent:",drawExtent);
           //console.log("drawExtent in lon/lat:",drawExtent.map(coord => toLonLat(coord)));
@@ -772,7 +993,6 @@ async function loadDefaultBathymetryFeatures() {
 
 onMounted(async () => {
   //console.log("SrMap onMounted");
-  //console.log("SrProjectionControl onMounted projectionControlElement:", projectionControlElement.value);
   if (tooltipRef.value) {
     mapStore.tooltipRef = tooltipRef.value
   } else {
@@ -847,7 +1067,8 @@ onMounted(async () => {
         //   console.error(`Error: no wmtsCap for projection: ${name}`);
         // }
       })
-      mapStore.setCurrentWmsCap(mapStore.getSrViewObj().projectionName)
+      const projectionName = map ? map.getView().getProjection().getCode() : 'EPSG:3857'
+      mapStore.setCurrentWmsCap(projectionName)
 
       //mapStore.setCurrentWmtsCap(mapStore.getProjection());
       // if(mapStore.plink){
@@ -1284,32 +1505,158 @@ const updateReqMapView = async (reason: string, restoreView: boolean = false) =>
   logger.debug('updateReqMapView started', { reason, restoreView })
   const map = mapRef.value?.map
   try {
-    if (map) {
-      const srViewObj = mapStore.getSrViewObj()
-      const srViewKey = findSrViewKey(mapStore.getSelectedView(), mapStore.getSelectedBaseLayer())
-      if (srViewKey.value) {
-        // Filter features BEFORE changing projection to prevent transformation errors
-        applyProjectionExtentFiltering(drawVectorLayer, srViewObj.projectionName, map)
-        applyProjectionExtentFiltering(pinVectorLayer, srViewObj.projectionName, map)
-        applyProjectionExtentFiltering(recordsLayer, srViewObj.projectionName, map)
-        applyProjectionExtentFiltering(uploadedFeaturesVectorLayer, srViewObj.projectionName, map)
-        applyProjectionExtentFiltering(bathymetryFeaturesVectorLayer, srViewObj.projectionName, map)
-
-        await updateMapView(map, srViewKey.value, reason, restoreView)
-        map.addLayer(drawVectorLayer)
-        map.addLayer(pinVectorLayer)
-        map.addLayer(recordsLayer)
-        map.addLayer(uploadedFeaturesVectorLayer)
-        map.addLayer(bathymetryFeaturesVectorLayer)
-        addLayersForCurrentView(map, srViewObj.projectionName)
-      } else {
-        logger.error('srViewKey is null in updateReqMapView', { reason })
-      }
-    } else {
+    if (!map) {
       logger.error('Map is null in updateReqMapView', { reason })
+      return
     }
+
+    const srViewObj = mapStore.getSrViewObj()
+    if (!srViewObj) {
+      logger.error('updateReqMapView: srViewObj is null')
+      return
+    }
+
+    const projectionName = srViewObj.projectionName
+    const baseLayerName = srViewObj.baseLayerName
+    const srProjObj = srProjections.value[projectionName]
+
+    if (!srProjObj) {
+      logger.error('updateReqMapView: projection config not found', { projectionName })
+      return
+    }
+
+    logger.debug('updateReqMapView', { reason, projectionName, baseLayerName })
+
+    // Get the projection object
+    let newProj = getProjection(projectionName)
+    if (!newProj) {
+      logger.error('updateReqMapView: Could not get projection', { projectionName })
+      return
+    }
+
+    // Filter features BEFORE changing projection to prevent transformation errors
+    applyProjectionExtentFiltering(drawVectorLayer, projectionName, map)
+    applyProjectionExtentFiltering(pinVectorLayer, projectionName, map)
+    applyProjectionExtentFiltering(recordsLayer, projectionName, map)
+    applyProjectionExtentFiltering(uploadedFeaturesVectorLayer, projectionName, map)
+    applyProjectionExtentFiltering(bathymetryFeaturesVectorLayer, projectionName, map)
+
+    // Remove all existing layers
+    map.getAllLayers().forEach((layer: OLlayer) => {
+      map.removeLayer(layer)
+    })
+
+    // Add the base layer
+    const layer = getLayer(projectionName, baseLayerName)
+    if (layer) {
+      map.addLayer(layer)
+    } else {
+      logger.error('updateReqMapView: No layer found', {
+        projectionName,
+        baseLayerTitle: baseLayerName
+      })
+    }
+
+    // Set up extent and worldExtent for the projection
+    const fromLonLatFn = getTransform('EPSG:4326', newProj)
+    let extent = newProj.getExtent()
+
+    if (extent === undefined || extent === null) {
+      if (srProjObj.extent) {
+        extent = srProjObj.extent
+        newProj.setExtent(extent)
+      } else {
+        let bbox = [...srProjObj.bbox]
+        if (srProjObj.bbox[0] > srProjObj.bbox[2]) {
+          bbox[2] += 360
+        }
+        if (newProj.getUnits() === 'degrees') {
+          extent = bbox
+        } else {
+          extent = applyTransform(bbox, fromLonLatFn, undefined, undefined)
+        }
+        newProj.setExtent(extent)
+      }
+    }
+
+    let worldExtent = newProj.getWorldExtent()
+    if (
+      worldExtent === undefined ||
+      worldExtent === null ||
+      worldExtent.some((value: number) => !Number.isFinite(value))
+    ) {
+      let bbox = [...srProjObj.bbox]
+      if (srProjObj.bbox[0] > srProjObj.bbox[2]) {
+        bbox[2] += 360
+      }
+      if (newProj.getUnits() === 'degrees') {
+        worldExtent = bbox
+      } else {
+        worldExtent = applyTransform(bbox, fromLonLatFn, undefined, undefined)
+      }
+      if (worldExtent.some((value: number) => !Number.isFinite(value))) {
+        logger.warn('worldExtent is still invalid after transformation, falling back to extent')
+        worldExtent = extent
+        newProj.setWorldExtent(worldExtent)
+      } else {
+        newProj.setWorldExtent(worldExtent)
+      }
+    }
+
+    // Get center from projection config or calculate from extent
+    let center = srProjObj.center || getExtentCenter(extent)
+
+    // Check if this is a polar projection
+    const isPolarProjection =
+      projectionName === 'EPSG:5936' ||
+      projectionName === 'EPSG:3413' ||
+      projectionName === 'EPSG:3031'
+
+    // Create new View with the selected projection
+    let newView = new View({
+      projection: newProj,
+      extent: isPolarProjection ? undefined : extent,
+      center: center,
+      zoom: srProjObj.default_zoom,
+      minZoom: srProjObj.min_zoom,
+      maxZoom: srProjObj.max_zoom
+    })
+
+    mapStore.setExtentToRestore(extent)
+
+    // If restoreView is true, try to restore the previous view state
+    if (restoreView) {
+      const centerToRestore = mapStore.getCenterToRestore()
+      const zoomToRestore = mapStore.getZoomToRestore()
+      if (centerToRestore && zoomToRestore !== null) {
+        newView.setCenter(centerToRestore)
+        newView.setZoom(zoomToRestore)
+        logger.debug('updateReqMapView: Restored view state', {
+          center: centerToRestore,
+          zoom: zoomToRestore
+        })
+      }
+    }
+
+    map.setView(newView)
+
+    // Add vector layers back
+    map.addLayer(drawVectorLayer)
+    map.addLayer(pinVectorLayer)
+    map.addLayer(recordsLayer)
+    map.addLayer(uploadedFeaturesVectorLayer)
+    map.addLayer(bathymetryFeaturesVectorLayer)
+
+    // Add other layers for this projection
+    addLayersForCurrentView(map, projectionName)
+
+    logger.debug('updateReqMapView: Successfully updated map view', {
+      projectionName,
+      baseLayerName,
+      reason
+    })
   } catch (error) {
-    logger.error('updateMapView failed', {
+    logger.error('updateReqMapView failed', {
       reason,
       error: error instanceof Error ? error.message : String(error)
     })
@@ -1325,59 +1672,93 @@ const updateReqMapView = async (reason: string, restoreView: boolean = false) =>
 }
 
 const handleUpdateSrView = async () => {
-  const srViewKey = findSrViewKey(mapStore.getSelectedView(), mapStore.getSelectedBaseLayer())
-  if (srViewKey.value) {
-    logger.debug('handleUpdateSrView', { srViewKey: srViewKey.value })
-    const map = mapRef.value?.map
-    try {
-      if (map) {
-        saveMapZoomState(map)
-        await updateReqMapView('handleUpdateSrView', false) // Don't restore - use projection defaults
-      } else {
-        logger.error('Map is null in handleUpdateSrView')
-      }
-    } catch (error) {
-      logger.error('handleUpdateSrView failed', {
-        error: error instanceof Error ? error.message : String(error)
+  logger.debug('handleUpdateSrView')
+  const map = mapRef.value?.map
+  if (!map) {
+    logger.error('Map is null in handleUpdateSrView')
+    return
+  }
+
+  try {
+    // After SrViewControl's updateView(), the mapStore has been updated with:
+    // 1. selectedView = projection label (e.g., "North Alaska")
+    // 2. selectedBaseLayer = default base layer for that projection
+    // And the map's View has been set to the new projection
+
+    const view = map.getView()
+    const projection = view.getProjection()
+    const projectionName = projection.getCode()
+    const baseLayerName = mapStore.getSelectedBaseLayer()
+
+    // Update the database with the new projection and base layer for the selected request
+    const selectedReqId = recTreeStore.selectedReqId
+    if (selectedReqId && projectionName && baseLayerName) {
+      await db.updateRequestRecord(
+        { req_id: selectedReqId, projectionName, baseLayerName },
+        false
+      )
+      logger.debug('Updated projection and base layer in DB after view change', {
+        reqId: selectedReqId,
+        projectionName,
+        baseLayerName,
+        view: mapStore.selectedView
       })
     }
-  } else {
-    logger.error('srViewKey is null in handleUpdateSrView')
+
+    // Update the map display (add vector layers, etc.)
+    saveMapZoomState(map)
+    await updateReqMapView('handleUpdateSrView', false) // Don't restore - use projection defaults
+  } catch (error) {
+    logger.error('handleUpdateSrView failed', {
+      error: error instanceof Error ? error.message : String(error)
+    })
   }
 }
 
 const handleUpdateBaseLayer = async () => {
-  const baseLayer = mapStore.getSelectedBaseLayer()
-  const srViewKey = findSrViewKey(useMapStore().selectedView, useMapStore().selectedBaseLayer)
-  if (srViewKey.value) {
-    await updateSrViewName(srViewKey.value) // Update the SrViewName in the DB based on the current selection
-  } else {
-    logger.error("srViewKey is null, can't update base layer")
+  const map = mapRef.value?.map
+  if (!map) {
+    logger.error('Map is null in handleUpdateBaseLayer')
     return
   }
-  logger.debug('handleUpdateBaseLayer', { baseLayer })
-  const map = mapRef.value?.map
+
+  const view = map.getView()
+  const projection = view.getProjection()
+  const projectionName = projection.getCode()
+  const baseLayerName = mapStore.getSelectedBaseLayer()
+
+  // Update the database with the current atomic projection and base layer
+  const selectedReqId = useRecTreeStore().selectedReqId
+  if (selectedReqId && projectionName && baseLayerName) {
+    await db.updateRequestRecord(
+      { req_id: selectedReqId, projectionName, baseLayerName },
+      false
+    )
+    logger.debug('Updated projection and base layer in DB', {
+      reqId: selectedReqId,
+      projectionName,
+      baseLayerName
+    })
+  }
+
+  logger.debug('handleUpdateBaseLayer', { baseLayerName, projectionName })
+
   try {
-    if (map) {
-      const view = map.getView()
-      mapStore.setExtentToRestore(view.calculateExtent(map.getSize()))
-      const center = view.getCenter()
-      if (center) {
-        mapStore.setCenterToRestore(center)
-      } else {
-        logger.error('Center is null in handleUpdateBaseLayer')
-      }
-      const zoom = view.getZoom()
-      if (zoom) {
-        mapStore.setZoomToRestore(zoom)
-      } else {
-        logger.error('Zoom is null in handleUpdateBaseLayer')
-      }
-      saveMapZoomState(map)
-      await updateReqMapView('handleUpdateBaseLayer', true)
+    mapStore.setExtentToRestore(view.calculateExtent(map.getSize()))
+    const center = view.getCenter()
+    if (center) {
+      mapStore.setCenterToRestore(center)
     } else {
-      logger.error('Map is null in handleUpdateBaseLayer')
+      logger.error('Center is null in handleUpdateBaseLayer')
     }
+    const zoom = view.getZoom()
+    if (zoom) {
+      mapStore.setZoomToRestore(zoom)
+    } else {
+      logger.error('Zoom is null in handleUpdateBaseLayer')
+    }
+    saveMapZoomState(map)
+    await updateReqMapView('handleUpdateBaseLayer', true)
   } catch (error) {
     logger.error('handleUpdateBaseLayer failed', {
       error: error instanceof Error ? error.message : String(error)

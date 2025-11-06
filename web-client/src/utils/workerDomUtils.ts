@@ -11,7 +11,6 @@ import { db } from '@/db/SlideRuleDb';
 import type { WorkerMessage, WorkerSummary, WebWorkerCmd } from '@/workers/workerUtils';
 import { useSrSvrConsoleStore } from '@/stores/SrSvrConsoleStore';
 import { duckDbLoadOpfsParquetFile,prepareDbForReqId,readOrCacheSummary,getGeoMetadataFromFile } from '@/utils/SrDuckDbUtils';
-import { findSrViewKey } from "@/composables/SrViews";
 import { useJwtStore } from '@/stores/SrJWTStore';
 import router from '@/router/index.js';
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore';
@@ -416,12 +415,31 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
             } else {
                 // with granule selection enabled, polygon is not required
             }
-            const srViewKey = findSrViewKey(useMapStore().selectedView, useMapStore().selectedBaseLayer);
-            if (srViewKey.value) {
-                srReqRec.srViewName = srViewKey.value;
+            const mapStore = useMapStore();
+
+            // Get projection from the current map view
+            const map = mapStore.getMap();
+            if (!map) {
+                logger.error('runSlideRuleClicked map is null');
+                useSrToastStore().error('Error', 'There was an error. Unable to determine map projection');
+                requestsStore.setConsoleMsg('stopped...');
+                return;
+            }
+
+            const view = map.getView();
+            const projection = view.getProjection();
+            const projectionName = projection.getCode();
+            const baseLayerName = mapStore.getSelectedBaseLayer();
+
+            if (projectionName && baseLayerName) {
+                srReqRec.projectionName = projectionName;
+                srReqRec.baseLayerName = baseLayerName;
             } else {
-                logger.error('runSlideRuleClicked srViewKey was undefined');
-                useSrToastStore().error('Error', 'There was an error. srViewKey was undefined');
+                logger.error('runSlideRuleClicked projectionName or baseLayerName was undefined', {
+                    projectionName,
+                    baseLayerName
+                });
+                useSrToastStore().error('Error', 'There was an error. Unable to determine map projection');
                 requestsStore.setConsoleMsg('stopped...');
                 return;
             }
@@ -440,11 +458,9 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
                     const fileName = srReqRec.parameters?.parms?.output?.path;
                     srReqRec.file = fileName;
                     //console.log('runSlideRuleClicked will create fileName:', fileName, srReqRec);
-                    if (srViewKey.value) {
-                        srReqRec.start_time = new Date();
-                        srReqRec.end_time = new Date();
-                        await runFetchToFileWorker(srReqRec);
-                    }
+                    srReqRec.start_time = new Date();
+                    srReqRec.end_time = new Date();
+                    await runFetchToFileWorker(srReqRec);
                 } else {
                     logger.error('runSlideRuleClicked IceSat2API was undefined');
                     useSrToastStore().error('Error', 'There was an error. IceSat2API was undefined');
@@ -458,11 +474,9 @@ export async function processRunSlideRuleClicked(rc:SrRunContext|null = null) : 
                     const fileName = srReqRec.parameters?.parms?.output?.path;
                     srReqRec.file = fileName;
                     logger.debug('runSlideRuleClicked will create fileName', { fileName, srReqRec });
-                    if (srViewKey.value) {
-                        srReqRec.start_time = new Date();
-                        srReqRec.end_time = new Date();
-                        await runFetchToFileWorker(srReqRec);
-                    }
+                    srReqRec.start_time = new Date();
+                    srReqRec.end_time = new Date();
+                    await runFetchToFileWorker(srReqRec);
                 } else {
                     logger.error('runSlideRuleClicked GediAPI was undefined');
                     useSrToastStore().error('Error', 'There was an error. GediAPI was undefined');

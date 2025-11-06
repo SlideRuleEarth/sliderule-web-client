@@ -9,7 +9,6 @@ import { updateDeckLayerWithObject, type ElevationDataItem } from '@/utils/SrMap
 import { useCurReqSumStore } from '@/stores/curReqSumStore'
 import { SrMutex } from '@/utils/SrMutex'
 import { useSrToastStore } from '@/stores/srToastStore'
-import { srViews } from '@/composables/SrViews'
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore'
 import { useChartStore } from '@/stores/chartStore'
 import type { MinMaxLowHigh, SrListNumberItem } from '@/types/SrTypes'
@@ -610,14 +609,10 @@ export const duckDbReadAndUpdateElevationData = async (
 
   let firstRec: ElevationDataItem | null = null
   let numRows = 0
-  let srViewName = await indexedDb.getSrViewName(req_id)
 
-  if (!srViewName || srViewName === '' || srViewName === 'Global') {
-    srViewName = 'Global Mercator Esri'
-    logger.warn('HACK ALERT: Using fallback srViewName', { srViewName, reqId: req_id })
-  }
-
-  const projName = srViews.value[srViewName].projectionName
+  // Get projection directly from the request record
+  const { projectionName } = await indexedDb.getProjectionAndBaseLayer(req_id)
+  const projName = projectionName
 
   if (!req_id) {
     logger.error('Invalid req_id in duckDbReadAndUpdateElevationData', { reqId: req_id })
@@ -989,8 +984,9 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, layerName
     }
 
     if (numRows > 0) {
-      const srViewName = await indexedDb.getSrViewName(req_id)
-      const projName = srViews.value[srViewName].projectionName
+      // Get projection directly from the request record
+      const { projectionName } = await indexedDb.getProjectionAndBaseLayer(req_id)
+      const projName = projectionName
       const height_fieldname = useFieldNameStore().getHFieldName(req_id)
       const summary = await readOrCacheSummary(req_id)
       if (summary?.extHMean) {

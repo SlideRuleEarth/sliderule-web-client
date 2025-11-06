@@ -21,7 +21,6 @@ import { useElevationColorMapStore } from '@/stores/elevationColorMapStore'
 import { useSrToastStore } from '@/stores/srToastStore'
 import { useAdvancedModeStore } from '@/stores/advancedModeStore'
 import { useAnalysisMapStore } from '@/stores/analysisMapStore'
-import { srViews } from '@/composables/SrViews'
 import { srProjections } from '@/composables/SrProjections'
 import { get as getProjection } from 'ol/proj.js'
 import { getLayer } from '@/composables/SrLayers'
@@ -183,6 +182,57 @@ export function drawGeoJson(
   } catch (e) {
     logger.error('Failed to parse GeoJSON', { error: e instanceof Error ? e.message : String(e) })
     return
+  }
+
+  // Validate transformed coordinates before adding to map
+  const featureProjection = useMapStore().getSrViewObj()?.projectionName || 'EPSG:3857'
+
+  // Log transformation details for debugging
+  const sampleFeature = features[0]
+  const sampleGeometry = sampleFeature?.getGeometry()
+  const sampleCoords = sampleGeometry ? extractCoordinates(sampleGeometry).slice(0, 3) : []
+
+  logger.debug('drawGeoJson - features transformed', {
+    uniqueId,
+    featureProjection,
+    dataProjection,
+    featureCount: features.length,
+    sampleCoords
+  })
+
+  const hasInvalidFeatures = features.some((feature) => {
+    const geometry = feature.getGeometry()
+    if (!geometry) return false
+
+    const coords = extractCoordinates(geometry)
+    const invalidCoords = coords.filter((coord) => !Number.isFinite(coord[0]) || !Number.isFinite(coord[1]))
+
+    if (invalidCoords.length > 0) {
+      logger.error('Feature has invalid coordinates after transformation', {
+        uniqueId,
+        featureProjection,
+        invalidCount: invalidCoords.length,
+        totalCount: coords.length,
+        firstInvalid: invalidCoords[0]
+      })
+      return true
+    }
+    return false
+  })
+
+  if (hasInvalidFeatures) {
+    logger.error('Transformed features contain invalid coordinates - rejecting draw', {
+      uniqueId,
+      featureProjection,
+      dataProjection,
+      featureCount: features.length
+    })
+    useSrToastStore().error(
+      'Cannot draw in current projection',
+      `The geometry cannot be displayed in ${featureProjection}. It may be outside the projection's valid area.`,
+      8000
+    )
+    return undefined
   }
 
   features.forEach((feature, i) => {
@@ -1005,7 +1055,8 @@ export function canRestoreZoomCenter(_map: OLMap): boolean {
 export function restoreMapView(
   proj: ProjectionLike,
   minZoom?: number,
-  maxZoom?: number
+  maxZoom?: number,
+  isPolarProjection: boolean = false
 ): OlView | null {
   const mapStore = useMapStore()
   const extentToRestore = mapStore.getExtentToRestore()
@@ -1022,9 +1073,11 @@ export function restoreMapView(
   } else if (!extentToRestore.every((value) => Number.isFinite(value))) {
     logger.warn('Invalid extentToRestore', { extentToRestore })
   } else {
+    // For polar projections, don't set extent constraint on View (causes snapping/off-center)
+    // The projection itself already has the extent set via proj.setExtent()
     newView = new OlView({
       projection: proj,
-      extent: extentToRestore,
+      extent: isPolarProjection ? undefined : extentToRestore,
       center: centerToRestore,
       zoom: zoomToRestore,
       minZoom: minZoom,
@@ -1426,29 +1479,28 @@ export async function updateSrViewName(srViewName: string): Promise<void> {
 
 export function updateMapView(
   map: OLMap,
-  srViewKey: string,
+  projectionName: string,
   reason: string,
   restore: boolean = false,
   _reqId: number = 0
 ): void {
   try {
     if (map) {
-      logger.debug('updateMapView', { reason, srViewKey })
-      const srViewObj = (srViews as any).value[`${srViewKey}`]
-      const srProjObj = (srProjections as any).value[srViewObj.projectionName]
-      let newProj = getProjection(srViewObj.projectionName)
-      const baseLayer = srViewObj.baseLayerName
+      logger.debug('updateMapView', { reason, projectionName })
+      const srProjObj = (srProjections as any).value[projectionName]
+      let newProj = getProjection(projectionName)
+      const baseLayer = srProjObj.baseLayerName
 
-      if (baseLayer && newProj && srViewObj) {
+      if (baseLayer && newProj && srProjObj) {
         map.getAllLayers().forEach((layer: OLlayer) => {
           map.removeLayer(layer)
         })
-        const layer = getLayer(srViewObj.projectionName, baseLayer)
+        const layer = getLayer(projectionName, baseLayer)
         if (layer) {
           map.addLayer(layer)
         } else {
           logger.error('No layer found', {
-            projectionName: srViewObj.projectionName,
+            projectionName: projectionName,
             baseLayerTitle: baseLayer
           })
         }
@@ -1503,9 +1555,9 @@ export function updateMapView(
         // For polar projections, don't set extent constraint on View (causes snapping/off-center)
         // The projection itself already has the extent set via newProj.setExtent()
         const isPolarProjection =
-          srViewObj.projectionName === 'EPSG:5936' ||
-          srViewObj.projectionName === 'EPSG:3413' ||
-          srViewObj.projectionName === 'EPSG:3031'
+          projectionName === 'EPSG:5936' ||
+          projectionName === 'EPSG:3413' ||
+          projectionName === 'EPSG:3031'
 
         let newView = new OlView({
           projection: newProj,
@@ -1517,7 +1569,7 @@ export function updateMapView(
         })
         useMapStore().setExtentToRestore(extent)
         if (restore) {
-          const restoredView = restoreMapView(newProj, srProjObj.min_zoom, srProjObj.max_zoom)
+          const restoredView = restoreMapView(newProj, srProjObj.min_zoom, srProjObj.max_zoom, isPolarProjection)
           if (restoredView) {
             newView = restoredView
           } else {
@@ -1528,7 +1580,6 @@ export function updateMapView(
       } else {
         if (!baseLayer) logger.error('baseLayer is null')
         if (!newProj) logger.error('newProj is null')
-        if (!srViewObj) logger.error('srView is null')
       }
     } else {
       logger.error('map is null')
@@ -1541,7 +1592,7 @@ export function updateMapView(
   }
 }
 
-export async function zoomMapForReqIdUsingView(map: OLMap, reqId: number, srViewKey: string) {
+export async function zoomMapForReqIdUsingView(map: OLMap, reqId: number, projectionName?: string) {
   try {
     let reqExtremeLatLon = [0, 0, 0, 0]
     if (reqId > 0) {
@@ -1564,36 +1615,37 @@ export async function zoomMapForReqIdUsingView(map: OLMap, reqId: number, srView
         logger.error('Invalid workerSummary for request', { reqId })
       }
     }
-    const srViewObj = (srViews as any).value[`${srViewKey}`]
-    const projectionName = srViewObj.projectionName
-    let newProj = getProjection(projectionName)
+
+    // Default to Web Mercator for old records that don't have projection populated
+    const finalProjectionName = projectionName || 'EPSG:3857'
+    let newProj = getProjection(finalProjectionName)
     let view_extent = reqExtremeLatLon
 
     logger.debug('zoomMapForReqIdUsingView', {
       reqId,
-      projectionName,
+      projectionName: finalProjectionName,
       dataExtentWGS84: reqExtremeLatLon
     })
 
     if (newProj?.getUnits() !== 'degrees') {
-      const fromLonLatFn = getTransform('EPSG:4326', projectionName)
+      const fromLonLatFn = getTransform('EPSG:4326', finalProjectionName)
       view_extent = applyTransform(reqExtremeLatLon, fromLonLatFn, undefined, 8)
 
       logger.debug('Transformed extent for projection', {
-        projectionName,
+        projectionName: finalProjectionName,
         transformedExtent: view_extent
       })
 
       // Check if transformation produced invalid values
       if (view_extent.some((val: number) => !Number.isFinite(val))) {
         logger.warn('Invalid extent after transformation - data may be outside projection bounds', {
-          projectionName,
+          projectionName: finalProjectionName,
           dataExtentWGS84: reqExtremeLatLon,
           transformedExtent: view_extent
         })
 
         // Use projection's default view instead of trying to fit invalid extent
-        const srProjObj = srProjections.value[projectionName]
+        const srProjObj = srProjections.value[finalProjectionName]
         const view = map.getView()
         if (srProjObj?.center) {
           view.setCenter(srProjObj.center)
@@ -1606,7 +1658,7 @@ export async function zoomMapForReqIdUsingView(map: OLMap, reqId: number, srView
 
         useSrToastStore().warn(
           'Data outside projection bounds',
-          `The data (lat: ${reqExtremeLatLon[1].toFixed(1)}° to ${reqExtremeLatLon[3].toFixed(1)}°) cannot be displayed in ${srProjObj?.title || projectionName}. Using default view. Consider switching to a global projection to view this data.`,
+          `The data (lat: ${reqExtremeLatLon[1].toFixed(1)}° to ${reqExtremeLatLon[3].toFixed(1)}°) cannot be displayed in ${srProjObj?.title || finalProjectionName}. Using default view. Consider switching to a global projection to view this data.`,
           10000
         )
         return

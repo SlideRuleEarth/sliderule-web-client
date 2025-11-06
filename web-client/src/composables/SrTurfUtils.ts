@@ -1,6 +1,7 @@
 import { featureCollection, point, convex, area } from '@turf/turf';
 import type { SrLatLon, SrRegion } from '@/types/SrTypes';
 import type { Polygon } from 'geojson';  // Import the correct GeoJSON type
+import type { Coordinate } from 'ol/coordinate';
 
 export function isClockwise(coords: SrRegion): boolean {
     let wind = 0;
@@ -31,6 +32,50 @@ export function convexHull(inputCoords: SrLatLon[]): SrLatLon[] {
     }
 
     return coords;
+}
+
+/**
+ * Calculate convex hull for coordinates in their native projection space.
+ * For polar projections, this is more accurate than calculating in lon/lat.
+ *
+ * @param projectionCoords - Array of coordinates in the projection's native units (e.g., meters for EPSG:5936)
+ * @returns Array of coordinates representing the convex hull in projection space
+ */
+export function convexHullInProjection(projectionCoords: Coordinate[]): Coordinate[] {
+    if (projectionCoords.length < 3) {
+        throw new Error('Need at least 3 points for convex hull');
+    }
+
+    // Use Turf.js which expects [x, y] coordinates (works for any coordinate system)
+    const points = projectionCoords.map(coord => point([coord[0], coord[1]]));
+    const tfc = featureCollection(points);
+    const hull = convex(tfc);
+
+    if (!hull || !hull.geometry || hull.geometry.type !== 'Polygon') {
+        throw new Error('Unable to compute convex hull or hull is not a polygon');
+    }
+
+    const coords: Coordinate[] = hull.geometry.coordinates[0].map((coord: number[]) => [coord[0], coord[1]]);
+
+    // Check if clockwise and reverse if needed (for consistency with polygon winding)
+    const isClockwiseProj = calculateSignedArea(coords) > 0;
+    if (isClockwiseProj) {
+        coords.reverse();
+    }
+
+    return coords;
+}
+
+/**
+ * Calculate signed area to determine winding order
+ * Positive = clockwise, Negative = counter-clockwise
+ */
+function calculateSignedArea(coords: Coordinate[]): number {
+    let sum = 0;
+    for (let i = 0; i < coords.length - 1; i++) {
+        sum += (coords[i + 1][0] - coords[i][0]) * (coords[i + 1][1] + coords[i][1]);
+    }
+    return sum;
 }
 
 export function calculatePolygonArea(coords: SrLatLon[]): number {

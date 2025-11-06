@@ -24,6 +24,7 @@ import {
   updateReqParmsFromMeta
 } from '@/utils/SrParquetUtils'
 import { createLogger } from '@/utils/logger'
+import { useMapStore } from '@/stores/mapStore'
 
 const logger = createLogger('SrImportParquetFile')
 const toast = useToast()
@@ -316,6 +317,29 @@ const customUploader = async (event: any) => {
     srReqRec.status = 'imported'
     srReqRec.description = `Imported from SlideRule Parquet File ${file.name}`
     srReqRec.num_bytes = opfsFile.size
+
+    // Set the projection and base layer from the current map selection
+    const mapStore = useMapStore()
+
+    // Get projection from the current map view
+    const map = mapStore.getMap()
+    let projectionName = 'EPSG:3857' // Default fallback
+    let baseLayerName = 'Esri World Topo' // Default fallback
+
+    if (map) {
+      const view = map.getView()
+      const projection = view.getProjection()
+      projectionName = projection.getCode()
+      baseLayerName = mapStore.getSelectedBaseLayer()
+    } else {
+      logger.warn('map was undefined, using default projection', {
+        selectedView: mapStore.selectedView,
+        selectedBaseLayer: mapStore.selectedBaseLayer
+      })
+    }
+
+    srReqRec.projectionName = projectionName
+    srReqRec.baseLayerName = baseLayerName
 
     upload_progress.value = 95
 
