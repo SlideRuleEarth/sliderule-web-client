@@ -1138,7 +1138,7 @@ export function renderRequestPolygon(
   const projectionCode = projection.getCode()
   let coordinates: Coordinate[]
   if (projection.getUnits() !== 'degrees') {
-    coordinates = originalCoordinates.map((coord) => fromLonLat(coord))
+    coordinates = originalCoordinates.map((coord) => fromLonLat(coord, projectionCode))
 
     // Validate that transformation produced finite coordinates
     const hasInvalidCoords = coordinates.some(

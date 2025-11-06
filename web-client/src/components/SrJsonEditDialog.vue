@@ -318,9 +318,10 @@ function zoomToPoly() {
 
     // Convert to map projection
     const projection = map.getView().getProjection()
+    const projectionCode = projection.getCode()
     let coordinates: Coordinate[]
     if (projection.getUnits() !== 'degrees') {
-      coordinates = originalCoordinates.map((coord) => fromLonLat(coord))
+      coordinates = originalCoordinates.map((coord) => fromLonLat(coord, projectionCode))
     } else {
       coordinates = originalCoordinates
     }

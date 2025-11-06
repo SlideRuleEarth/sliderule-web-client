@@ -46,7 +46,7 @@ import type { Ref } from 'vue'
 import { checkAreaOfConvexHullWarning, updateSrViewName, renderReqPin } from '@/utils/SrMapUtils'
 import { toLonLat } from 'ol/proj.js'
 import { useReqParamsStore } from '@/stores/reqParamsStore'
-import { convexHull, isClockwise } from '@/composables/SrTurfUtils'
+import { convexHull, isClockwise, convexHullInProjection } from '@/composables/SrTurfUtils'
 import { type Coordinate } from 'ol/coordinate.js'
 import { hullColor, type SrRegion } from '@/types/SrTypes'
 import { format } from 'ol/coordinate.js'
@@ -513,7 +513,27 @@ drawPolygon.on('drawend', function (event) {
 
         //console.log('srLonLatCoordinates:',srLonLatCoordinates);
         // Calculate convex hull (used when rasterize is NOT enabled)
-        const thisConvexHull = convexHull(srLonLatCoordinates)
+        // For polar projections, calculate hull in projection space, then convert to lon/lat
+        let thisConvexHull: SrRegion
+        const isPolarProjection =
+          projName === 'EPSG:5936' || projName === 'EPSG:3413' || projName === 'EPSG:3031'
+
+        if (isPolarProjection) {
+          // Calculate convex hull in projection space (meters)
+          const projectedCoords: Array<[number, number]> = rings
+            .flatMap((ring) => ring)
+            .map((coord) => [coord[0], coord[1]] as [number, number])
+          const projectedHull = convexHullInProjection(projectedCoords)
+
+          // Convert hull back to lon/lat for storage
+          thisConvexHull = projectedHull.map((coord) => {
+            const lonLat = toLonLat([coord[0], coord[1]], projName)
+            return { lon: lonLat[0], lat: lonLat[1] }
+          })
+        } else {
+          // For other projections, use the original lon/lat method
+          thisConvexHull = convexHull(srLonLatCoordinates)
+        }
         reqParamsStore.setConvexHull(thisConvexHull) // this also populates the area
         //console.log('reqParamsStore.poly:',reqParamsStore.convexHull);
         // Create GeoJSON from reqParamsStore.convexHull for display

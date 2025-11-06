@@ -183,13 +183,13 @@ export class SlideRuleDexie extends Dexie {
         atl24ClassColors: 'number',
         //find runContexts by (parentReqId + rgt + cycle + beam +track) in one go, define a compound index:
         runContexts: `
-                ++id, 
-                &reqId, 
-                parentReqId, 
-                rgt, 
-                cycle, 
-                beam, 
-                track, 
+                ++id,
+                &reqId,
+                parentReqId,
+                rgt,
+                cycle,
+                beam,
+                track,
                 [parentReqId+rgt+cycle+beam+track]`,
         plotConfig: 'id' // single record table
       })
@@ -206,6 +206,27 @@ export class SlideRuleDexie extends Dexie {
           // modify callback doesn't need a return value
         })
       })
+
+    // Version 12 - Add projectionName and baseLayerName fields (no migration)
+    this.version(12).stores({
+      requests: '++req_id',
+      summary: '++db_id, &req_id',
+      colors: '&color',
+      atl03CnfColors: 'number',
+      atl08ClassColors: 'number',
+      atl24ClassColors: 'number',
+      runContexts: `
+                ++id,
+                &reqId,
+                parentReqId,
+                rgt,
+                cycle,
+                beam,
+                track,
+                [parentReqId+rgt+cycle+beam+track]`,
+      plotConfig: 'id'
+    })
+    // Note: No .upgrade() - new fields (projectionName, baseLayerName) will be undefined for existing records
 
     this._initializeDefaultColors()
     this._initializePlotConfig()
