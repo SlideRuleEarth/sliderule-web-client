@@ -380,6 +380,22 @@ onUnmounted(() => {
       <template #header>
         <div style="text-align: right; width: 100%">ID</div>
       </template>
+      <template #body="slotProps">
+        <span
+          @mouseover="
+            tooltipRef?.showTooltip(
+              $event,
+              slotProps.node.data.srViewName
+                ? `View: ${slotProps.node.data.srViewName}`
+                : 'No view name available'
+            )
+          "
+          @mouseleave="tooltipRef?.hideTooltip"
+          style="cursor: help"
+        >
+          {{ slotProps.node.data.reqId }}
+        </span>
+      </template>
     </Column>
     <Column field="func">
       <template #header>

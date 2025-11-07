@@ -28,13 +28,13 @@ export const srViews = ref<{ [key: string]: SrView }>({
     baseLayerName: 'OpenStreet'
   },
   North: {
-    hide: false,
+    hide: true,
     view: 'North',
     projectionName: 'EPSG:3413',
     baseLayerName: 'Arctic Imagery NSIDC'
   },
   'South Antarctic Polar Stereographic': {
-    hide: false,
+    hide: true,
     view: 'South',
     projectionName: 'EPSG:3031',
     baseLayerName: 'Antarctic Imagery'
