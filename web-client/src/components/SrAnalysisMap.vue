@@ -49,6 +49,7 @@ import type { Control } from 'ol/control'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('SrAnalysisMap')
+const DEBUG_SHOW_ZOOM = false
 
 const template = 'Lat:{y}\u00B0, Long:{x}\u00B0'
 const stringifyFunc = (coordinate: Coordinate) => {
@@ -712,7 +713,9 @@ function handleUseFullRangeUpdate(_value: boolean) {
         {{ computedLoadMsg }}
       </div>
       <!-- DEBUG: Zoom level display -->
-      <div class="sr-zoom-debug" style="margin-left: 1rem">Zoom: {{ currentZoom.toFixed(2) }}</div>
+      <div class="sr-zoom-debug" v-if="DEBUG_SHOW_ZOOM" style="margin-left: 1rem">
+        Zoom: {{ currentZoom.toFixed(2) }}
+      </div>
     </div>
     <div ref="mapContainer" class="sr-map-container">
       <Map.OlMap
