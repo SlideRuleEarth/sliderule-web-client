@@ -1,11 +1,12 @@
-import proj4 from 'proj4';
-import { srProjections } from '@/composables/SrProjections';
-import { createLogger } from '@/utils/logger';
+import proj4 from 'proj4'
+import { register } from 'ol/proj/proj4'
+import { srProjections } from '@/composables/SrProjections'
+import { createLogger } from '@/utils/logger'
 
-const logger = createLogger('SrCrsTransform');
+const logger = createLogger('SrCrsTransform')
 
 // Target CRS for all map display (per GeoParquet spec default)
-const TARGET_CRS = 'EPSG:4326'; // WGS 84
+const TARGET_CRS = 'EPSG:4326' // WGS 84
 
 /**
  * Extract CRS identifier from GeoParquet metadata
@@ -15,89 +16,108 @@ const TARGET_CRS = 'EPSG:4326'; // WGS 84
  * @returns CRS code (e.g., "EPSG:7912") or null if not found/not transformable
  */
 export function extractCrsFromGeoMetadata(geoMetadata: any): string | null {
-    if (!geoMetadata?.columns) {
-        return null;
+  if (!geoMetadata?.columns) {
+    return null
+  }
+
+  // Get the primary geometry column (default to 'geometry')
+  const primaryColumn = geoMetadata.primary_column || 'geometry'
+  const columnMetadata = geoMetadata.columns[primaryColumn]
+
+  if (!columnMetadata?.crs) {
+    // Per GeoParquet spec: if no CRS specified, default is OGC:CRS84 (equivalent to EPSG:4326)
+    logger.debug('extractCrsFromGeoMetadata: No CRS found, assuming OGC:CRS84/EPSG:4326')
+    return 'EPSG:4326'
+  }
+
+  const crs = columnMetadata.crs
+
+  // Try to extract EPSG code from id.authority and id.code
+  if (crs.id?.authority && crs.id?.code) {
+    const crsCode = `${crs.id.authority}:${crs.id.code}`
+    logger.debug('extractCrsFromGeoMetadata: Found CRS from id', { crsCode })
+    return crsCode
+  }
+
+  // Check if it's a compound CRS with components array (PROJJSON format)
+  // Extract the horizontal/geographic component for 2D map display
+  if (crs.type === 'CompoundCRS' && Array.isArray(crs.components)) {
+    logger.debug('extractCrsFromGeoMetadata: Found CompoundCRS with components', {
+      componentsLength: crs.components.length
+    })
+
+    // Find the geographic/horizontal component (usually first)
+    const horizontalComponent = crs.components.find(
+      (comp: any) =>
+        comp.type === 'GeographicCRS' || comp.type === 'ProjectedCRS' || comp.type === 'GeodeticCRS'
+    )
+
+    if (horizontalComponent) {
+      logger.debug('extractCrsFromGeoMetadata: Found horizontal component', {
+        type: horizontalComponent.type,
+        name: horizontalComponent.name,
+        id: horizontalComponent.id
+      })
+
+      if (horizontalComponent.id?.authority && horizontalComponent.id?.code) {
+        const horizontalCrsCode = `${horizontalComponent.id.authority}:${horizontalComponent.id.code}`
+        logger.debug('extractCrsFromGeoMetadata: Extracted horizontal CRS from compound', {
+          horizontalCrsCode
+        })
+        return horizontalCrsCode
+      } else {
+        logger.warn(
+          'extractCrsFromGeoMetadata: Horizontal component found but missing id.authority or id.code'
+        )
+      }
+    } else {
+      logger.warn(
+        'extractCrsFromGeoMetadata: CompoundCRS has components but no Geographic/Projected/Geodetic component found'
+      )
     }
+  }
 
-    // Get the primary geometry column (default to 'geometry')
-    const primaryColumn = geoMetadata.primary_column || 'geometry';
-    const columnMetadata = geoMetadata.columns[primaryColumn];
+  // Check if it's a compound CRS (older format with base_crs)
+  // Extract the horizontal base CRS for 2D map display
+  if (crs.base_crs?.id?.authority && crs.base_crs.id?.code) {
+    const baseCrsCode = `${crs.base_crs.id.authority}:${crs.base_crs.id.code}`
+    logger.debug('extractCrsFromGeoMetadata: Found compound CRS, using horizontal base CRS', {
+      baseCrsCode
+    })
+    return baseCrsCode
+  }
 
-    if (!columnMetadata?.crs) {
-        // Per GeoParquet spec: if no CRS specified, default is OGC:CRS84 (equivalent to EPSG:4326)
-        logger.debug('extractCrsFromGeoMetadata: No CRS found, assuming OGC:CRS84/EPSG:4326');
-        return 'EPSG:4326';
-    }
+  // For compound CRS without base_crs.id, try to extract from datum
+  if (crs.base_crs?.datum?.id?.authority && crs.base_crs.datum.id?.code) {
+    const datumCode = `${crs.base_crs.datum.id.authority}:${crs.base_crs.datum.id.code}`
+    logger.debug('extractCrsFromGeoMetadata: Using datum from compound CRS base', { datumCode })
+    return datumCode
+  }
 
-    const crs = columnMetadata.crs;
+  // Check if it's a geographic CRS with a datum (fallback for non-compound)
+  if (crs.datum?.id?.authority && crs.datum?.id?.code) {
+    const datumCode = `${crs.datum.id.authority}:${crs.datum.id.code}`
+    logger.debug('extractCrsFromGeoMetadata: Found CRS from datum', { datumCode })
+    return datumCode
+  }
 
-    // Try to extract EPSG code from id.authority and id.code
-    if (crs.id?.authority && crs.id?.code) {
-        const crsCode = `${crs.id.authority}:${crs.id.code}`;
-        logger.debug('extractCrsFromGeoMetadata: Found CRS from id', { crsCode });
-        return crsCode;
-    }
+  // If we only have a CRS name but it's not a valid proj4 identifier
+  if (crs.name) {
+    logger.warn('extractCrsFromGeoMetadata: CRS name found but not parseable as proj4 code', {
+      crsName: crs.name
+    })
+    logger.warn(
+      'extractCrsFromGeoMetadata: Skipping transformation - assuming coordinates are WGS 84 compatible'
+    )
+    logger.debug('extractCrsFromGeoMetadata: Full CRS object for debugging', {
+      crs: JSON.stringify(crs, null, 2)
+    })
+    // Return null to skip transformation (treat as if already in WGS 84)
+    return null
+  }
 
-    // Check if it's a compound CRS with components array (PROJJSON format)
-    // Extract the horizontal/geographic component for 2D map display
-    if (crs.type === 'CompoundCRS' && Array.isArray(crs.components)) {
-        logger.debug('extractCrsFromGeoMetadata: Found CompoundCRS with components', { componentsLength: crs.components.length });
-
-        // Find the geographic/horizontal component (usually first)
-        const horizontalComponent = crs.components.find((comp: any) =>
-            comp.type === 'GeographicCRS' ||
-            comp.type === 'ProjectedCRS' ||
-            comp.type === 'GeodeticCRS'
-        );
-
-        if (horizontalComponent) {
-            logger.debug('extractCrsFromGeoMetadata: Found horizontal component', { type: horizontalComponent.type, name: horizontalComponent.name, id: horizontalComponent.id });
-
-            if (horizontalComponent.id?.authority && horizontalComponent.id?.code) {
-                const horizontalCrsCode = `${horizontalComponent.id.authority}:${horizontalComponent.id.code}`;
-                logger.debug('extractCrsFromGeoMetadata: Extracted horizontal CRS from compound', { horizontalCrsCode });
-                return horizontalCrsCode;
-            } else {
-                logger.warn('extractCrsFromGeoMetadata: Horizontal component found but missing id.authority or id.code');
-            }
-        } else {
-            logger.warn('extractCrsFromGeoMetadata: CompoundCRS has components but no Geographic/Projected/Geodetic component found');
-        }
-    }
-
-    // Check if it's a compound CRS (older format with base_crs)
-    // Extract the horizontal base CRS for 2D map display
-    if (crs.base_crs?.id?.authority && crs.base_crs.id?.code) {
-        const baseCrsCode = `${crs.base_crs.id.authority}:${crs.base_crs.id.code}`;
-        logger.debug('extractCrsFromGeoMetadata: Found compound CRS, using horizontal base CRS', { baseCrsCode });
-        return baseCrsCode;
-    }
-
-    // For compound CRS without base_crs.id, try to extract from datum
-    if (crs.base_crs?.datum?.id?.authority && crs.base_crs.datum.id?.code) {
-        const datumCode = `${crs.base_crs.datum.id.authority}:${crs.base_crs.datum.id.code}`;
-        logger.debug('extractCrsFromGeoMetadata: Using datum from compound CRS base', { datumCode });
-        return datumCode;
-    }
-
-    // Check if it's a geographic CRS with a datum (fallback for non-compound)
-    if (crs.datum?.id?.authority && crs.datum?.id?.code) {
-        const datumCode = `${crs.datum.id.authority}:${crs.datum.id.code}`;
-        logger.debug('extractCrsFromGeoMetadata: Found CRS from datum', { datumCode });
-        return datumCode;
-    }
-
-    // If we only have a CRS name but it's not a valid proj4 identifier
-    if (crs.name) {
-        logger.warn('extractCrsFromGeoMetadata: CRS name found but not parseable as proj4 code', { crsName: crs.name });
-        logger.warn('extractCrsFromGeoMetadata: Skipping transformation - assuming coordinates are WGS 84 compatible');
-        logger.debug('extractCrsFromGeoMetadata: Full CRS object for debugging', { crs: JSON.stringify(crs, null, 2) });
-        // Return null to skip transformation (treat as if already in WGS 84)
-        return null;
-    }
-
-    logger.warn('extractCrsFromGeoMetadata: Could not extract CRS identifier');
-    return null;
+  logger.warn('extractCrsFromGeoMetadata: Could not extract CRS identifier')
+  return null
 }
 
 /**
@@ -106,20 +126,52 @@ export function extractCrsFromGeoMetadata(geoMetadata: any): string | null {
  * @param crsCode - CRS code (e.g., "EPSG:7912")
  */
 function ensureCrsRegistered(crsCode: string): void {
-    // Check if already defined in proj4
-    if (proj4.defs(crsCode)) {
-        return;
-    }
+  // Check if already defined in proj4
+  if (proj4.defs(crsCode)) {
+    return
+  }
 
-    // Check if we have it in our srProjections
-    const projection = srProjections.value[crsCode];
-    if (projection?.proj4def) {
-        logger.debug('Registering CRS with proj4', { crsCode });
-        proj4.defs(crsCode, projection.proj4def);
-        return;
-    }
+  // Check if we have it in our srProjections
+  const projection = srProjections.value[crsCode]
+  if (projection?.proj4def) {
+    logger.debug('Registering CRS with proj4', { crsCode })
+    proj4.defs(crsCode, projection.proj4def)
+    // Notify OpenLayers about the new projection
+    register(proj4)
+    return
+  }
 
-    logger.warn('CRS not found in srProjections and not registered with proj4', { crsCode });
+  logger.warn('CRS not found in srProjections and not registered with proj4', { crsCode })
+}
+
+/**
+ * Check if WGS84 coordinates are within a projection's valid extent
+ *
+ * @param lon - Longitude in WGS84
+ * @param lat - Latitude in WGS84
+ * @param targetCrs - Target CRS code (e.g., "EPSG:5936")
+ * @returns true if coordinates are within the projection's valid bbox
+ */
+export function isCoordinateInProjectionExtent(
+  lon: number,
+  lat: number,
+  targetCrs: string
+): boolean {
+  const projection = srProjections.value[targetCrs]
+  if (!projection?.bbox) {
+    return true // No bbox defined, allow all coordinates
+  }
+
+  const [minLon, minLat, maxLon, maxLat] = projection.bbox
+
+  // Check if within bbox (with small tolerance for floating point)
+  const tolerance = 0.01
+  return (
+    lon >= minLon - tolerance &&
+    lon <= maxLon + tolerance &&
+    lat >= minLat - tolerance &&
+    lat <= maxLat + tolerance
+  )
 }
 
 /**
@@ -131,28 +183,83 @@ function ensureCrsRegistered(crsCode: string): void {
  * @returns Transformed [longitude, latitude] in EPSG:4326, or original if transformation fails
  */
 export function transformCoordinate(
-    lon: number,
-    lat: number,
-    sourceCrs: string | null
+  lon: number,
+  lat: number,
+  sourceCrs: string | null
 ): [number, number] {
-    // If no source CRS or already in target CRS, return as-is
-    if (!sourceCrs || sourceCrs === TARGET_CRS || sourceCrs === 'EPSG:4326' || sourceCrs === 'OGC:CRS84') {
-        return [lon, lat];
-    }
+  // If no source CRS or already in target CRS, return as-is
+  if (
+    !sourceCrs ||
+    sourceCrs === TARGET_CRS ||
+    sourceCrs === 'EPSG:4326' ||
+    sourceCrs === 'OGC:CRS84'
+  ) {
+    return [lon, lat]
+  }
 
-    try {
-        // Ensure both CRSs are registered
-        ensureCrsRegistered(sourceCrs);
-        ensureCrsRegistered(TARGET_CRS);
+  try {
+    // Ensure both CRSs are registered
+    ensureCrsRegistered(sourceCrs)
+    ensureCrsRegistered(TARGET_CRS)
 
-        // Perform transformation
-        const transformed = proj4(sourceCrs, TARGET_CRS, [lon, lat]);
-        return [transformed[0], transformed[1]];
-    } catch (error) {
-        logger.error('transformCoordinate: Failed to transform', { sourceCrs, targetCrs: TARGET_CRS, error: error instanceof Error ? error.message : String(error) });
-        logger.warn('transformCoordinate: Returning original coordinates without transformation');
-        return [lon, lat];
-    }
+    // Perform transformation
+    const transformed = proj4(sourceCrs, TARGET_CRS, [lon, lat])
+    return [transformed[0], transformed[1]]
+  } catch (error) {
+    logger.error('transformCoordinate: Failed to transform', {
+      sourceCrs,
+      targetCrs: TARGET_CRS,
+      error: error instanceof Error ? error.message : String(error)
+    })
+    logger.warn('transformCoordinate: Returning original coordinates without transformation')
+    return [lon, lat]
+  }
+}
+
+/**
+ * Transform a coordinate from source CRS to a specified target CRS
+ *
+ * @param lon - Longitude/X in source CRS
+ * @param lat - Latitude/Y in source CRS
+ * @param sourceCrs - Source CRS code (e.g., "EPSG:7912")
+ * @param targetCrs - Target CRS code (e.g., "EPSG:3413" for polar, "EPSG:4326" for WGS84)
+ * @returns Transformed [x, y] in target CRS, or original if transformation fails
+ */
+export function transformCoordinateToTarget(
+  lon: number,
+  lat: number,
+  sourceCrs: string | null,
+  targetCrs: string
+): [number, number] {
+  // If no source CRS or already in target CRS, return as-is
+  if (
+    !sourceCrs ||
+    sourceCrs === targetCrs ||
+    (sourceCrs === 'OGC:CRS84' && targetCrs === 'EPSG:4326') ||
+    (sourceCrs === 'EPSG:4326' && targetCrs === 'OGC:CRS84')
+  ) {
+    return [lon, lat]
+  }
+
+  try {
+    // Ensure both CRSs are registered
+    ensureCrsRegistered(sourceCrs)
+    ensureCrsRegistered(targetCrs)
+
+    // Perform transformation
+    const transformed = proj4(sourceCrs, targetCrs, [lon, lat])
+    return [transformed[0], transformed[1]]
+  } catch (error) {
+    logger.error('transformCoordinateToTarget: Failed to transform', {
+      sourceCrs,
+      targetCrs,
+      error: error instanceof Error ? error.message : String(error)
+    })
+    logger.warn(
+      'transformCoordinateToTarget: Returning original coordinates without transformation'
+    )
+    return [lon, lat]
+  }
 }
 
 /**
@@ -163,15 +270,20 @@ export function transformCoordinate(
  * @returns Array of transformed [lon, lat] pairs in EPSG:4326
  */
 export function transformCoordinates(
-    coordinates: Array<[number, number]>,
-    sourceCrs: string | null
+  coordinates: Array<[number, number]>,
+  sourceCrs: string | null
 ): Array<[number, number]> {
-    // If no transformation needed, return as-is
-    if (!sourceCrs || sourceCrs === TARGET_CRS || sourceCrs === 'EPSG:4326' || sourceCrs === 'OGC:CRS84') {
-        return coordinates;
-    }
+  // If no transformation needed, return as-is
+  if (
+    !sourceCrs ||
+    sourceCrs === TARGET_CRS ||
+    sourceCrs === 'EPSG:4326' ||
+    sourceCrs === 'OGC:CRS84'
+  ) {
+    return coordinates
+  }
 
-    return coordinates.map(([lon, lat]) => transformCoordinate(lon, lat, sourceCrs));
+  return coordinates.map(([lon, lat]) => transformCoordinate(lon, lat, sourceCrs))
 }
 
 /**
@@ -181,16 +293,16 @@ export function transformCoordinates(
  * @returns Human-readable name (e.g., "ITRF2014")
  */
 export function getCrsName(crsCode: string | null): string {
-    if (!crsCode) {
-        return 'Unknown';
-    }
+  if (!crsCode) {
+    return 'Unknown'
+  }
 
-    const projection = srProjections.value[crsCode];
-    if (projection?.title) {
-        return projection.title;
-    }
+  const projection = srProjections.value[crsCode]
+  if (projection?.title) {
+    return projection.title
+  }
 
-    return crsCode;
+  return crsCode
 }
 
 /**
@@ -200,8 +312,8 @@ export function getCrsName(crsCode: string | null): string {
  * @returns true if transformation is needed
  */
 export function needsTransformation(sourceCrs: string | null): boolean {
-    if (!sourceCrs) {
-        return false;
-    }
-    return sourceCrs !== TARGET_CRS && sourceCrs !== 'EPSG:4326' && sourceCrs !== 'OGC:CRS84';
+  if (!sourceCrs) {
+    return false
+  }
+  return sourceCrs !== TARGET_CRS && sourceCrs !== 'EPSG:4326' && sourceCrs !== 'OGC:CRS84'
 }

@@ -203,9 +203,14 @@ const analyze = async (id: number) => {
 
 async function deleteRequest(id: number) {
   let deleted = true
+  let fileNotFound = false
   try {
     const fn = await db.getFilename(id)
-    await deleteOpfsFile(fn)
+    const result = await deleteOpfsFile(fn)
+    fileNotFound = result.fileNotFound
+    if (!result.deleted) {
+      deleted = false
+    }
   } catch (error) {
     logger.error('Failed to delete file', {
       id,
@@ -216,10 +221,13 @@ async function deleteRequest(id: number) {
   try {
     deleted = await requestsStore.deleteReq(id)
     if (deleted) {
+      const detail = fileNotFound
+        ? `Record ${id} deleted (no data file found - record had no data points)`
+        : `Record ${id} deleted successfully`
       toast.add({
         severity: 'success',
         summary: 'Record Deleted',
-        detail: `Record ${id} deleted successfully`,
+        detail: detail,
         life: srToastStore.getLife()
       })
     } else {
@@ -371,6 +379,22 @@ onUnmounted(() => {
     <Column field="reqId" expander>
       <template #header>
         <div style="text-align: right; width: 100%">ID</div>
+      </template>
+      <template #body="slotProps">
+        <span
+          @mouseover="
+            tooltipRef?.showTooltip(
+              $event,
+              slotProps.node.data.srViewName
+                ? `View: ${slotProps.node.data.srViewName}`
+                : 'No view name available'
+            )
+          "
+          @mouseleave="tooltipRef?.hideTooltip"
+          style="cursor: help"
+        >
+          {{ slotProps.node.data.reqId }}
+        </span>
       </template>
     </Column>
     <Column field="func">

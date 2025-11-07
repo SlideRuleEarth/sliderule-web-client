@@ -44,6 +44,7 @@ function updateBaseLayer(_event: Event) {
       :menuOptions="getBaseLayersForView(mapStore.selectedView).value"
       :getSelectedMenuItem="mapStore.getSelectedBaseLayer"
       :setSelectedMenuItem="mapStore.setSelectedBaseLayer"
+      tooltipText="Base Map Layer"
     />
   </div>
 </template>
