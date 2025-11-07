@@ -217,6 +217,52 @@ export function transformCoordinate(
 }
 
 /**
+ * Transform a coordinate from source CRS to a specified target CRS
+ *
+ * @param lon - Longitude/X in source CRS
+ * @param lat - Latitude/Y in source CRS
+ * @param sourceCrs - Source CRS code (e.g., "EPSG:7912")
+ * @param targetCrs - Target CRS code (e.g., "EPSG:3413" for polar, "EPSG:4326" for WGS84)
+ * @returns Transformed [x, y] in target CRS, or original if transformation fails
+ */
+export function transformCoordinateToTarget(
+  lon: number,
+  lat: number,
+  sourceCrs: string | null,
+  targetCrs: string
+): [number, number] {
+  // If no source CRS or already in target CRS, return as-is
+  if (
+    !sourceCrs ||
+    sourceCrs === targetCrs ||
+    (sourceCrs === 'OGC:CRS84' && targetCrs === 'EPSG:4326') ||
+    (sourceCrs === 'EPSG:4326' && targetCrs === 'OGC:CRS84')
+  ) {
+    return [lon, lat]
+  }
+
+  try {
+    // Ensure both CRSs are registered
+    ensureCrsRegistered(sourceCrs)
+    ensureCrsRegistered(targetCrs)
+
+    // Perform transformation
+    const transformed = proj4(sourceCrs, targetCrs, [lon, lat])
+    return [transformed[0], transformed[1]]
+  } catch (error) {
+    logger.error('transformCoordinateToTarget: Failed to transform', {
+      sourceCrs,
+      targetCrs,
+      error: error instanceof Error ? error.message : String(error)
+    })
+    logger.warn(
+      'transformCoordinateToTarget: Returning original coordinates without transformation'
+    )
+    return [lon, lat]
+  }
+}
+
+/**
  * Transform multiple coordinates in batch
  *
  * @param coordinates - Array of [lon, lat] pairs
