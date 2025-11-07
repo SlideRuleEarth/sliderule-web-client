@@ -15,50 +15,26 @@ export const srViews = ref<{ [key: string]: SrView }>({
     projectionName: 'EPSG:3857',
     baseLayerName: 'Esri World Topo'
   },
-  // 'Global Esri': {
-  //   hide: true,
-  //   view: 'Global WSG 84',
-  //   projectionName: 'EPSG:4326',
-  //   baseLayerName: 'Esri World Topo'
-  // },
   'Global Mercator Google': {
     hide: false,
     view: 'Global Mercator',
     projectionName: 'EPSG:3857',
     baseLayerName: 'Google'
   },
-  // 'Global Google': {
-  //   hide: true,
-  //   view: 'Global WSG 84',
-  //   projectionName: 'EPSG:4326',
-  //   baseLayerName: 'Google'
-  // },
   'Global Mercator OSM': {
     hide: false,
     view: 'Global Mercator',
     projectionName: 'EPSG:3857',
     baseLayerName: 'OpenStreet'
   },
-  // 'Global OSM': {
-  //   hide: true,
-  //   view: 'Global WSG 84',
-  //   projectionName: 'EPSG:4326',
-  //   baseLayerName: 'OpenStreet'
-  // },
   North: {
-    hide: true, // Hide until projection issue is resolved
-    view: 'North Alaska',
-    projectionName: 'EPSG:5936',
-    baseLayerName: 'Arctic Ocean Base'
-  },
-  'North NSIDC': {
-    hide: true, // Hide until projection issue is resolved
-    view: 'North NSDIC',
+    hide: false,
+    view: 'North',
     projectionName: 'EPSG:3413',
     baseLayerName: 'Arctic Imagery NSIDC'
   },
   'South Antarctic Polar Stereographic': {
-    hide: true, // Hide until projection issue is resolved
+    hide: false,
     view: 'South',
     projectionName: 'EPSG:3031',
     baseLayerName: 'Antarctic Imagery'

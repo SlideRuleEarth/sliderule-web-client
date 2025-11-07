@@ -203,9 +203,14 @@ const analyze = async (id: number) => {
 
 async function deleteRequest(id: number) {
   let deleted = true
+  let fileNotFound = false
   try {
     const fn = await db.getFilename(id)
-    await deleteOpfsFile(fn)
+    const result = await deleteOpfsFile(fn)
+    fileNotFound = result.fileNotFound
+    if (!result.deleted) {
+      deleted = false
+    }
   } catch (error) {
     logger.error('Failed to delete file', {
       id,
@@ -216,10 +221,13 @@ async function deleteRequest(id: number) {
   try {
     deleted = await requestsStore.deleteReq(id)
     if (deleted) {
+      const detail = fileNotFound
+        ? `Record ${id} deleted (no data file found - record had no data points)`
+        : `Record ${id} deleted successfully`
       toast.add({
         severity: 'success',
         summary: 'Record Deleted',
-        detail: `Record ${id} deleted successfully`,
+        detail: detail,
         life: srToastStore.getLife()
       })
     } else {
