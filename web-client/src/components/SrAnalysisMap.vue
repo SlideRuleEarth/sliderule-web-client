@@ -867,7 +867,13 @@ function handleSaveTooltip() {
       </div>
       <div
         v-show="computedMission === 'ICESat-2'"
-        @mouseover="analysisMapStore.tooltipRef.showTooltip($event, offFilterTooltip)"
+        @mouseover="
+          analysisMapStore.tooltipRef.showTooltip(
+            $event,
+            offFilterTooltip,
+            recTreeStore.selectedReqIdStr
+          )
+        "
         @mouseleave="analysisMapStore.tooltipRef.hideTooltip()"
       >
         <Checkbox
@@ -887,7 +893,8 @@ function handleSaveTooltip() {
         @mouseover="
           analysisMapStore.tooltipRef.showTooltip(
             $event,
-            'Use full data range for map legend instead of filtered percentile range'
+            'Use full data range for map legend instead of filtered percentile range',
+            recTreeStore.selectedReqIdStr
           )
         "
         @mouseleave="analysisMapStore.tooltipRef.hideTooltip"
@@ -910,7 +917,8 @@ function handleSaveTooltip() {
         @mouseover="
           analysisMapStore.tooltipRef.showTooltip(
             $event,
-            'Enable Link to Elevation Plot to be able to location points from the plot on the map'
+            'Enable Link to Elevation Plot to be able to location points from the plot on the map',
+            recTreeStore.selectedReqIdStr
           )
         "
         @mouseleave="analysisMapStore.tooltipRef.hideTooltip"

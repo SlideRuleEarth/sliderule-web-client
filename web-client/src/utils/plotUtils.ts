@@ -721,7 +721,12 @@ export function setTooltipContentCallback(callback: ((_text: string) => void) | 
   tooltipContentCallback = callback
 }
 
-export function formatTooltip(params: any, latFieldName: string, lonFieldName: string) {
+export function formatTooltip(
+  params: any,
+  latFieldName: string,
+  lonFieldName: string,
+  reqIdStr: string
+) {
   const paramsData = params.data
   const paramsDim = params.dimensionNames as string[]
   let ndx = 0
@@ -733,6 +738,9 @@ export function formatTooltip(params: any, latFieldName: string, lonFieldName: s
       return formatKeyValuePair(dim, val)
     })
     .join('<br>')
+
+  // Add record ID as the first line
+  const htmlWithRecordId = `<strong>Record ID</strong>: <em>${reqIdStr}</em><br>${parms}`
 
   // Convert HTML to plain text for text export
   const textContent = paramsDim
@@ -752,13 +760,16 @@ export function formatTooltip(params: any, latFieldName: string, lonFieldName: s
     })
     .join('\n')
 
+  // Add record ID as the first line for text export
+  const textWithRecordId = `Record ID: ${reqIdStr}\n${textContent}`
+
   // Call the callback with text version
   if (tooltipContentCallback) {
-    tooltipContentCallback(textContent)
+    tooltipContentCallback(textWithRecordId)
   }
 
   //console.log('formatTooltip parms:', parms);
-  return parms
+  return htmlWithRecordId
 }
 
 async function getSeriesFor(reqIdStr: string, isOverlay = false): Promise<SrScatterSeriesData[]> {
@@ -1113,7 +1124,7 @@ export async function getScatterOptions(req_id: number): Promise<any> {
         },
         tooltip: {
           trigger: 'item',
-          formatter: (params: any) => formatTooltip(params, latFieldName, lonFieldName)
+          formatter: (params: any) => formatTooltip(params, latFieldName, lonFieldName, reqIdStr)
         },
         legend: {
           data: legendNames,
