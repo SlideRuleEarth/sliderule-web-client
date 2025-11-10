@@ -77,7 +77,9 @@ const activeTabStore = useActiveTabStore()
 const fieldNameStore = useFieldNameStore()
 const controls = ref([])
 const tooltipRef = ref<InstanceType<typeof SrCustomTooltip> | null>(null)
-// true whenever the active tab is _not_ “3‑D View”
+const showContextMenu = ref(false)
+const contextMenuPosition = ref({ x: 0, y: 0 })
+// true whenever the active tab is _not_ "3‑D View"
 const isNot3DView = computed(() => !activeTabStore.isActiveTabLabel('3-D View'))
 
 const hasOffPointFilter = computed(() => {
@@ -128,6 +130,11 @@ onBeforeUnmount(() => {
   if (originalErrorHandler !== null) {
     window.onerror = originalErrorHandler
   }
+  // Clean up context menu event listeners
+  if (mapContainer.value) {
+    mapContainer.value.removeEventListener('contextmenu', handleContextMenu)
+  }
+  document.removeEventListener('click', closeContextMenu)
 })
 
 const elevationIsLoading = computed(
@@ -222,6 +229,12 @@ onMounted(async () => {
     analysisMapStore.tooltipRef = tooltipRef.value
   } else {
     logger.error('tooltipRef is null on mount')
+  }
+
+  // Add context menu handler to map container
+  if (mapContainer.value) {
+    mapContainer.value.addEventListener('contextmenu', handleContextMenu)
+    document.addEventListener('click', closeContextMenu)
   }
   recordsLayer.set('name', 'Records Layer') // for empty requests need to draw poly in this layer
   recordsLayer.set('title', 'Records Layer')
@@ -696,6 +709,61 @@ function handleUseFullRangeUpdate(_value: boolean) {
   }
   void updateAnalysisMapView('SrAnalysisMap handleUseFullRangeUpdate')
 }
+
+// Save tooltip content as text file
+function saveTooltipAsText() {
+  if (!tooltipRef.value) {
+    logger.warn('No tooltip ref available')
+    return
+  }
+
+  const content = tooltipRef.value.getPlainText()
+  if (!content) {
+    logger.warn('No tooltip content to save')
+    return
+  }
+
+  try {
+    const blob = new Blob([content], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+
+    // Generate filename with timestamp
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)
+    a.download = `map_tooltip_${timestamp}.txt`
+
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+
+    logger.debug('Map tooltip saved successfully')
+  } catch (error) {
+    logger.error('Error saving map tooltip', { error })
+  }
+}
+
+// Handle context menu event
+function handleContextMenu(event: MouseEvent) {
+  // Only show menu if we have tooltip content
+  if (tooltipRef.value && tooltipRef.value.getPlainText()) {
+    event.preventDefault()
+    contextMenuPosition.value = { x: event.clientX, y: event.clientY }
+    showContextMenu.value = true
+  }
+}
+
+// Close context menu
+function closeContextMenu() {
+  showContextMenu.value = false
+}
+
+// Handle save and close menu
+function handleSaveTooltip() {
+  saveTooltipAsText()
+  closeContextMenu()
+}
 </script>
 
 <template>
@@ -773,6 +841,19 @@ function handleUseFullRangeUpdate(_value: boolean) {
       <div class="sr-tooltip-style">
         <SrCustomTooltip id="analysisMapTooltip" ref="tooltipRef" />
       </div>
+      <!-- Custom context menu for map tooltip -->
+      <div
+        v-if="showContextMenu"
+        class="tooltip-context-menu"
+        :style="{
+          position: 'fixed',
+          left: contextMenuPosition.x + 'px',
+          top: contextMenuPosition.y + 'px'
+        }"
+        @click.stop
+      >
+        <div class="context-menu-item" @click="handleSaveTooltip">Save Tooltip as Text...</div>
+      </div>
     </div>
     <div class="sr-analysis-map-footer">
       <div>
@@ -786,7 +867,13 @@ function handleUseFullRangeUpdate(_value: boolean) {
       </div>
       <div
         v-show="computedMission === 'ICESat-2'"
-        @mouseover="analysisMapStore.tooltipRef.showTooltip($event, offFilterTooltip)"
+        @mouseover="
+          analysisMapStore.tooltipRef.showTooltip(
+            $event,
+            offFilterTooltip,
+            recTreeStore.selectedReqIdStr
+          )
+        "
         @mouseleave="analysisMapStore.tooltipRef.hideTooltip()"
       >
         <Checkbox
@@ -806,7 +893,8 @@ function handleUseFullRangeUpdate(_value: boolean) {
         @mouseover="
           analysisMapStore.tooltipRef.showTooltip(
             $event,
-            'Use full data range for map legend instead of filtered percentile range'
+            'Use full data range for map legend instead of filtered percentile range',
+            recTreeStore.selectedReqIdStr
           )
         "
         @mouseleave="analysisMapStore.tooltipRef.hideTooltip"
@@ -829,7 +917,8 @@ function handleUseFullRangeUpdate(_value: boolean) {
         @mouseover="
           analysisMapStore.tooltipRef.showTooltip(
             $event,
-            'Enable Link to Elevation Plot to be able to location points from the plot on the map'
+            'Enable Link to Elevation Plot to be able to location points from the plot on the map',
+            recTreeStore.selectedReqIdStr
           )
         "
         @mouseleave="analysisMapStore.tooltipRef.hideTooltip"
@@ -1148,5 +1237,30 @@ function handleUseFullRangeUpdate(_value: boolean) {
   transition:
     background-color 0.3s ease,
     border-color 0.3s ease;
+}
+
+/* Custom context menu styles */
+.tooltip-context-menu {
+  background-color: #2a2a2a;
+  border: 1px solid #555;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  min-width: 180px;
+  z-index: 9999;
+  padding: 4px 0;
+}
+
+.context-menu-item {
+  padding: 8px 16px;
+  cursor: pointer;
+  color: #ffffff;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.context-menu-item:hover {
+  background-color: var(--p-primary-color);
+  color: var(--p-primary-contrast-color);
 }
 </style>

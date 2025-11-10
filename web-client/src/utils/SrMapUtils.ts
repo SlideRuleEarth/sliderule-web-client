@@ -531,7 +531,12 @@ export function enableTagDisplay(map: OLMap, _vectorSource: VectorSource): void 
           const origEvent = evt.originalEvent
           if ('clientX' in origEvent && 'clientY' in origEvent) {
             const { clientX, clientY } = origEvent
-            mapStore.tooltipRef.showTooltip({ clientX, clientY } as MouseEvent, `Area: ${tag}`)
+            const recTreeStore = useRecTreeStore()
+            mapStore.tooltipRef.showTooltip(
+              { clientX, clientY } as MouseEvent,
+              `Area: ${tag}`,
+              recTreeStore.selectedReqIdStr
+            )
           }
         }
       } else {
@@ -892,7 +897,12 @@ const onHoverHandler = isIPhone
             view: window
           })
 
-          analysisMapStore.tooltipRef.showTooltip(syntheticEvent, tooltip)
+          const recTreeStore = useRecTreeStore()
+          analysisMapStore.tooltipRef.showTooltip(
+            syntheticEvent,
+            tooltip,
+            recTreeStore.selectedReqIdStr
+          )
         } else {
           analysisMapStore.tooltipRef.hideTooltip()
         }

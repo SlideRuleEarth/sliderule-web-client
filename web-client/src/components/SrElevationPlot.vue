@@ -20,7 +20,8 @@ import {
   getPhotonOverlayRunContext,
   initializeColorEncoding,
   initSymbolSize,
-  callPlotUpdateDebounced
+  callPlotUpdateDebounced,
+  setTooltipContentCallback
 } from '@/utils/plotUtils'
 import SrRunControl from '@/components/SrRunControl.vue'
 import { processRunSlideRuleClicked } from '@/utils/workerDomUtils'
@@ -52,6 +53,9 @@ import { createLogger } from '@/utils/logger'
 const logger = createLogger('SrElevationPlot')
 
 const tooltipRef = ref()
+const currentTooltipContent = ref<string>('')
+const showContextMenu = ref(false)
+const contextMenuPosition = ref({ x: 0, y: 0 })
 
 const props = defineProps({
   startingReqId: {
@@ -398,6 +402,55 @@ const handleChartFinished = () => {
   }
 }
 
+// Save tooltip content as text file
+function saveTooltipAsText() {
+  if (!currentTooltipContent.value) {
+    logger.warn('No tooltip content to save')
+    return
+  }
+
+  try {
+    const blob = new Blob([currentTooltipContent.value], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+
+    // Generate filename with timestamp
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)
+    a.download = `plot_tooltip_${timestamp}.txt`
+
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+
+    logger.debug('Tooltip saved successfully')
+  } catch (error) {
+    logger.error('Error saving tooltip', { error })
+  }
+}
+
+// Handle context menu event
+function handleContextMenu(event: MouseEvent) {
+  // Only show menu if we have tooltip content
+  if (currentTooltipContent.value) {
+    event.preventDefault()
+    contextMenuPosition.value = { x: event.clientX, y: event.clientY }
+    showContextMenu.value = true
+  }
+}
+
+// Close context menu
+function closeContextMenu() {
+  showContextMenu.value = false
+}
+
+// Handle save and close menu
+function handleSaveTooltip() {
+  saveTooltipAsText()
+  closeContextMenu()
+}
+
 // Normalize the currently selected reqId ('' when not ready yet)
 const selectedReqIdStr = computed(() => {
   const id = recTreeStore.selectedReqId
@@ -443,6 +496,12 @@ onMounted(async () => {
     //console.log('SrElevationPlot onMounted initial chartWrapperRef:',chartWrapperRef.value);
     webGLSupported.value = !!window.WebGLRenderingContext // Should log `true` if WebGL is supported
     globalChartStore.titleOfElevationPlot = ' Highlighted Track(s)'
+
+    // Set up tooltip content callback
+    setTooltipContentCallback((text: string) => {
+      currentTooltipContent.value = text
+    })
+
     await initPlot()
     //enableTouchDragging(); // this is experimental
     void requestsStore.displayHelpfulMapAdvice('Legends are draggable to any location')
@@ -457,6 +516,10 @@ onMounted(async () => {
 
 onUnmounted(() => {
   logger.debug('SrElevationPlot onUnmounted')
+  // Clean up tooltip callback
+  setTooltipContentCallback(null)
+  // Clean up context menu event listener
+  document.removeEventListener('click', closeContextMenu)
 })
 
 watch(
@@ -488,6 +551,15 @@ watch(
           }
         })()
       })
+
+      // Add context menu handler to chart DOM element
+      const chartDom = chartInstance.getDom()
+      if (chartDom) {
+        chartDom.addEventListener('contextmenu', handleContextMenu)
+        // Also add click listener to close menu when clicking outside
+        document.addEventListener('click', closeContextMenu)
+      }
+
       atlChartFilterStore.setPlotRef(newValue)
       if (chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length > 0) {
         await callPlotUpdateDebounced('from SrElevationPlot watch plotRef.value')
@@ -628,6 +700,19 @@ watch(
           }"
           @finished="handleChartFinished"
         />
+        <!-- Custom context menu for tooltip -->
+        <div
+          v-if="showContextMenu"
+          class="tooltip-context-menu"
+          :style="{
+            position: 'fixed',
+            left: contextMenuPosition.x + 'px',
+            top: contextMenuPosition.y + 'px'
+          }"
+          @click.stop
+        >
+          <div class="context-menu-item" @click="handleSaveTooltip">Save Tooltip as Text...</div>
+        </div>
       </div>
       <div class="sr-cycles-legend-panel">
         <Panel
@@ -1160,5 +1245,30 @@ fieldset {
   touch-action: none; /* Disable default gestures to allow dragging */
   -webkit-user-drag: none;
   user-select: none;
+}
+
+/* Custom context menu styles */
+.tooltip-context-menu {
+  background-color: #2a2a2a;
+  border: 1px solid #555;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  min-width: 180px;
+  z-index: 9999;
+  padding: 4px 0;
+}
+
+.context-menu-item {
+  padding: 8px 16px;
+  cursor: pointer;
+  color: #ffffff;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.context-menu-item:hover {
+  background-color: var(--p-primary-color);
+  color: var(--p-primary-contrast-color);
 }
 </style>
