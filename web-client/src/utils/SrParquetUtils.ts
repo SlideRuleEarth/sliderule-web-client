@@ -6,6 +6,7 @@ import { calculatePolygonArea } from '@/composables/SrTurfUtils'
 import { createDuckDbClient } from '@/utils/SrDuckDb'
 import { type Ref } from 'vue'
 import { createLogger } from '@/utils/logger'
+import { formatTime } from '@/utils/formatUtils'
 
 const logger = createLogger('SrParquetUtils')
 
@@ -576,6 +577,7 @@ export async function exportCsvStreamed(fileName: string, headerCols: Ref<string
   let columns = headerCols.value
   let geometryColumn: string | null = null
   let selectCols: string[] = []
+  const timeColumns: string[] = []
 
   // Check for geo metadata and adjust columns if geometry exists
   const metadata = await duck.getAllParquetMetadata(fileName)
@@ -604,7 +606,13 @@ export async function exportCsvStreamed(fileName: string, headerCols: Ref<string
         if (geometryHasZ && col === zColName) return false
         return true
       })
-      .map((col) => duck.escape(col))
+      .map((col) => {
+        // Track time columns for formatting
+        if (col === 'time' || col.includes('time_ns')) {
+          timeColumns.push(col)
+        }
+        return duck.escape(col)
+      })
 
     // Add geometry extractions using DuckDB spatial functions
     selectCols.push(`ST_X(${duck.escape(geometryColumn)}) AS ${duck.escape(xColName)}`)
@@ -624,7 +632,13 @@ export async function exportCsvStreamed(fileName: string, headerCols: Ref<string
     }
   } else {
     // No geometry, select all columns
-    selectCols = headerCols.value.map((col) => duck.escape(col))
+    selectCols = headerCols.value.map((col) => {
+      // Track time columns for formatting
+      if (col === 'time' || col.includes('time_ns')) {
+        timeColumns.push(col)
+      }
+      return duck.escape(col)
+    })
   }
 
   const encoder = new TextEncoder()
@@ -634,8 +648,18 @@ export async function exportCsvStreamed(fileName: string, headerCols: Ref<string
   const wb = await getWritableFileStream(`${fileName}.csv`, 'text/csv')
   if (!wb) return false
 
+  // Build extended columns list with formatted time columns
+  const extendedColumns: string[] = []
+  for (const col of columns) {
+    extendedColumns.push(col)
+    // Add formatted time column after each time column
+    if (timeColumns.includes(col)) {
+      extendedColumns.push(`${col}_formatted`)
+    }
+  }
+
   // header
-  const header = columns.map((col) => (col === 'srcid' ? 'granule' : col))
+  const header = extendedColumns.map((col) => (col === 'srcid' ? 'granule' : col))
   const writer = wb.getWriter()
   //console.log('[CSV] writing header:', header.join(','));
 
@@ -649,7 +673,17 @@ export async function exportCsvStreamed(fileName: string, headerCols: Ref<string
         .map((row) => {
           // DuckDB has already extracted geometry coordinates via ST_X, ST_Y, ST_Z
           // No need for manual WKB/WKT parsing
-          const processed = columns.map((col) => {
+          const processed = extendedColumns.map((col) => {
+            // Handle formatted time columns
+            if (col.endsWith('_formatted')) {
+              const baseCol = col.replace('_formatted', '')
+              const timeVal = row[baseCol]
+              if (typeof timeVal === 'number') {
+                return safeCsvCell(formatTime(timeVal))
+              }
+              return safeCsvCell('')
+            }
+
             let val = row[col]
             if (col === 'srcid') val = lookup[val] ?? `unknown_srcid_${val}`
             return safeCsvCell(val)
