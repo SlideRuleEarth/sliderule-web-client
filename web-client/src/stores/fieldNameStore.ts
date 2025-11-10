@@ -102,19 +102,20 @@ function getDefaultElOptions(reqId: number, funcStr?: string): string[] {
         'pflags',
         'w_surface_window_final',
         'y_atc',
-        'cycle'
+        'cycle',
+        'srcid'
       ]
       break
     case 'atl06s':
     case 'atl06sp':
-      options = ['h_li', 'y_atc', 'cycle']
+      options = ['h_li', 'y_atc', 'cycle', 'srcid']
       break
     case 'atl03vp':
       options = ['segment_ph_cnt']
       break
     case 'atl03s':
     case 'atl03sp':
-      options = ['height', 'atl03_cnf', 'atl08_class', 'y_atc', 'cycle']
+      options = ['height', 'atl03_cnf', 'atl08_class', 'y_atc', 'cycle', 'srcid']
       break
     case 'atl03x':
       options = ['height', 'atl03_cnf', 'y_atc', 'cycle', 'srcid', 'yapc_score']
@@ -129,7 +130,8 @@ function getDefaultElOptions(reqId: number, funcStr?: string): string[] {
         'h_min_canopy',
         'h_te_median',
         'canopy_openness',
-        'cycle'
+        'cycle',
+        'srcid'
       ]
       break
     case 'atl24x':

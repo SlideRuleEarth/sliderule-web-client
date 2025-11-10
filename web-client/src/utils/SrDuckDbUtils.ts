@@ -105,7 +105,7 @@ async function setElevationDataOptionsFromFieldNames(
   fieldNames: string[],
   funcStr?: string
 ): Promise<void> {
-  //console.log(`setElevationDataOptionsFromFieldNames reqId:${reqId}`, fieldNames );
+  //logger.debug(`setElevationDataOptionsFromFieldNames reqId:${reqId}`, fieldNames );
   // const _startTime = performance.now() // Start time
   const chartStore = useChartStore()
   try {
