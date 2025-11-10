@@ -26,6 +26,7 @@ import {
 } from '@/types/SrTypes'
 import { useSymbolStore } from '@/stores/symbolStore'
 import { useFieldNameStore } from '@/stores/fieldNameStore'
+import { useSrcIdTblStore } from '@/stores/srcIdTblStore'
 import { createDuckDbClient } from '@/utils/SrDuckDb'
 import { useActiveTabStore } from '@/stores/activeTabStore'
 import { useDeckStore } from '@/stores/deckStore'
@@ -713,6 +714,13 @@ function filterDataForPos(label: any, data: any, lat: string, lon: string) {
   //console.log('filterDataForPos AFTER  lat:',  globalChartStore.locationFinderLat, 'lon:', globalChartStore.locationFinderLon);
 }
 
+// Callback for storing tooltip content
+let tooltipContentCallback: ((_text: string) => void) | null = null
+
+export function setTooltipContentCallback(callback: ((_text: string) => void) | null) {
+  tooltipContentCallback = callback
+}
+
 export function formatTooltip(params: any, latFieldName: string, lonFieldName: string) {
   const paramsData = params.data
   const paramsDim = params.dimensionNames as string[]
@@ -725,6 +733,30 @@ export function formatTooltip(params: any, latFieldName: string, lonFieldName: s
       return formatKeyValuePair(dim, val)
     })
     .join('<br>')
+
+  // Convert HTML to plain text for text export
+  const textContent = paramsDim
+    .map((dim, index) => {
+      const val = paramsData[index]
+      const plainKey = dim === 'srcid' ? 'granule' : dim
+      let plainValue = String(val)
+      if (dim === 'srcid') {
+        const srcIdStore = useSrcIdTblStore()
+        if (srcIdStore.sourceTable.length - 1 >= val) {
+          plainValue = `${val}: ${srcIdStore.sourceTable[val]}`
+        } else {
+          plainValue = `${val}: <unknown source>`
+        }
+      }
+      return `${plainKey}: ${plainValue}`
+    })
+    .join('\n')
+
+  // Call the callback with text version
+  if (tooltipContentCallback) {
+    tooltipContentCallback(textContent)
+  }
+
   //console.log('formatTooltip parms:', parms);
   return parms
 }
