@@ -18,6 +18,8 @@ const visible = ref(false)
 const text = ref('')
 const tooltipStyle = ref<Record<string, string>>({})
 
+const plainText = ref('')
+
 const showTooltip = async (event: MouseEvent, content: string | undefined) => {
   if (!content) {
     logger.warn('Tooltip content is undefined or empty')
@@ -27,6 +29,23 @@ const showTooltip = async (event: MouseEvent, content: string | undefined) => {
   // Sanitize HTML content
   const sanitized = DOMPurify.sanitize(content)
   text.value = sanitized
+
+  // Store plain text version with proper newlines
+  // Replace HTML line breaks and block elements with newlines before stripping tags
+  let textWithNewlines = sanitized
+    .replace(/<br\s*\/?>/gi, '\n') // Convert <br> to newline
+    .replace(/<\/p>/gi, '\n\n') // Convert </p> to double newline
+    .replace(/<\/div>/gi, '\n') // Convert </div> to newline
+    .replace(/<\/li>/gi, '\n') // Convert </li> to newline
+    .replace(/<\/h[1-6]>/gi, '\n\n') // Convert </h1-6> to double newline
+    .replace(/<strong>(.*?)<\/strong>/gi, '$1') // Remove <strong> but keep text
+    .replace(/<em>(.*?)<\/em>/gi, '$1') // Remove <em> but keep text
+
+  // Create a temporary element to strip remaining HTML tags
+  const temp = document.createElement('div')
+  temp.innerHTML = textWithNewlines
+  plainText.value = (temp.textContent || temp.innerText || '').trim()
+
   visible.value = true
 
   await nextTick() // Ensure tooltip is rendered
@@ -62,9 +81,14 @@ const hideTooltip = () => {
   visible.value = false
 }
 
+const getPlainText = () => {
+  return plainText.value
+}
+
 defineExpose({
   showTooltip,
-  hideTooltip
+  hideTooltip,
+  getPlainText
 })
 </script>
 
