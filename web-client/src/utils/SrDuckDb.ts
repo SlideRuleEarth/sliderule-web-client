@@ -466,12 +466,13 @@ export class DuckDBClient {
       try {
         await duckDB.registerFileURL(name, url, DuckDBDataProtocol.HTTP, true)
       } catch (error: any) {
-        if ('File already registered' in error) {
+        const errorMsg = error instanceof Error ? error.message : String(error)
+        if (errorMsg.includes('File already registered')) {
           isRegistered = true
           //console.log('insertOpfsParquet File already registered');
         } else {
           logger.error('insertOpfsParquet registerFileURL error', {
-            error: error instanceof Error ? error.message : String(error)
+            error: errorMsg
           })
           throw error
         }

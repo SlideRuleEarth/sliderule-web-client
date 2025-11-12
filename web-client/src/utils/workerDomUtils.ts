@@ -503,6 +503,45 @@ export async function processRunSlideRuleClicked(rc: SrRunContext | null = null)
       if (reqParamsStore.getMissionValue() === 'ICESat-2') {
         if (reqParamsStore.getIceSat2API()) {
           srReqRec.parameters = reqParamsStore.getAtlxxReqParams(srReqRec.req_id) as AtlxxReqParams
+
+          // Validate parameter consistency with API
+          const api = reqParamsStore.getIceSat2API()
+          const hasFit = !!srReqRec.parameters?.parms?.fit
+          const hasPhoreal = !!srReqRec.parameters?.parms?.phoreal
+
+          // Valid APIs for fit: 'atl03' (will become 'atl03x-surface'), 'atl03x-surface'
+          // Valid APIs for phoreal: 'atl03' (will become 'atl03x-phoreal'), 'atl03x-phoreal'
+          const validApisForFit = ['atl03', 'atl03x-surface']
+          const validApisForPhoreal = ['atl03', 'atl03x-phoreal']
+
+          if (hasFit && !validApisForFit.includes(api)) {
+            useSrToastStore().error(
+              'Parameter Mismatch',
+              `Parameters contain 'fit' but API is '${api}'. The 'fit' parameter requires API 'atl03' or 'atl03x-surface'. Please check your parameters.`
+            )
+            logger.error('API and parameter mismatch', {
+              api,
+              hasFit,
+              expectedApis: validApisForFit
+            })
+            requestsStore.setConsoleMsg('Parameter validation failed')
+            return
+          }
+
+          if (hasPhoreal && !validApisForPhoreal.includes(api)) {
+            useSrToastStore().error(
+              'Parameter Mismatch',
+              `Parameters contain 'phoreal' but API is '${api}'. The 'phoreal' parameter requires API 'atl03' or 'atl03x-phoreal'. Please check your parameters.`
+            )
+            logger.error('API and parameter mismatch', {
+              api,
+              hasPhoreal,
+              expectedApis: validApisForPhoreal
+            })
+            requestsStore.setConsoleMsg('Parameter validation failed')
+            return
+          }
+
           if (reqParamsStore.getIceSat2API() === 'atl03' && srReqRec.parameters?.parms?.fit) {
             srReqRec.func = 'atl03x-surface'
           } else if (
