@@ -185,6 +185,23 @@ export class DuckDBClient {
           castTimestampToDate: true
         }
       })
+
+      // Install and load the spatial extension after opening
+      const conn = await this._db.connect()
+      try {
+        await conn.query('INSTALL spatial;')
+        await conn.query('LOAD spatial;')
+        // Set to autoload for all future connections
+        await conn.query('SET autoload_known_extensions=true;')
+        await conn.query('SET autoinstall_known_extensions=true;')
+        logger.debug('Spatial extension installed and loaded successfully with autoload enabled')
+      } catch (error) {
+        logger.error('Failed to load spatial extension', {
+          error: error instanceof Error ? error.message : String(error)
+        })
+      } finally {
+        await conn.close()
+      }
     }
     return this._db
   }
@@ -198,6 +215,15 @@ export class DuckDBClient {
     let tbl: Table<any>
 
     try {
+      // Load spatial extension for this connection
+      try {
+        await conn.query('LOAD spatial;')
+      } catch {
+        // Extension might not be installed yet, install and load
+        await conn.query('INSTALL spatial;')
+        await conn.query('LOAD spatial;')
+      }
+
       if (params) {
         const stmt = await conn.prepare(query)
         tbl = await stmt.query(...params)
@@ -238,6 +264,14 @@ export class DuckDBClient {
     const conn = await this._db!.connect()
     let totalRows
     try {
+      // Load spatial extension for this connection
+      try {
+        await conn.query('LOAD spatial;')
+      } catch {
+        await conn.query('INSTALL spatial;')
+        await conn.query('LOAD spatial;')
+      }
+
       const countQuery = `SELECT COUNT(*) as total FROM (${query}) as subquery`
       const result = await conn.query(countQuery)
       const rows = result.toArray()
@@ -267,6 +301,14 @@ export class DuckDBClient {
     let tbl: Table<any>
     const chunkSize = useSrParquetCfgStore().getMaxNumPntsToDisplay() // Default chunk size set to 100
     try {
+      // Load spatial extension for this connection
+      try {
+        await conn.query('LOAD spatial;')
+      } catch {
+        await conn.query('INSTALL spatial;')
+        await conn.query('LOAD spatial;')
+      }
+
       // Get the total number of rows for the query if this is the first chunk
       let totalRows = null
       totalRows = await this.getTotalRowCount(query)
@@ -319,6 +361,14 @@ export class DuckDBClient {
     const ident = `"${fileName.replace(/"/g, '""')}"`
 
     try {
+      // Load spatial extension for this connection
+      try {
+        await conn.query('LOAD spatial;')
+      } catch {
+        await conn.query('INSTALL spatial;')
+        await conn.query('LOAD spatial;')
+      }
+
       // DuckDB returns schema info here even if the table has 0 rows
       const res = await conn.query(`DESCRIBE SELECT * FROM ${ident}`)
       const rows = res.toArray() as any[]
@@ -428,12 +478,26 @@ export class DuckDBClient {
       }
 
       const conn = await duckDB.connect()
-      await conn.query(`CREATE OR REPLACE VIEW '${name}' AS SELECT * FROM parquet_scan('${name}')`)
-      //console.log('insertOpfsParquet view created for name:', name);
+      try {
+        // Load spatial extension for this connection
+        try {
+          await conn.query('LOAD spatial;')
+        } catch {
+          await conn.query('INSTALL spatial;')
+          await conn.query('LOAD spatial;')
+        }
 
-      if (!isRegistered) {
-        this._filesInDb.add(name)
-        logger.debug('insertOpfsParquet inserted name', { name })
+        await conn.query(
+          `CREATE OR REPLACE VIEW '${name}' AS SELECT * FROM parquet_scan('${name}')`
+        )
+        //console.log('insertOpfsParquet view created for name:', name);
+
+        if (!isRegistered) {
+          this._filesInDb.add(name)
+          logger.debug('insertOpfsParquet inserted name', { name })
+        }
+      } finally {
+        await conn.close()
       }
     } catch (error) {
       logger.error('insertOpfsParquet error', {

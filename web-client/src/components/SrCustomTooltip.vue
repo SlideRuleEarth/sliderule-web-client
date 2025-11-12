@@ -35,7 +35,7 @@ const showTooltip = async (event: MouseEvent, content: string | undefined, recor
   }
 
   text.value = sanitized
-  logger.warn('Tooltip HTML content set:', sanitized)
+  //logger.warn('Tooltip HTML content set:', sanitized)
   // Store plain text version with proper newlines
   // Replace HTML line breaks and block elements with newlines before stripping tags
   let textWithNewlines = sanitized
@@ -46,7 +46,7 @@ const showTooltip = async (event: MouseEvent, content: string | undefined, recor
     .replace(/<\/h[1-6]>/gi, '\n\n') // Convert </h1-6> to double newline
     .replace(/<strong>(.*?)<\/strong>/gi, '$1') // Remove <strong> but keep text
     .replace(/<em>(.*?)<\/em>/gi, '$1') // Remove <em> but keep text
-  logger.warn('Tooltip plain text with newlines:', textWithNewlines)
+  //logger.warn('Tooltip plain text with newlines:', textWithNewlines)
   // Create a temporary element to strip remaining HTML tags
   const temp = document.createElement('div')
   temp.innerHTML = textWithNewlines
