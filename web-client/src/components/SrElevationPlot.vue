@@ -218,6 +218,13 @@ const initOverlayLegendPosition = () => {
 }
 const reqId = computed(() => recTreeStore.selectedReqId)
 
+const overlayReqId = computed(() => {
+  if (atlChartFilterStore.selectedOverlayedReqIds.length > 0) {
+    return atlChartFilterStore.selectedOverlayedReqIds[0]
+  }
+  return 0
+})
+
 const shouldDisplayAtl03Colors = computed(() => {
   // Wait for tree to load before checking API
   if (!recTreeStore.isTreeLoaded) return false
@@ -353,6 +360,8 @@ const computedOverlayDataKey = computed(() => {
 const shouldDisplayOverlayGradient = computed(() => {
   return (
     atlChartFilterStore.selectedOverlayedReqIds.length > 0 &&
+    computedOverlayDataKey.value != '' &&
+    computedOverlayDataKey.value != 'solid' &&
     computedOverlayDataKey.value != 'atl03_cnf' &&
     computedOverlayDataKey.value != 'atl08_class' &&
     computedOverlayDataKey.value != 'atl24_class'
@@ -684,6 +693,13 @@ watch(
     <!-- {{ shouldDisplayOverlayGradient ? 'Overlay Gradient Displayed' : 'Overlay Gradient Not Displayed' }} -->
     <!-- {{ shouldDisplayAtl08Colors ? 'Atl08 Colors Displayed' : 'Atl08 Colors Not Displayed' }} -->
     <!-- {{ shouldDisplayAtl03Colors ? 'Atl03 Colors Displayed' : 'Atl03 Colors Not Displayed' }} -->
+    <!-- <div style="background: yellow; color: black; padding: 0.5rem; margin: 0.5rem;">
+      DEBUG: shouldDisplayOverlayGradient: {{ shouldDisplayOverlayGradient }} |
+      shouldDisplayMainGradient: {{ shouldDisplayMainGradient }} |
+      computedOverlayDataKey: {{ computedOverlayDataKey }} |
+      computedDataKey: {{ computedDataKey }} |
+      overlayedReqIds: {{ atlChartFilterStore.selectedOverlayedReqIds }}
+    </div> -->
     <div class="sr-elevation-plot-content">
       <div ref="chartWrapperRef" class="chart-wrapper">
         <v-chart
@@ -767,7 +783,7 @@ watch(
           </Dialog>
           <Dialog
             v-if="chartWrapperRef !== undefined"
-            v-model:visible="shouldDisplayGradientDialog"
+            v-model:visible="shouldDisplayOverlayGradient"
             :closable="false"
             :draggable="true"
             :modal="false"
@@ -780,7 +796,7 @@ watch(
                 class="chart-overlay"
                 v-if="shouldDisplayOverlayGradient"
                 :isOverlay="true"
-                :reqId="reqId"
+                :reqId="overlayReqId"
                 :transparentBackground="true"
               />
             </template>
