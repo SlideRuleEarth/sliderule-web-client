@@ -57,7 +57,7 @@ export function formatTime(value: number): string {
   return date.toISOString() // Format as ISO string in UTC
 }
 
-export function formatKeyValuePair(key: string, value: any): string {
+export function formatKeyValuePair(key: string, value: any, reqId?: number): string {
   const srcIdStore = useSrcIdTblStore()
 
   let formattedValue: string | number
@@ -92,8 +92,12 @@ export function formatKeyValuePair(key: string, value: any): string {
 
     formattedValue = `[<br>${formattedPairs}<br>]`
   } else if (key === 'srcid') {
-    if (srcIdStore.sourceTable.length - 1 >= value) {
-      formattedValue = `${value}: ${srcIdStore.sourceTable[value]}`
+    // Use reqId-specific source table if available, otherwise fall back to legacy sourceTable
+    const sourceTable =
+      reqId !== undefined ? srcIdStore.getSourceTableForReqId(reqId) : srcIdStore.sourceTable
+
+    if (sourceTable.length - 1 >= value) {
+      formattedValue = `${value}: ${sourceTable[value]}`
     } else {
       formattedValue = `${value} : <unknown source>`
     }

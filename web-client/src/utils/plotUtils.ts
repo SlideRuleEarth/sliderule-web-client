@@ -729,13 +729,14 @@ export function formatTooltip(
 ) {
   const paramsData = params.data
   const paramsDim = params.dimensionNames as string[]
+  const reqId = Number(reqIdStr)
   let ndx = 0
 
   const parms = paramsDim
     .map((dim) => {
       const val = paramsData[ndx++]
       filterDataForPos(dim, val, latFieldName, lonFieldName)
-      return formatKeyValuePair(dim, val)
+      return formatKeyValuePair(dim, val, reqId)
     })
     .join('<br>')
 
@@ -743,15 +744,16 @@ export function formatTooltip(
   const htmlWithRecordId = `<strong>Record ID</strong>: <em>${reqIdStr}</em><br>${parms}`
 
   // Convert HTML to plain text for text export
+  const srcIdStore = useSrcIdTblStore()
+  const sourceTable = srcIdStore.getSourceTableForReqId(reqId)
   const textContent = paramsDim
     .map((dim, index) => {
       const val = paramsData[index]
       const plainKey = dim === 'srcid' ? 'granule' : dim
       let plainValue = String(val)
       if (dim === 'srcid') {
-        const srcIdStore = useSrcIdTblStore()
-        if (srcIdStore.sourceTable.length - 1 >= val) {
-          plainValue = `${val}: ${srcIdStore.sourceTable[val]}`
+        if (sourceTable.length - 1 >= val) {
+          plainValue = `${val}: ${sourceTable[val]}`
         } else {
           plainValue = `${val}: <unknown source>`
         }
