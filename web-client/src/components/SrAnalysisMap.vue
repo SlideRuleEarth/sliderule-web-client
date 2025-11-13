@@ -801,7 +801,7 @@ function handleSaveTooltip() {
           :coordinateFormat="stringifyFunc as any"
         />
 
-        <MapControls.OlScalelineControl />
+        <MapControls.OlScaleLineControl />
 
         <SrLegendControl
           @legend-control-created="handleLegendControlCreated"
@@ -1218,6 +1218,13 @@ function handleSaveTooltip() {
   color: white;
   max-width: 30rem;
   background: rgba(255, 255, 255, 0.25);
+}
+
+:deep(.ol-scale-line) {
+  bottom: 0.5rem;
+  left: 0.5rem;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: var(--p-border-radius);
 }
 
 /* recommended by deck.gl for performance reasons */
