@@ -560,10 +560,10 @@ export function disableTagDisplay(): void {
   }
 }
 
-export function formatElObject(obj: { [key: string]: any }): string {
+export function formatElObject(obj: { [key: string]: any }, reqId?: number): string {
   const html = Object.entries(obj)
     .filter(([key]) => key !== 'extent_id' && key !== '__rgba')
-    .map(([key, value]) => formatKeyValuePair(key, value))
+    .map(([key, value]) => formatKeyValuePair(key, value, reqId))
     .join('<br>')
   return html
 }
@@ -887,7 +887,9 @@ const onHoverHandler = isIPhone
 
       if (analysisMapStore.showTheTooltip) {
         if (object && !useDeckStore().isDragging) {
-          const tooltip = formatElObject(object)
+          const recTreeStore = useRecTreeStore()
+          const reqId = Number(recTreeStore.selectedReqIdStr)
+          const tooltip = formatElObject(object, reqId)
 
           const syntheticEvent = new MouseEvent('mousemove', {
             clientX: x,
@@ -897,7 +899,6 @@ const onHoverHandler = isIPhone
             view: window
           })
 
-          const recTreeStore = useRecTreeStore()
           analysisMapStore.tooltipRef.showTooltip(
             syntheticEvent,
             tooltip,
