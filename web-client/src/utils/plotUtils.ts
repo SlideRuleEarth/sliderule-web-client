@@ -1589,10 +1589,10 @@ export const addOverlaysToScatterPlot = async () => {
 export const refreshScatterPlot = async (msg: string) => {
   logger.debug('refreshScatterPlot called', { msg })
 
-  // Only refresh when on Elevation Plot tab where the chart is actually visible
+  // Only refresh when on Time Series or Elevation Plot tabs where the chart is actually visible
   const activeTabStore = useActiveTabStore()
-  if (!activeTabStore.isActiveTabElevation) {
-    logger.debug('Skipping refreshScatterPlot - not on Elevation Plot tab')
+  if (!activeTabStore.isActiveTabTimeSeries && !activeTabStore.isActiveTabElevation) {
+    logger.debug('Skipping refreshScatterPlot - not on Time Series or Elevation Plot tab')
     return
   }
 
