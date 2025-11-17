@@ -398,7 +398,7 @@ export async function updateReqParmsFromMeta(req_id: number): Promise<void> {
           await db.updateRequestRecord({ req_id: req_id, rcvd_parms: parsed.request })
           //console.log(`updateReqParmsFromMeta: Successfully updated rcvd_parms for req_id ${req_id}`);
         } else {
-          logger.warn(
+          logger.debug(
             'updateReqParmsFromMeta: Missing meta field or invalid request field in metadata',
             { req_id, parsed }
           )

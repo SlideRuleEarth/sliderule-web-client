@@ -8,7 +8,7 @@ import { useFieldNameStore } from '@/stores/fieldNameStore'
 import { useSrToastStore } from '@/stores/srToastStore'
 import { useDeck3DConfigStore } from '@/stores/deck3DConfigStore'
 import { useElevationColorMapStore } from '@/stores/elevationColorMapStore'
-import { OrbitView, OrbitController } from '@deck.gl/core'
+import { OrbitView, OrbitController, type OrbitViewState } from '@deck.gl/core'
 import { ref, type Ref } from 'vue'
 import { Deck } from '@deck.gl/core'
 import proj4 from 'proj4'
@@ -41,6 +41,7 @@ const deckInstance: Ref<Deck<OrbitView[]> | null> = ref(null)
 let cachedRawData: any[] = []
 let lastLoadedReqId: number | null = null
 let verticalExaggerationInitialized = false
+let needsViewReset = false
 
 // helper: pick a local metric CRS (UTM or polar)
 function pickLocalMetricCRS(lat: number, lon: number): string {
@@ -105,16 +106,25 @@ function initDeckIfNeeded(deckContainer: Ref<HTMLDivElement | null>): boolean {
     return false
   }
 
-  if (!deckInstance.value) {
-    createDeck(container)
+  const { width, height } = container.getBoundingClientRect()
+  if (width === 0 || height === 0) {
+    logger.warn('Deck container has zero size', { width, height })
+    return false
+  }
+
+  if (!deckInstance) {
+    // Use createDeckWithSize to ensure explicit width/height in constructor
+    // This prevents the 0x0 canvas bug that breaks controller initialization
+    createDeckWithSize(container, width, height)
+    logger.debug('🎯 Deck created with explicit dimensions', { width, height })
   }
   return true
 }
 
 export function finalizeDeck() {
-  if (deckInstance.value) {
-    deckInstance.value.finalize()
-    deckInstance.value = null
+  if (deckInstance) {
+    deckInstance.finalize()
+    deckInstance = null
     //console.log('Deck instance finalized');
   } else {
     logger.warn('No Deck instance to finalize')
@@ -134,28 +144,47 @@ export function recreateDeck(deckContainer: Ref<HTMLDivElement | null>): boolean
   }
 
   // Finalize existing deck if present
-  if (deckInstance.value) {
+  if (deckInstance) {
     logger.debug('Finalizing existing deck before recreation', {
-      oldWidth: deckInstance.value.width,
-      oldHeight: deckInstance.value.height
+      oldWidth: deckInstance.width,
+      oldHeight: deckInstance.height
     })
-    deckInstance.value.finalize()
-    deckInstance.value = null
+    deckInstance.finalize()
+    deckInstance = null
   }
 
-  // Create fresh deck instance
-  createDeck(deckContainer.value)
+  // Create fresh deck instance with proper dimensions from the start
+  // Pass dimensions to createDeck so it can include them in the constructor
+  createDeckWithSize(deckContainer.value, width, height)
 
   logger.debug('Deck instance recreated', { width, height })
   return true
 }
 
-function createDeck(container: HTMLDivElement) {
-  //console.log('createDeck inside:', container);
-  deckInstance.value = new Deck({
+function createDeckWithSize(container: HTMLDivElement, width: number, height: number) {
+  logger.debug('🔧 createDeckWithSize called', {
+    containerBounds: container.getBoundingClientRect(),
+    containerInDOM: document.body.contains(container),
+    containerVisible: container.offsetParent !== null
+  })
+
+  // Remove any existing canvas elements to start fresh
+  const existingCanvases = container.querySelectorAll('canvas')
+  existingCanvases.forEach((canvas) => canvas.remove())
+
+  const controllerOptions = buildOrbitControllerOptions()
+  const initialViewState = buildViewStatePayload(true)
+
+  logger.debug('🎮 Controller options', controllerOptions)
+  logger.debug('👁️ Initial view state', initialViewState)
+
+  // Pass explicit dimensions to constructor
+  deckInstance = new Deck({
     parent: container,
+    width,
+    height,
     useDevicePixels: false,
-    _animate: false, // Disable animation for better performance
+    _animate: false,
     views: [
       new OrbitView({
         id: viewId,
@@ -163,27 +192,9 @@ function createDeck(container: HTMLDivElement) {
         fovy: deck3DConfigStore.fovy
       })
     ],
-    controller: {
-      type: OrbitController,
-      inertia: 0,
-      scrollZoom: {
-        speed: deck3DConfigStore.zoomSpeed,
-        smooth: false
-      },
-      keyboard: {
-        zoomSpeed: deck3DConfigStore.zoomSpeed,
-        moveSpeed: deck3DConfigStore.panSpeed,
-        rotateSpeedX: deck3DConfigStore.rotateSpeed,
-        rotateSpeedY: deck3DConfigStore.rotateSpeed
-      }
-    },
+    controller: controllerOptions,
     initialViewState: {
-      [viewId]: {
-        target: deck3DConfigStore.centroid,
-        zoom: deck3DConfigStore.fitZoom,
-        rotationX: deck3DConfigStore.viewState.rotationX,
-        rotationOrbit: deck3DConfigStore.viewState.rotationOrbit
-      }
+      [viewId]: initialViewState
     },
     layers: [],
     onViewStateChange: ({ viewState }) => {
@@ -222,6 +233,46 @@ function createDeck(container: HTMLDivElement) {
       }
     },
     debug: deck3DConfigStore.debug
+  })
+
+  logger.debug('✅ Deck instance created', {
+    requestedSize: { width, height },
+    containerBounds: container.getBoundingClientRect()
+  })
+
+  // Force Deck.gl to update its internal dimensions
+  // Since _animate is false, we need to manually update and redraw
+  requestAnimationFrame(() => {
+    const canvas = container.querySelector('canvas')
+    logger.debug('🔄 Deck initialized - checking dimensions', {
+      deckWidth: deckInstance?.width,
+      deckHeight: deckInstance?.height,
+      canvasWidth: canvas?.width,
+      canvasHeight: canvas?.height
+    })
+
+    if (deckInstance) {
+      // Force dimension update by setting props and redrawing
+      // ONLY update dimensions, don't touch viewState (renderCachedData handles that)
+      logger.debug('🔧 Forcing dimension update with setProps + redraw', { width, height })
+
+      deckInstance.setProps({
+        width,
+        height
+      })
+
+      // Force redraw since _animate is false
+      deckInstance.redraw()
+
+      requestAnimationFrame(() => {
+        logger.debug('🔄 After forced dimension update', {
+          deckWidth: deckInstance?.width,
+          deckHeight: deckInstance?.height,
+          canvasWidth: canvas?.width,
+          canvasHeight: canvas?.height
+        })
+      })
+    }
   })
 }
 
@@ -322,6 +373,7 @@ export async function loadAndCachePointCloudData(reqId: number) {
       cachedRawData = sanitizeDeckData(filteredRows)
       lastLoadedReqId = reqId
       verticalExaggerationInitialized = false // Reset flag for new data
+      needsViewReset = true
       //console.log(`Cached ${cachedRawData.length} valid data points.`);
 
       if (cachedRawData.length > 0) {
@@ -358,6 +410,7 @@ export async function loadAndCachePointCloudData(reqId: number) {
     } else {
       cachedRawData = []
       lastLoadedReqId = null
+      needsViewReset = true
       toast.warn('No Data Processed', 'No elevation data returned from query.')
     }
   } catch (err) {
@@ -367,6 +420,7 @@ export async function loadAndCachePointCloudData(reqId: number) {
     toast.error('Error', 'Failed to load elevation data.')
     cachedRawData = []
     lastLoadedReqId = null
+    needsViewReset = true
   }
 }
 
@@ -376,7 +430,17 @@ export async function loadAndCachePointCloudData(reqId: number) {
  */
 // add at top if not already present
 
-export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
+export function renderCachedData(
+  deckContainer: Ref<HTMLDivElement | null>,
+  forceViewReset = false
+) {
+  const callStack = new Error().stack?.split('\n')[2]?.trim() || 'unknown'
+  logger.debug('📊 renderCachedData called', {
+    forceViewReset,
+    hasDeckInstance: !!deckInstance,
+    calledFrom: callStack
+  })
+
   if (!deckContainer || !deckContainer.value) {
     logger.warn('Deck container is null or undefined')
     return
@@ -389,7 +453,7 @@ export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
 
   if (!cachedRawData.length || lastLoadedReqId === null) {
     logger.warn('No cached data available or last request ID is null')
-    deckInstance.value?.setProps({ layers: [] })
+    deckInstance?.setProps({ layers: [] })
     return
   }
 
@@ -574,13 +638,66 @@ export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
   }
 
   requestAnimationFrame(() => {
-    deckInstance.value?.setProps({ layers })
+    if (!deckInstance) return
+
+    const nextProps: Record<string, any> = {
+      layers
+    }
+
+    // Only reset view state if explicitly requested (don't touch controller after creation)
+    if (needsViewReset || forceViewReset) {
+      nextProps.viewState = {
+        [viewId]: buildViewStatePayload(true)
+      }
+      needsViewReset = false
+      logger.debug('Resetting view state', { forceViewReset, wasNeedingReset: needsViewReset })
+    }
+
+    deckInstance.setProps(nextProps)
+    deckInstance.redraw()
   })
+}
+
+function buildViewStatePayload(forceReset: boolean): OrbitViewState {
+  if (forceReset) {
+    const resetState: OrbitViewState = {
+      target: [...deck3DConfigStore.centroid] as [number, number, number],
+      zoom: deck3DConfigStore.fitZoom,
+      rotationX: deck3DConfigStore.viewState.rotationX,
+      rotationOrbit: deck3DConfigStore.viewState.rotationOrbit
+    }
+    deck3DConfigStore.updateViewState(resetState)
+    return resetState
+  }
+  const current = deck3DConfigStore.viewState
+  return {
+    target: [...current.target] as [number, number, number],
+    zoom: current.zoom,
+    rotationX: current.rotationX,
+    rotationOrbit: current.rotationOrbit
+  }
+}
+
+function buildOrbitControllerOptions() {
+  return {
+    type: OrbitController,
+    inertia: 0,
+    scrollZoom: {
+      speed: deck3DConfigStore.zoomSpeed,
+      smooth: false
+    },
+    keyboard: {
+      zoomSpeed: deck3DConfigStore.zoomSpeed,
+      moveSpeed: deck3DConfigStore.panSpeed,
+      rotateSpeedX: deck3DConfigStore.rotateSpeed,
+      rotateSpeedY: deck3DConfigStore.rotateSpeed
+    }
+  }
 }
 
 export function updateFovy(fovy: number) {
   requestAnimationFrame(() => {
-    deckInstance.value?.setProps({
+    deckInstance?.setProps({
       views: [
         new OrbitView({
           id: viewId,
@@ -590,6 +707,6 @@ export function updateFovy(fovy: number) {
       ]
     })
     //console.log('Redrawing deck with new FOVY');
-    deckInstance.value?.redraw() // <-- manual redraw for non-animated mode
+    deckInstance?.redraw() // <-- manual redraw for non-animated mode
   })
 }

@@ -80,20 +80,13 @@ import { useDeck3DConfigStore } from '@/stores/deck3DConfigStore'
 import SrDeck3DCfg from '@/components/SrDeck3DCfg.vue'
 import Button from 'primevue/button'
 import { InputNumber } from 'primevue'
-import {
-  finalizeDeck,
-  loadAndCachePointCloudData,
-  updateFovy,
-  renderCachedData
-} from '@/utils/deck3DPlotUtils'
+import { finalizeDeck, loadAndCachePointCloudData, updateFovy } from '@/utils/deck3DPlotUtils'
 import { debouncedRender } from '@/utils/SrDebounce'
 import { yColorEncodeSelectedReactive } from '@/utils/plotUtils'
 import Select from 'primevue/select'
 import { useChartStore } from '@/stores/chartStore'
 import { checkAndSetFilterFor3D } from '@/utils/plotUtils'
 import { createLogger } from '@/utils/logger'
-import { useActiveTabStore } from '@/stores/activeTabStore'
-import { storeToRefs } from 'pinia'
 
 const logger = createLogger('SrDeck3DView')
 
@@ -104,13 +97,8 @@ const deck3DConfigStore = useDeck3DConfigStore()
 const reqId = computed(() => recTreeStore.selectedReqId)
 const elevationStore = useElevationColorMapStore()
 const computedFunc = computed(() => recTreeStore.selectedApi)
-const activeTabStore = useActiveTabStore()
-const { activeTab } = storeToRefs(activeTabStore)
 
 const localDeckContainer = ref<HTMLDivElement | null>(null)
-const resizeObserver = ref<ResizeObserver | null>(null)
-const lastCanvasSize = ref<{ width: number; height: number }>({ width: 0, height: 0 })
-const windowResizeHandler = ref<(() => void) | null>(null)
 
 const computedStepSize = computed(() => {
   if (deck3DConfigStore.verticalScaleRatio > 1000) {
@@ -149,122 +137,27 @@ function handleVerticalExaggerationChange() {
   debouncedRender(localDeckContainer) // Use the fast, debounced renderer
 }
 
-function updateFitZoom(width: number, height: number) {
-  const minDimension = Math.min(width, height)
-  if (minDimension <= 0) {
-    logger.warn('updateFitZoom called with non-positive dimensions', { width, height })
-    return false
-  }
-
-  const newFitZoom = Math.log2(minDimension / deck3DConfigStore.scale)
-  if (!Number.isFinite(newFitZoom)) {
-    logger.warn('Computed fitZoom is not finite', { newFitZoom, width, height })
-    return false
-  }
-
-  deck3DConfigStore.fitZoom = newFitZoom
-  lastCanvasSize.value = { width, height }
-  return true
-}
-
-function syncDeckContainerSize(logZeroSize = false) {
-  const container = localDeckContainer.value
-  if (!container) {
-    logger.error('syncDeckContainerSize called with null container')
-    return false
-  }
-
-  const { width, height } = container.getBoundingClientRect()
-  if (width === 0 || height === 0) {
-    if (logZeroSize) {
-      logger.warn('Deck container currently has zero dimensions', { width, height })
-    }
-    return false
-  }
-
-  deck3DConfigStore.deckContainer = container
-  return updateFitZoom(width, height)
-}
-
-function observeDeckContainer() {
-  if (!localDeckContainer.value || typeof ResizeObserver === 'undefined') {
-    return
-  }
-
-  resizeObserver.value = new ResizeObserver((entries) => {
-    for (const entry of entries) {
-      const { width, height } = entry.contentRect
-      if (width === 0 || height === 0) {
-        continue
-      }
-
-      const hasSizeChanged =
-        width !== lastCanvasSize.value.width || height !== lastCanvasSize.value.height
-
-      if (!hasSizeChanged && deck3DConfigStore.deckContainer) {
-        continue
-      }
-
-      if (updateFitZoom(width, height)) {
-        deck3DConfigStore.deckContainer = localDeckContainer.value
-        debouncedRender(localDeckContainer)
-      }
-    }
-  })
-
-  resizeObserver.value.observe(localDeckContainer.value)
-}
-
-function triggerRenderIfSized(logZeroSize = false) {
-  if (syncDeckContainerSize(logZeroSize)) {
-    debouncedRender(localDeckContainer)
-    return true
-  }
-  return false
-}
-
-async function handle3DTabActivated() {
-  await nextTick()
-  const containerReady = syncDeckContainerSize(true)
-  if (containerReady) {
-    // Use direct render (not debounced) to ensure immediate update when tab activates
-    renderCachedData(localDeckContainer, true)
-  } else {
-    // Container not ready, try on next frame
-    requestAnimationFrame(() => {
-      if (syncDeckContainerSize(false)) {
-        renderCachedData(localDeckContainer, true)
-      }
-    })
-  }
-}
-
 onMounted(async () => {
-  //console.log('onMounted SrDeck3DView reqId:', reqId.value);
   await updateElevationMap(reqId.value)
-  await nextTick() // ensures DOM is updated
+  await nextTick()
   elevationStore.updateElevationColorMapValues()
-  await checkAndSetFilterFor3D()
-  await nextTick() // makes sure the gradient is available
-  //console.log('onMounted Centroid:', deck3DConfigStore.centroid);
-  syncDeckContainerSize(true)
-  observeDeckContainer()
-  if (typeof window !== 'undefined') {
-    const handler = () => {
-      if (activeTab.value === '3') {
-        triggerRenderIfSized(false)
-      }
+  void checkAndSetFilterFor3D()
+  await nextTick()
+  const { width, height } = localDeckContainer.value!.getBoundingClientRect()
+  deck3DConfigStore.fitZoom = Math.log2(Math.min(width, height) / deck3DConfigStore.scale)
+
+  if (localDeckContainer.value) {
+    const { width, height } = localDeckContainer.value.getBoundingClientRect()
+    if (width === 0 || height === 0) {
+      logger.error('onMounted Deck container has zero dimensions', { width, height })
+    } else {
+      deck3DConfigStore.deckContainer = localDeckContainer.value
     }
-    window.addEventListener('resize', handler)
-    windowResizeHandler.value = handler
   }
-  //console.log('onMounted fitZoom:', deck3DConfigStore.fitZoom);
-  //console.log('onMounted Deck container size:', deckContainer.value?.getBoundingClientRect());
 
   if (elevationStore.elevationColorMap.length > 0) {
-    //console.log('onMounted calling loadAndCachePointCloudData');
     await loadAndCachePointCloudData(reqId.value)
-    debouncedRender(localDeckContainer) // Use the fast, debounced renderer
+    debouncedRender(localDeckContainer)
   } else {
     logger.error('No color Gradient')
     toast.error('No color Gradient', 'Skipping point cloud due to missing gradient.')
@@ -277,15 +170,6 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-  //console.log('onUnmounted for SrDeck3DView');
-  if (resizeObserver.value) {
-    resizeObserver.value.disconnect()
-    resizeObserver.value = null
-  }
-  if (typeof window !== 'undefined' && windowResizeHandler.value) {
-    window.removeEventListener('resize', windowResizeHandler.value)
-    windowResizeHandler.value = null
-  }
   finalizeDeck()
 })
 
@@ -301,16 +185,11 @@ watch(reqId, async (newVal, oldVal) => {
 watch(
   () => deck3DConfigStore.fovy,
   (newFov) => {
+    logger.debug('FOV updated', { newFov })
     updateFovy(newFov)
     debouncedRender(localDeckContainer) // Use the fast, debounced renderer
   }
 )
-
-watch(activeTab, (newTab, oldTab) => {
-  if (newTab === '3' && newTab !== oldTab) {
-    void handle3DTabActivated()
-  }
-})
 </script>
 
 <style scoped>
