@@ -8,7 +8,7 @@ import proj4 from 'proj4'
 import { register } from 'ol/proj/proj4'
 import 'ol/ol.css'
 import 'ol-geocoder/dist/ol-geocoder.min.css'
-import { get as getProjection, type Projection } from 'ol/proj.js'
+import { get as getProjection } from 'ol/proj.js'
 import SrLegendControl from '@/components/SrLegendControl.vue'
 import { zoomMapForReqIdUsingView } from '@/utils/SrMapUtils'
 import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore'
@@ -30,9 +30,6 @@ import VectorLayer from 'ol/layer/Vector'
 import { updateMapAndPlot } from '@/utils/SrMapUtils'
 import { useDeckStore } from '@/stores/deckStore'
 import SrProgressSpinnerControl from '@/components/SrProgressSpinnerControl.vue'
-import { Layer as OLlayer } from 'ol/layer'
-import { Deck } from '@deck.gl/core'
-import { OL_DECK_LAYER_NAME } from '@/types/SrTypes'
 import { useAnalysisMapStore } from '@/stores/analysisMapStore'
 import { useGlobalChartStore } from '@/stores/globalChartStore'
 import { callPlotUpdateDebounced } from '@/utils/plotUtils'
@@ -46,9 +43,18 @@ import { useFieldNameStore } from '@/stores/fieldNameStore'
 import SrLocationFinder from '@/components/SrLocationFinder.vue'
 import { useActiveTabStore } from '@/stores/activeTabStore'
 import type { Control } from 'ol/control'
+import { View as OlView } from 'ol'
 import { createLogger } from '@/utils/logger'
+import { useMapDeckOverlay } from '@/composables/useMapDeckOverlay'
+
+const DECK_VIEW_ID = 'ol-deck-view'
 
 const logger = createLogger('SrAnalysisMap')
+const { createDeckInstance, addDeckLayerToMap } = useMapDeckOverlay({
+  deckViewId: DECK_VIEW_ID,
+  getLogger: () => logger,
+  getMap: () => mapRef.value?.map
+})
 const DEBUG_SHOW_ZOOM = false
 
 const template = 'Lat:{y}\u00B0, Long:{x}\u00B0'
@@ -116,16 +122,62 @@ const computedProjName = computed(() => mapStore.getSrViewObj().projectionName)
 // Track current zoom level (DEBUG)
 const currentZoom = ref<number>(0)
 let zoomListener: any = null
+let attachedView: OlView | null = null
 let originalErrorHandler: OnErrorEventHandler | null = null
+
+const detachViewListeners = () => {
+  if (attachedView && zoomListener) {
+    attachedView.un('change:resolution', zoomListener)
+    attachedView.un('change:center', zoomListener)
+    attachedView.un('change', zoomListener)
+  }
+  attachedView = null
+  zoomListener = null
+}
+
+const attachViewListeners = (view?: OlView | null) => {
+  if (!view) return
+  detachViewListeners()
+  attachedView = view
+
+  zoomListener = () => {
+    const zoom = view.getZoom()
+    const center = view.getCenter()
+    const mapSize = mapRef.value?.map.getSize()
+    const extent = mapSize ? view.calculateExtent(mapSize) : undefined
+    if (zoom !== undefined && center && extent) {
+      currentZoom.value = zoom
+      logger.debug('View changed', {
+        zoom,
+        center,
+        extent,
+        projection: computedProjName.value
+      })
+    }
+  }
+
+  const mapSize = mapRef.value?.map.getSize()
+  const initialZoom = view.getZoom()
+  const initialCenter = view.getCenter()
+  const initialExtent = mapSize ? view.calculateExtent(mapSize) : undefined
+  if (initialZoom !== undefined && initialCenter && initialExtent) {
+    currentZoom.value = initialZoom
+    logger.debug('Initial view set', {
+      zoom: initialZoom,
+      center: initialCenter,
+      extent: initialExtent,
+      projection: computedProjName.value
+    })
+  }
+
+  view.on('change:resolution', zoomListener)
+  view.on('change:center', zoomListener)
+  view.on('change', zoomListener)
+}
 
 // Cleanup listeners and error handler on unmount
 onBeforeUnmount(() => {
-  if (mapRef.value?.map && zoomListener) {
-    const view = mapRef.value.map.getView()
-    view.un('change:resolution', zoomListener)
-    view.un('change:center', zoomListener)
-    view.un('change', zoomListener)
-  }
+  detachViewListeners()
   // Restore original error handler
   if (originalErrorHandler !== null) {
     window.onerror = originalErrorHandler
@@ -268,54 +320,23 @@ onMounted(async () => {
     logger.error('SrAnalysisMap onMounted: defaulted baseLayer is null')
   }
   await updateAnalysisMapView('onMounted')
-
-  // Set up zoom tracking - DEBUG
-  const view = map.getView()
-  zoomListener = () => {
-    const zoom = view.getZoom()
-    const center = view.getCenter()
-    const extent = view.calculateExtent(map.getSize())
-    if (zoom !== undefined && center && extent) {
-      currentZoom.value = zoom
-      logger.debug('View changed', { zoom, center, extent, projection: computedProjName.value })
-    }
-  }
-
-  // Set initial view state
-  const initialZoom = view.getZoom()
-  const initialCenter = view.getCenter()
-  const initialExtent = view.calculateExtent(map.getSize())
-  if (initialZoom !== undefined && initialCenter && initialExtent) {
-    currentZoom.value = initialZoom
-    logger.debug('Initial view set', {
-      zoom: initialZoom,
-      center: initialCenter,
-      extent: initialExtent,
-      projection: computedProjName.value
-    })
-  }
-
-  // Listen for view changes
-  view.on('change:resolution', zoomListener)
-  view.on('change:center', zoomListener)
-  view.on('change', zoomListener)
+  attachViewListeners(map.getView())
 
   // Add error handler for projection errors during rendering
   // This catches errors when vector features are rendered outside projection extent
   originalErrorHandler = window.onerror
   window.onerror = (message, source, lineno, colno, error) => {
     if (typeof message === 'string' && message.includes('coordinates must be finite numbers')) {
+      const currentView = mapRef.value?.map.getView()
       logger.warn(
         'Caught projection error during map rendering - likely zoom beyond projection extent',
         {
-          zoom: view.getZoom(),
+          zoom: currentView?.getZoom(),
           projectionName: computedProjName.value
         }
       )
-      // Prevent error from bubbling up
       return true
     }
-    // Call original handler for other errors
     if (originalErrorHandler) {
       return originalErrorHandler(message, source, lineno, colno, error)
     }
@@ -418,142 +439,6 @@ const handleUpdateBaseLayer = async () => {
   }
 }
 
-function createDeckInstance(map: OLMap): void {
-  //console.log('createDeckInstance');
-  const _startTime = performance.now() // Start time
-  try {
-    const mapView = map.getView()
-    //console.log('mapView:',mapView);
-    const mapCenter = mapView.getCenter()
-    const mapZoom = mapView.getZoom()
-    //console.log('createDeckInstance mapCenter:',mapCenter,' mapZoom:',mapZoom);
-    if (mapCenter && mapZoom) {
-      const tgt = map.getViewport() as HTMLDivElement
-      const deck = new Deck({
-        initialViewState: { longitude: 0, latitude: 0, zoom: 1 },
-        controller: false,
-        parent: tgt,
-        style: { pointerEvents: 'none', zIndex: '1' },
-        layers: [],
-        getCursor: () => 'default',
-        useDevicePixels: false
-      })
-      useDeckStore().setDeckInstance(deck)
-    } else {
-      logger.error('createDeckInstance mapCenter or mapZoom is null', { mapCenter, mapZoom })
-    }
-  } catch (error) {
-    logger.error('Error creating DeckGL instance', {
-      error: error instanceof Error ? error.message : String(error)
-    })
-  } finally {
-    logger.debug('createDeckInstance end')
-  }
-  const endTime = performance.now() // End time
-  logger.debug('createDeckInstance completed', { durationMs: endTime - _startTime, endTime })
-}
-
-function createOLlayerForDeck(
-  deck: Deck,
-  projectionUnits: string,
-  projection: Projection
-): OLlayer {
-  //console.log('createOLlayerForDeck:',name,' projectonUnits:',projectionUnits);
-
-  const layerOptions = {
-    title: OL_DECK_LAYER_NAME
-  }
-  const new_layer = new OLlayer({
-    render: ({
-      size,
-      viewState
-    }: {
-      size: number[]
-      viewState: { center: number[]; zoom: number; rotation: number }
-    }) => {
-      const [width, height] = size
-      let [longitude, latitude] = viewState.center
-
-      // Transform coordinates from projection to WGS84 if needed
-      if (projectionUnits !== 'degrees') {
-        try {
-          ;[longitude, latitude] = toLonLat(viewState.center, projection)
-        } catch (error) {
-          logger.warn('Failed to transform coordinates - likely outside projection extent', {
-            originalCenter: viewState.center,
-            projectionUnits,
-            zoom: viewState.zoom,
-            error: error instanceof Error ? error.message : String(error)
-          })
-          // Don't update deck.gl when transformation fails
-          return document.createElement('div')
-        }
-      }
-
-      // Validate converted coordinates
-      if (!Number.isFinite(longitude) || !Number.isFinite(latitude)) {
-        logger.warn('Invalid deck.gl view state coordinates', {
-          longitude,
-          latitude,
-          originalCenter: viewState.center,
-          projectionUnits
-        })
-        // Don't update deck.gl with invalid coordinates
-        return document.createElement('div')
-      }
-
-      const zoom = viewState.zoom - 1
-      const bearing = (-viewState.rotation * 180) / Math.PI
-      const deckViewState = { bearing, longitude, latitude, zoom }
-      requestAnimationFrame(() => {
-        deck.setProps({ width, height, viewState: deckViewState })
-        deck.redraw()
-      })
-      return document.createElement('div')
-    },
-    ...layerOptions
-  })
-  return new_layer
-}
-
-function addDeckLayerToMap(map: OLMap) {
-  //console.log('addDeckLayerToMap:',olLayerName);
-  const mapView = map.getView()
-  const projection = mapView.getProjection()
-  const projectionUnits = projection.getUnits()
-
-  // Validate view center before creating deck layer
-  const center = mapView.getCenter()
-  if (!center || center.some((val) => !Number.isFinite(val))) {
-    console.error('ERROR addDeckLayerToMap: Invalid view center, cannot create deck layer', {
-      center,
-      projection: projection.getCode()
-    })
-    logger.error('addDeckLayerToMap: Invalid view center, cannot create deck layer', {
-      center,
-      projection: projection.getCode()
-    })
-    return
-  }
-
-  const updatingLayer = map
-    .getLayers()
-    .getArray()
-    .find((layer) => layer.get('title') === OL_DECK_LAYER_NAME)
-  if (updatingLayer) {
-    //console.log('addDeckLayerToMap: removeLayer:',updatingLayer);
-    map.removeLayer(updatingLayer)
-  }
-  const deck = deckStore.getDeckInstance()
-  const deckLayer = createOLlayerForDeck(deck, projectionUnits, projection)
-  if (deckLayer) {
-    map.addLayer(deckLayer)
-    //console.log('addDeckLayerToMap: added deckLayer:',deckLayer,' deckLayer.get(\'title\'):',deckLayer.get('title'));
-  } else {
-    logger.error('No current_layer to add')
-  }
-}
-
 const updateAnalysisMapView = async (reason: string) => {
   const map = mapRef.value?.map
   const srViewName = await db.getSrViewName(props.selectedReqId)
@@ -565,60 +450,95 @@ const updateAnalysisMapView = async (reason: string) => {
 
   try {
     if (map) {
+      // Load and set the view that was saved with this record
+      const viewObj = srViews.value[srViewName]
+      if (!viewObj) {
+        logger.error('No view found for srViewName', { srViewName })
+        return
+      }
+
+      // First, get the summary to check data extent compatibility
+      const summary = await readOrCacheSummary(props.selectedReqId)
+      if (!summary) {
+        logger.error('No summary for reqId', { reqId: props.selectedReqId, srViewName })
+        return
+      }
+
+      // Check if the saved view is compatible with the data
+      let actualViewToUse = viewObj
+      const isPolarProjection =
+        viewObj.projectionName === 'EPSG:5936' ||
+        viewObj.projectionName === 'EPSG:3413' ||
+        viewObj.projectionName === 'EPSG:3031'
+
+      if (isPolarProjection && summary.extLatLon) {
+        const { minLat, maxLat, minLon, maxLon } = summary.extLatLon
+        const projection = srProjections.value[viewObj.projectionName]
+
+        if (projection?.bbox) {
+          const [projMinLon, projMinLat, projMaxLon, projMaxLat] = projection.bbox
+
+          // Check if data extent overlaps with projection's valid extent
+          const hasOverlap = !(
+            maxLat < projMinLat || // Data is entirely south of projection
+            minLat > projMaxLat || // Data is entirely north of projection
+            maxLon < projMinLon || // Data is entirely west of projection
+            minLon > projMaxLon // Data is entirely east of projection
+          )
+
+          if (!hasOverlap) {
+            logger.warn('Saved view incompatible with data, falling back to Global Mercator', {
+              savedView: srViewName,
+              projectionName: viewObj.projectionName,
+              dataExtent: { minLat, maxLat, minLon, maxLon },
+              projectionBbox: projection.bbox
+            })
+            useSrToastStore().warn(
+              'View changed for compatibility',
+              `This data (lat: ${minLat.toFixed(1)}° to ${maxLat.toFixed(1)}°) cannot be displayed in ${projection.title}. Switching to Global Mercator view.`,
+              8000
+            )
+            // Fall back to Global Mercator Esri
+            actualViewToUse = srViews.value['Global Mercator Esri']
+          }
+        }
+      }
+
+      // Set the map store to use the compatible view
+      mapStore.setSelectedView(actualViewToUse.view)
+      if (actualViewToUse.baseLayerName) {
+        mapStore.setSelectedBaseLayer(actualViewToUse.baseLayerName)
+      }
+      logger.warn('Applied view from record', {
+        savedView: srViewName,
+        actualView: actualViewToUse.view,
+        baseLayer: actualViewToUse.baseLayerName,
+        reqId: props.selectedReqId,
+        fallback: actualViewToUse !== viewObj
+      })
+
       const srViewObj = mapStore.getSrViewObj() // Fixed memory references
       const srViewKey = findSrViewKey(mapStore.getSelectedView(), mapStore.getSelectedBaseLayer())
       if (srViewKey.value) {
-        await updateMapView(map, srViewKey.value, reason, false, props.selectedReqId)
+        updateMapView(map, srViewKey.value, reason, false, props.selectedReqId)
         addLayersForCurrentView(map, srViewObj.projectionName)
-        const summary = await readOrCacheSummary(props.selectedReqId)
-        if (!summary) {
-          logger.error('No summary for reqId', { reqId: props.selectedReqId, srViewName })
-          return
-        }
-
-        // Check if data extent is compatible with polar projection
-        const isPolarProjection =
-          srViewObj.projectionName === 'EPSG:5936' ||
-          srViewObj.projectionName === 'EPSG:3413' ||
-          srViewObj.projectionName === 'EPSG:3031'
-
-        if (isPolarProjection && summary.extLatLon) {
-          const { minLat, maxLat, minLon, maxLon } = summary.extLatLon
-          const projection = srProjections.value[srViewObj.projectionName]
-
-          if (projection?.bbox) {
-            const [projMinLon, projMinLat, projMaxLon, projMaxLat] = projection.bbox
-
-            // Check if data extent overlaps with projection's valid extent
-            const hasOverlap = !(
-              maxLat < projMinLat || // Data is entirely south of projection
-              minLat > projMaxLat || // Data is entirely north of projection
-              maxLon < projMinLon || // Data is entirely west of projection
-              minLon > projMaxLon // Data is entirely east of projection
-            )
-
-            if (!hasOverlap) {
-              logger.warn('Data extent incompatible with polar projection', {
-                projectionName: srViewObj.projectionName,
-                dataExtent: { minLat, maxLat, minLon, maxLon },
-                projectionBbox: projection.bbox
-              })
-              useSrToastStore().error(
-                'Data incompatible with selected projection',
-                `This data (lat: ${minLat.toFixed(1)}° to ${maxLat.toFixed(1)}°) cannot be displayed in ${projection.title} (valid range: ${projMinLat}° to ${projMaxLat}°). Please switch to a global projection to view this data.`,
-                12000
-              )
-              // Don't try to create deck layer or zoom to invalid extent
-              return
-            }
-          }
-        }
 
         //console.log(`summary.numPoints:${summary.numPoints} srViewName:${srViewName}`);
         const numPointsStr = summary.numPoints // it is a string BIG INT!
         const numPoints = parseInt(String(numPointsStr))
         if (numPoints > 0) {
-          await zoomMapForReqIdUsingView(map, props.selectedReqId, srViewName)
+          try {
+            await zoomMapForReqIdUsingView(map, props.selectedReqId, srViewName)
+
+            // Give tiles a brief moment to start loading after zoom
+            // The zoom is now constrained to valid tile availability, so this is just a courtesy delay
+            await new Promise((resolve) => setTimeout(resolve, 100))
+          } catch (zoomError) {
+            logger.warn('Failed to zoom to data extent, using default view', {
+              error: zoomError instanceof Error ? zoomError.message : String(zoomError),
+              projection: srViewObj.projectionName
+            })
+          }
         } else {
           logger.warn('No points for reqId', { reqId: props.selectedReqId, srViewName })
           useSrToastStore().warn(
@@ -630,9 +550,11 @@ const updateAnalysisMapView = async (reason: string) => {
           //dumpMapLayers(map,'SrAnalysisMap');
           void renderSvrReqPoly(map, props.selectedReqId, 'Records Layer', true)
         }
+
         deckStore.clearDeckInstance() // Clear any existing instance first
         createDeckInstance(map)
         addDeckLayerToMap(map)
+        attachViewListeners(map.getView())
         await updateMapAndPlot(`SrAnalysisMap: ${reason}`)
       } else {
         logger.error('srViewKey is null')

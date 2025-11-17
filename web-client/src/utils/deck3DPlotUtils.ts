@@ -8,7 +8,7 @@ import { useFieldNameStore } from '@/stores/fieldNameStore'
 import { useSrToastStore } from '@/stores/srToastStore'
 import { useDeck3DConfigStore } from '@/stores/deck3DConfigStore'
 import { useElevationColorMapStore } from '@/stores/elevationColorMapStore'
-import { OrbitView, OrbitController } from '@deck.gl/core'
+import { OrbitView, OrbitController, type OrbitViewState } from '@deck.gl/core'
 import { ref, type Ref } from 'vue'
 import { Deck } from '@deck.gl/core'
 import proj4 from 'proj4'
@@ -18,7 +18,7 @@ import { useChartStore } from '@/stores/chartStore'
 // import log from '@probe.gl/log';
 // log.level = 1;  // 0 = silent, 1 = minimal, 2 = verbose
 
-import { toRaw, isProxy } from 'vue'
+import { toRaw, isProxy, markRaw } from 'vue'
 import { formatTime } from '@/utils/formatUtils'
 import { createLogger } from '@/utils/logger'
 
@@ -40,6 +40,7 @@ const deckInstance: Ref<Deck<OrbitView[]> | null> = ref(null)
 let cachedRawData: any[] = []
 let lastLoadedReqId: number | null = null
 let verticalExaggerationInitialized = false
+let needsViewReset = false
 
 // helper: pick a local metric CRS (UTM or polar)
 function pickLocalMetricCRS(lat: number, lon: number): string {
@@ -75,7 +76,7 @@ export function sanitizeDeckData<T extends Record<string, any>>(data: T[]): T[] 
     sample: sanitized.slice(0, 5),
     total: sanitized.length
   }) // limit to 5 for readability
-  return sanitized
+  return markRaw(sanitized as T[])
 }
 
 function computeCentroid(position: [number, number, number][]) {
@@ -129,27 +130,9 @@ function createDeck(container: HTMLDivElement) {
         fovy: deck3DConfigStore.fovy
       })
     ],
-    controller: {
-      type: OrbitController,
-      inertia: 0,
-      scrollZoom: {
-        speed: deck3DConfigStore.zoomSpeed,
-        smooth: false
-      },
-      keyboard: {
-        zoomSpeed: deck3DConfigStore.zoomSpeed,
-        moveSpeed: deck3DConfigStore.panSpeed,
-        rotateSpeedX: deck3DConfigStore.rotateSpeed,
-        rotateSpeedY: deck3DConfigStore.rotateSpeed
-      }
-    },
+    controller: buildOrbitControllerOptions(),
     initialViewState: {
-      [viewId]: {
-        target: deck3DConfigStore.centroid,
-        zoom: deck3DConfigStore.fitZoom,
-        rotationX: deck3DConfigStore.viewState.rotationX,
-        rotationOrbit: deck3DConfigStore.viewState.rotationOrbit
-      }
+      [viewId]: buildViewStatePayload(true)
     },
     layers: [],
     onViewStateChange: ({ viewState }) => {
@@ -283,7 +266,7 @@ export async function loadAndCachePointCloudData(reqId: number) {
     const { value: rows = [] } = await result.readRows().next()
 
     if (rows.length > 0) {
-      cachedRawData = rows.filter((d) => {
+      const filteredRows = rows.filter((d) => {
         const lon = d[lonField]
         const lat = d[latField]
         const elev = d[heightField]
@@ -296,8 +279,10 @@ export async function loadAndCachePointCloudData(reqId: number) {
           Number.isFinite(elev)
         )
       })
+      cachedRawData = sanitizeDeckData(filteredRows)
       lastLoadedReqId = reqId
       verticalExaggerationInitialized = false // Reset flag for new data
+      needsViewReset = true
       //console.log(`Cached ${cachedRawData.length} valid data points.`);
 
       if (cachedRawData.length > 0) {
@@ -334,6 +319,7 @@ export async function loadAndCachePointCloudData(reqId: number) {
     } else {
       cachedRawData = []
       lastLoadedReqId = null
+      needsViewReset = true
       toast.warn('No Data Processed', 'No elevation data returned from query.')
     }
   } catch (err) {
@@ -343,6 +329,7 @@ export async function loadAndCachePointCloudData(reqId: number) {
     toast.error('Error', 'Failed to load elevation data.')
     cachedRawData = []
     lastLoadedReqId = null
+    needsViewReset = true
   }
 }
 
@@ -509,12 +496,14 @@ export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
       }
     })
 
+  const sanitizedPointCloudData = sanitizeDeckData(pointCloudData)
+
   computeCentroid(pointCloudData.map((p) => p.position))
 
   // --- Layer creation ---
   const layer = new PointCloudLayer({
     id: 'point-cloud-layer',
-    data: pointCloudData,
+    data: sanitizedPointCloudData,
     getPosition: (d) => d.position,
     getColor: (d) => d.color,
     pointSize: deck3DConfigStore.pointSize,
@@ -548,8 +537,60 @@ export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
   }
 
   requestAnimationFrame(() => {
-    deckInstance.value?.setProps({ layers })
+    if (!deckInstance.value) return
+
+    const nextProps: Record<string, any> = {
+      layers,
+      controller: buildOrbitControllerOptions()
+    }
+
+    if (needsViewReset) {
+      nextProps.viewState = {
+        [viewId]: buildViewStatePayload(true)
+      }
+      needsViewReset = false
+    }
+
+    deckInstance.value.setProps(nextProps)
+    deckInstance.value.redraw()
   })
+}
+
+function buildViewStatePayload(forceReset: boolean): OrbitViewState {
+  if (forceReset) {
+    const resetState: OrbitViewState = {
+      target: [...deck3DConfigStore.centroid] as [number, number, number],
+      zoom: deck3DConfigStore.fitZoom,
+      rotationX: deck3DConfigStore.viewState.rotationX,
+      rotationOrbit: deck3DConfigStore.viewState.rotationOrbit
+    }
+    deck3DConfigStore.updateViewState(resetState)
+    return resetState
+  }
+  const current = deck3DConfigStore.viewState
+  return {
+    target: [...current.target] as [number, number, number],
+    zoom: current.zoom,
+    rotationX: current.rotationX,
+    rotationOrbit: current.rotationOrbit
+  }
+}
+
+function buildOrbitControllerOptions() {
+  return {
+    type: OrbitController,
+    inertia: 0,
+    scrollZoom: {
+      speed: deck3DConfigStore.zoomSpeed,
+      smooth: false
+    },
+    keyboard: {
+      zoomSpeed: deck3DConfigStore.zoomSpeed,
+      moveSpeed: deck3DConfigStore.panSpeed,
+      rotateSpeedX: deck3DConfigStore.rotateSpeed,
+      rotateSpeedY: deck3DConfigStore.rotateSpeed
+    }
+  }
 }
 
 export function updateFovy(fovy: number) {

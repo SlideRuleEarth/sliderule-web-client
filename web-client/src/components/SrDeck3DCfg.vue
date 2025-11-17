@@ -146,7 +146,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useDeck3DConfigStore } from '@/stores/deck3DConfigStore'
 import InputNumber from 'primevue/inputnumber'
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue'
@@ -154,18 +154,18 @@ import { useRecTreeStore } from '@/stores/recTreeStore'
 import { loadAndCachePointCloudData } from '@/utils/deck3DPlotUtils'
 import { debouncedRender } from '@/utils/SrDebounce'
 import Button from 'primevue/button'
+import { storeToRefs } from 'pinia'
 
 const recTreeStore = useRecTreeStore()
 const deck3DConfigStore = useDeck3DConfigStore()
-
-const deckContainerStored = computed(() => deck3DConfigStore.deckContainer)
+const { deckContainer } = storeToRefs(deck3DConfigStore)
 const reqId = computed(() => recTreeStore.selectedReqId)
 const tooltipRef = ref()
 const store = useDeck3DConfigStore()
 
 async function handleChange() {
   await loadAndCachePointCloudData(reqId.value)
-  debouncedRender(deckContainerStored.value)
+  debouncedRender(deckContainer)
 }
 </script>
 

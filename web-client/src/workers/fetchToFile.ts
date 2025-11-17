@@ -355,7 +355,7 @@ onmessage = async (event) => {
               break
             }
             case -1: {
-              // RTE_ERROR
+              // RTE_FAILURE
               //console.warn('RTE_ERROR: exceptrec result:', result.text);
               postMessage(await serverMsg(reqID, `RTE_ERROR msg:${result.text}`))
               break

@@ -2,6 +2,7 @@ import { useMapStore } from '@/stores/mapStore'
 import { computed } from 'vue'
 import { useGeoJsonStore } from '@/stores/geoJsonStore'
 import { ScatterplotLayer } from '@deck.gl/layers'
+import { COORDINATE_SYSTEM } from '@deck.gl/core'
 import GeoJSON from 'ol/format/GeoJSON'
 import VectorSource from 'ol/source/Vector'
 import Feature from 'ol/Feature'
@@ -49,8 +50,6 @@ import { useRecTreeStore } from '@/stores/recTreeStore'
 import { useGlobalChartStore } from '@/stores/globalChartStore'
 import { useAreaThresholdsStore } from '@/stores/areaThresholdsStore'
 import { createLogger } from '@/utils/logger'
-
-const logger = createLogger('SrMapUtils')
 import { formatKeyValuePair } from '@/utils/formatUtils'
 import router from '@/router/index.js'
 import {
@@ -73,6 +72,14 @@ import VectorLayer from 'ol/layer/Vector'
 import Point from 'ol/geom/Point'
 import Overlay from 'ol/Overlay'
 import { extractSrRegionFromGeometry, processConvexHull } from '@/utils/geojsonUploader'
+
+const logger = createLogger('SrMapUtils')
+
+const ORTHOGRAPHIC_DECK_PROJECTIONS = new Set(['EPSG:3413', 'EPSG:3031', 'EPSG:5936'])
+
+export function requiresOrthographicDeck(projectionName: string): boolean {
+  return ORTHOGRAPHIC_DECK_PROJECTIONS.has(projectionName)
+}
 
 export const polyCoordsExist = computed(() => {
   let exist = false
@@ -759,11 +766,39 @@ export function createDeckLayer(
   extHMean: ExtHMean,
   heightFieldName: string,
   positions: SrPosition[],
-  _projName: string
+  projName: string
 ): ScatterplotLayer {
   const elevationColorMapStore = useElevationColorMapStore()
   const deckStore = useDeckStore()
   const highlightPntSize = deckStore.getPointSize() + 1
+  const useOrthographic = requiresOrthographicDeck(projName)
+  const targetProjection = (projName || 'EPSG:4326') as ProjectionLike
+
+  const deckPositions = useOrthographic
+    ? positions.map((pos) => {
+        const [lon, lat, z = 0] = pos
+        try {
+          const [x, y] = fromLonLat([lon, lat], targetProjection)
+          if (Number.isFinite(x) && Number.isFinite(y)) {
+            return [x, y, z] as SrPosition
+          }
+          logger.warn('Non-finite projected coordinate, falling back to original position', {
+            lon,
+            lat,
+            projection: projName
+          })
+          return [lon, lat, z] as SrPosition
+        } catch (error) {
+          logger.warn('Failed to project coordinate for deck layer', {
+            lon,
+            lat,
+            projection: projName,
+            error: error instanceof Error ? error.message : String(error)
+          })
+          return [lon, lat, z] as SrPosition
+        }
+      })
+    : positions
 
   const colorFn = createUnifiedColorMapperRGBA({
     colorMap: elevationColorMapStore.getElevationColorMap(),
@@ -784,7 +819,7 @@ export function createDeckLayer(
     id: name,
     visible: true,
     data: dataWithColor,
-    getPosition: (_d: any, { index }: { index: number }) => positions[index],
+    getPosition: (_d: any, { index }: { index: number }) => deckPositions[index],
     getNormal: [0, 0, 1],
     getRadius: highlightPntSize,
     radiusUnits: 'pixels',
@@ -810,7 +845,11 @@ export function createDeckLayer(
           getFillColor: (d: any) => (d as any).__rgba,
           getCursor: () => 'default'
         })
-  }
+  } as any
+
+  layerProps.coordinateSystem = useOrthographic
+    ? COORDINATE_SYSTEM.CARTESIAN
+    : COORDINATE_SYSTEM.LNGLAT
 
   const layer = new ScatterplotLayer(layerProps as any)
   //console.log(`createDeckLayer took ${performance.now() - startTime} ms.`);
@@ -828,7 +867,8 @@ export function updateDeckLayerWithObject(
   //const startTime = performance.now();
   //console.log(`updateDeckLayerWithObject ${name} startTime:`, startTime);
   try {
-    if (useDeckStore().getDeckInstance()) {
+    const deckInstance = useDeckStore().getDeckInstance()
+    if (deckInstance) {
       const layer = createDeckLayer(
         name,
         elevationData,
@@ -838,7 +878,7 @@ export function updateDeckLayerWithObject(
         _projName
       )
       useDeckStore().replaceOrAddLayer(layer, name)
-      useDeckStore().getDeckInstance().setProps({ layers: useDeckStore().getLayers() })
+      deckInstance.setProps({ layers: useDeckStore().getLayers() })
     } else {
       logger.error('Error updating elevation - deckInstance is null', {
         name,
@@ -886,7 +926,7 @@ const onHoverHandler = isIPhone
       }
 
       if (analysisMapStore.showTheTooltip) {
-        if (object && !useDeckStore().isDragging) {
+        if (object && !useDeckStore().getIsDragging()) {
           const recTreeStore = useRecTreeStore()
           const reqId = Number(recTreeStore.selectedReqIdStr)
           const tooltip = formatElObject(object, reqId)
@@ -1021,7 +1061,21 @@ export function restoreMapView(
   const mapStore = useMapStore()
   const extentToRestore = mapStore.getExtentToRestore()
   const centerToRestore = mapStore.getCenterToRestore()
-  const zoomToRestore = mapStore.getZoomToRestore()
+  let zoomToRestore = mapStore.getZoomToRestore()
+  if (zoomToRestore && zoomToRestore > (maxZoom || Infinity)) {
+    logger.warn('zoomToRestore exceeds maxZoom, adjusting to maxZoom', {
+      zoomToRestore,
+      maxZoom
+    })
+    zoomToRestore = maxZoom || zoomToRestore
+  }
+  if (zoomToRestore && zoomToRestore < (minZoom || -Infinity)) {
+    logger.warn('zoomToRestore is below minZoom, adjusting to minZoom', {
+      zoomToRestore,
+      minZoom
+    })
+    zoomToRestore = minZoom || zoomToRestore
+  }
   let newView: OlView | null = null
 
   if (extentToRestore === null || centerToRestore === null || zoomToRestore === null) {
@@ -1518,6 +1572,8 @@ export function updateMapView(
           srViewObj.projectionName === 'EPSG:3413' ||
           srViewObj.projectionName === 'EPSG:3031'
 
+        useMapStore().runViewListenerCleanup()
+
         let newView = new OlView({
           projection: newProj,
           extent: isPolarProjection ? undefined : extent,
@@ -1526,6 +1582,26 @@ export function updateMapView(
           minZoom: srProjObj.min_zoom,
           maxZoom: srProjObj.max_zoom
         })
+
+        if (srProjObj.min_zoom !== undefined || srProjObj.max_zoom !== undefined) {
+          const enforceZoomBounds = () => {
+            const currentZoom = newView.getZoom()
+            if (currentZoom === undefined) return
+            if (srProjObj.max_zoom !== undefined && currentZoom > srProjObj.max_zoom) {
+              newView.setZoom(srProjObj.max_zoom)
+              return
+            }
+            if (srProjObj.min_zoom !== undefined && currentZoom < srProjObj.min_zoom) {
+              newView.setZoom(srProjObj.min_zoom)
+            }
+          }
+          newView.on('change:resolution', enforceZoomBounds)
+          useMapStore().setViewListenerCleanup(() => {
+            newView.un('change:resolution', enforceZoomBounds)
+          })
+          enforceZoomBounds()
+        }
+
         useMapStore().setExtentToRestore(extent)
         if (restore) {
           const restoredView = restoreMapView(newProj, srProjObj.min_zoom, srProjObj.max_zoom)
@@ -1577,6 +1653,7 @@ export async function zoomMapForReqIdUsingView(map: OLMap, reqId: number, srView
     }
     const srViewObj = (srViews as any).value[`${srViewKey}`]
     const projectionName = srViewObj.projectionName
+    const srProjObj = srProjections.value[projectionName]
     let newProj = getProjection(projectionName)
     let view_extent = reqExtremeLatLon
 
@@ -1604,7 +1681,6 @@ export async function zoomMapForReqIdUsingView(map: OLMap, reqId: number, srView
         })
 
         // Use projection's default view instead of trying to fit invalid extent
-        const srProjObj = srProjections.value[projectionName]
         const view = map.getView()
         if (srProjObj?.center) {
           view.setCenter(srProjObj.center)
@@ -1624,8 +1700,68 @@ export async function zoomMapForReqIdUsingView(map: OLMap, reqId: number, srView
       }
     }
 
-    map.getView().fit(view_extent, { size: map.getSize(), padding: [40, 40, 40, 40] })
-    logger.debug('View fitted to extent', { view_extent })
+    // Get projection limits and view BEFORE fitting
+    const view = map.getView()
+
+    // Ensure View has proper zoom constraints set
+    if (srProjObj?.max_zoom !== undefined) {
+      view.setMaxZoom(srProjObj.max_zoom)
+    }
+    if (srProjObj?.min_zoom !== undefined) {
+      view.setMinZoom(srProjObj.min_zoom)
+    }
+
+    logger.warn('Fitting view with constraints', {
+      projectionName,
+      minZoom: srProjObj?.min_zoom,
+      maxZoom: srProjObj?.max_zoom,
+      extent: view_extent
+    })
+
+    // Fit the view to the extent with no animation (duration: 0)
+    // This ensures fit completes immediately so we can constrain zoom
+    map.getView().fit(view_extent, {
+      size: map.getSize(),
+      padding: [40, 40, 40, 40],
+      duration: 0
+    })
+
+    // Double-check and manually constrain zoom after fit
+    // This is critical for polar projections with limited tile coverage
+    if (srProjObj?.max_zoom !== undefined || srProjObj?.min_zoom !== undefined) {
+      const fitZoom = view.getZoom()
+      if (fitZoom !== undefined) {
+        let constrained = fitZoom
+        if (srProjObj?.max_zoom !== undefined && fitZoom > srProjObj.max_zoom) {
+          logger.warn('Fit exceeded maxZoom, constraining', {
+            fitZoom,
+            maxZoom: srProjObj.max_zoom,
+            projection: projectionName
+          })
+          constrained = srProjObj.max_zoom
+        }
+        if (srProjObj?.min_zoom !== undefined && constrained < srProjObj.min_zoom) {
+          logger.warn('Fit below minZoom, constraining', {
+            fitZoom: constrained,
+            minZoom: srProjObj.min_zoom,
+            projection: projectionName
+          })
+          constrained = srProjObj.min_zoom
+        }
+        if (constrained !== fitZoom) {
+          view.setZoom(constrained)
+        }
+      }
+    }
+
+    logger.warn('View fitted to extent with manual zoom constraint', {
+      view_extent,
+      finalZoom: view.getZoom(),
+      maxZoom: srProjObj?.max_zoom,
+      minZoom: srProjObj?.min_zoom
+    })
+
+    map.renderSync()
   } catch (error) {
     logger.error('zoomMapForReqIdUsingView failed', {
       reqId,
