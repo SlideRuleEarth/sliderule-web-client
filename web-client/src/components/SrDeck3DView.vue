@@ -80,7 +80,12 @@ import { useDeck3DConfigStore } from '@/stores/deck3DConfigStore'
 import SrDeck3DCfg from '@/components/SrDeck3DCfg.vue'
 import Button from 'primevue/button'
 import { InputNumber } from 'primevue'
-import { finalizeDeck, loadAndCachePointCloudData, updateFovy } from '@/utils/deck3DPlotUtils'
+import {
+  finalizeDeck,
+  loadAndCachePointCloudData,
+  updateFovy,
+  renderCachedData
+} from '@/utils/deck3DPlotUtils'
 import { debouncedRender } from '@/utils/SrDebounce'
 import { yColorEncodeSelectedReactive } from '@/utils/plotUtils'
 import Select from 'primevue/select'
@@ -220,10 +225,16 @@ function triggerRenderIfSized(logZeroSize = false) {
 
 async function handle3DTabActivated() {
   await nextTick()
-  const rendered = triggerRenderIfSized(true)
-  if (!rendered) {
+  const containerReady = syncDeckContainerSize(true)
+  if (containerReady) {
+    // Use direct render (not debounced) to ensure immediate update when tab activates
+    renderCachedData(localDeckContainer, true)
+  } else {
+    // Container not ready, try on next frame
     requestAnimationFrame(() => {
-      triggerRenderIfSized(false)
+      if (syncDeckContainerSize(false)) {
+        renderCachedData(localDeckContainer, true)
+      }
     })
   }
 }
@@ -233,7 +244,7 @@ onMounted(async () => {
   await updateElevationMap(reqId.value)
   await nextTick() // ensures DOM is updated
   elevationStore.updateElevationColorMapValues()
-  void checkAndSetFilterFor3D()
+  await checkAndSetFilterFor3D()
   await nextTick() // makes sure the gradient is available
   //console.log('onMounted Centroid:', deck3DConfigStore.centroid);
   syncDeckContainerSize(true)
@@ -280,7 +291,7 @@ onUnmounted(() => {
 
 watch(reqId, async (newVal, oldVal) => {
   if (newVal && newVal !== oldVal) {
-    void checkAndSetFilterFor3D()
+    await checkAndSetFilterFor3D()
     await updateElevationMap(reqId.value)
     await loadAndCachePointCloudData(reqId.value)
     debouncedRender(localDeckContainer) // Use the fast, debounced renderer

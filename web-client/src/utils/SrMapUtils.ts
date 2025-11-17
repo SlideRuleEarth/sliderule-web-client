@@ -1711,7 +1711,7 @@ export async function zoomMapForReqIdUsingView(map: OLMap, reqId: number, srView
       view.setMinZoom(srProjObj.min_zoom)
     }
 
-    logger.warn('Fitting view with constraints', {
+    logger.debug('Fitting view with constraints', {
       projectionName,
       minZoom: srProjObj?.min_zoom,
       maxZoom: srProjObj?.max_zoom,
@@ -1754,7 +1754,7 @@ export async function zoomMapForReqIdUsingView(map: OLMap, reqId: number, srView
       }
     }
 
-    logger.warn('View fitted to extent with manual zoom constraint', {
+    logger.debug('View fitted to extent with manual zoom constraint', {
       view_extent,
       finalZoom: view.getZoom(),
       maxZoom: srProjObj?.max_zoom,

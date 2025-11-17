@@ -509,7 +509,7 @@ const updateAnalysisMapView = async (reason: string) => {
       if (actualViewToUse.baseLayerName) {
         mapStore.setSelectedBaseLayer(actualViewToUse.baseLayerName)
       }
-      logger.warn('Applied view from record', {
+      logger.debug('Applied view from record', {
         savedView: srViewName,
         actualView: actualViewToUse.view,
         baseLayer: actualViewToUse.baseLayerName,
