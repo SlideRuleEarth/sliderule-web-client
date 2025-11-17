@@ -185,6 +185,96 @@ export function finalizeDeck() {
   }
 }
 
+export function recreateDeck(deckContainer: Ref<HTMLDivElement | null>): boolean {
+  if (!deckContainer?.value) {
+    logger.warn('Cannot recreate deck: container is null')
+    return false
+  }
+
+  const { width, height } = deckContainer.value.getBoundingClientRect()
+  if (width === 0 || height === 0) {
+    logger.warn('Cannot recreate deck: container has zero size', { width, height })
+    return false
+  }
+
+  // Finalize existing deck if present
+  if (deckInstance.value) {
+    logger.debug('Finalizing existing deck before recreation', {
+      oldWidth: deckInstance.value.width,
+      oldHeight: deckInstance.value.height
+    })
+    deckInstance.value.finalize()
+    deckInstance.value = null
+  }
+
+  // Create fresh deck instance with proper dimensions from the start
+  // Pass dimensions to createDeck so it can include them in the constructor
+  createDeckWithSize(deckContainer.value, width, height)
+
+  logger.debug('Deck instance recreated', { width, height })
+  return true
+}
+
+function createDeckWithSize(container: HTMLDivElement, width: number, height: number) {
+  logger.debug('Creating deck with explicit size', { width, height })
+
+  deckInstance.value = new Deck({
+    parent: container,
+    width,
+    height,
+    useDevicePixels: false,
+    _animate: false,
+    views: [
+      new OrbitView({
+        id: viewId,
+        orbitAxis: deck3DConfigStore.orbitAxis,
+        fovy: deck3DConfigStore.fovy
+      })
+    ],
+    controller: buildOrbitControllerOptions(),
+    initialViewState: {
+      [viewId]: buildViewStatePayload(true)
+    },
+    layers: [],
+    onViewStateChange: ({ viewState }) => {
+      deck3DConfigStore.updateViewState(viewState)
+    },
+    getTooltip: (info) => {
+      if (!info.object) return null
+      const { lat, lon, elevation, cycle, time, colorByLabel, colorByValue } = info.object
+
+      const timeStr = time ? formatTime(time) : '?'
+      const colorByHtml = colorByLabel
+        ? `<strong>Color by:</strong> ${colorByLabel}${colorByValue !== null ? ` = ${colorByValue}` : ''}<br>`
+        : ''
+
+      const recordIdStr = recTreeStore.selectedReqIdStr || '?'
+
+      return {
+        html: `
+                <div>
+                    <strong>Record ID:</strong> <em>${recordIdStr}</em><br>
+                    <strong>Longitude:</strong> ${lon?.toFixed(5)}<br>
+                    <strong>Latitude:</strong> ${lat?.toFixed(5)}<br>
+                    <strong>Elevation (Z):</strong> ${Number.isFinite(elevation) ? elevation.toFixed(2) : '?'} m<br>
+                    <strong>Cycle:</strong> ${cycle ?? '?'}<br>
+                    ${colorByHtml}
+                    <strong>Time:</strong> ${timeStr}<br>
+                </div>
+                `,
+        style: {
+          background: 'rgba(20, 20, 20, 0.85)',
+          color: 'white',
+          padding: '8px',
+          fontSize: '13px',
+          borderRadius: '4px'
+        }
+      }
+    },
+    debug: deck3DConfigStore.debug
+  })
+}
+
 function getPercentile(sorted: number[], p: number): number {
   const index = (p / 100) * (sorted.length - 1)
   const lower = Math.floor(index)
@@ -339,7 +429,10 @@ export async function loadAndCachePointCloudData(reqId: number) {
  */
 // add at top if not already present
 
-export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
+export function renderCachedData(
+  deckContainer: Ref<HTMLDivElement | null>,
+  forceViewReset = false
+) {
   if (!deckContainer || !deckContainer.value) {
     logger.warn('Deck container is null or undefined')
     return
@@ -540,15 +633,16 @@ export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
     if (!deckInstance.value) return
 
     const nextProps: Record<string, any> = {
-      layers,
-      controller: buildOrbitControllerOptions()
+      layers
     }
 
-    if (needsViewReset) {
+    // Only reset view state if explicitly requested (don't touch controller after creation)
+    if (needsViewReset || forceViewReset) {
       nextProps.viewState = {
         [viewId]: buildViewStatePayload(true)
       }
       needsViewReset = false
+      logger.debug('Resetting view state', { forceViewReset, wasNeedingReset: needsViewReset })
     }
 
     deckInstance.value.setProps(nextProps)

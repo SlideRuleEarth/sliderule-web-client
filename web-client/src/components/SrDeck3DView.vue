@@ -290,7 +290,6 @@ watch(reqId, async (newVal, oldVal) => {
 watch(
   () => deck3DConfigStore.fovy,
   (newFov) => {
-    logger.debug('FOV updated', { newFov })
     updateFovy(newFov)
     debouncedRender(localDeckContainer) // Use the fast, debounced renderer
   }
