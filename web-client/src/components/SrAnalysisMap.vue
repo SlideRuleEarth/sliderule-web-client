@@ -55,7 +55,7 @@ const { createDeckInstance, addDeckLayerToMap } = useMapDeckOverlay({
   getLogger: () => logger,
   getMap: () => mapRef.value?.map
 })
-const DEBUG_SHOW_ZOOM = false
+const DEBUG_SHOW_ZOOM = true
 
 const template = 'Lat:{y}\u00B0, Long:{x}\u00B0'
 const stringifyFunc = (coordinate: Coordinate) => {
@@ -301,6 +301,7 @@ onMounted(async () => {
     logger.error('SrAnalysisMap onMounted: map is null')
     return
   }
+
   const srViewName = await db.getSrViewName(props.selectedReqId)
   //console.log(`SrAnalysisMap onMounted: retrieved srViewName: ${srViewName} for reqId:${props.selectedReqId}`);
   const viewObj = srViews.value[srViewName]
@@ -320,6 +321,17 @@ onMounted(async () => {
     logger.error('SrAnalysisMap onMounted: defaulted baseLayer is null')
   }
   await updateAnalysisMapView('onMounted')
+
+  // Add graticule layer AFTER view is set - it needs the view to calculate grid lines
+  const graticule = mapStore.getOrCreateGraticule(map)
+  map.addLayer(graticule)
+
+  logger.debug('Graticule layer added to analysis map after view set', {
+    visible: graticule.getVisible(),
+    zIndex: graticule.getZIndex(),
+    opacity: graticule.getOpacity()
+  })
+
   attachViewListeners(map.getView())
 
   // Add error handler for projection errors during rendering
@@ -523,6 +535,21 @@ const updateAnalysisMapView = async (reason: string) => {
         updateMapView(map, srViewKey.value, reason, false, props.selectedReqId)
         addLayersForCurrentView(map, srViewObj.projectionName)
 
+        // TEMPORARY DEBUG: Log all layers after view is set up
+        console.log('=== ANALYSIS MAP DEBUG: AFTER updateMapView ===')
+        map.getAllLayers().forEach((layer: any, index: number) => {
+          const title = layer.get('title') || layer.get('name') || 'Unnamed'
+          const visible = layer.getVisible()
+          const opacity = layer.getOpacity()
+          const zIndex = layer.getZIndex?.() ?? 'auto'
+          console.log(
+            `Layer ${index}: ${title}, Visible: ${visible}, Opacity: ${opacity}, Z-Index: ${zIndex}`
+          )
+        })
+        console.log('=== VIEW INFO ===')
+        console.log(`Projection: ${map.getView().getProjection().getCode()}`)
+        console.log(`Current Zoom: ${map.getView().getZoom()}`)
+
         //console.log(`summary.numPoints:${summary.numPoints} srViewName:${srViewName}`);
         const numPointsStr = summary.numPoints // it is a string BIG INT!
         const numPoints = parseInt(String(numPointsStr))
@@ -555,6 +582,27 @@ const updateAnalysisMapView = async (reason: string) => {
         createDeckInstance(map)
         addDeckLayerToMap(map)
         attachViewListeners(map.getView())
+
+        // TEMPORARY DEBUG: Log layers after deck is added
+        console.log('=== ANALYSIS MAP DEBUG: AFTER DECK ADDED ===')
+        map.getAllLayers().forEach((layer: any, index: number) => {
+          const title = layer.get('title') || layer.get('name') || 'Unnamed'
+          const visible = layer.getVisible()
+          const opacity = layer.getOpacity()
+          const zIndex = layer.getZIndex?.() ?? 'auto'
+          console.log(
+            `Layer ${index}: ${title}, Visible: ${visible}, Opacity: ${opacity}, Z-Index: ${zIndex}`
+          )
+        })
+        const baseLayer = map.getAllLayers().find((l: any) => l.get('name') === 'Base Layer')
+        if (baseLayer) {
+          const source = baseLayer.getSource() as any
+          console.log(
+            'Base Layer Tile Cache Count:',
+            source?.getTileCache?.()?.getCount?.() || 'N/A'
+          )
+        }
+
         await updateMapAndPlot(`SrAnalysisMap: ${reason}`)
       } else {
         logger.error('srViewKey is null')
@@ -718,7 +766,7 @@ function handleSaveTooltip() {
       >
         <MapControls.OlZoomControl />
 
-        <MapControls.OlMousepositionControl
+        <MapControls.OlMousePositionControl
           :projection="computedProjName"
           :coordinateFormat="stringifyFunc as any"
         />
@@ -1000,6 +1048,7 @@ function handleSaveTooltip() {
   background: rgba(255, 255, 255, 0.25);
   border-radius: var(--p-border-radius);
   font-size: smaller;
+  padding: 0.25rem 0.5rem;
 }
 
 :deep(.sr-legend-control) {
@@ -1149,10 +1198,17 @@ function handleSaveTooltip() {
   border-radius: var(--p-border-radius);
 }
 
-/* recommended by deck.gl for performance reasons */
+/* Graticule styling - ensure labels aren't clipped */
+:deep(.ol-layer canvas) {
+  /* Allow graticule labels to overflow without being clipped */
+  overflow: visible !important;
+}
+
+/* Temporarily disabled - may interfere with base layer tile rendering
 .overlays canvas {
   mix-blend-mode: multiply;
 }
+*/
 
 :deep(.sr-select-menu-default, .sr-select-menu-default-insensitive) {
   width: 100%;

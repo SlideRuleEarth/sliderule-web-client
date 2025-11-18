@@ -105,7 +105,7 @@ export const srProjections = ref<{ [key: string]: SrProjection }>({
     proj4def:
       '+proj=stere +lat_0=-90 +lat_ts=-71 +lon_0=0 +x_0=0 +y_0=0 +datum=WGS84 +units=m +k=1 +no_defs',
     default_zoom: 2.1,
-    min_zoom: 0,
+    min_zoom: 2,
     max_zoom: 10, // Limited by Antarctic Imagery tile availability
     center: [0, 0], // South Pole in projection coordinates
     extent: [-3299207.53, -3333134.03, 3299207.53, 3333134.03],

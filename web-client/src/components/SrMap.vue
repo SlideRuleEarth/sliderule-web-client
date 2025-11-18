@@ -7,7 +7,7 @@ import { createLogger } from '@/utils/logger'
 const logger = createLogger('SrMap')
 
 // Debug panel control - set to false to hide the debug info overlay
-const SHOW_DEBUG_PANEL = false
+const SHOW_DEBUG_PANEL = true
 
 import { findSrViewKey } from '@/composables/SrViews'
 import { useProjectionNames } from '@/composables/SrProjections'
@@ -883,6 +883,17 @@ onMounted(async () => {
       })
       map.addOverlay(dragAreaOverlay.value as unknown as import('ol/Overlay').default)
       await updateReqMapView('SrMap onMounted', canRestoreZoomCenter(map))
+
+      // Add graticule layer AFTER view is set - it needs the view to calculate grid lines
+      const graticule = mapStore.getOrCreateGraticule(map)
+      map.addLayer(graticule)
+
+      logger.debug('Graticule layer added to map after view set', {
+        visible: graticule.getVisible(),
+        zIndex: graticule.getZIndex(),
+        opacity: graticule.getOpacity()
+      })
+
       map.getView().on('change:resolution', () => {
         //const zoom = map.getView().getZoom();
         //console.log('Current zoom level:', zoom);  // logs the zoom level
@@ -1065,23 +1076,50 @@ function addRecordLayer(): void {
   const selectedReqId = recTreeStore.selectedReqId
   const map = mapRef.value?.map
   if (map) {
+    // Clear existing features from records and pin layers before re-rendering
+    // This ensures features are rendered in the current projection's coordinate system
+    recordsVectorSource.clear()
+    pinVectorSource.clear()
+
     assignStyleFunctionToPinLayer(map, useMapStore().getMinZoomToShowPin())
     reqIds.forEach((reqId) => {
-      // Skip the currently selected request - it's being edited on Drawing Layer
-      // Only render it if it's a different request (for viewing past requests)
-      if (reqId === selectedReqId && reqParamsStore.poly) {
-        logger.debug('Skipping selected reqId in addRecordLayer (it is on Drawing Layer)', {
-          reqId
-        })
-        return
-      }
+      try {
+        // Skip the currently selected request - it's being edited on Drawing Layer
+        // Only render it if it's a different request (for viewing past requests)
+        if (reqId === selectedReqId && reqParamsStore.poly) {
+          logger.debug('Skipping selected reqId in addRecordLayer (it is on Drawing Layer)', {
+            reqId
+          })
+          return
+        }
 
-      const api = recTreeStore.findApiForReqId(reqId)
-      if (api.includes('atl13')) {
-        void renderSvrReqPin(map, reqId)
+        const api = recTreeStore.findApiForReqId(reqId)
+        if (api.includes('atl13')) {
+          renderSvrReqPin(map, reqId).catch((error) => {
+            logger.error('renderSvrReqPin failed in addRecordLayer', {
+              reqId,
+              error: error instanceof Error ? error.message : String(error)
+            })
+          })
+        }
+        renderSvrReqPoly(map, reqId).catch((error) => {
+          logger.error('renderSvrReqPoly failed in addRecordLayer', {
+            reqId,
+            error: error instanceof Error ? error.message : String(error)
+          })
+        })
+        renderSvrReqRegionMask(map, reqId).catch((error) => {
+          logger.error('renderSvrReqRegionMask failed in addRecordLayer', {
+            reqId,
+            error: error instanceof Error ? error.message : String(error)
+          })
+        })
+      } catch (error) {
+        logger.error('Synchronous error in addRecordLayer loop', {
+          reqId,
+          error: error instanceof Error ? error.message : String(error)
+        })
       }
-      void renderSvrReqPoly(map, reqId)
-      void renderSvrReqRegionMask(map, reqId)
     })
   } else {
     logger.warn('Skipping addRecordLayer when map is null')
@@ -1353,6 +1391,7 @@ const handleUpdateSrView = async () => {
       if (map) {
         saveMapZoomState(map)
         await updateReqMapView('handleUpdateSrView', false) // Don't restore - use projection defaults
+        addRecordLayer() // this happens asynchronously after changing view
       } else {
         logger.error('Map is null in handleUpdateSrView')
       }
@@ -1552,10 +1591,10 @@ watch(showBathymetryFeatures, (newValue) => {
 
         <MapControls.OlZoomControl />
 
-        <MapControls.OlMousepositionControl
+        <MapControls.OlMousePositionControl
           :projection="computedProjName"
           :coordinateFormat="stringifyFunc as any"
-        ></MapControls.OlMousepositionControl>
+        ></MapControls.OlMousePositionControl>
         <MapControls.OlAttributionControl :collapsible="true" :collapsed="true" />
 
         <MapControls.OlScaleLineControl />
@@ -1872,6 +1911,8 @@ watch(showBathymetryFeatures, (newValue) => {
   color: var(--p-primary-color);
   background: rgba(255, 255, 255, 0.25);
   border-radius: var(--p-border-radius);
+  font-size: 0.875rem;
+  padding: 0.25rem 0.5rem;
 }
 
 :deep(.ol-zoom .ol-zoom-in) {
@@ -1976,5 +2017,11 @@ watch(showBathymetryFeatures, (newValue) => {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
   /* if something upstream sets opacity, force full */
   opacity: 1;
+}
+
+/* Graticule styling - ensure labels aren't clipped */
+:deep(.ol-layer canvas) {
+  /* Allow graticule labels to overflow without being clipped */
+  overflow: visible !important;
 }
 </style>

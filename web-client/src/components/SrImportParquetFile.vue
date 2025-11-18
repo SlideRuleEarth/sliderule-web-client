@@ -24,6 +24,7 @@ import {
   updateReqParmsFromMeta
 } from '@/utils/SrParquetUtils'
 import { createLogger } from '@/utils/logger'
+import { selectSrViewForExtent } from '@/utils/srViewSelector'
 
 const logger = createLogger('SrImportParquetFile')
 const toast = useToast()
@@ -336,6 +337,17 @@ const customUploader = async (event: any) => {
       const summary = await indexedDb.getWorkerSummary(srReqRec.req_id)
       if (summary) {
         srReqRec.cnt = summary.numPoints
+
+        // Auto-assign appropriate SrViewName based on data extent
+        if (summary.extLatLon) {
+          srReqRec.srViewName = selectSrViewForExtent(summary.extLatLon)
+          logger.info('Auto-assigned SrViewName based on data extent', {
+            reqId: srReqRec.req_id,
+            srViewName: srReqRec.srViewName,
+            extent: summary.extLatLon
+          })
+        }
+
         await indexedDb.updateRequestRecord(srReqRec, true)
         toast.add({
           severity: 'success',

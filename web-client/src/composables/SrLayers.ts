@@ -247,7 +247,7 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     source_projection: 'EPSG:3031',
     allowed_reprojections: ['EPSG:3031'],
     init_visibility: false,
-    init_opacity: 0.5,
+    init_opacity: 1,
     serverType: 'mapserver'
     //tileGrid: antarticTileGrid,
   },
@@ -261,7 +261,7 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     allowed_reprojections: ['EPSG:3031'],
     layerName: 'LIMA_Full_1km',
     init_visibility: true,
-    init_opacity: 0.2
+    init_opacity: 0.9
   },
   MOA: {
     title: 'MOA',

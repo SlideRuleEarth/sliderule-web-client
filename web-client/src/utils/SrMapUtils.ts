@@ -1511,6 +1511,10 @@ export function updateMapView(
         const layer = getLayer(srViewObj.projectionName, baseLayer)
         if (layer) {
           map.addLayer(layer)
+          logger.debug('Base layer added successfully', {
+            projectionName: srViewObj.projectionName,
+            baseLayerTitle: baseLayer
+          })
         } else {
           logger.error('No layer found', {
             projectionName: srViewObj.projectionName,
@@ -1583,6 +1587,18 @@ export function updateMapView(
           maxZoom: srProjObj.max_zoom
         })
 
+        useMapStore().setExtentToRestore(extent)
+        if (restore) {
+          const restoredView = restoreMapView(newProj, srProjObj.min_zoom, srProjObj.max_zoom)
+          if (restoredView) {
+            newView = restoredView
+          } else {
+            logger.warn('Failed to restore view', { reason })
+          }
+        }
+
+        // Attach zoom constraint enforcement AFTER potential view restoration
+        // This ensures the listener is attached to the correct view object
         if (srProjObj.min_zoom !== undefined || srProjObj.max_zoom !== undefined) {
           const enforceZoomBounds = () => {
             const currentZoom = newView.getZoom()
@@ -1602,16 +1618,8 @@ export function updateMapView(
           enforceZoomBounds()
         }
 
-        useMapStore().setExtentToRestore(extent)
-        if (restore) {
-          const restoredView = restoreMapView(newProj, srProjObj.min_zoom, srProjObj.max_zoom)
-          if (restoredView) {
-            newView = restoredView
-          } else {
-            logger.warn('Failed to restore view', { reason })
-          }
-        }
         map.setView(newView)
+        // Graticule automatically adapts to projection changes
       } else {
         if (!baseLayer) logger.error('baseLayer is null')
         if (!newProj) logger.error('newProj is null')

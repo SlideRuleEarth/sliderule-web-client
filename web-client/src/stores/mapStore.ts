@@ -4,8 +4,8 @@ import TileLayer from 'ol/layer/Tile.js'
 import ol_control_WMSCapabilities from 'ol-ext/control/WMSCapabilities'
 import ol_control_WMTSCapabilities from 'ol-ext/control/WMTSCapabilities'
 import { usePermalink } from '@/composables/usePermalink'
-import { Graticule } from 'ol'
-import { Stroke } from 'ol/style'
+import Graticule from 'ol/layer/Graticule.js'
+import { Stroke, Fill, Text } from 'ol/style'
 import { type Coordinate } from 'ol/coordinate'
 import type { EventsKey } from 'ol/events'
 import { type Type as OlGeometryType } from 'ol/geom/Geometry'
@@ -22,6 +22,45 @@ interface LayerCache {
   [projectionName: string]: Map<string, TileLayer>
 }
 
+// Factory function to create graticule instances
+// Each map needs its own graticule instance
+function createGraticuleLayer(): Graticule {
+  return new Graticule({
+    strokeStyle: new Stroke({
+      color: 'rgba(255,120,0,0.9)', // Orange like OpenLayers example
+      width: 2,
+      lineDash: [0.5, 4]
+    }),
+    showLabels: true,
+    visible: false, // Start hidden, control via setVisible()
+    wrapX: false, // Prevent dateline wrapping issues during projection changes
+    lonLabelPosition: 0.1,
+    latLabelPosition: 0.9,
+    latLabelStyle: new Text({
+      font: 'bold 12px Calibri,sans-serif',
+      textAlign: 'end',
+      fill: new Fill({
+        color: 'rgba(255,255,255,1)'
+      }),
+      stroke: new Stroke({
+        color: 'rgba(0,0,0,0.9)',
+        width: 3
+      })
+    }),
+    lonLabelStyle: new Text({
+      font: 'bold 12px Calibri,sans-serif',
+      textBaseline: 'top',
+      fill: new Fill({
+        color: 'rgba(255,255,255,1)'
+      }),
+      stroke: new Stroke({
+        color: 'rgba(0,0,0,0.9)',
+        width: 3
+      })
+    })
+  })
+}
+
 export type TimeoutHandle = ReturnType<typeof setTimeout>
 
 export const useMapStore = defineStore('map', {
@@ -32,17 +71,10 @@ export const useMapStore = defineStore('map', {
     wmtsCapCache: new Map(), // a javascript Map object
     currentWmtsCapProjectionName: 'EPSG:3857' as string,
     plink: usePermalink(),
-    graticuleState: false,
-    graticule: new Graticule({
-      // Style options go here
-      strokeStyle: new Stroke({
-        color: 'rgba(255,120,0,0.9)',
-        width: 2,
-        lineDash: [0.5, 4]
-      }),
-      showLabels: true,
-      wrapX: false
-    }),
+    // Restore graticule state from localStorage, default to false
+    graticuleState: localStorage.getItem('graticuleState') === 'true',
+    // Store graticule instances per map (request map and analysis map need separate instances)
+    graticules: new Map<OLMap, Graticule>(),
     polygonSource: 'Draw on Map' as string,
     polygonSourceItems: ['GeoJSON File', 'Shapefile'] as string[], // Possible polygon sources for upload
     polyCoords: <Coordinate[][]>[],
@@ -144,17 +176,69 @@ export const useMapStore = defineStore('map', {
     },
     setGraticuleState(state: boolean) {
       this.graticuleState = state
+      // Persist to localStorage
+      localStorage.setItem('graticuleState', String(state))
       this.setGraticuleForMap()
     },
-    setGraticuleForMap() {
-      if (this.graticuleState) {
-        const thisMap = this.map as OLMap
-        if (thisMap) {
-          this.graticule.setMap(thisMap)
-        }
-      } else {
-        this.graticule.setMap(null)
+    getOrCreateGraticule(map: OLMap): Graticule {
+      // Get existing graticule for this map, or create a new one
+      let graticule = this.graticules.get(map)
+      if (!graticule) {
+        graticule = createGraticuleLayer()
+        graticule.setZIndex(1000) // Ensure it renders on top
+        // Set initial visibility based on current state
+        graticule.setVisible(this.graticuleState)
+        this.graticules.set(map, graticule)
+        logger.debug('Created new graticule instance for map', {
+          visible: this.graticuleState,
+          zIndex: 1000
+        })
       }
+      return graticule as Graticule // Type assertion to fix TypeScript error
+    },
+    recreateGraticuleForMap(map: OLMap) {
+      // Remove existing graticule if present
+      const existingGraticule = this.graticules.get(map)
+      if (existingGraticule) {
+        map.removeLayer(existingGraticule as any)
+        this.graticules.delete(map)
+        logger.debug('Removed old graticule for projection change')
+      }
+
+      // Create new graticule for current projection
+      const newGraticule = this.getOrCreateGraticule(map)
+      map.addLayer(newGraticule)
+
+      logger.debug('Recreated graticule for new projection', {
+        projection: map.getView().getProjection().getCode(),
+        visible: newGraticule.getVisible()
+      })
+    },
+    setGraticuleForMap(targetMap?: OLMap) {
+      // Update visibility for all graticule instances
+      // If targetMap is provided, only update that map's graticule
+      this.graticules.forEach((graticule, map) => {
+        if (!targetMap || map === targetMap) {
+          graticule.setVisible(this.graticuleState)
+          const projectionCode = map.getView().getProjection().getCode()
+
+          // Debug: verify layer is in map and check properties
+          const allLayers = map.getAllLayers()
+          const graticuleLayers = allLayers.filter((layer) => layer instanceof Graticule)
+          const graticuleOpacity = graticule.getOpacity()
+
+          logger.debug('Graticule visibility changed', {
+            visible: this.graticuleState,
+            projection: projectionCode,
+            opacity: graticuleOpacity,
+            zIndex: graticule.getZIndex(),
+            graticuleLayersInMap: graticuleLayers.length,
+            totalLayers: allLayers.length
+          })
+
+          // OpenLayers automatically renders when visibility changes - no manual render needed
+        }
+      })
     },
     // addDeckLayer(layer:OL_Layer_Type<Source, LayerRenderer<any>>) {
     //   this.dLayers.push(layer as OL_Layer_Type<Source, LayerRenderer<any>>);
