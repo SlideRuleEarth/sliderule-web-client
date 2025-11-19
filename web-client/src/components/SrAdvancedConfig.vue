@@ -63,6 +63,20 @@
         label="Enable Spot Pattern Details"
       />
       <SrGraticuleSelect />
+      <SrToggleButton
+        :value="debugStore.showZoomDebug"
+        :getValue="debugStore.getShowZoomDebug"
+        :setValue="debugStore.setShowZoomDebug"
+        label="Debug Analysis Map"
+        tooltipText="Show zoom level in Analysis Map"
+      />
+      <SrToggleButton
+        :value="debugStore.showDebugPanel"
+        :getValue="debugStore.getShowDebugPanel"
+        :setValue="debugStore.setShowDebugPanel"
+        label="Debug Request Map"
+        tooltipText="Show debug info panel in Request Map"
+      />
       <label for="pointSize">Elevation map Plot point size</label>
       <InputNumber
         v-model="deckPointSize"

@@ -6,9 +6,6 @@ import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('SrMap')
 
-// Debug panel control - set to false to hide the debug info overlay
-const SHOW_DEBUG_PANEL = true
-
 import { findSrViewKey } from '@/composables/SrViews'
 import { useProjectionNames } from '@/composables/SrProjections'
 import { srProjections } from '@/composables/SrProjections'
@@ -1664,7 +1661,7 @@ watch(showBathymetryFeatures, (newValue) => {
           @export-polygon-control-created="handleExportPolygonControlCreated"
         />
       </Map.OlMap>
-      <SrMapDebugInfo v-if="SHOW_DEBUG_PANEL" :map="mapRef?.map" />
+      <SrMapDebugInfo v-if="debugStore.showDebugPanel" :map="mapRef?.map" />
     </div>
     <SrCustomTooltip ref="tooltipRef" id="MainMapTooltip" />
     <SrFeatureMenuOverlay ref="featureMenuOverlayRef" @select="onFeatureMenuSelect" />

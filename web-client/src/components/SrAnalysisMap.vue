@@ -36,6 +36,7 @@ import { callPlotUpdateDebounced } from '@/utils/plotUtils'
 import { setCyclesGtsSpotsFromFileUsingRgtYatc, updateSrViewName } from '@/utils/SrMapUtils'
 import Checkbox from 'primevue/checkbox'
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore'
+import { useDebugStore } from '@/stores/debugStore'
 import SrBaseLayerControl from '@/components/SrBaseLayerControl.vue'
 import SrGraticuleControl from '@/components/SrGraticuleControl.vue'
 import { findSrViewKey, srViews } from '@/composables/SrViews'
@@ -56,7 +57,6 @@ const { createDeckInstance, addDeckLayerToMap } = useMapDeckOverlay({
   getLogger: () => logger,
   getMap: () => mapRef.value?.map
 })
-const DEBUG_SHOW_ZOOM = true
 
 const template = 'Lat:{y}\u00B0, Long:{x}\u00B0'
 const stringifyFunc = (coordinate: Coordinate) => {
@@ -82,6 +82,7 @@ const fncs = useFieldNameStore()
 const atlChartFilterStore = useAtlChartFilterStore()
 const activeTabStore = useActiveTabStore()
 const fieldNameStore = useFieldNameStore()
+const debugStore = useDebugStore()
 const controls = ref([])
 const tooltipRef = ref<InstanceType<typeof SrCustomTooltip> | null>(null)
 const showContextMenu = ref(false)
@@ -761,7 +762,7 @@ function handleSaveTooltip() {
         {{ computedLoadMsg }}
       </div>
       <!-- DEBUG: Zoom level display -->
-      <div class="sr-zoom-debug" v-if="DEBUG_SHOW_ZOOM" style="margin-left: 1rem">
+      <div class="sr-zoom-debug" v-if="debugStore.showZoomDebug" style="margin-left: 1rem">
         Zoom: {{ currentZoom.toFixed(2) }}
       </div>
     </div>
