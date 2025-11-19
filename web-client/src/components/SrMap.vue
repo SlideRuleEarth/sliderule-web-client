@@ -7,7 +7,7 @@ import { createLogger } from '@/utils/logger'
 const logger = createLogger('SrMap')
 
 // Debug panel control - set to false to hide the debug info overlay
-const SHOW_DEBUG_PANEL = true
+const SHOW_DEBUG_PANEL = false
 
 import { findSrViewKey } from '@/composables/SrViews'
 import { useProjectionNames } from '@/composables/SrProjections'
@@ -52,6 +52,7 @@ import { hullColor, type SrRegion } from '@/types/SrTypes'
 import { format } from 'ol/coordinate.js'
 import SrViewControl from './SrViewControl.vue'
 import SrBaseLayerControl from './SrBaseLayerControl.vue'
+import SrGraticuleControl from './SrGraticuleControl.vue'
 import SrDrawControl from '@/components/SrDrawControl.vue'
 import SrRasterizeControl from '@/components/SrRasterizeControl.vue'
 import { Map, MapControls } from 'vue3-openlayers'
@@ -1052,6 +1053,15 @@ function handleBaseLayerControlCreated(baseLayerControl: any) {
   }
 }
 
+function handleGraticuleControlCreated(graticuleControl: any) {
+  const map = mapRef.value?.map
+  if (map) {
+    map.addControl(graticuleControl)
+  } else {
+    logger.error('Map is null in handleGraticuleControlCreated')
+  }
+}
+
 function handleUploadRegionControlCreated(uploadControl: any) {
   const map = mapRef.value?.map
   if (map) {
@@ -1620,6 +1630,7 @@ watch(showBathymetryFeatures, (newValue) => {
           @baselayer-control-created="handleBaseLayerControlCreated"
           @update-baselayer="handleUpdateBaseLayer"
         />
+        <SrGraticuleControl @graticule-control-created="handleGraticuleControlCreated" />
         <SrUploadRegionControl
           v-if="reqParamsStore.iceSat2SelectedAPI != 'atl13x'"
           :reportUploadProgress="true"
@@ -1849,6 +1860,14 @@ watch(showBathymetryFeatures, (newValue) => {
   border-radius: var(--p-border-radius);
   color: white;
   max-width: 30rem;
+}
+
+:deep(.ol-control.sr-graticule-control) {
+  top: auto;
+  bottom: 2rem;
+  right: auto;
+  left: 0rem;
+  border-radius: var(--p-border-radius);
 }
 
 :deep(.ol-ext-dialog .ol-content .ol-wmscapabilities .ol-url .url) {

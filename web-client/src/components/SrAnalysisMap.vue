@@ -37,6 +37,7 @@ import { setCyclesGtsSpotsFromFileUsingRgtYatc, updateSrViewName } from '@/utils
 import Checkbox from 'primevue/checkbox'
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore'
 import SrBaseLayerControl from '@/components/SrBaseLayerControl.vue'
+import SrGraticuleControl from '@/components/SrGraticuleControl.vue'
 import { findSrViewKey, srViews } from '@/composables/SrViews'
 import { addLayersForCurrentView } from '@/composables/SrLayers'
 import { useFieldNameStore } from '@/stores/fieldNameStore'
@@ -426,6 +427,15 @@ function handleBaseLayerControlCreated(baseLayerControl: any) {
   }
 }
 
+function handleGraticuleControlCreated(graticuleControl: any) {
+  const map = mapRef.value?.map
+  if (map) {
+    map.addControl(graticuleControl)
+  } else {
+    logger.error('Map is null in handleGraticuleControlCreated')
+  }
+}
+
 const handleUpdateBaseLayer = async () => {
   //console.log("SrAnalysisMap handleUpdateBaseLayer called");
   const srViewKey = findSrViewKey(useMapStore().selectedView, useMapStore().selectedBaseLayer)
@@ -798,6 +808,7 @@ function handleSaveTooltip() {
           @baselayer-control-created="handleBaseLayerControlCreated"
           @update-baselayer="handleUpdateBaseLayer"
         />
+        <SrGraticuleControl @graticule-control-created="handleGraticuleControlCreated" />
         <SrLocationFinder
           v-if="
             hasLinkToElevationPlot &&
@@ -1189,6 +1200,15 @@ function handleSaveTooltip() {
   color: white;
   max-width: 30rem;
   background: rgba(255, 255, 255, 0.25);
+}
+
+:deep(.ol-control.sr-graticule-control) {
+  top: auto;
+  bottom: 2.125rem;
+  right: auto;
+  left: 0rem;
+  margin: 0.125rem;
+  border-radius: var(--p-border-radius);
 }
 
 :deep(.ol-scale-line) {
