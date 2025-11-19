@@ -77,9 +77,14 @@ import { extractSrRegionFromGeometry, processConvexHull } from '@/utils/geojsonU
 const logger = createLogger('SrMapUtils')
 
 const ORTHOGRAPHIC_DECK_PROJECTIONS = new Set(['EPSG:3413', 'EPSG:3031', 'EPSG:5936'])
+const POLAR_PROJECTIONS = new Set(['EPSG:3413', 'EPSG:3031', 'EPSG:5936'])
 
 export function requiresOrthographicDeck(projectionName: string): boolean {
   return ORTHOGRAPHIC_DECK_PROJECTIONS.has(projectionName)
+}
+
+export function isPolarProjection(projectionName: string): boolean {
+  return POLAR_PROJECTIONS.has(projectionName)
 }
 
 export const polyCoordsExist = computed(() => {
@@ -1605,6 +1610,20 @@ export function updateMapView(
         }
 
         map.setView(newView)
+
+        // Auto-toggle graticule based on projection type:
+        // - Polar projections (North/South): graticule ON by default
+        // - Global projections: graticule OFF by default
+        const shouldEnableGraticule = isPolarProjection
+        const mapStore = useMapStore()
+        if (mapStore.graticuleState !== shouldEnableGraticule) {
+          mapStore.setGraticuleState(shouldEnableGraticule)
+          logger.debug('Auto-toggled graticule for projection', {
+            projection: srViewObj.projectionName,
+            graticuleEnabled: shouldEnableGraticule
+          })
+        }
+
         // Graticule automatically adapts to projection changes
       } else {
         if (!baseLayer) logger.error('baseLayer is null')

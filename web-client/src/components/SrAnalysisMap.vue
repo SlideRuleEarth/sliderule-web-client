@@ -56,7 +56,7 @@ const { createDeckInstance, addDeckLayerToMap } = useMapDeckOverlay({
   getLogger: () => logger,
   getMap: () => mapRef.value?.map
 })
-const DEBUG_SHOW_ZOOM = true
+const DEBUG_SHOW_ZOOM = false
 
 const template = 'Lat:{y}\u00B0, Long:{x}\u00B0'
 const stringifyFunc = (coordinate: Coordinate) => {
@@ -148,7 +148,7 @@ const attachViewListeners = (view?: OlView | null) => {
     const extent = mapSize ? view.calculateExtent(mapSize) : undefined
     if (zoom !== undefined && center && extent) {
       currentZoom.value = zoom
-      logger.debug('View changed', {
+      logger.trace('View changed', {
         zoom,
         center,
         extent,
