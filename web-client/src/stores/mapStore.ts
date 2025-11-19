@@ -25,7 +25,7 @@ interface LayerCache {
 // Factory function to create graticule instances
 // Each map needs its own graticule instance
 function createGraticuleLayer(): Graticule {
-  return new Graticule({
+  const graticule = new Graticule({
     strokeStyle: new Stroke({
       color: 'rgba(255,120,0,0.9)', // Orange like OpenLayers example
       width: 2,
@@ -59,6 +59,14 @@ function createGraticuleLayer(): Graticule {
       })
     })
   })
+
+  // Set properties for layer manager display
+  graticule.setProperties({
+    title: 'Graticule',
+    name: 'Graticule'
+  })
+
+  return graticule
 }
 
 export type TimeoutHandle = ReturnType<typeof setTimeout>

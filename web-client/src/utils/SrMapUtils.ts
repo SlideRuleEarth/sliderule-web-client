@@ -1594,11 +1594,22 @@ export function updateMapView(
           const enforceZoomBounds = () => {
             const currentZoom = newView.getZoom()
             if (currentZoom === undefined) return
+
             if (srProjObj.max_zoom !== undefined && currentZoom > srProjObj.max_zoom) {
+              console.warn('[SrMapUtils] Zoom exceeds max_zoom, constraining:', {
+                projection: srProjObj.name,
+                currentZoom,
+                maxZoom: srProjObj.max_zoom
+              })
               newView.setZoom(srProjObj.max_zoom)
               return
             }
             if (srProjObj.min_zoom !== undefined && currentZoom < srProjObj.min_zoom) {
+              console.warn('[SrMapUtils] Zoom below min_zoom, constraining:', {
+                projection: srProjObj.name,
+                currentZoom,
+                minZoom: srProjObj.min_zoom
+              })
               newView.setZoom(srProjObj.min_zoom)
             }
           }
@@ -1610,6 +1621,19 @@ export function updateMapView(
         }
 
         map.setView(newView)
+
+        // Add zoom change debugging for polar projections
+        if (isPolarProjection) {
+          newView.on('change:resolution', () => {
+            const zoom = newView.getZoom()
+            console.log('[SrMapUtils] Polar projection zoom changed:', {
+              projection: srProjObj.name,
+              zoom,
+              minZoom: newView.getMinZoom(),
+              maxZoom: newView.getMaxZoom()
+            })
+          })
+        }
 
         // Auto-toggle graticule based on projection type:
         // - Polar projections (North/South): graticule ON by default
@@ -1723,6 +1747,16 @@ export async function zoomMapForReqIdUsingView(map: OLMap, reqId: number, srView
     if (srProjObj?.min_zoom !== undefined) {
       view.setMinZoom(srProjObj.min_zoom)
     }
+
+    // Verify constraints were applied
+    console.log('[SrMapUtils] View zoom constraints set:', {
+      projectionName,
+      requestedMinZoom: srProjObj?.min_zoom,
+      requestedMaxZoom: srProjObj?.max_zoom,
+      actualMinZoom: view.getMinZoom(),
+      actualMaxZoom: view.getMaxZoom(),
+      currentZoom: view.getZoom()
+    })
 
     logger.debug('Fitting view with constraints', {
       projectionName,
