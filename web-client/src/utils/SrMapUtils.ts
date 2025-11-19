@@ -6,7 +6,8 @@ import { COORDINATE_SYSTEM } from '@deck.gl/core'
 import GeoJSON from 'ol/format/GeoJSON'
 import VectorSource from 'ol/source/Vector'
 import Feature from 'ol/Feature'
-import { fromLonLat, type ProjectionLike } from 'ol/proj'
+import { fromLonLat, transformExtent, type ProjectionLike } from 'ol/proj'
+import type { Projection } from 'ol/proj'
 import { Layer as OLlayer } from 'ol/layer'
 import Graticule from 'ol/layer/Graticule.js'
 import type OLMap from 'ol/Map.js'
@@ -1923,6 +1924,41 @@ export function getBoundingExtentFromFeatures(features: Feature<Geometry>[]): Ex
   }
 
   return boundingExtent(allCoords)
+}
+
+/**
+ * Calculate appropriate maxZoom for fitting to an extent in Web Mercator projection
+ * to avoid "Map data not yet available" tiles at extreme latitudes
+ *
+ * @param extent - The extent in the current projection
+ * @param projection - The current projection
+ * @returns The recommended maxZoom, or undefined if no limit needed
+ */
+export function getMaxZoomForExtent(extent: Extent, projection: Projection): number | undefined {
+  const projectionCode = projection.getCode()
+
+  // Only limit zoom for Web Mercator (EPSG:3857) at extreme latitudes
+  if (projectionCode !== 'EPSG:3857') {
+    return undefined
+  }
+
+  // Transform extent to lat/lon to check latitude range
+  const extentInLatLon = transformExtent(extent, projection, 'EPSG:4326')
+  const [, minLat, , maxLat] = extentInLatLon
+
+  // If data is at extreme latitudes (beyond ±60°), limit zoom due to
+  // Web Mercator distortion and tile availability
+  const hasExtremeLatitudes = Math.abs(minLat) > 60 || Math.abs(maxLat) > 60
+  if (hasExtremeLatitudes) {
+    logger.info('Limiting zoom for extreme latitudes in Web Mercator', {
+      minLat,
+      maxLat,
+      maxZoom: 13
+    })
+    return 13 // Limit to zoom 13 for extreme latitudes in Web Mercator
+  }
+
+  return undefined
 }
 
 export function zoomOutToFullMap(map: OLMap): void {
