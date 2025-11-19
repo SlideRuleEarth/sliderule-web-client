@@ -7,7 +7,7 @@ const logger = createLogger('srViewSelector')
  * Determines the best SrViewName based on geographic extent of data
  *
  * Logic:
- * - If data is primarily in high northern latitudes (> 60°N) → "North"
+ * - If data is primarily in high northern latitudes (> 60°N) → "North Alaska"
  * - If data is primarily in high southern latitudes (< -60°S) → "South Antarctic Polar Stereographic"
  * - Otherwise → "Global Mercator Esri" (default)
  *
@@ -48,13 +48,13 @@ export function selectSrViewForExtent(extent: ExtLatLon): string {
     minLat > NORTH_THRESHOLD ||
     (latCenter > NORTH_THRESHOLD + 5 && minLat > NORTH_THRESHOLD - latSpan * 0.3)
   ) {
-    logger.info('Data is in northern polar region, using North view', {
+    logger.info('Data is in northern polar region, using North Alaska view', {
       minLat,
       maxLat,
       latCenter,
-      selectedView: 'North'
+      selectedView: 'North Alaska'
     })
-    return 'North'
+    return 'North Alaska'
   }
 
   // Check if data is primarily in southern polar region

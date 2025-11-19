@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import FileUpload from 'primevue/fileupload'
 import ProgressBar from 'primevue/progressbar'
 import Button from 'primevue/button'
+import Dialog from 'primevue/dialog'
 import SrToast from 'primevue/toast'
 import { useToast } from 'primevue/usetoast'
 import {
@@ -25,6 +26,8 @@ import {
 } from '@/utils/SrParquetUtils'
 import { createLogger } from '@/utils/logger'
 import { selectSrViewForExtent } from '@/utils/srViewSelector'
+import { isPolarProjection } from '@/utils/SrMapUtils'
+import { srViews } from '@/composables/SrViews'
 
 const logger = createLogger('SrImportParquetFile')
 const toast = useToast()
@@ -66,6 +69,106 @@ onMounted(() => {
 const activeWorker = ref<Worker | null>(null)
 const activeNewFilename = ref<string | null>(null)
 const isBusy = ref(false)
+
+// Projection selection dialog state
+const showProjectionDialog = ref(false)
+const detectedProjection = ref<string>('')
+const polarProjectionOptions = ref<string[]>([])
+const selectedProjection = ref<string>('')
+const pendingRequestRecord = ref<any>(null)
+
+/**
+ * Get all polar projection options for a given detected projection
+ * Returns an array of SrViewName keys for all projections in the same polar region
+ */
+function getPolarProjectionOptions(detectedSrViewName: string): string[] {
+  const detectedView = srViews.value[detectedSrViewName]
+  if (!detectedView) return []
+
+  const projectionName = detectedView.projectionName
+
+  // If it's not a polar projection, return empty array
+  if (!isPolarProjection(projectionName)) {
+    return []
+  }
+
+  // Determine if this is a northern or southern polar projection
+  // Northern polar: EPSG:5936 (North Alaska) and EPSG:3413 (North Sea Ice)
+  // Southern polar: EPSG:3031 (South Antarctic)
+  const isNorthern = projectionName === 'EPSG:5936' || projectionName === 'EPSG:3413'
+  const isSouthern = projectionName === 'EPSG:3031'
+
+  // Find all views in the same polar region (all northern or all southern)
+  return Object.keys(srViews.value).filter((key) => {
+    const view = srViews.value[key]
+    if (view.hide) return false
+
+    const viewProj = view.projectionName
+    if (isNorthern) {
+      // Include all northern polar projections
+      return viewProj === 'EPSG:5936' || viewProj === 'EPSG:3413'
+    } else if (isSouthern) {
+      // Include all southern polar projections
+      return viewProj === 'EPSG:3031'
+    }
+    return false
+  })
+}
+
+/**
+ * Handle user's projection selection from the dialog
+ */
+async function handleProjectionSelection(useGlobal: boolean) {
+  if (!pendingRequestRecord.value) {
+    showProjectionDialog.value = false
+    return
+  }
+
+  try {
+    const srReqRec = pendingRequestRecord.value
+
+    if (useGlobal) {
+      // User chose to use global projection
+      srReqRec.srViewName = 'Global Mercator Esri'
+      logger.info('User selected Global projection for polar data', {
+        reqId: srReqRec.req_id,
+        detectedProjection: detectedProjection.value
+      })
+    } else {
+      // User chose to use the detected polar projection
+      srReqRec.srViewName = selectedProjection.value || detectedProjection.value
+      logger.info('User selected polar projection', {
+        reqId: srReqRec.req_id,
+        srViewName: srReqRec.srViewName
+      })
+    }
+
+    // Update the record and finish the import process
+    await indexedDb.updateRequestRecord(srReqRec, true)
+
+    toast.add({
+      severity: 'success',
+      summary: 'Import Complete',
+      detail: `File imported successfully with ${useGlobal ? 'Global' : 'polar'} projection!`,
+      life: 5000
+    })
+    upload_status.value = 'success'
+    emit('file-imported', srReqRec.req_id.toString())
+  } catch (error) {
+    logger.error('Failed to update projection selection', {
+      error: error instanceof Error ? error.message : String(error)
+    })
+    toast.add({
+      severity: 'error',
+      summary: 'Update Failed',
+      detail: 'Failed to update projection selection.',
+      life: 4000
+    })
+  } finally {
+    showProjectionDialog.value = false
+    pendingRequestRecord.value = null
+  }
+}
 
 // cancel button handler
 function cancelUpload() {
@@ -340,14 +443,39 @@ const customUploader = async (event: any) => {
 
         // Auto-assign appropriate SrViewName based on data extent
         if (summary.extLatLon) {
-          srReqRec.srViewName = selectSrViewForExtent(summary.extLatLon)
+          const autoSelectedView = selectSrViewForExtent(summary.extLatLon)
+          srReqRec.srViewName = autoSelectedView
           logger.info('Auto-assigned SrViewName based on data extent', {
             reqId: srReqRec.req_id,
             srViewName: srReqRec.srViewName,
             extent: summary.extLatLon
           })
+
+          // Check if the auto-selected view is a polar projection
+          const polarOptions = getPolarProjectionOptions(autoSelectedView)
+          if (polarOptions.length > 0) {
+            // This is a polar projection - show dialog to let user choose
+            detectedProjection.value = autoSelectedView
+            polarProjectionOptions.value = polarOptions
+            selectedProjection.value = polarOptions[0] // Default to first option
+            pendingRequestRecord.value = srReqRec
+
+            logger.info('Detected polar projection, showing selection dialog', {
+              reqId: srReqRec.req_id,
+              detectedProjection: autoSelectedView,
+              options: polarOptions
+            })
+
+            // Save the record first (without showing success toast yet)
+            await indexedDb.updateRequestRecord(srReqRec, true)
+
+            // Show the dialog - user will complete the import flow
+            showProjectionDialog.value = true
+            return // Exit early - dialog handlers will complete the flow
+          }
         }
 
+        // Not a polar projection - proceed with normal import completion
         await indexedDb.updateRequestRecord(srReqRec, true)
         toast.add({
           severity: 'success',
@@ -507,6 +635,65 @@ const onClear = () => {
         />
       </div>
     </div>
+
+    <!-- Projection Selection Dialog -->
+    <Dialog
+      v-model:visible="showProjectionDialog"
+      header="Select Projection"
+      :modal="true"
+      :closable="false"
+      :style="{ width: '500px' }"
+    >
+      <div class="projection-dialog-content">
+        <p class="dialog-message">
+          The imported data is located in a polar region. Would you like to use:
+        </p>
+
+        <div class="projection-options">
+          <div class="option-section">
+            <h4>Polar Projection Options:</h4>
+            <div v-for="option in polarProjectionOptions" :key="option" class="projection-option">
+              <input
+                type="radio"
+                :id="option"
+                :value="option"
+                v-model="selectedProjection"
+                name="projection"
+              />
+              <label :for="option">{{ option }}</label>
+            </div>
+          </div>
+
+          <div class="or-divider">
+            <span>OR</span>
+          </div>
+
+          <div class="option-section">
+            <h4>Global Projection:</h4>
+            <p class="global-note">
+              Use the Global Mercator projection (may have distortion at poles)
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="dialog-footer">
+          <Button
+            label="Use Polar Projection"
+            icon="pi pi-check"
+            @click="handleProjectionSelection(false)"
+            autofocus
+          />
+          <Button
+            label="Use Global Projection"
+            icon="pi pi-globe"
+            @click="handleProjectionSelection(true)"
+            severity="secondary"
+          />
+        </div>
+      </template>
+    </Dialog>
   </div>
 </template>
 
@@ -612,5 +799,141 @@ const onClear = () => {
   display: flex;
   gap: 0.5rem;
   justify-content: flex-end;
+}
+
+/* Projection Selection Dialog Styles */
+:deep(.p-dialog .p-dialog-content) {
+  padding: 1.5rem;
+}
+
+:deep(.p-dialog .p-dialog-header) {
+  padding: 1.5rem;
+  background-color: rgba(0, 0, 0, 0.4);
+}
+
+:deep(.p-dialog .p-dialog-title) {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.projection-dialog-content {
+  padding: 0;
+}
+
+.dialog-message {
+  margin-bottom: 1.5rem;
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: #ffffff;
+  line-height: 1.5;
+}
+
+.projection-options {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.option-section {
+  padding: 1.25rem;
+  border: 2px solid var(--p-primary-color);
+  border-radius: 8px;
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+.option-section h4 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.projection-option {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.5rem 0;
+  padding: 0.5rem;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.projection-option:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.projection-option input[type='radio'] {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  flex-shrink: 0;
+  accent-color: var(--p-primary-color);
+}
+
+.projection-option label {
+  cursor: pointer;
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 500;
+  flex: 1;
+  user-select: none;
+}
+
+.or-divider {
+  text-align: center;
+  position: relative;
+  margin: 1rem 0;
+}
+
+.or-divider span {
+  background-color: var(--p-surface-ground);
+  padding: 0.5rem 1.5rem;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 1rem;
+  position: relative;
+  z-index: 1;
+  border-radius: 20px;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.or-divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: var(--p-primary-color);
+  z-index: 0;
+  opacity: 0.5;
+}
+
+.global-note {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #e0e0e0;
+  font-style: italic;
+  line-height: 1.5;
+}
+
+:deep(.p-dialog .p-dialog-footer) {
+  padding: 1.5rem;
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+.dialog-footer {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+:deep(.dialog-footer .p-button) {
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
 }
 </style>
