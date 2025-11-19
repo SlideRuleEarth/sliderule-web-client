@@ -174,8 +174,8 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     isBaseLayer: true,
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Polar/Arctic_Imagery/MapServer/tile/{z}/{y}/{x}',
     attributionKey: 'esri',
-    source_projection: 'EPSG:3413',
-    allowed_reprojections: ['EPSG:3413'],
+    source_projection: 'EPSG:5936', // Actual projection of ArcGIS Arctic Imagery tiles
+    allowed_reprojections: ['EPSG:5936', 'EPSG:3413'], // Allow use in both projections
     init_visibility: true,
     init_opacity: 1
   },

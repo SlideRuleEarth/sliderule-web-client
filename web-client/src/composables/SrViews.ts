@@ -27,9 +27,15 @@ export const srViews = ref<{ [key: string]: SrView }>({
     projectionName: 'EPSG:3857',
     baseLayerName: 'OpenStreet'
   },
-  North: {
+  'North Alaska': {
     hide: false,
-    view: 'North',
+    view: 'North Alaska',
+    projectionName: 'EPSG:5936',
+    baseLayerName: 'Arctic Ocean Base'
+  },
+  'North Sea Ice': {
+    hide: false,
+    view: 'North Sea Ice',
     projectionName: 'EPSG:3413',
     baseLayerName: 'Arctic Imagery NSIDC'
   },
