@@ -389,16 +389,14 @@ export async function updateReqParmsFromMeta(req_id: number): Promise<void> {
 
         const parsed = (await duckDbClient.getJsonMetaDataForKey('meta', fileName)).parsedMetadata
         if (parsed && parsed.request && typeof parsed.request === 'object') {
-          logger.debug('updateReqParmsFromMeta', {
+          logger.trace('updateReqParmsFromMeta', {
             req_id,
             currentRcvdParms,
             metadataRequest: parsed.request
           })
-          //console.log(`updateReqParmsFromMeta: Updating rcvd_parms for req_id ${req_id} - rcvd_parms are missing or empty`);
           await db.updateRequestRecord({ req_id: req_id, rcvd_parms: parsed.request })
-          //console.log(`updateReqParmsFromMeta: Successfully updated rcvd_parms for req_id ${req_id}`);
         } else {
-          logger.warn(
+          logger.debug(
             'updateReqParmsFromMeta: Missing meta field or invalid request field in metadata',
             { req_id, parsed }
           )

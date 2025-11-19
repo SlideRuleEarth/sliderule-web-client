@@ -372,12 +372,12 @@ export const useFieldNameStore = defineStore('fieldNameStore', () => {
       return recordInfo.z
     } else {
       if (recordInfo) {
-        logger.warn('Recordinfo found but no z field', { reqId, recordInfo })
+        logger.trace('Recordinfo found but no z field', { reqId, recordInfo })
       } else {
-        logger.warn('No recordinfo found in getHFieldName for reqId:', { reqId })
+        logger.trace('No recordinfo found in getHFieldName for reqId:', { reqId })
       }
     }
-    logger.warn('No z field in recordinfo, falling back to hardcoded', { reqId })
+    logger.trace('No z field in recordinfo, falling back to hardcoded', { reqId })
     // Fall back to hardcoded
     return getCachedValue(hFieldCache.value, reqId, getHFieldNameForAPIStr)
   }

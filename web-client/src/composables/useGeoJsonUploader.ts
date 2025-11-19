@@ -7,7 +7,7 @@ const logger = createLogger('useGeoJsonUploader')
 import type OLMap from 'ol/Map.js'
 import type { FileUploadUploaderEvent } from 'primevue/fileupload'
 import { useMapStore } from '@/stores/mapStore'
-import { handleGeoJsonLoad, zoomOutToFullMap } from '@/utils/SrMapUtils'
+import { handleGeoJsonLoad, zoomOutToFullMap, getMaxZoomForExtent } from '@/utils/SrMapUtils'
 
 export function useGeoJsonUploader(
   props: any,
@@ -83,9 +83,16 @@ export function useGeoJsonUploader(
 
         if (!isZeroArea) {
           const view = map.getView()
+          const projection = view.getProjection()
+
+          // For global projections (Web Mercator), limit maxZoom when fitting extreme latitudes
+          // to avoid "Map data not yet available" tiles at high zoom levels
+          const maxZoom = getMaxZoomForExtent(drawExtent, projection)
+
           view.fit(drawExtent, {
             size: map.getSize(),
-            padding: [40, 40, 40, 40]
+            padding: [40, 40, 40, 40],
+            maxZoom
           })
         } else {
           logger.warn('Zero-area extent, zooming out to full map')

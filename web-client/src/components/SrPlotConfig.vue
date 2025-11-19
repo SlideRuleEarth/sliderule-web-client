@@ -5,6 +5,7 @@ import FloatLabel from 'primevue/floatlabel'
 import Select from 'primevue/select'
 import type { SelectChangeEvent } from 'primevue/select'
 import { refreshScatterPlot, callPlotUpdateDebounced } from '@/utils/plotUtils'
+import { storeToRefs } from 'pinia'
 import { useChartStore } from '@/stores/chartStore'
 import { onMounted, computed, watch } from 'vue'
 import SrCheckbox from './SrCheckbox.vue'
@@ -34,6 +35,7 @@ const toast = useToast()
 const chartStore = useChartStore()
 const fieldNameStore = useFieldNameStore()
 const deck3DConfigStore = useDeck3DConfigStore()
+const { deckContainer } = storeToRefs(deck3DConfigStore)
 const activeTabStore = useActiveTabStore()
 const srcIdTblStore = useSrcIdTblStore()
 
@@ -69,8 +71,6 @@ const computedElId = computed(() => {
 const computedMainLabel = computed(() => {
   return `Available data options for ${findReqMenuLabel(props.reqId)}`
 })
-
-const deckContainer = computed(() => deck3DConfigStore.deckContainer)
 
 async function onMainYDataSelectionChange(_newValue: string[]) {
   logger.debug('Main Y Data changed', { newValue: _newValue })

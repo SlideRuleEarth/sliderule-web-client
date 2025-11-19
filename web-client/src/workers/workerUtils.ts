@@ -145,6 +145,12 @@ export async function errorMsg(
   workerError: WorkerError
 ): Promise<WorkerMessage> {
   const workerErrorMsg: WorkerMessage = { req_id: req_id, status: 'error', error: workerError }
+  logger.error('Worker errorMsg:', {
+    reqId: req_id,
+    errorType: workerError.type,
+    errorCode: workerError.code,
+    errorMessage: workerError.message
+  })
   if (req_id > 0) {
     try {
       await db.updateRequestRecord(

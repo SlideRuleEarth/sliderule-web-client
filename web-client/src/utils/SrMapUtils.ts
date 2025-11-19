@@ -2,11 +2,14 @@ import { useMapStore } from '@/stores/mapStore'
 import { computed } from 'vue'
 import { useGeoJsonStore } from '@/stores/geoJsonStore'
 import { ScatterplotLayer } from '@deck.gl/layers'
+import { COORDINATE_SYSTEM } from '@deck.gl/core'
 import GeoJSON from 'ol/format/GeoJSON'
 import VectorSource from 'ol/source/Vector'
 import Feature from 'ol/Feature'
-import { fromLonLat, type ProjectionLike } from 'ol/proj'
+import { fromLonLat, transformExtent, type ProjectionLike } from 'ol/proj'
+import type { Projection } from 'ol/proj'
 import { Layer as OLlayer } from 'ol/layer'
+import Graticule from 'ol/layer/Graticule.js'
 import type OLMap from 'ol/Map.js'
 import { unByKey } from 'ol/Observable'
 import type { EventsKey } from 'ol/events'
@@ -49,8 +52,6 @@ import { useRecTreeStore } from '@/stores/recTreeStore'
 import { useGlobalChartStore } from '@/stores/globalChartStore'
 import { useAreaThresholdsStore } from '@/stores/areaThresholdsStore'
 import { createLogger } from '@/utils/logger'
-
-const logger = createLogger('SrMapUtils')
 import { formatKeyValuePair } from '@/utils/formatUtils'
 import router from '@/router/index.js'
 import {
@@ -73,6 +74,19 @@ import VectorLayer from 'ol/layer/Vector'
 import Point from 'ol/geom/Point'
 import Overlay from 'ol/Overlay'
 import { extractSrRegionFromGeometry, processConvexHull } from '@/utils/geojsonUploader'
+
+const logger = createLogger('SrMapUtils')
+
+const ORTHOGRAPHIC_DECK_PROJECTIONS = new Set(['EPSG:3413', 'EPSG:3031', 'EPSG:5936'])
+const POLAR_PROJECTIONS = new Set(['EPSG:3413', 'EPSG:3031', 'EPSG:5936'])
+
+export function requiresOrthographicDeck(projectionName: string): boolean {
+  return ORTHOGRAPHIC_DECK_PROJECTIONS.has(projectionName)
+}
+
+export function isPolarProjection(projectionName: string): boolean {
+  return POLAR_PROJECTIONS.has(projectionName)
+}
 
 export const polyCoordsExist = computed(() => {
   let exist = false
@@ -759,11 +773,39 @@ export function createDeckLayer(
   extHMean: ExtHMean,
   heightFieldName: string,
   positions: SrPosition[],
-  _projName: string
+  projName: string
 ): ScatterplotLayer {
   const elevationColorMapStore = useElevationColorMapStore()
   const deckStore = useDeckStore()
   const highlightPntSize = deckStore.getPointSize() + 1
+  const useOrthographic = requiresOrthographicDeck(projName)
+  const targetProjection = (projName || 'EPSG:4326') as ProjectionLike
+
+  const deckPositions = useOrthographic
+    ? positions.map((pos) => {
+        const [lon, lat, z = 0] = pos
+        try {
+          const [x, y] = fromLonLat([lon, lat], targetProjection)
+          if (Number.isFinite(x) && Number.isFinite(y)) {
+            return [x, y, z] as SrPosition
+          }
+          logger.warn('Non-finite projected coordinate, falling back to original position', {
+            lon,
+            lat,
+            projection: projName
+          })
+          return [lon, lat, z] as SrPosition
+        } catch (error) {
+          logger.warn('Failed to project coordinate for deck layer', {
+            lon,
+            lat,
+            projection: projName,
+            error: error instanceof Error ? error.message : String(error)
+          })
+          return [lon, lat, z] as SrPosition
+        }
+      })
+    : positions
 
   const colorFn = createUnifiedColorMapperRGBA({
     colorMap: elevationColorMapStore.getElevationColorMap(),
@@ -784,7 +826,7 @@ export function createDeckLayer(
     id: name,
     visible: true,
     data: dataWithColor,
-    getPosition: (_d: any, { index }: { index: number }) => positions[index],
+    getPosition: (_d: any, { index }: { index: number }) => deckPositions[index],
     getNormal: [0, 0, 1],
     getRadius: highlightPntSize,
     radiusUnits: 'pixels',
@@ -810,7 +852,11 @@ export function createDeckLayer(
           getFillColor: (d: any) => (d as any).__rgba,
           getCursor: () => 'default'
         })
-  }
+  } as any
+
+  layerProps.coordinateSystem = useOrthographic
+    ? COORDINATE_SYSTEM.CARTESIAN
+    : COORDINATE_SYSTEM.LNGLAT
 
   const layer = new ScatterplotLayer(layerProps as any)
   //console.log(`createDeckLayer took ${performance.now() - startTime} ms.`);
@@ -828,7 +874,8 @@ export function updateDeckLayerWithObject(
   //const startTime = performance.now();
   //console.log(`updateDeckLayerWithObject ${name} startTime:`, startTime);
   try {
-    if (useDeckStore().getDeckInstance()) {
+    const deckInstance = useDeckStore().getDeckInstance()
+    if (deckInstance) {
       const layer = createDeckLayer(
         name,
         elevationData,
@@ -838,7 +885,7 @@ export function updateDeckLayerWithObject(
         _projName
       )
       useDeckStore().replaceOrAddLayer(layer, name)
-      useDeckStore().getDeckInstance().setProps({ layers: useDeckStore().getLayers() })
+      deckInstance.setProps({ layers: useDeckStore().getLayers() })
     } else {
       logger.error('Error updating elevation - deckInstance is null', {
         name,
@@ -886,7 +933,7 @@ const onHoverHandler = isIPhone
       }
 
       if (analysisMapStore.showTheTooltip) {
-        if (object && !useDeckStore().isDragging) {
+        if (object && !useDeckStore().getIsDragging()) {
           const recTreeStore = useRecTreeStore()
           const reqId = Number(recTreeStore.selectedReqIdStr)
           const tooltip = formatElObject(object, reqId)
@@ -1021,7 +1068,21 @@ export function restoreMapView(
   const mapStore = useMapStore()
   const extentToRestore = mapStore.getExtentToRestore()
   const centerToRestore = mapStore.getCenterToRestore()
-  const zoomToRestore = mapStore.getZoomToRestore()
+  let zoomToRestore = mapStore.getZoomToRestore()
+  if (zoomToRestore && zoomToRestore > (maxZoom || Infinity)) {
+    logger.warn('zoomToRestore exceeds maxZoom, adjusting to maxZoom', {
+      zoomToRestore,
+      maxZoom
+    })
+    zoomToRestore = maxZoom || zoomToRestore
+  }
+  if (zoomToRestore && zoomToRestore < (minZoom || -Infinity)) {
+    logger.warn('zoomToRestore is below minZoom, adjusting to minZoom', {
+      zoomToRestore,
+      minZoom
+    })
+    zoomToRestore = minZoom || zoomToRestore
+  }
   let newView: OlView | null = null
 
   if (extentToRestore === null || centerToRestore === null || zoomToRestore === null) {
@@ -1451,61 +1512,50 @@ export function updateMapView(
       const baseLayer = srViewObj.baseLayerName
 
       if (baseLayer && newProj && srViewObj) {
+        // Remove all layers EXCEPT graticule (which should persist across projection changes)
         map.getAllLayers().forEach((layer: OLlayer) => {
-          map.removeLayer(layer)
+          // Keep the graticule layer - it automatically adapts to projection changes
+          if (!(layer instanceof Graticule)) {
+            map.removeLayer(layer)
+          }
         })
         const layer = getLayer(srViewObj.projectionName, baseLayer)
         if (layer) {
           map.addLayer(layer)
+          logger.debug('Base layer added successfully', {
+            projectionName: srViewObj.projectionName,
+            baseLayerTitle: baseLayer
+          })
         } else {
           logger.error('No layer found', {
             projectionName: srViewObj.projectionName,
             baseLayerTitle: baseLayer
           })
         }
-        const fromLonLatFn = getTransform('EPSG:4326', newProj)
-        let extent = newProj.getExtent()
-        if (extent === undefined || extent === null) {
-          if (srProjObj.extent) {
-            extent = srProjObj.extent
-            newProj.setExtent(extent) // Set the extent on the projection
-          } else {
-            let bbox = srProjObj.bbox
-            if (srProjObj.bbox[0] > srProjObj.bbox[2]) {
-              bbox[2] += 360
-            }
-            if (newProj.getUnits() === 'degrees') {
-              extent = bbox
-            } else {
-              extent = applyTransform(bbox, fromLonLatFn, undefined, undefined)
-            }
-            newProj.setExtent(extent)
-          }
-        }
+        // IMPORTANT: Follow OpenLayers example - ALWAYS set worldExtent and extent
+        // (don't check if already set, as projection objects are reused)
 
-        let worldExtent = newProj.getWorldExtent()
-        if (
-          worldExtent === undefined ||
-          worldExtent === null ||
-          worldExtent.some((value: number) => !Number.isFinite(value))
-        ) {
-          let bbox = srProjObj.bbox
-          if (srProjObj.bbox[0] > srProjObj.bbox[2]) {
-            bbox[2] += 360
-          }
+        // 1. Set worldExtent (always in EPSG:4326 lat/lon - used by graticule for grid line calculation)
+        let bbox = srProjObj.bbox
+        if (srProjObj.bbox[0] > srProjObj.bbox[2]) {
+          bbox[2] += 360
+        }
+        newProj.setWorldExtent(bbox)
+
+        // 2. Set extent (in projection coordinates - used for rendering/clipping)
+        const fromLonLatFn = getTransform('EPSG:4326', newProj)
+        let extent: number[]
+        if (srProjObj.extent) {
+          extent = srProjObj.extent
+        } else {
           if (newProj.getUnits() === 'degrees') {
-            worldExtent = bbox
+            extent = bbox
           } else {
-            worldExtent = applyTransform(bbox, fromLonLatFn, undefined, undefined)
-          }
-          if (worldExtent.some((value: number) => !Number.isFinite(value))) {
-            logger.warn('worldExtent is still invalid after transformation, falling back to extent')
-            worldExtent = extent
-            newProj.setWorldExtent(worldExtent)
-          } else {
-            newProj.setWorldExtent(worldExtent)
+            // Use 8 sample points for more accurate non-linear projection transformation
+            extent = applyTransform(bbox, fromLonLatFn, undefined, 8)
           }
         }
+        newProj.setExtent(extent)
         let center = getExtentCenter(extent)
         if (srProjObj.center) {
           center = srProjObj.center
@@ -1518,6 +1568,8 @@ export function updateMapView(
           srViewObj.projectionName === 'EPSG:3413' ||
           srViewObj.projectionName === 'EPSG:3031'
 
+        useMapStore().runViewListenerCleanup()
+
         let newView = new OlView({
           projection: newProj,
           extent: isPolarProjection ? undefined : extent,
@@ -1526,6 +1578,7 @@ export function updateMapView(
           minZoom: srProjObj.min_zoom,
           maxZoom: srProjObj.max_zoom
         })
+
         useMapStore().setExtentToRestore(extent)
         if (restore) {
           const restoredView = restoreMapView(newProj, srProjObj.min_zoom, srProjObj.max_zoom)
@@ -1535,7 +1588,68 @@ export function updateMapView(
             logger.warn('Failed to restore view', { reason })
           }
         }
+
+        // Attach zoom constraint enforcement AFTER potential view restoration
+        // This ensures the listener is attached to the correct view object
+        if (srProjObj.min_zoom !== undefined || srProjObj.max_zoom !== undefined) {
+          const enforceZoomBounds = () => {
+            const currentZoom = newView.getZoom()
+            if (currentZoom === undefined) return
+
+            if (srProjObj.max_zoom !== undefined && currentZoom > srProjObj.max_zoom) {
+              console.warn('[SrMapUtils] Zoom exceeds max_zoom, constraining:', {
+                projection: srProjObj.name,
+                currentZoom,
+                maxZoom: srProjObj.max_zoom
+              })
+              newView.setZoom(srProjObj.max_zoom)
+              return
+            }
+            if (srProjObj.min_zoom !== undefined && currentZoom < srProjObj.min_zoom) {
+              console.warn('[SrMapUtils] Zoom below min_zoom, constraining:', {
+                projection: srProjObj.name,
+                currentZoom,
+                minZoom: srProjObj.min_zoom
+              })
+              newView.setZoom(srProjObj.min_zoom)
+            }
+          }
+          newView.on('change:resolution', enforceZoomBounds)
+          useMapStore().setViewListenerCleanup(() => {
+            newView.un('change:resolution', enforceZoomBounds)
+          })
+          enforceZoomBounds()
+        }
+
         map.setView(newView)
+
+        // Add zoom change debugging for polar projections
+        if (isPolarProjection) {
+          newView.on('change:resolution', () => {
+            const zoom = newView.getZoom()
+            console.log('[SrMapUtils] Polar projection zoom changed:', {
+              projection: srProjObj.name,
+              zoom,
+              minZoom: newView.getMinZoom(),
+              maxZoom: newView.getMaxZoom()
+            })
+          })
+        }
+
+        // Auto-toggle graticule based on projection type:
+        // - Polar projections (North/South): graticule ON by default
+        // - Global projections: graticule OFF by default
+        const shouldEnableGraticule = isPolarProjection
+        const mapStore = useMapStore()
+        if (mapStore.graticuleState !== shouldEnableGraticule) {
+          mapStore.setGraticuleState(shouldEnableGraticule)
+          logger.debug('Auto-toggled graticule for projection', {
+            projection: srViewObj.projectionName,
+            graticuleEnabled: shouldEnableGraticule
+          })
+        }
+
+        // Graticule automatically adapts to projection changes
       } else {
         if (!baseLayer) logger.error('baseLayer is null')
         if (!newProj) logger.error('newProj is null')
@@ -1577,6 +1691,7 @@ export async function zoomMapForReqIdUsingView(map: OLMap, reqId: number, srView
     }
     const srViewObj = (srViews as any).value[`${srViewKey}`]
     const projectionName = srViewObj.projectionName
+    const srProjObj = srProjections.value[projectionName]
     let newProj = getProjection(projectionName)
     let view_extent = reqExtremeLatLon
 
@@ -1604,7 +1719,6 @@ export async function zoomMapForReqIdUsingView(map: OLMap, reqId: number, srView
         })
 
         // Use projection's default view instead of trying to fit invalid extent
-        const srProjObj = srProjections.value[projectionName]
         const view = map.getView()
         if (srProjObj?.center) {
           view.setCenter(srProjObj.center)
@@ -1624,8 +1738,78 @@ export async function zoomMapForReqIdUsingView(map: OLMap, reqId: number, srView
       }
     }
 
-    map.getView().fit(view_extent, { size: map.getSize(), padding: [40, 40, 40, 40] })
-    logger.debug('View fitted to extent', { view_extent })
+    // Get projection limits and view BEFORE fitting
+    const view = map.getView()
+
+    // Ensure View has proper zoom constraints set
+    if (srProjObj?.max_zoom !== undefined) {
+      view.setMaxZoom(srProjObj.max_zoom)
+    }
+    if (srProjObj?.min_zoom !== undefined) {
+      view.setMinZoom(srProjObj.min_zoom)
+    }
+
+    // Verify constraints were applied
+    console.log('[SrMapUtils] View zoom constraints set:', {
+      projectionName,
+      requestedMinZoom: srProjObj?.min_zoom,
+      requestedMaxZoom: srProjObj?.max_zoom,
+      actualMinZoom: view.getMinZoom(),
+      actualMaxZoom: view.getMaxZoom(),
+      currentZoom: view.getZoom()
+    })
+
+    logger.debug('Fitting view with constraints', {
+      projectionName,
+      minZoom: srProjObj?.min_zoom,
+      maxZoom: srProjObj?.max_zoom,
+      extent: view_extent
+    })
+
+    // Fit the view to the extent with no animation (duration: 0)
+    // This ensures fit completes immediately so we can constrain zoom
+    map.getView().fit(view_extent, {
+      size: map.getSize(),
+      padding: [40, 40, 40, 40],
+      duration: 0
+    })
+
+    // Double-check and manually constrain zoom after fit
+    // This is critical for polar projections with limited tile coverage
+    if (srProjObj?.max_zoom !== undefined || srProjObj?.min_zoom !== undefined) {
+      const fitZoom = view.getZoom()
+      if (fitZoom !== undefined) {
+        let constrained = fitZoom
+        if (srProjObj?.max_zoom !== undefined && fitZoom > srProjObj.max_zoom) {
+          logger.warn('Fit exceeded maxZoom, constraining', {
+            fitZoom,
+            maxZoom: srProjObj.max_zoom,
+            projection: projectionName
+          })
+          constrained = srProjObj.max_zoom
+        }
+        if (srProjObj?.min_zoom !== undefined && constrained < srProjObj.min_zoom) {
+          logger.warn('Fit below minZoom, constraining', {
+            fitZoom: constrained,
+            minZoom: srProjObj.min_zoom,
+            projection: projectionName
+          })
+          constrained = srProjObj.min_zoom
+        }
+        if (constrained !== fitZoom) {
+          view.setZoom(constrained)
+        }
+      }
+    }
+
+    logger.debug('View fitted to extent with manual zoom constraint', {
+      view_extent,
+      finalZoom: view.getZoom(),
+      maxZoom: srProjObj?.max_zoom,
+      minZoom: srProjObj?.min_zoom
+    })
+
+    map.renderSync()
   } catch (error) {
     logger.error('zoomMapForReqIdUsingView failed', {
       reqId,
@@ -1740,6 +1924,41 @@ export function getBoundingExtentFromFeatures(features: Feature<Geometry>[]): Ex
   }
 
   return boundingExtent(allCoords)
+}
+
+/**
+ * Calculate appropriate maxZoom for fitting to an extent in Web Mercator projection
+ * to avoid "Map data not yet available" tiles at extreme latitudes
+ *
+ * @param extent - The extent in the current projection
+ * @param projection - The current projection
+ * @returns The recommended maxZoom, or undefined if no limit needed
+ */
+export function getMaxZoomForExtent(extent: Extent, projection: Projection): number | undefined {
+  const projectionCode = projection.getCode()
+
+  // Only limit zoom for Web Mercator (EPSG:3857) at extreme latitudes
+  if (projectionCode !== 'EPSG:3857') {
+    return undefined
+  }
+
+  // Transform extent to lat/lon to check latitude range
+  const extentInLatLon = transformExtent(extent, projection, 'EPSG:4326')
+  const [, minLat, , maxLat] = extentInLatLon
+
+  // If data is at extreme latitudes (beyond ±60°), limit zoom due to
+  // Web Mercator distortion and tile availability
+  const hasExtremeLatitudes = Math.abs(minLat) > 60 || Math.abs(maxLat) > 60
+  if (hasExtremeLatitudes) {
+    logger.info('Limiting zoom for extreme latitudes in Web Mercator', {
+      minLat,
+      maxLat,
+      maxZoom: 13
+    })
+    return 13 // Limit to zoom 13 for extreme latitudes in Web Mercator
+  }
+
+  return undefined
 }
 
 export function zoomOutToFullMap(map: OLMap): void {
