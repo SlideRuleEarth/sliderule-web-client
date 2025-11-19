@@ -8,6 +8,7 @@ import VectorSource from 'ol/source/Vector'
 import Feature from 'ol/Feature'
 import { fromLonLat, type ProjectionLike } from 'ol/proj'
 import { Layer as OLlayer } from 'ol/layer'
+import Graticule from 'ol/layer/Graticule.js'
 import type OLMap from 'ol/Map.js'
 import { unByKey } from 'ol/Observable'
 import type { EventsKey } from 'ol/events'
@@ -1505,8 +1506,12 @@ export function updateMapView(
       const baseLayer = srViewObj.baseLayerName
 
       if (baseLayer && newProj && srViewObj) {
+        // Remove all layers EXCEPT graticule (which should persist across projection changes)
         map.getAllLayers().forEach((layer: OLlayer) => {
-          map.removeLayer(layer)
+          // Keep the graticule layer - it automatically adapts to projection changes
+          if (!(layer instanceof Graticule)) {
+            map.removeLayer(layer)
+          }
         })
         const layer = getLayer(srViewObj.projectionName, baseLayer)
         if (layer) {
@@ -1521,49 +1526,30 @@ export function updateMapView(
             baseLayerTitle: baseLayer
           })
         }
-        const fromLonLatFn = getTransform('EPSG:4326', newProj)
-        let extent = newProj.getExtent()
-        if (extent === undefined || extent === null) {
-          if (srProjObj.extent) {
-            extent = srProjObj.extent
-            newProj.setExtent(extent) // Set the extent on the projection
-          } else {
-            let bbox = srProjObj.bbox
-            if (srProjObj.bbox[0] > srProjObj.bbox[2]) {
-              bbox[2] += 360
-            }
-            if (newProj.getUnits() === 'degrees') {
-              extent = bbox
-            } else {
-              extent = applyTransform(bbox, fromLonLatFn, undefined, undefined)
-            }
-            newProj.setExtent(extent)
-          }
-        }
+        // IMPORTANT: Follow OpenLayers example - ALWAYS set worldExtent and extent
+        // (don't check if already set, as projection objects are reused)
 
-        let worldExtent = newProj.getWorldExtent()
-        if (
-          worldExtent === undefined ||
-          worldExtent === null ||
-          worldExtent.some((value: number) => !Number.isFinite(value))
-        ) {
-          let bbox = srProjObj.bbox
-          if (srProjObj.bbox[0] > srProjObj.bbox[2]) {
-            bbox[2] += 360
-          }
+        // 1. Set worldExtent (always in EPSG:4326 lat/lon - used by graticule for grid line calculation)
+        let bbox = srProjObj.bbox
+        if (srProjObj.bbox[0] > srProjObj.bbox[2]) {
+          bbox[2] += 360
+        }
+        newProj.setWorldExtent(bbox)
+
+        // 2. Set extent (in projection coordinates - used for rendering/clipping)
+        const fromLonLatFn = getTransform('EPSG:4326', newProj)
+        let extent: number[]
+        if (srProjObj.extent) {
+          extent = srProjObj.extent
+        } else {
           if (newProj.getUnits() === 'degrees') {
-            worldExtent = bbox
+            extent = bbox
           } else {
-            worldExtent = applyTransform(bbox, fromLonLatFn, undefined, undefined)
-          }
-          if (worldExtent.some((value: number) => !Number.isFinite(value))) {
-            logger.warn('worldExtent is still invalid after transformation, falling back to extent')
-            worldExtent = extent
-            newProj.setWorldExtent(worldExtent)
-          } else {
-            newProj.setWorldExtent(worldExtent)
+            // Use 8 sample points for more accurate non-linear projection transformation
+            extent = applyTransform(bbox, fromLonLatFn, undefined, 8)
           }
         }
+        newProj.setExtent(extent)
         let center = getExtentCenter(extent)
         if (srProjObj.center) {
           center = srProjObj.center
