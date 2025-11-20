@@ -39,11 +39,23 @@ export const srViews = ref<{ [key: string]: SrView }>({
     projectionName: 'EPSG:3413',
     baseLayerName: 'Arctic Imagery NSIDC'
   },
-  'South Antarctic Polar Stereographic': {
+  'South Antarctic Imagery': {
     hide: false,
     view: 'South',
     projectionName: 'EPSG:3031',
     baseLayerName: 'Antarctic Imagery'
+  },
+  'South LIMA': {
+    hide: false,
+    view: 'South',
+    projectionName: 'EPSG:3031',
+    baseLayerName: 'LIMA'
+  },
+  'South MOA': {
+    hide: false,
+    view: 'South',
+    projectionName: 'EPSG:3031',
+    baseLayerName: 'MOA'
   }
 })
 

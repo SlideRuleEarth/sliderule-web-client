@@ -1,6 +1,9 @@
 import { ref } from 'vue'
 import TileLayer from 'ol/layer/Tile.js'
+import ImageLayer from 'ol/layer/Image.js'
 import TileWMS from 'ol/source/TileWMS' // Import the TileWMS module
+import ImageArcGISRest from 'ol/source/ImageArcGISRest.js'
+import type ImageSource from 'ol/source/Image.js'
 import { useMapStore } from '@/stores/mapStore.js'
 import type { ServerType } from 'ol/source/wms.js'
 import { XYZ } from 'ol/source.js'
@@ -38,45 +41,26 @@ export interface SrLayer {
   max_zoom?: number // Maximum zoom level for this layer
 }
 
-// Unused - kept for future reference
-// const antarticTileGrid_Options = {
-//   origin: [-3.369955099203E7,3.369955101703E7],
-//   resolutions: [238810.81335399998,
-//       119405.40667699999,
-//       59702.70333849987,
-//       29851.351669250063,
-//       14925.675834625032,
-//       7462.837917312516,
-//       3731.4189586563907,
-//       1865.709479328063,
-//       932.8547396640315,
-//       466.42736983214803,
-//       233.21368491607402,
-//       116.60684245803701,
-//       58.30342122888621,
-//       29.151710614575396,
-//       14.5758553072877,
-//       7.28792765351156,
-//       3.64396382688807,
-//       1.82198191331174,
-//       0.910990956788164,
-//       0.45549547826179,
-//       0.227747739130895,
-//       0.113873869697739,
-//       0.05693693484887,
-//       0.028468467424435
-//   ],
-//   extent: [-9913957.327914657,-5730886.461772691,
-//     9913957.327914657,5730886.461773157]
-// }
-
-// const Antartic_hillshadeParams = {
-//   azimuth: 315,
-//   altitude: 45
-// }
-
-// Temporarily commented out - not currently used but may be needed in the future
-// const antarticTileGrid = new TileGrid(antarticTileGrid_Options);
+// EPSG:3031 (Antarctic Polar Stereographic) tile grid configuration
+// Based on ArcGIS Antarctic Imagery service metadata
+// Limited to zoom 0-10 (tiles not available beyond zoom 10)
+const antarticTileGrid = new TileGrid({
+  origin: [-3.369955099203e7, 3.369955101703e7],
+  resolutions: [
+    238810.813354, // Zoom 0
+    119405.406677, // Zoom 1
+    59702.7033384999, // Zoom 2
+    29851.3516692501, // Zoom 3
+    14925.675834625, // Zoom 4
+    7462.83791731252, // Zoom 5
+    3731.41895865626, // Zoom 6
+    1865.70947932813, // Zoom 7
+    932.854739664063, // Zoom 8
+    466.427369832032, // Zoom 9
+    233.213684916016 // Zoom 10 - last resolution, enables overzooming beyond this
+  ],
+  tileSize: [256, 256]
+})
 
 // EPSG:5936 (Alaska Polar Stereographic) tile grid configuration
 // Based on ArcGIS Arctic Ocean Base/Reference service metadata
@@ -267,58 +251,57 @@ export const layers = ref<{ [key: string]: SrLayer }>({
   // },
   'Antarctic Imagery': {
     title: 'Antarctic Imagery',
-    //type: "ArcGisRest",
     type: 'xyz',
     isBaseLayer: true,
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Polar/Antarctic_Imagery/MapServer/tile/{z}/{y}/{x}',
     attributionKey: 'esri',
     source_projection: 'EPSG:3031',
     allowed_reprojections: ['EPSG:3031'],
-    init_visibility: false,
+    init_visibility: true,
     init_opacity: 1,
-    serverType: 'mapserver',
     max_zoom: 10
-    //tileGrid: antarticTileGrid,
   },
   LIMA: {
     title: 'LIMA',
     type: 'wms',
-    isBaseLayer: false,
+    serverType: 'mapserver',
+    isBaseLayer: true,
     url: 'https://nimbus.cr.usgs.gov/arcgis/services/Antarctica/USGS_EROS_Antarctica_Reference/MapServer/WmsServer',
     attributionKey: 'usgs_antartic',
     source_projection: 'EPSG:3031',
     allowed_reprojections: ['EPSG:3031'],
     layerName: 'LIMA_Full_1km',
-    init_visibility: true,
-    init_opacity: 0.9
+    init_visibility: false,
+    init_opacity: 1
   },
   MOA: {
     title: 'MOA',
     type: 'wms',
-    isBaseLayer: false,
+    serverType: 'mapserver',
+    isBaseLayer: true,
     url: 'https://nimbus.cr.usgs.gov/arcgis/services/Antarctica/USGS_EROS_Antarctica_Reference/MapServer/WmsServer',
     attributionKey: 'usgs_antartic',
     source_projection: 'EPSG:3031',
     allowed_reprojections: ['EPSG:3031'],
     layerName: 'MOA_125_HP1_090_230',
-    init_visibility: true,
-    init_opacity: 0.2
+    init_visibility: false,
+    init_opacity: 1
   },
   REMA: {
     title: 'REMA',
-    type: 'wms',
+    type: 'imagearcgisrest',
     isBaseLayer: false,
     url: 'https://elevation2.arcgis.com/arcgis/rest/services/Polar/AntarcticDEM/ImageServer',
     attributionKey: 'usgs_antartic',
     source_projection: 'EPSG:3031',
     allowed_reprojections: ['EPSG:3031'],
-    layerName: 'Antartic_DEM',
     init_visibility: true,
-    init_opacity: 0.2
+    init_opacity: 0.8
   },
   RadarMosaic: {
     title: 'RadarMosaic',
     type: 'wms',
+    serverType: 'mapserver',
     isBaseLayer: false,
     url: 'https://nimbus.cr.usgs.gov/arcgis/services/Antarctica/USGS_EROS_Antarctica_Reference/MapServer/WmsServer',
     attributionKey: 'usgs_antartic',
@@ -326,7 +309,7 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     allowed_reprojections: ['EPSG:3031'],
     layerName: 'Radar_Mosaic',
     init_visibility: false,
-    init_opacity: 0.2
+    init_opacity: 0.7
   },
   // {
   //   type: "wms",
@@ -423,7 +406,10 @@ export const addLayersForCurrentView = (map: OLMap, projectionName: string) => {
   }
 }
 
-export const getLayer = (projectionName: string, title: string): TileLayer | undefined => {
+export const getLayer = (
+  projectionName: string,
+  title: string
+): TileLayer | ImageLayer<ImageSource> | undefined => {
   //console.log(`getLayer ${title}`);
 
   const srLayer = Object.values(layers.value).find((layer) => layer.title === title)
@@ -526,6 +512,21 @@ export const getLayer = (projectionName: string, title: string): TileLayer | und
             })
           }
         }
+        // Add custom tile grid for EPSG:3031 to ensure proper tile loading
+        if (srLayer.source_projection === 'EPSG:3031') {
+          xyzOptions.tileGrid = antarticTileGrid
+          // Set source maxZoom to 10 to enable overzooming beyond tile availability
+          // The layer maxZoom (defined in layer config) controls view limits
+          // When zooming beyond 10, OpenLayers will scale/stretch the zoom 10 tiles
+          xyzOptions.maxZoom = 10
+          console.log('[SrLayers] EPSG:3031 configured for overzooming:', {
+            layerTitle: title,
+            layerMaxZoom: srLayer.max_zoom,
+            sourceMaxZoom: 10,
+            tileGridResolutions: antarticTileGrid.getResolutions().length,
+            overzooming: 'enabled beyond zoom 10'
+          })
+        }
 
         // Create XYZ source with tile load debugging for polar projections
         const xyzSource = new XYZ(xyzOptions)
@@ -564,6 +565,34 @@ export const getLayer = (projectionName: string, title: string): TileLayer | und
         layerInstance = new TileLayer({
           source: xyzSource,
           ...localTileLayerOptions
+        })
+      } else if (srLayer.type === 'imagearcgisrest') {
+        // Handle ArcGIS Image Services (dynamic image layers, not tiled)
+        const imageLayerOptions: any = {
+          title: title,
+          name: lname,
+          opacity: srLayer.init_opacity,
+          visible: srLayer.init_visibility
+        }
+
+        layerInstance = new ImageLayer({
+          source: new ImageArcGISRest({
+            url: srLayer.url,
+            attributions: srAttributions[srLayer.attributionKey],
+            projection: srLayer.source_projection,
+            params: {
+              // For elevation services, use hillshade rendering function
+              renderingRule: {
+                rasterFunction: 'Hillshade Elevation Tinted'
+              }
+            },
+            crossOrigin: 'anonymous'
+          }),
+          ...imageLayerOptions
+        })
+        console.log('[SrLayers] Created ImageArcGISRest layer:', {
+          layerTitle: title,
+          sourceProjection: srLayer.source_projection
         })
         // } else if(srLayer.type === "ArcGisRest"){
         //   console.log(`XYZ ${srLayer.serverType} Layer: url: ${srLayer.url} layer:${(srLayer.layerName || srLayer.title)} proj:${mapStore.getProjection()}`);
