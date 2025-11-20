@@ -413,11 +413,11 @@ onmessage = async (event) => {
             }
             case -10: {
               // RTE_TOO_MANY_RESOURCES
-              //console.warn('RTE_TOO_MANY_RESOURCES: exceptrec result:', result.text);
+              logger.warn('RTE_TOO_MANY_RESOURCES: exceptrec result:', result.text)
               const workerError = {
                 type: 'serverError',
                 code: 'RTE_TOO_MANY_RESOURCES',
-                message: `Too many resources requested. ${result.text}`
+                message: `The region selected contains too much data. Please redraw the region smaller and try again. ${result.text}`
               }
               postMessage(await errorMsg(reqID, workerError))
               break
