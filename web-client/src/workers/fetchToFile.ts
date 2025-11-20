@@ -506,7 +506,7 @@ onmessage = async (event) => {
 
               if (result) {
                 read_result = result as Sr_Results_type
-                logger.warn('Fetch result received', { func: cmd.func, read_result }, read_result)
+                //logger.warn('Fetch result received', { func: cmd.func, read_result }, read_result)
                 target_numSvrExceptions =
                   'exceptrec' in read_result ? Number(read_result['exceptrec']) : 0
                 target_numArrowDataRecs =
