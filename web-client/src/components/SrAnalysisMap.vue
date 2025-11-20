@@ -159,7 +159,7 @@ const attachViewListeners = (view?: OlView | null) => {
     const extent = mapSize ? view.calculateExtent(mapSize) : undefined
     if (zoom !== undefined && center && extent) {
       currentZoom.value = zoom
-      logger.trace('View changed', {
+      logger.debug('View changed', {
         zoom,
         center,
         extent,
@@ -302,9 +302,9 @@ onMounted(async () => {
   }
   recordsLayer.set('name', 'Records Layer') // for empty requests need to draw poly in this layer
   recordsLayer.set('title', 'Records Layer')
-  //console.log("SrProjectionControl onMounted projectionControlElement:", projectionControlElement.value);
+  //logger.debug("SrProjectionControl onMounted projectionControlElement:", projectionControlElement.value);
   Object.values(srProjections.value).forEach((projection) => {
-    //console.log(`Title: ${projection.title}, Name: ${projection.name}`);
+    //logger.debug(`Title: ${projection.title}, Name: ${projection.name}`);
     proj4.defs(projection.name, projection.proj4def)
   })
   register(proj4)
@@ -315,20 +315,56 @@ onMounted(async () => {
   }
 
   const srViewName = await db.getSrViewName(props.selectedReqId)
-  //console.log(`SrAnalysisMap onMounted: retrieved srViewName: ${srViewName} for reqId:${props.selectedReqId}`);
-  const viewObj = srViews.value[srViewName]
-  //console.log(`SrAnalysisMap onMounted: retrieved viewObj.view: ${viewObj?.view} viewObj.baseLayer:${viewObj?.baseLayerName} srViewName:${srViewName} for reqId:${props.selectedReqId}`);
+  //logger.debug(`SrAnalysisMap onMounted: retrieved srViewName: ${srViewName} for reqId:${props.selectedReqId}`);
+  let viewObj = srViews.value[srViewName]
+  //logger.debug(`SrAnalysisMap onMounted: retrieved viewObj.view: ${viewObj?.view} viewObj.baseLayer:${viewObj?.baseLayerName} srViewName:${srViewName} for reqId:${props.selectedReqId}`);
+
+  // If view not found, try to auto-select based on data extent (similar to file import)
   if (!viewObj) {
-    logger.error('SrAnalysisMap onMounted: No view found for srViewName', { srViewName })
-    return
+    logger.warn(
+      'SrAnalysisMap onMounted: No view found for srViewName, attempting auto-selection',
+      {
+        srViewName,
+        reqId: props.selectedReqId
+      }
+    )
+
+    const summary = await readOrCacheSummary(props.selectedReqId)
+    if (summary?.extLatLon) {
+      const fallbackViewName = selectSrViewForExtent(summary.extLatLon)
+      viewObj = srViews.value[fallbackViewName]
+
+      if (viewObj) {
+        logger.info('Auto-selected fallback view based on data extent', {
+          originalViewName: srViewName,
+          fallbackViewName,
+          extent: summary.extLatLon,
+          reqId: props.selectedReqId
+        })
+        useSrToastStore().info(
+          'View Auto-Selected',
+          `The saved view "${srViewName}" is not available. Selected "${fallbackViewName}" based on data extent.`,
+          5000
+        )
+      } else {
+        logger.error('Fallback view not found', { fallbackViewName })
+        return
+      }
+    } else {
+      logger.error('Cannot auto-select view - no extent data available', {
+        reqId: props.selectedReqId,
+        srViewName
+      })
+      return
+    }
   }
   mapStore.setSelectedView(viewObj.view) // Set the selected view in the map store
   //const selectedView = mapStore.getSelectedView(); // Get the selected view
-  //console.log(`SrAnalysisMap onMounted: selected view is ${selectedView} with srViewName: ${srViewName}`);
+  //logger.debug(`SrAnalysisMap onMounted: selected view is ${selectedView} with srViewName: ${srViewName}`);
 
   if (viewObj.baseLayerName) {
     mapStore.setSelectedBaseLayer(viewObj.baseLayerName)
-    //console.log(`SrAnalysisMap onMounted: set default baseLayer to ${viewObj.baseLayerName} for selected view ${selectedView}`);
+    //logger.debug(`SrAnalysisMap onMounted: set default baseLayer to ${viewObj.baseLayerName} for selected view ${selectedView}`);
   } else {
     logger.error('SrAnalysisMap onMounted: defaulted baseLayer is null')
   }
@@ -398,7 +434,7 @@ const handleLegendControlCreated = (legendControl: Control | null) => {
 const handleColMapSelControlCreated = (colMapSelControl: any) => {
   const analysisMap = mapRef.value?.map
   if (analysisMap) {
-    //console.log("adding colMapSelControl");
+    //logger.debug("adding colMapSelControl");
     analysisMap.addControl(colMapSelControl)
   } else {
     logger.error('analysisMap is null')
@@ -406,10 +442,10 @@ const handleColMapSelControlCreated = (colMapSelControl: any) => {
 }
 
 function handleRecordSelectorControlCreated(recordSelectorControl: any) {
-  //console.log("handleRecordSelectorControlCreated");
+  //logger.debug("handleRecordSelectorControlCreated");
   const analysisMap = mapRef.value?.map
   if (analysisMap) {
-    //console.log("adding baseLayerControl");
+    //logger.debug("adding baseLayerControl");
     analysisMap.addControl(recordSelectorControl)
   } else {
     logger.error('analysisMap is null')
@@ -419,7 +455,7 @@ function handleRecordSelectorControlCreated(recordSelectorControl: any) {
 const handleProgressSpinnerControlCreated = (progressSpinnerControl: any) => {
   const analysisMap = mapRef.value?.map
   if (analysisMap) {
-    //console.log("handleProgressSpinnerControlCreated Adding ProgressSpinnerControl");
+    //logger.debug("handleProgressSpinnerControlCreated Adding ProgressSpinnerControl");
     analysisMap.addControl(progressSpinnerControl)
   } else {
     logger.warn(
@@ -428,10 +464,10 @@ const handleProgressSpinnerControlCreated = (progressSpinnerControl: any) => {
   }
 }
 function handleBaseLayerControlCreated(baseLayerControl: any) {
-  //console.log(baseLayerControl);
+  //logger.debug(baseLayerControl);
   const map = mapRef.value?.map
   if (map) {
-    //console.log("adding baseLayerControl");
+    //logger.debug("adding baseLayerControl");
     map.addControl(baseLayerControl)
   } else {
     logger.error('map is null')
@@ -448,16 +484,16 @@ function handleGraticuleControlCreated(graticuleControl: any) {
 }
 
 const handleUpdateBaseLayer = async () => {
-  //console.log("SrAnalysisMap handleUpdateBaseLayer called");
+  //logger.debug("SrAnalysisMap handleUpdateBaseLayer called");
   const srViewKey = findSrViewKey(useMapStore().selectedView, useMapStore().selectedBaseLayer)
   if (srViewKey.value) {
     await updateSrViewName(srViewKey.value) // Update the SrViewName in the DB based on the current selection
-    //console.log("SrAnalysisMap handleUpdateBaseLayer: Updated SrViewName based on User selected view and base layer:", srViewKey.value);
+    //logger.debug("SrAnalysisMap handleUpdateBaseLayer: Updated SrViewName based on User selected view and base layer:", srViewKey.value);
   } else {
     logger.error('srViewKey is null, cannot update base layer')
     return
   }
-  //console.log(`SrAnalysisMap handleUpdateBaseLayer: |${baseLayer}|`);
+  //logger.debug(`SrAnalysisMap handleUpdateBaseLayer: |${baseLayer}|`);
   const map = mapRef.value?.map
   try {
     if (map) {
@@ -594,21 +630,21 @@ const updateAnalysisMapView = async (reason: string) => {
         addLayersForCurrentView(map, srViewObj.projectionName)
 
         // TEMPORARY DEBUG: Log all layers after view is set up
-        console.log('=== ANALYSIS MAP DEBUG: AFTER updateMapView ===')
+        logger.debug('=== ANALYSIS MAP DEBUG: AFTER updateMapView ===')
         map.getAllLayers().forEach((layer: any, index: number) => {
           const title = layer.get('title') || layer.get('name') || 'Unnamed'
           const visible = layer.getVisible()
           const opacity = layer.getOpacity()
           const zIndex = layer.getZIndex?.() ?? 'auto'
-          console.log(
+          logger.debug(
             `Layer ${index}: ${title}, Visible: ${visible}, Opacity: ${opacity}, Z-Index: ${zIndex}`
           )
         })
-        console.log('=== VIEW INFO ===')
-        console.log(`Projection: ${map.getView().getProjection().getCode()}`)
-        console.log(`Current Zoom: ${map.getView().getZoom()}`)
+        logger.debug('=== VIEW INFO ===')
+        logger.debug(`Projection: ${map.getView().getProjection().getCode()}`)
+        logger.debug(`Current Zoom: ${map.getView().getZoom()}`)
 
-        //console.log(`summary.numPoints:${summary.numPoints} srViewName:${srViewName}`);
+        //logger.debug(`summary.numPoints:${summary.numPoints} srViewName:${srViewName}`);
         const numPointsStr = summary.numPoints // it is a string BIG INT!
         const numPoints = parseInt(String(numPointsStr))
         if (numPoints > 0) {
@@ -646,20 +682,20 @@ const updateAnalysisMapView = async (reason: string) => {
         addPolarOverlay(map, srViewObj.projectionName)
 
         // TEMPORARY DEBUG: Log layers after deck is added
-        console.log('=== ANALYSIS MAP DEBUG: AFTER DECK ADDED ===')
+        logger.debug('=== ANALYSIS MAP DEBUG: AFTER DECK ADDED ===')
         map.getAllLayers().forEach((layer: any, index: number) => {
           const title = layer.get('title') || layer.get('name') || 'Unnamed'
           const visible = layer.getVisible()
           const opacity = layer.getOpacity()
           const zIndex = layer.getZIndex?.() ?? 'auto'
-          console.log(
+          logger.debug(
             `Layer ${index}: ${title}, Visible: ${visible}, Opacity: ${opacity}, Z-Index: ${zIndex}`
           )
         })
         const baseLayer = map.getAllLayers().find((l: any) => l.get('name') === 'Base Layer')
         if (baseLayer) {
           const source = baseLayer.getSource() as any
-          console.log(
+          logger.debug(
             'Base Layer Tile Cache Count:',
             source?.getTileCache?.()?.getCount?.() || 'N/A'
           )
@@ -1112,6 +1148,8 @@ function handleSaveTooltip() {
   border-radius: var(--p-border-radius);
   font-size: smaller;
   padding: 0.25rem 0.5rem;
+  width: fit-content; /* Only as wide as content needs */
+  white-space: nowrap; /* Prevent text wrapping */
 }
 
 :deep(.sr-legend-control) {

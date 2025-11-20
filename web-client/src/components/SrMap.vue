@@ -1942,6 +1942,8 @@ watch(showBathymetryFeatures, (newValue) => {
   border-radius: var(--p-border-radius);
   font-size: 0.875rem;
   padding: 0.25rem 0.5rem;
+  width: fit-content; /* Only as wide as content needs */
+  white-space: nowrap; /* Prevent text wrapping */
 }
 
 :deep(.ol-zoom .ol-zoom-in) {
