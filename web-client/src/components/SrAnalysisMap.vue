@@ -42,12 +42,14 @@ import SrGraticuleControl from '@/components/SrGraticuleControl.vue'
 import { findSrViewKey, srViews } from '@/composables/SrViews'
 import { addLayersForCurrentView } from '@/composables/SrLayers'
 import { useFieldNameStore } from '@/stores/fieldNameStore'
+import { selectSrViewForExtent } from '@/utils/srViewSelector'
 import SrLocationFinder from '@/components/SrLocationFinder.vue'
 import { useActiveTabStore } from '@/stores/activeTabStore'
 import type { Control } from 'ol/control'
 import { View as OlView } from 'ol'
 import { createLogger } from '@/utils/logger'
 import { useMapDeckOverlay } from '@/composables/useMapDeckOverlay'
+import { usePolarOverlay } from '@/composables/usePolarOverlay'
 
 const DECK_VIEW_ID = 'ol-deck-view'
 
@@ -56,6 +58,14 @@ const { createDeckInstance, addDeckLayerToMap } = useMapDeckOverlay({
   deckViewId: DECK_VIEW_ID,
   getLogger: () => logger,
   getMap: () => mapRef.value?.map
+})
+
+// Initialize polar overlay composable - always visible
+const { addPolarOverlay, removePolarOverlay } = usePolarOverlay({
+  latitudeThreshold: 88,
+  color: '#FF0000',
+  opacity: 0.25,
+  zIndex: 100
 })
 
 const template = 'Lat:{y}\u00B0, Long:{x}\u00B0'
@@ -473,18 +483,55 @@ const updateAnalysisMapView = async (reason: string) => {
 
   try {
     if (map) {
-      // Load and set the view that was saved with this record
-      const viewObj = srViews.value[srViewName]
-      if (!viewObj) {
-        logger.error('No view found for srViewName', { srViewName })
-        return
-      }
-
-      // First, get the summary to check data extent compatibility
+      // First, get the summary to check data extent for fallback view selection
       const summary = await readOrCacheSummary(props.selectedReqId)
       if (!summary) {
         logger.error('No summary for reqId', { reqId: props.selectedReqId, srViewName })
         return
+      }
+
+      // Load and set the view that was saved with this record
+      let viewObj = srViews.value[srViewName]
+      if (!viewObj) {
+        // Fallback: Select appropriate view based on data location
+        logger.warn('No view found for srViewName, selecting based on data location', {
+          srViewName,
+          reqId: props.selectedReqId
+        })
+
+        if (summary.extLatLon) {
+          const fallbackViewName = selectSrViewForExtent(summary.extLatLon)
+          viewObj = srViews.value[fallbackViewName]
+
+          if (viewObj) {
+            logger.info('Selected fallback view based on data extent', {
+              originalViewName: srViewName,
+              fallbackViewName,
+              extent: summary.extLatLon
+            })
+            useSrToastStore().info(
+              `View "${srViewName}" not found. Using "${fallbackViewName}" based on data location.`
+            )
+
+            // Update the stored view name for this request
+            await db.updateRequestRecord(
+              { req_id: props.selectedReqId, srViewName: fallbackViewName },
+              false
+            )
+            logger.debug('Updated srViewName to fallback', {
+              reqId: props.selectedReqId,
+              fallbackViewName
+            })
+          } else {
+            logger.error('Fallback view not found', { fallbackViewName })
+            return
+          }
+        } else {
+          logger.error('Cannot select fallback view - no extent data available', {
+            reqId: props.selectedReqId
+          })
+          return
+        }
       }
 
       // Check if the saved view is compatible with the data
@@ -593,6 +640,10 @@ const updateAnalysisMapView = async (reason: string) => {
         createDeckInstance(map)
         addDeckLayerToMap(map)
         attachViewListeners(map.getView())
+
+        // Add polar overlay for polar projections
+        removePolarOverlay(map) // Clear any existing polar overlay
+        addPolarOverlay(map, srViewObj.projectionName)
 
         // TEMPORARY DEBUG: Log layers after deck is added
         console.log('=== ANALYSIS MAP DEBUG: AFTER DECK ADDED ===')
@@ -1210,6 +1261,7 @@ function handleSaveTooltip() {
   left: 0rem;
   margin: 0.125rem;
   border-radius: var(--p-border-radius);
+  background: rgba(255, 255, 255, 0.8);
 }
 
 :deep(.ol-scale-line) {

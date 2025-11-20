@@ -51,6 +51,7 @@ import SrViewControl from './SrViewControl.vue'
 import SrBaseLayerControl from './SrBaseLayerControl.vue'
 import SrGraticuleControl from './SrGraticuleControl.vue'
 import SrDrawControl from '@/components/SrDrawControl.vue'
+import { usePolarOverlay } from '@/composables/usePolarOverlay'
 import SrRasterizeControl from '@/components/SrRasterizeControl.vue'
 import { Map, MapControls } from 'vue3-openlayers'
 import { useRequestsStore } from '@/stores/requestsStore'
@@ -167,6 +168,14 @@ const srDrawControlRef = ref<SrDrawControlMethods | null>(null)
 const mapRef = ref<{ map: OLMap }>()
 const mapStore = useMapStore()
 const toast = useToast()
+
+// Initialize polar overlay composable - always visible
+const { addPolarOverlay, removePolarOverlay } = usePolarOverlay({
+  latitudeThreshold: 88,
+  color: '#FF0000',
+  opacity: 0.25,
+  zIndex: 100
+})
 const dragBox = new DragBox()
 const drawVectorSource = new VectorSource({ wrapX: false })
 const drawVectorLayer = new VectorLayer({
@@ -1367,6 +1376,10 @@ const updateReqMapView = async (reason: string, restoreView: boolean = false) =>
         map.addLayer(uploadedFeaturesVectorLayer)
         map.addLayer(bathymetryFeaturesVectorLayer)
         addLayersForCurrentView(map, srViewObj.projectionName)
+
+        // Add polar overlay for polar projections
+        removePolarOverlay(map) // Clear any existing polar overlay
+        addPolarOverlay(map, srViewObj.projectionName)
       } else {
         logger.error('srViewKey is null in updateReqMapView', { reason })
       }
