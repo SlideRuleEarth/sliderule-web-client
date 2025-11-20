@@ -56,6 +56,12 @@ export const srViews = ref<{ [key: string]: SrView }>({
     view: 'South',
     projectionName: 'EPSG:3031',
     baseLayerName: 'MOA'
+  },
+  'South RadarMosaic': {
+    hide: false,
+    view: 'South',
+    projectionName: 'EPSG:3031',
+    baseLayerName: 'RadarMosaic'
   }
 })
 

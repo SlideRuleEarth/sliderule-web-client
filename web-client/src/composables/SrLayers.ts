@@ -190,16 +190,6 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     init_opacity: 0.7,
     max_zoom: 15
   },
-  // {
-  //   type: "xyz",
-  //   isBaseLayer: true,
-  //   url: "http://server.arcgisonline.com/ArcGIS/rest/services/Polar/Arctic_Imagery/MapServer/tile/{z}/{y}/{x}",
-  //   title: "Artic Imagery",
-  //   attributionKey: "esri",
-  //   allowed_reprojections:["EPSG:5936"],
-  //   init_visibility: true,
-  //   init_opacity: 1,
-  // },
   'Artic Reference': {
     title: 'Artic Reference',
     type: 'xyz',
@@ -212,43 +202,6 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     init_opacity: 1,
     max_zoom: 23
   },
-  // 'Arctic Reference NSIDC': {
-  //   title: 'Arctic Reference NSIDC',
-  //   type: 'xyz',
-  //   isBaseLayer: false,
-  //   // Note: Arctic Connect tiles appear to be unavailable or using incompatible tile scheme
-  //   // url: 'https://tiles.arcticconnect.ca/osm_3413/{z}/{x}/{y}.png',
-  //   url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Polar/Arctic_Imagery/MapServer/tile/{z}/{y}/{x}',
-  //   attributionKey: 'esri',
-  //   source_projection: 'EPSG:3413',
-  //   allowed_reprojections: ['EPSG:3413'],
-  //   init_visibility: true,
-  //   init_opacity: 0.3
-  // },
-  // "Artic Imagery": {
-  //   //type: "ArcGisRest",
-  //   type: "xyz",
-  //   isBaseLayer: true,
-  //   url: "http://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}",
-  //   title: "Artic Imagery",
-  //   attributionKey: "esri",
-  //   source_projection: "EPSG:3413",
-  //   allowed_reprojections:["EPSG:4326"],
-  //   init_visibility: true,
-  //   init_opacity: 1,
-  //   allowed_views: ["North"],
-  // },
-  // {
-  //   type: "xyz",
-  //   isBaseLayer: true,
-  //   url:"https://tiles.arcgis.com/tiles/C8EMgrsFcRFL6LrL/arcgis/rest/services/Antarctic_Basemap/MapServer/tile/{z}/{y}/{x}",
-  //   //url:"http://server.arcgisonline.com/ArcGIS/rest/services/Polar/Antarctic_Basemap/MapServer/tile/{z}/{y}/{x}",
-  //   title: "Antarctic Basemap",
-  //   attributionKey: "esri",
-  //   allowed_reprojections:["EPSG:3031"],
-  //   init_visibility: true,
-  //   init_opacity: 1,
-  // },
   'Antarctic Imagery': {
     title: 'Antarctic Imagery',
     type: 'xyz',
@@ -271,7 +224,7 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     source_projection: 'EPSG:3031',
     allowed_reprojections: ['EPSG:3031'],
     layerName: 'LIMA_Full_1km',
-    init_visibility: false,
+    init_visibility: true,
     init_opacity: 1
   },
   MOA: {
@@ -284,7 +237,7 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     source_projection: 'EPSG:3031',
     allowed_reprojections: ['EPSG:3031'],
     layerName: 'MOA_125_HP1_090_230',
-    init_visibility: false,
+    init_visibility: true,
     init_opacity: 1
   },
   REMA: {
@@ -296,33 +249,21 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     source_projection: 'EPSG:3031',
     allowed_reprojections: ['EPSG:3031'],
     init_visibility: true,
-    init_opacity: 0.8
+    init_opacity: 0.99
   },
   RadarMosaic: {
     title: 'RadarMosaic',
     type: 'wms',
     serverType: 'mapserver',
-    isBaseLayer: false,
+    isBaseLayer: true,
     url: 'https://nimbus.cr.usgs.gov/arcgis/services/Antarctica/USGS_EROS_Antarctica_Reference/MapServer/WmsServer',
     attributionKey: 'usgs_antartic',
     source_projection: 'EPSG:3031',
     allowed_reprojections: ['EPSG:3031'],
-    layerName: 'Radar_Mosaic',
-    init_visibility: false,
-    init_opacity: 0.7
+    layerName: 'Radarsat_Mosaic',
+    init_visibility: true,
+    init_opacity: 1
   },
-  // {
-  //   type: "wms",
-  //   isBaseLayer: false,
-  //   url:"https://ahocevar.com/geoserver/wms",
-  //   title: "US States",
-  //   attributionKey: "ahocevar",
-  //   source_projection: "EPSG:4326",
-  //   allowed_reprojections:["EPSG:3857","EPSG:4326"],
-  //   layerName: "topp:states",
-  //   init_visibility: false,
-  //   init_opacity: 0.1,
-  // }
   'GLIMS Glacier': {
     title: 'GLIMS Glacier',
     type: 'wms',
@@ -335,17 +276,6 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     init_visibility: false,
     init_opacity: 0.2
   }
-  // {
-  //   isBaseLayer: false,
-  //   url:"url: 'https://gibs-{a-c}.earthdata.nasa.gov/wmts/epsg3031/best/wmts.cgi?TIME=2013-12-01'",
-  //   title: "NASA Gibs",
-  //   attributionKey: "nasa_gibs",
-  //   source_projection: "EPSG:3031",//??
-  //   allowed_reprojections:["EPSG:3031"],
-  //   init_visibility: true,
-  //   init_opacity: 0.5,
-  //   type: "wmts",
-  // }
 })
 
 export const getSrLayersForCurrentView = () => {
@@ -433,7 +363,9 @@ export const getLayer = (
     }
 
     // Set maxZoom on layer if specified in layer definition
-    if (srLayer.max_zoom !== undefined) {
+    // EXCEPT for NASA GIBS layers - they need source maxZoom for tile limiting but no layer maxZoom for overzooming
+    const isNasaGibsLayer = srLayer.url.includes('gibs.earthdata.nasa.gov')
+    if (srLayer.max_zoom !== undefined && !isNasaGibsLayer) {
       localTileLayerOptions.maxZoom = srLayer.max_zoom
       console.log('[SrLayers] Setting layer maxZoom:', {
         layerTitle: title,
@@ -477,12 +409,26 @@ export const getLayer = (
           srLayer.source_projection === 'EPSG:5936' ||
           srLayer.source_projection === 'EPSG:3413' ||
           srLayer.source_projection === 'EPSG:3031'
+        const isNasaGibs = srLayer.url.includes('gibs.earthdata.nasa.gov')
         const xyzOptions: any = {
           url: srLayer.url,
           //extent: mapStore.extent,
           projection: srLayer.source_projection,
           attributions: srAttributions[srLayer.attributionKey],
-          wrapX: !isPolarProjection // Don't wrap tiles for polar projections
+          wrapX: !isPolarProjection && !isNasaGibs, // Don't wrap tiles for polar projections or NASA GIBS
+          crossOrigin: 'anonymous' // Required for NASA GIBS
+        }
+
+        // NASA GIBS layers - allow natural tile loading and overzooming
+        // Don't set maxZoom on source or layer - OpenLayers will handle 404s gracefully
+        // and automatically scale available tiles when zooming beyond their availability
+        if (isNasaGibs) {
+          console.log('[SrLayers] Configuring NASA GIBS layer for natural overzooming:', {
+            layerTitle: title,
+            sourceProjection: srLayer.source_projection,
+            url: srLayer.url,
+            note: 'No maxZoom set - tiles beyond availability will be scaled automatically'
+          })
         }
         // Add custom tile grid for EPSG:5936 to ensure proper tile loading
         if (srLayer.source_projection === 'EPSG:5936') {
@@ -513,7 +459,8 @@ export const getLayer = (
           }
         }
         // Add custom tile grid for EPSG:3031 to ensure proper tile loading
-        if (srLayer.source_projection === 'EPSG:3031') {
+        // BUT: Skip tile grid for NASA GIBS layers as they use standard WMTS tile matrices
+        if (srLayer.source_projection === 'EPSG:3031' && !isNasaGibs) {
           xyzOptions.tileGrid = antarticTileGrid
           // Set source maxZoom to 10 to enable overzooming beyond tile availability
           // The layer maxZoom (defined in layer config) controls view limits
@@ -530,6 +477,45 @@ export const getLayer = (
 
         // Create XYZ source with tile load debugging for polar projections
         const xyzSource = new XYZ(xyzOptions)
+
+        // Add tile load debugging for NASA GIBS layers
+        if (isNasaGibs) {
+          xyzSource.on('tileloaderror', (event: any) => {
+            const tile = event.tile
+            const tileCoord = tile.getTileCoord()
+            console.error('[SrLayers] NASA GIBS Tile load error:', {
+              layerTitle: title,
+              zoom: tileCoord[0],
+              x: tileCoord[1],
+              y: tileCoord[2],
+              url: tile.src_
+            })
+          })
+
+          // Log successful tile loads
+          xyzSource.on('tileloadstart', (event: any) => {
+            const tile = event.tile
+            const tileCoord = tile.getTileCoord()
+            console.log('[SrLayers] NASA GIBS Tile load start:', {
+              layerTitle: title,
+              zoom: tileCoord[0],
+              x: tileCoord[1],
+              y: tileCoord[2],
+              url: tile.src_
+            })
+          })
+
+          xyzSource.on('tileloadend', (event: any) => {
+            const tile = event.tile
+            const tileCoord = tile.getTileCoord()
+            console.log('[SrLayers] NASA GIBS Tile loaded successfully:', {
+              layerTitle: title,
+              zoom: tileCoord[0],
+              x: tileCoord[1],
+              y: tileCoord[2]
+            })
+          })
+        }
 
         // Add tile load debugging for EPSG:5936
         if (srLayer.source_projection === 'EPSG:5936') {
@@ -566,6 +552,18 @@ export const getLayer = (
           source: xyzSource,
           ...localTileLayerOptions
         })
+
+        // Log NASA GIBS layer creation details
+        if (isNasaGibs) {
+          console.log('[SrLayers] Created NASA GIBS TileLayer:', {
+            layerTitle: title,
+            visible: layerInstance.getVisible(),
+            opacity: layerInstance.getOpacity(),
+            zIndex: layerInstance.getZIndex(),
+            sourceProjection: srLayer.source_projection,
+            hasSource: !!layerInstance.getSource()
+          })
+        }
       } else if (srLayer.type === 'imagearcgisrest') {
         // Handle ArcGIS Image Services (dynamic image layers, not tiled)
         const imageLayerOptions: any = {

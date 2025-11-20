@@ -1521,10 +1521,13 @@ export function updateMapView(
         })
         const layer = getLayer(srViewObj.projectionName, baseLayer)
         if (layer) {
+          // Ensure the base layer is visible (it's the selected base layer)
+          layer.setVisible(true)
           map.addLayer(layer)
           logger.debug('Base layer added successfully', {
             projectionName: srViewObj.projectionName,
-            baseLayerTitle: baseLayer
+            baseLayerTitle: baseLayer,
+            visible: layer.getVisible()
           })
         } else {
           logger.error('No layer found', {
