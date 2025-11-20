@@ -295,21 +295,21 @@ export const getSrLayersForCurrentProjection = () => {
 }
 
 export const getSrBaseLayersForCurrentView = () => {
-  //console.log('getSrBaseLayersForCurrentView', view);
+  //logger.debug('getSrBaseLayersForCurrentView', view);
   const allLayersList = getSrLayersForCurrentView()
   const layerList = Object.values(allLayersList).filter((layer) => layer.isBaseLayer)
-  //console.log('getSrBaseLayersForCurrentView', layerList);
+  //logger.debug('getSrBaseLayersForCurrentView', layerList);
   return layerList
 }
 
 export const addLayersForCurrentView = (map: OLMap, projectionName: string) => {
-  //console.log('--------------------addLayersForCurrentView--------------------');
+  //logger.debug('--------------------addLayersForCurrentView--------------------');
   try {
     const srLayersForView = getSrLayersForCurrentView()
     srLayersForView.forEach((srLayerForView) => {
       if (!srLayerForView.isBaseLayer) {
         // base layer is managed by baseLayerControl
-        //console.log(`adding non base layer:`,srLayerForView.title);
+        //logger.debug(`adding non base layer:`,srLayerForView.title);
         const newLayer = getLayer(projectionName, srLayerForView.title)
         if (newLayer) {
           if (map) {
@@ -340,7 +340,7 @@ export const getLayer = (
   projectionName: string,
   title: string
 ): TileLayer | ImageLayer<ImageSource> | undefined => {
-  //console.log(`getLayer ${title}`);
+  //logger.debug(`getLayer ${title}`);
 
   const srLayer = Object.values(layers.value).find((layer) => layer.title === title)
   let layerInstance
@@ -367,7 +367,7 @@ export const getLayer = (
     const isNasaGibsLayer = srLayer.url.includes('gibs.earthdata.nasa.gov')
     if (srLayer.max_zoom !== undefined && !isNasaGibsLayer) {
       localTileLayerOptions.maxZoom = srLayer.max_zoom
-      console.log('[SrLayers] Setting layer maxZoom:', {
+      logger.debug('[SrLayers] Setting layer maxZoom:', {
         layerTitle: title,
         layerMaxZoom: srLayer.max_zoom,
         sourceProjection: srLayer.source_projection
@@ -381,7 +381,7 @@ export const getLayer = (
         logger.debug('WMTS Layer TBD')
       } else if (srLayer.type === 'wms') {
         // Handle WMS layers
-        //console.log(`WMS serverType?:${srLayer.serverType} Layer: url: ${srLayer.url} layer:${srLayer.layerName} proj:${mapStore.getProjection()}`);
+        //logger.debug(`WMS serverType?:${srLayer.serverType} Layer: url: ${srLayer.url} layer:${srLayer.layerName} proj:${mapStore.getProjection()}`);
         layerInstance = new TileLayer({
           // if we specify it, the layer will be reprojected to the view's projection
           // if we don't specify it we assume it is in the view's projection
@@ -403,7 +403,7 @@ export const getLayer = (
           ...localTileLayerOptions
         })
       } else if (srLayer.type === 'xyz') {
-        //console.log(`XYZ ${srLayer.serverType} Layer: url: ${srLayer.url} layer:${(srLayer.layerName || srLayer.title)} proj:${mapStore.getProjection()}`);
+        //logger.debug(`XYZ ${srLayer.serverType} Layer: url: ${srLayer.url} layer:${(srLayer.layerName || srLayer.title)} proj:${mapStore.getProjection()}`);
         // Disable tile wrapping for polar projections
         const isPolarProjection =
           srLayer.source_projection === 'EPSG:5936' ||
@@ -423,7 +423,7 @@ export const getLayer = (
         // Don't set maxZoom on source or layer - OpenLayers will handle 404s gracefully
         // and automatically scale available tiles when zooming beyond their availability
         if (isNasaGibs) {
-          console.log('[SrLayers] Configuring NASA GIBS layer for natural overzooming:', {
+          logger.debug('[SrLayers] Configuring NASA GIBS layer for natural overzooming:', {
             layerTitle: title,
             sourceProjection: srLayer.source_projection,
             url: srLayer.url,
@@ -437,7 +437,7 @@ export const getLayer = (
           // The layer maxZoom (23) controls view limits, but tiles are only requested up to zoom 10
           // When zooming beyond 10, OpenLayers will scale/stretch the zoom 10 tiles
           xyzOptions.maxZoom = 10
-          console.log('[SrLayers] EPSG:5936 configured for overzooming:', {
+          logger.debug('[SrLayers] EPSG:5936 configured for overzooming:', {
             layerTitle: title,
             layerMaxZoom: srLayer.max_zoom,
             sourceMaxZoom: 10,
@@ -451,7 +451,7 @@ export const getLayer = (
           // Set maxZoom on source if defined in layer
           if (srLayer.max_zoom !== undefined) {
             xyzOptions.maxZoom = srLayer.max_zoom
-            console.log('[SrLayers] Setting EPSG:3413 source maxZoom:', {
+            logger.debug('[SrLayers] Setting EPSG:3413 source maxZoom:', {
               layerTitle: title,
               sourceMaxZoom: srLayer.max_zoom,
               tileGridResolutions: nsidcTileGrid.getResolutions().length
@@ -466,7 +466,7 @@ export const getLayer = (
           // The layer maxZoom (defined in layer config) controls view limits
           // When zooming beyond 10, OpenLayers will scale/stretch the zoom 10 tiles
           xyzOptions.maxZoom = 10
-          console.log('[SrLayers] EPSG:3031 configured for overzooming:', {
+          logger.debug('[SrLayers] EPSG:3031 configured for overzooming:', {
             layerTitle: title,
             layerMaxZoom: srLayer.max_zoom,
             sourceMaxZoom: 10,
@@ -483,7 +483,7 @@ export const getLayer = (
           xyzSource.on('tileloaderror', (event: any) => {
             const tile = event.tile
             const tileCoord = tile.getTileCoord()
-            console.error('[SrLayers] NASA GIBS Tile load error:', {
+            logger.error('[SrLayers] NASA GIBS Tile load error:', {
               layerTitle: title,
               zoom: tileCoord[0],
               x: tileCoord[1],
@@ -496,7 +496,7 @@ export const getLayer = (
           xyzSource.on('tileloadstart', (event: any) => {
             const tile = event.tile
             const tileCoord = tile.getTileCoord()
-            console.log('[SrLayers] NASA GIBS Tile load start:', {
+            logger.debug('[SrLayers] NASA GIBS Tile load start:', {
               layerTitle: title,
               zoom: tileCoord[0],
               x: tileCoord[1],
@@ -508,7 +508,7 @@ export const getLayer = (
           xyzSource.on('tileloadend', (event: any) => {
             const tile = event.tile
             const tileCoord = tile.getTileCoord()
-            console.log('[SrLayers] NASA GIBS Tile loaded successfully:', {
+            logger.debug('[SrLayers] NASA GIBS Tile loaded successfully:', {
               layerTitle: title,
               zoom: tileCoord[0],
               x: tileCoord[1],
@@ -522,7 +522,7 @@ export const getLayer = (
           xyzSource.on('tileloaderror', (event: any) => {
             const tile = event.tile
             const tileCoord = tile.getTileCoord()
-            console.error('[SrLayers] EPSG:5936 Tile load error:', {
+            logger.error('[SrLayers] EPSG:5936 Tile load error:', {
               layerTitle: title,
               zoom: tileCoord[0],
               x: tileCoord[1],
@@ -537,7 +537,7 @@ export const getLayer = (
             const zoom = tileCoord[0]
             const url = originalTileUrlFunction?.call(xyzSource, tileCoord, pixelRatio, projection)
             if (zoom > 7) {
-              console.log('[SrLayers] EPSG:5936 Requesting tile:', {
+              logger.debug('[SrLayers] EPSG:5936 Requesting tile:', {
                 zoom,
                 x: tileCoord[1],
                 y: tileCoord[2],
@@ -555,7 +555,7 @@ export const getLayer = (
 
         // Log NASA GIBS layer creation details
         if (isNasaGibs) {
-          console.log('[SrLayers] Created NASA GIBS TileLayer:', {
+          logger.debug('[SrLayers] Created NASA GIBS TileLayer:', {
             layerTitle: title,
             visible: layerInstance.getVisible(),
             opacity: layerInstance.getOpacity(),
@@ -588,12 +588,12 @@ export const getLayer = (
           }),
           ...imageLayerOptions
         })
-        console.log('[SrLayers] Created ImageArcGISRest layer:', {
+        logger.debug('[SrLayers] Created ImageArcGISRest layer:', {
           layerTitle: title,
           sourceProjection: srLayer.source_projection
         })
         // } else if(srLayer.type === "ArcGisRest"){
-        //   console.log(`XYZ ${srLayer.serverType} Layer: url: ${srLayer.url} layer:${(srLayer.layerName || srLayer.title)} proj:${mapStore.getProjection()}`);
+        //   logger.debug(`XYZ ${srLayer.serverType} Layer: url: ${srLayer.url} layer:${(srLayer.layerName || srLayer.title)} proj:${mapStore.getProjection()}`);
         //   const arcGisRestOptions = {
         //     url: srLayer.url,
         //     //extent: mapStore.extent,
@@ -605,15 +605,15 @@ export const getLayer = (
         //   });
       }
       if (layerInstance) {
-        //console.log('Caching layer', title);
+        //logger.debug('Caching layer', title);
         // Temporarily disable caching to debug black screen issue
         // mapStore.addLayerToCache(projectionName, title, layerInstance)
       }
     }
-    //console.log (`getLayer returning: ${lname} isBaseLayer:${srLayer.isBaseLayer} title:${title}`);
+    //logger.debug (`getLayer returning: ${lname} isBaseLayer:${srLayer.isBaseLayer} title:${title}`);
   } else {
     logger.debug('Layer not found with this title', { title })
   }
-  //console.log('getLayer returning:', layerInstance);
+  //logger.debug('getLayer returning:', layerInstance);
   return layerInstance
 }

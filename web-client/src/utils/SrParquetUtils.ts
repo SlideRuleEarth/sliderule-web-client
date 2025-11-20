@@ -389,7 +389,7 @@ export async function updateReqParmsFromMeta(req_id: number): Promise<void> {
 
         const parsed = (await duckDbClient.getJsonMetaDataForKey('meta', fileName)).parsedMetadata
         if (parsed && parsed.request && typeof parsed.request === 'object') {
-          logger.trace('updateReqParmsFromMeta', {
+          logger.debug('updateReqParmsFromMeta', {
             req_id,
             currentRcvdParms,
             metadataRequest: parsed.request

@@ -179,8 +179,8 @@ export function drawGeoJson(
   const format = new GeoJSON()
   let features: Feature[] = []
   try {
-    //console.log(`drawGeoJson called with uniqueId: ${uniqueId}, color: ${color}, noFill: ${noFill}, tag: ${tag} dataProjection: ${dataProjection} geoJsonData:`, geoJsonData);
-    //console.log('Parsing GeoJSON data:', geoJsonString);
+    //logger.debug(`drawGeoJson called with uniqueId: ${uniqueId}, color: ${color}, noFill: ${noFill}, tag: ${tag} dataProjection: ${dataProjection} geoJsonData:`, geoJsonData);
+    //logger.debug('Parsing GeoJSON data:', geoJsonString);
 
     const normalized = unwrapGeoJson(geoJsonData)
 
@@ -656,7 +656,7 @@ export function isClickable(d: ElevationDataItem): boolean {
 }
 
 export async function processSelectedElPnt(d: ElevationDataItem): Promise<void> {
-  //console.log('processSelectedElPnt called with:', d);
+  //logger.debug('processSelectedElPnt called with:', d);
   const gcs = useGlobalChartStore()
   gcs.setSelectedElevationRec(d)
   gcs.use_rgt_in_filter = true
@@ -755,7 +755,7 @@ export async function resetFilterRgtOptions(): Promise<void> {
 }
 
 export async function resetFilterUsingSelectedRec() {
-  //console.log('resetFilterUsingSelectedRec called');
+  //logger.debug('resetFilterUsingSelectedRec called');
   const gcs = useGlobalChartStore()
   const selectedRec = gcs.getSelectedElevationRec()
   if (selectedRec) {
@@ -859,7 +859,7 @@ export function createDeckLayer(
     : COORDINATE_SYSTEM.LNGLAT
 
   const layer = new ScatterplotLayer(layerProps as any)
-  //console.log(`createDeckLayer took ${performance.now() - startTime} ms.`);
+  //logger.debug(`createDeckLayer took ${performance.now() - startTime} ms.`);
   return layer
 }
 
@@ -872,7 +872,7 @@ export function updateDeckLayerWithObject(
   _projName: string
 ): void {
   //const startTime = performance.now();
-  //console.log(`updateDeckLayerWithObject ${name} startTime:`, startTime);
+  //logger.debug(`updateDeckLayerWithObject ${name} startTime:`, startTime);
   try {
     const deckInstance = useDeckStore().getDeckInstance()
     if (deckInstance) {
@@ -899,7 +899,7 @@ export function updateDeckLayerWithObject(
     })
   } finally {
     //const endTime = performance.now();
-    //console.log(`updateDeckLayerWithObject ${name} took ${endTime - startTime} milliseconds. endTime:`, endTime);
+    //logger.debug(`updateDeckLayerWithObject ${name} took ${endTime - startTime} milliseconds. endTime:`, endTime);
   }
 }
 
@@ -969,7 +969,7 @@ export function checkAreaOfConvexHullWarning(): boolean {
   const currentApi = useReqParamsStore().getCurAPIObj()
   if (currentApi) {
     const limit = useAreaThresholdsStore().getAreaWarningThreshold(currentApi)
-    //console.log(`checkAreaOfConvexHullWarning: currentApi: ${currentApi} limit: ${limit} area: ${useReqParamsStore().getAreaOfConvexHull()}`);
+    //logger.debug(`checkAreaOfConvexHullWarning: currentApi: ${currentApi} limit: ${limit} area: ${useReqParamsStore().getAreaOfConvexHull()}`);
     if (useReqParamsStore().getAreaOfConvexHull() > limit) {
       const msg = `The area of the convex hull might be too large (${useReqParamsStore().getFormattedAreaOfConvexHull()}).\n Please zoom in and then select a smaller area (try < ${useAreaThresholdsStore().getAreaWarningThreshold(currentApi)} km²).`
       if (!useAdvancedModeStore().getAdvanced()) {
@@ -992,7 +992,7 @@ export function checkAreaOfConvexHullError(): { ok: boolean; msg?: string } {
   }
   if (currentApi) {
     const limit = useAreaThresholdsStore().getAreaErrorThreshold(currentApi)
-    //console.log(`checkAreaOfConvexHullError: currentApi: ${currentApi} limit: ${limit} area: ${useReqParamsStore().getAreaOfConvexHull()}`);
+    //logger.debug(`checkAreaOfConvexHullError: currentApi: ${currentApi} limit: ${limit} area: ${useReqParamsStore().getAreaOfConvexHull()}`);
     if (useReqParamsStore().getAreaOfConvexHull() > limit) {
       const msg = `The area of the convex hull is too large (${useReqParamsStore().getFormattedAreaOfConvexHull()}).\n Please zoom in and then select a smaller area  < ${limit} km²).`
       if (!useAdvancedModeStore().getAdvanced()) {
@@ -1046,7 +1046,7 @@ export function saveMapZoomState(map: OLMap) {
     } else {
       logger.error('zoom is null')
     }
-    //console.log('saveMapZoomState center:', center, ' zoom:', zoom);
+    //logger.debug('saveMapZoomState center:', center, ' zoom:', zoom);
   } else {
     logger.error('map is null')
   }
@@ -1428,7 +1428,7 @@ export async function renderSvrReqPoly(
       if (poly.length > 0) {
         renderRequestPolygon(map, poly, 'blue', reqId, layerName, forceZoom)
       } else {
-        logger.warn('No svrReqPoly for reqId', { reqId })
+        logger.debug('No svrReqPoly for reqId', { reqId })
       }
     } else {
       logger.error('map is null')
@@ -1463,10 +1463,10 @@ export async function renderSvrReqRegionMask(
         const regionGeoJsonData = await db.getRegionMaskFromSvrParms(reqId)
 
         if (regionGeoJsonData && regionGeoJsonData.rows && regionGeoJsonData.rows > 0) {
-          //console.log("drawCurrentReqPolyAndPin drawing reqGeoJsonData:",geoJsonData);
+          //logger.debug("drawCurrentReqPolyAndPin drawing reqGeoJsonData:",geoJsonData);
           drawGeoJson(uniqueId, vectorSource, regionGeoJsonData, 'red', true)
         } else {
-          //console.log(`renderSvrReqRegionMask: No region mask found in svrParms for reqId ${reqId} regionGeoJsonData:`, regionGeoJsonData);
+          //logger.debug(`renderSvrReqRegionMask: No region mask found in svrParms for reqId ${reqId} regionGeoJsonData:`, regionGeoJsonData);
         }
       } else {
         logger.error('Vector source not found for Drawing Layer')
@@ -1600,7 +1600,7 @@ export function updateMapView(
             if (currentZoom === undefined) return
 
             if (srProjObj.max_zoom !== undefined && currentZoom > srProjObj.max_zoom) {
-              console.warn('[SrMapUtils] Zoom exceeds max_zoom, constraining:', {
+              logger.debug('[SrMapUtils] Zoom exceeds max_zoom, constraining:', {
                 projection: srProjObj.name,
                 currentZoom,
                 maxZoom: srProjObj.max_zoom
@@ -1609,7 +1609,7 @@ export function updateMapView(
               return
             }
             if (srProjObj.min_zoom !== undefined && currentZoom < srProjObj.min_zoom) {
-              console.warn('[SrMapUtils] Zoom below min_zoom, constraining:', {
+              logger.debug('[SrMapUtils] Zoom below min_zoom, constraining:', {
                 projection: srProjObj.name,
                 currentZoom,
                 minZoom: srProjObj.min_zoom
@@ -1630,7 +1630,7 @@ export function updateMapView(
         if (isPolarProjection) {
           newView.on('change:resolution', () => {
             const zoom = newView.getZoom()
-            console.log('[SrMapUtils] Polar projection zoom changed:', {
+            logger.debug('[SrMapUtils] Polar projection zoom changed:', {
               projection: srProjObj.name,
               zoom,
               minZoom: newView.getMinZoom(),
@@ -1684,11 +1684,9 @@ export async function zoomMapForReqIdUsingView(map: OLMap, reqId: number, srView
             extremeLatLon.maxLat
           ]
         } else {
-          console.error('ERROR: Invalid lat-lon data for request', { reqId })
           logger.error('Invalid lat-lon data for request', { reqId })
         }
       } else {
-        console.error('ERROR: Invalid workerSummary for request', { reqId })
         logger.error('Invalid workerSummary for request', { reqId })
       }
     }
@@ -1753,7 +1751,7 @@ export async function zoomMapForReqIdUsingView(map: OLMap, reqId: number, srView
     }
 
     // Verify constraints were applied
-    console.log('[SrMapUtils] View zoom constraints set:', {
+    logger.debug('[SrMapUtils] View zoom constraints set:', {
       projectionName,
       requestedMinZoom: srProjObj?.min_zoom,
       requestedMaxZoom: srProjObj?.max_zoom,
@@ -1823,7 +1821,7 @@ export async function zoomMapForReqIdUsingView(map: OLMap, reqId: number, srView
 
 export const updateElevationMap = async (req_id: number) => {
   const startTime = performance.now()
-  //console.log('updateElevationMap req_id:', req_id);
+  //logger.debug('updateElevationMap req_id:', req_id);
   if (req_id <= 0) {
     logger.warn('Invalid request ID', { req_id })
     return
@@ -1913,8 +1911,8 @@ export function getBoundingExtentFromFeatures(features: Feature<Geometry>[]): Ex
   // Debug log feature types and extents
   // features.forEach((feature, idx) => {
   //     const geom = feature.getGeometry();
-  //     console.log(`Feature[${idx}] type:`, geom?.getType());
-  //     console.log(`Feature[${idx}] extent:`, geom?.getExtent());
+  //     logger.debug(`Feature[${idx}] type:`, geom?.getType());
+  //     logger.debug(`Feature[${idx}] extent:`, geom?.getExtent());
   // });
 
   // Helper to extract all raw coordinates from any geometry
