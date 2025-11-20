@@ -358,7 +358,12 @@ onmessage = async (event) => {
             case -1: {
               // RTE_FAILURE
               //console.warn('RTE_ERROR: exceptrec result:', result.text);
-              postMessage(await serverMsg(reqID, `RTE_ERROR msg:${result.text}`))
+              const workerError = {
+                type: 'serverError',
+                code: 'RTE_FAILURE',
+                message: `RTE_ERROR msg:${result.text}`
+              }
+              postMessage(await errorMsg(reqID, workerError))
               break
             }
             case -2: {
@@ -500,6 +505,7 @@ onmessage = async (event) => {
 
               if (result) {
                 read_result = result as Sr_Results_type
+                logger.warn('Fetch result received', { func: cmd.func, read_result }, read_result)
                 target_numSvrExceptions =
                   'exceptrec' in read_result ? Number(read_result['exceptrec']) : 0
                 target_numArrowDataRecs =
@@ -566,7 +572,10 @@ onmessage = async (event) => {
               )
               let num_retries_left = NUM_RETRIES_TO_CHECK_DONE // TBD maybe use configured timeout from params?
               got_all_cbs = false
-              while (num_retries_left > 0 && target_numArrowDataRecs > 0) {
+              while (
+                num_retries_left > 0 &&
+                (target_numArrowDataRecs > 0 || target_numSvrExceptions > 0)
+              ) {
                 logger.debug('Waiting for final callbacks', {
                   num_retries_left,
                   target_numArrowDataRecs,
