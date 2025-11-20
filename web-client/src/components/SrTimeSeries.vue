@@ -205,7 +205,7 @@ watch(
   (newPlotRef) => {
     //console.log('plotRef changed:', newPlotRef);
     if (newPlotRef) {
-      logger.warn('watch plotRef changed', { newPlotRef })
+      logger.debug('watch plotRef changed', { newPlotRef })
       atlChartFilterStore.setPlotRef(plotRef.value)
       if (chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length > 0) {
         void callPlotUpdateDebounced('from SrTimeSeries watch plotRef.value')

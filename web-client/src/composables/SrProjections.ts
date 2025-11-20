@@ -79,8 +79,8 @@ export const srProjections = ref<{ [key: string]: SrProjection }>({
     proj4def:
       '+proj=stere +lat_0=90 +lat_ts=90 +lon_0=-150 +k=0.994 +x_0=2000000 +y_0=2000000 +datum=WGS84 +units=m +no_defs +type=crs',
     default_zoom: 2.2, // Optimal zoom for centered square view
-    min_zoom: 0,
-    max_zoom: 7.2, // Limited by Arctic Ocean Base tile availability
+    min_zoom: 1.8,
+    max_zoom: 23, // ArcGIS Arctic services support up to level 23
     center: [2000000, 2000000], // North Pole in projection coordinates (accounting for false easting/northing)
     extent: [-1402023.01, -1402023.01, 5402023.01, 5402023.01], // Square extent for proper centering
     bbox: [-180.0, 60.0, 180.0, 89.9] // minx, miny, maxx, maxy - avoid pole singularity
@@ -91,10 +91,10 @@ export const srProjections = ref<{ [key: string]: SrProjection }>({
     label: 'North Sea Ice',
     proj4def:
       '+proj=stere +lat_0=90 +lat_ts=70 +lon_0=-45 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs +type=crs',
-    default_zoom: 5.8, // Optimal zoom for centered circular view
-    min_zoom: 5,
-    max_zoom: 10, // Limited by Arctic Ocean Base tile availability
-    center: [-2101846.95, 2124970.85], // Centered view for North NSIDC projection
+    default_zoom: 2.1, // Optimal zoom for centered circular view
+    min_zoom: 2,
+    max_zoom: 15, // ArcGIS Arctic Imagery tiles support up to level 15
+    center: [0, 0], // North Pole in projection coordinates
     extent: [-3314693.24, -3314693.24, 3314693.24, 3314693.24],
     bbox: [-180.0, 60.0, 180.0, 89.9] // minx, miny, maxx, maxy - avoid pole singularity
   },
@@ -105,7 +105,7 @@ export const srProjections = ref<{ [key: string]: SrProjection }>({
     proj4def:
       '+proj=stere +lat_0=-90 +lat_ts=-71 +lon_0=0 +x_0=0 +y_0=0 +datum=WGS84 +units=m +k=1 +no_defs',
     default_zoom: 2.1,
-    min_zoom: 0,
+    min_zoom: 2,
     max_zoom: 10, // Limited by Antarctic Imagery tile availability
     center: [0, 0], // South Pole in projection coordinates
     extent: [-3299207.53, -3333134.03, 3299207.53, 3333134.03],

@@ -1,84 +1,135 @@
-import { defineStore } from 'pinia';
-import { Deck } from '@deck.gl/core';
-import { SELECTED_LAYER_NAME_PREFIX } from '@/types/SrTypes';
-import { createLogger } from '@/utils/logger';
+import { defineStore } from 'pinia'
+import { ref } from 'vue'
+import { SELECTED_LAYER_NAME_PREFIX } from '@/types/SrTypes'
+import { createLogger } from '@/utils/logger'
 
-const logger = createLogger('DeckStore');
+const logger = createLogger('DeckStore')
 
-export const useDeckStore = defineStore('deck', {
-    state: () => ({
-        deckInstance: null as any,
-        deckLayers: [] as any[],
-        pointSize: 3,
-        isDragging: false,
-    }),
-    actions: {
-        setDeckInstance(instance:Deck) {
-            //console.log('setDeckInstance to:',instance,'from this.deckInstance:',this.deckInstance);
-            this.deckInstance = instance;
-        },
-        getDeckInstance() {
-            return this.deckInstance;
-        },
-        clearDeckInstance() {
-            const startTime = performance.now(); // Start time
-            if (this.deckInstance) {
-                logger.debug('clearDeckInstance start');
-                this.deckLayers = [];
-                this.getDeckInstance().setProps({layers:this.getLayers()});
-                this.deckInstance.finalize(); // This ensures all resources are properly released.
-                this.deckInstance = null;
-            } else {
-                logger.debug('clearDeckInstance: deckInstance is null');
-            }
-            const now = performance.now();
-            logger.debug('clearDeckInstance completed', { durationMs: now - startTime, endTime: now });
-        },
-        replaceOrAddLayer(layer:any,name:string): boolean {
-            for (let i = 0; i < this.deckLayers.length; i++) {
-                if (this.deckLayers[i].id === name) {
-                    this.deckLayers[i] = layer;
-                    return true;
-                }
-            }
-            this.deckLayers.push(layer);
-            return false;
-        },
-        deleteLayer(layerId:string) {
-            for (let i = 0; i < this.deckLayers.length; i++) {
-                if (this.deckLayers[i].id === layerId) {
-                    this.deckLayers.splice(i,1);
-                    this.getDeckInstance().setProps({layers:this.getLayers()});
-                    return true;
-                }
-            }
-            return false;
-        },
-        deleteSelectedLayer() {
-            return this.deleteLayer(SELECTED_LAYER_NAME_PREFIX);
-        },
-        getLayers() {
-            // See documentaion for DeckGL layers https://deck.gl/docs/developer-guide/using-layers#updating-layers
-            // must create new array
-            const newLayers = [];
-            const layers = this.deckLayers;
-            for (let i = 0; i < layers.length; i++) {
-                newLayers.push(layers[i]);
-            }
-            //console.log('getLayers:',layers);
-            return newLayers;
-        },
-        setPointSize(size:number) {
-            this.pointSize = size;
-        },
-        getPointSize() {
-            return this.pointSize;
-        },
-        setIsDragging(isDragging: boolean) {
-            this.isDragging = isDragging;
-        },
-        getIsDragging(): boolean {
-            return this.isDragging;
-        },
+type DeckViewMode = 'map' | 'orthographic'
+type DeckInstance = any
+
+interface DeckStoreApi {
+  setDeckInstance(_instance: DeckInstance): void
+  getDeckInstance(): DeckInstance | null
+  clearDeckInstance(): void
+  replaceOrAddLayer(_layer: any, _name: string): boolean
+  deleteLayer(_layerId: string): boolean
+  deleteSelectedLayer(): boolean
+  getLayers(): any[]
+  setPointSize(_size: number): void
+  getPointSize(): number
+  setIsDragging(_value: boolean): void
+  getIsDragging(): boolean
+  setViewMode(_mode: DeckViewMode): void
+  getViewMode(): DeckViewMode
+  isOrthographicMode(): boolean
+}
+
+export const useDeckStore = defineStore('deck', (): DeckStoreApi => {
+  const deckInstance = ref<DeckInstance | null>(null)
+  const deckLayers = ref<any[]>([])
+  const pointSize = ref(3)
+  const isDragging = ref(false)
+  const viewMode = ref<DeckViewMode>('map')
+
+  function setDeckInstance(instance: DeckInstance) {
+    deckInstance.value = instance
+  }
+
+  function getDeckInstance() {
+    return deckInstance.value
+  }
+
+  function clearDeckInstance() {
+    const startTime = performance.now()
+    if (deckInstance.value) {
+      logger.debug('clearDeckInstance start')
+      deckLayers.value = []
+      deckInstance.value.setProps({ layers: getLayers() })
+      deckInstance.value.finalize()
+      deckInstance.value = null
+      viewMode.value = 'map'
+    } else {
+      logger.debug('clearDeckInstance: deckInstance is null')
     }
-});
+    const now = performance.now()
+    logger.debug('clearDeckInstance completed', { durationMs: now - startTime, endTime: now })
+  }
+
+  function setViewMode(mode: DeckViewMode) {
+    viewMode.value = mode
+  }
+
+  function getViewMode() {
+    return viewMode.value
+  }
+
+  function isOrthographicMode() {
+    return viewMode.value === 'orthographic'
+  }
+
+  function replaceOrAddLayer(layer: any, name: string): boolean {
+    for (let i = 0; i < deckLayers.value.length; i++) {
+      if (deckLayers.value[i].id === name) {
+        deckLayers.value[i] = layer
+        return true
+      }
+    }
+    deckLayers.value.push(layer)
+    return false
+  }
+
+  function deleteLayer(layerId: string) {
+    for (let i = 0; i < deckLayers.value.length; i++) {
+      if (deckLayers.value[i].id === layerId) {
+        deckLayers.value.splice(i, 1)
+        deckInstance.value?.setProps({ layers: getLayers() })
+        return true
+      }
+    }
+    return false
+  }
+
+  function deleteSelectedLayer() {
+    return deleteLayer(SELECTED_LAYER_NAME_PREFIX)
+  }
+
+  function getLayers() {
+    return deckLayers.value.map((layer) => layer)
+  }
+
+  function setPointSize(size: number) {
+    pointSize.value = size
+  }
+
+  function getPointSize() {
+    return pointSize.value
+  }
+
+  function setIsDragging(value: boolean) {
+    isDragging.value = value
+  }
+
+  function getIsDragging() {
+    return isDragging.value
+  }
+
+  const api: DeckStoreApi = {
+    setDeckInstance,
+    getDeckInstance,
+    clearDeckInstance,
+    replaceOrAddLayer,
+    deleteLayer,
+    deleteSelectedLayer,
+    getLayers,
+    setPointSize,
+    getPointSize,
+    setIsDragging,
+    getIsDragging,
+    setViewMode,
+    getViewMode,
+    isOrthographicMode
+  }
+
+  return api
+})

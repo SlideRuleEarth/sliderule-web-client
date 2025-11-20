@@ -172,7 +172,6 @@ const handleWorkerMsg = async (workerMsg: WorkerMessage) => {
     case 'error':
       if (workerMsg.error) {
         logger.error('Worker error', { error: workerMsg.error })
-        //toast.add({severity: 'error',summary: workerMsg.error?.type, detail: workerMsg.error?.message, life: srToastStore.getLife() });
         useSrToastStore().error(workerMsg.error?.type, workerMsg.error?.message)
       }
       if (worker) {

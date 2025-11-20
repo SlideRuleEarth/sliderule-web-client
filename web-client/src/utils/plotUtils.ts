@@ -1588,6 +1588,14 @@ export const addOverlaysToScatterPlot = async () => {
 
 export const refreshScatterPlot = async (msg: string) => {
   logger.debug('refreshScatterPlot called', { msg })
+
+  // Only refresh when on Time Series or Elevation Plot tabs where the chart is actually visible
+  const activeTabStore = useActiveTabStore()
+  if (!activeTabStore.isActiveTabTimeSeries && !activeTabStore.isActiveTabElevation) {
+    logger.debug('Skipping refreshScatterPlot - not on Time Series or Elevation Plot tab')
+    return
+  }
+
   const recTreeStore = useRecTreeStore()
   const atlChartFilterStore = useAtlChartFilterStore()
   const plotRef = atlChartFilterStore.getPlotRef()
@@ -1596,12 +1604,12 @@ export const refreshScatterPlot = async (msg: string) => {
       await initScatterPlotWith(recTreeStore.selectedReqId)
       await addOverlaysToScatterPlot()
     } else {
-      logger.warn(
+      logger.debug(
         'Ignoring refreshScatterPlot with no chart to refresh, plotRef.chart is undefined'
       )
     }
   } else {
-    logger.warn('Ignoring refreshScatterPlot with no plot to refresh, plotRef is undefined')
+    logger.debug('Ignoring refreshScatterPlot with no plot to refresh, plotRef is undefined')
   }
 }
 

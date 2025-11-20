@@ -18,7 +18,7 @@ import { useChartStore } from '@/stores/chartStore'
 // import log from '@probe.gl/log';
 // log.level = 1;  // 0 = silent, 1 = minimal, 2 = verbose
 
-import { toRaw, isProxy } from 'vue'
+import { toRaw, isProxy, markRaw } from 'vue'
 import { formatTime } from '@/utils/formatUtils'
 import { createLogger } from '@/utils/logger'
 
@@ -35,6 +35,7 @@ let lonField = ''
 let heightField = ''
 let timeField = ''
 
+// Use Vue ref like main branch (which works)
 const deckInstance: Ref<Deck<OrbitView[]> | null> = ref(null)
 // Module-level state for caching and Deck.gl instance
 let cachedRawData: any[] = []
@@ -75,7 +76,7 @@ export function sanitizeDeckData<T extends Record<string, any>>(data: T[]): T[] 
     sample: sanitized.slice(0, 5),
     total: sanitized.length
   }) // limit to 5 for readability
-  return sanitized
+  return markRaw(sanitized as T[])
 }
 
 function computeCentroid(position: [number, number, number][]) {
@@ -104,15 +105,48 @@ function initDeckIfNeeded(deckContainer: Ref<HTMLDivElement | null>): boolean {
     return false
   }
 
-  const { width, height } = container.getBoundingClientRect()
-  if (width === 0 || height === 0) {
-    logger.warn('Deck container has zero size', { width, height })
-    return false
-  }
-
   if (!deckInstance.value) {
     createDeck(container)
   }
+  return true
+}
+
+export function finalizeDeck() {
+  if (deckInstance.value) {
+    deckInstance.value.finalize()
+    deckInstance.value = null
+    //console.log('Deck instance finalized');
+  } else {
+    logger.warn('No Deck instance to finalize')
+  }
+}
+
+export function recreateDeck(deckContainer: Ref<HTMLDivElement | null>): boolean {
+  if (!deckContainer?.value) {
+    logger.warn('Cannot recreate deck: container is null')
+    return false
+  }
+
+  const { width, height } = deckContainer.value.getBoundingClientRect()
+  if (width === 0 || height === 0) {
+    logger.warn('Cannot recreate deck: container has zero size', { width, height })
+    return false
+  }
+
+  // Finalize existing deck if present
+  if (deckInstance.value) {
+    logger.debug('Finalizing existing deck before recreation', {
+      oldWidth: deckInstance.value.width,
+      oldHeight: deckInstance.value.height
+    })
+    deckInstance.value.finalize()
+    deckInstance.value = null
+  }
+
+  // Create fresh deck instance
+  createDeck(deckContainer.value)
+
+  logger.debug('Deck instance recreated', { width, height })
   return true
 }
 
@@ -187,19 +221,8 @@ function createDeck(container: HTMLDivElement) {
         }
       }
     },
-
     debug: deck3DConfigStore.debug
   })
-}
-
-export function finalizeDeck() {
-  if (deckInstance.value) {
-    deckInstance.value.finalize()
-    deckInstance.value = null
-    //console.log('Deck instance finalized');
-  } else {
-    logger.warn('No Deck instance to finalize')
-  }
 }
 
 function getPercentile(sorted: number[], p: number): number {
@@ -283,7 +306,7 @@ export async function loadAndCachePointCloudData(reqId: number) {
     const { value: rows = [] } = await result.readRows().next()
 
     if (rows.length > 0) {
-      cachedRawData = rows.filter((d) => {
+      const filteredRows = rows.filter((d) => {
         const lon = d[lonField]
         const lat = d[latField]
         const elev = d[heightField]
@@ -296,6 +319,7 @@ export async function loadAndCachePointCloudData(reqId: number) {
           Number.isFinite(elev)
         )
       })
+      cachedRawData = sanitizeDeckData(filteredRows)
       lastLoadedReqId = reqId
       verticalExaggerationInitialized = false // Reset flag for new data
       //console.log(`Cached ${cachedRawData.length} valid data points.`);
@@ -509,12 +533,14 @@ export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
       }
     })
 
+  const sanitizedPointCloudData = sanitizeDeckData(pointCloudData)
+
   computeCentroid(pointCloudData.map((p) => p.position))
 
   // --- Layer creation ---
   const layer = new PointCloudLayer({
     id: 'point-cloud-layer',
-    data: pointCloudData,
+    data: sanitizedPointCloudData,
     getPosition: (d) => d.position,
     getColor: (d) => d.color,
     pointSize: deck3DConfigStore.pointSize,

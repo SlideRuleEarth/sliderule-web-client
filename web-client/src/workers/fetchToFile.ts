@@ -28,6 +28,7 @@ let got_all_cbs = false
 let abortRequested = false
 let num_checks = 0
 let num_post_done_checks = 0
+const NUM_RETRIES_TO_CHECK_DONE = 10
 
 export async function checkDoneProcessing(
   thisReqID: number,
@@ -355,9 +356,15 @@ onmessage = async (event) => {
               break
             }
             case -1: {
-              // RTE_ERROR
+              // RTE_FAILURE
               //console.warn('RTE_ERROR: exceptrec result:', result.text);
-              postMessage(await serverMsg(reqID, `RTE_ERROR msg:${result.text}`))
+              // const workerError = {
+              //   type: 'serverError',
+              //   code: 'RTE_FAILURE',
+              //   message: `RTE_ERROR msg:${result.text}`
+              // }
+              //postMessage(await errorMsg(reqID, workerError))
+              postMessage(await serverMsg(reqID, `RTE_FAILURE msg: ${result.text}`))
               break
             }
             case -2: {
@@ -403,6 +410,17 @@ onmessage = async (event) => {
               // RTE_SIMPLIFY
               //console.warn('RTE_SIMPLIFY: exceptrec result:', result.text);
               postMessage(await serverMsg(reqID, `RTE_SIMPLIFY msg:${result.text}`))
+              break
+            }
+            case -10: {
+              // RTE_TOO_MANY_RESOURCES
+              logger.warn('RTE_TOO_MANY_RESOURCES: exceptrec result:', result.text)
+              const workerError = {
+                type: 'serverError',
+                code: 'RTE_TOO_MANY_RESOURCES',
+                message: `The region selected contains too much data. Please redraw the region smaller and try again. ${result.text}`
+              }
+              postMessage(await errorMsg(reqID, workerError))
               break
             }
           }
@@ -488,6 +506,7 @@ onmessage = async (event) => {
 
               if (result) {
                 read_result = result as Sr_Results_type
+                //logger.warn('Fetch result received', { func: cmd.func, read_result }, read_result)
                 target_numSvrExceptions =
                   'exceptrec' in read_result ? Number(read_result['exceptrec']) : 0
                 target_numArrowDataRecs =
@@ -549,10 +568,15 @@ onmessage = async (event) => {
                   msg
                 )
               )
-              exceptionsProgThreshInc = Math.floor(target_numSvrExceptions / 10)
-              let num_retries_left = 10 // TBD use configured timeout from params
+              exceptionsProgThreshInc = Math.floor(
+                target_numSvrExceptions / NUM_RETRIES_TO_CHECK_DONE
+              )
+              let num_retries_left = NUM_RETRIES_TO_CHECK_DONE // TBD maybe use configured timeout from params?
               got_all_cbs = false
-              while (num_retries_left > 0 && target_numArrowDataRecs > 0) {
+              while (
+                num_retries_left > 0 &&
+                (target_numArrowDataRecs > 0 || target_numSvrExceptions > 0)
+              ) {
                 logger.debug('Waiting for final callbacks', {
                   num_retries_left,
                   target_numArrowDataRecs,
@@ -599,6 +623,8 @@ onmessage = async (event) => {
                 num_retries_left--
                 await mysleep(1000)
               }
+              let serverTimeoutErrorMsgObj
+              let serverDoneServerMsgObj
               if (!got_all_cbs) {
                 logger.error('Failed to get all arrowrec.data callbacks', {
                   num_retries_left,
@@ -606,14 +632,17 @@ onmessage = async (event) => {
                   num_arrow_dataFile_data_recs_processed,
                   num_arrow_metaFile_data_recs_processed
                 })
-                postMessage(
-                  await errorMsg(reqID, {
-                    type: 'runWorkerError',
-                    code: 'TIMEOUT',
-                    message:
-                      'Server stopped sending data before all records were received. The request may have timed out or the server encountered an error.'
-                  })
+                serverTimeoutErrorMsgObj = await errorMsg(reqID, {
+                  type: 'runWorkerError',
+                  code: 'SERVER_TIMEOUT',
+                  message:
+                    'Server stopped sending data before all records were received. The request may have timed out or the server encountered an error.'
+                })
+                serverDoneServerMsgObj = await serverMsg(
+                  reqID,
+                  'Server stopped sending data before all records were received.'
                 )
+
                 //if(num_retries_left === 0) throw new Error('SlideRuleError:The server quit unexpectedly.');
               }
               logger.debug('Final callback counts', {
@@ -628,6 +657,26 @@ onmessage = async (event) => {
                 num_defs_fetched: get_num_defs_fetched(),
                 num_defs_rd_from_cache: get_num_defs_rd_from_cache()
               })
+              if (serverTimeoutErrorMsgObj) {
+                if (
+                  num_arrow_dataFile_data_recs_processed > 0 ||
+                  num_arrow_metaFile_data_recs_processed > 0
+                ) {
+                  logger.warn('Partial data was received before timeout', {
+                    num_arrow_dataFile_data_recs_processed,
+                    num_arrow_metaFile_data_recs_processed
+                  })
+                  postMessage(serverTimeoutErrorMsgObj)
+                  // Now we expect to get another error message from the server indicating The actual error maybe: too many resources
+                  // sending an
+                } else {
+                  logger.error('No data was received before timeout', {
+                    num_arrow_dataFile_data_recs_processed,
+                    num_arrow_metaFile_data_recs_processed
+                  })
+                  postMessage(serverDoneServerMsgObj)
+                }
+              }
             } catch (error) {
               read_state = 'error'
               postMessage(

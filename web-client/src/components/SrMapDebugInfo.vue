@@ -132,7 +132,7 @@ onBeforeUnmount(() => {
 <style scoped>
 .sr-map-debug-info {
   position: absolute;
-  bottom: 3rem;
+  bottom: 6rem;
   left: 0.5rem;
   z-index: 1000;
   background: rgba(0, 0, 0, 0.8);

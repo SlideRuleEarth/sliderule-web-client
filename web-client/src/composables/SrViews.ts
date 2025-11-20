@@ -27,17 +27,41 @@ export const srViews = ref<{ [key: string]: SrView }>({
     projectionName: 'EPSG:3857',
     baseLayerName: 'OpenStreet'
   },
-  North: {
-    hide: true,
-    view: 'North',
+  'North Alaska': {
+    hide: false,
+    view: 'North Alaska',
+    projectionName: 'EPSG:5936',
+    baseLayerName: 'Arctic Ocean Base'
+  },
+  'North Sea Ice': {
+    hide: false,
+    view: 'North Sea Ice',
     projectionName: 'EPSG:3413',
     baseLayerName: 'Arctic Imagery NSIDC'
   },
-  'South Antarctic Polar Stereographic': {
-    hide: true,
+  'South Antarctic Imagery': {
+    hide: false,
     view: 'South',
     projectionName: 'EPSG:3031',
     baseLayerName: 'Antarctic Imagery'
+  },
+  'South LIMA': {
+    hide: false,
+    view: 'South',
+    projectionName: 'EPSG:3031',
+    baseLayerName: 'LIMA'
+  },
+  'South MOA': {
+    hide: false,
+    view: 'South',
+    projectionName: 'EPSG:3031',
+    baseLayerName: 'MOA'
+  },
+  'South RadarMosaic': {
+    hide: false,
+    view: 'South',
+    projectionName: 'EPSG:3031',
+    baseLayerName: 'RadarMosaic'
   }
 })
 
