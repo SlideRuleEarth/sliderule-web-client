@@ -358,12 +358,13 @@ onmessage = async (event) => {
             case -1: {
               // RTE_FAILURE
               //console.warn('RTE_ERROR: exceptrec result:', result.text);
-              const workerError = {
-                type: 'serverError',
-                code: 'RTE_FAILURE',
-                message: `RTE_ERROR msg:${result.text}`
-              }
-              postMessage(await errorMsg(reqID, workerError))
+              // const workerError = {
+              //   type: 'serverError',
+              //   code: 'RTE_FAILURE',
+              //   message: `RTE_ERROR msg:${result.text}`
+              // }
+              //postMessage(await errorMsg(reqID, workerError))
+              postMessage(await serverMsg(reqID, `RTE_FAILURE msg: ${result.text}`))
               break
             }
             case -2: {
