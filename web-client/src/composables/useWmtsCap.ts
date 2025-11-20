@@ -39,7 +39,7 @@ export function useWmtsCap(projectionName: string) {
       //'Nasa Earth Observations': 'https://neo.gsfc.nasa.gov/wmts/wmts',
     }
   } else {
-    logger.warn('No Services found for projectionName', { projectionName })
+    logger.debug('No Services found for projectionName', { projectionName })
   }
   const map = mapStore.getMap()
   if (map) {

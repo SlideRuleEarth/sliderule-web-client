@@ -6,6 +6,9 @@ import { Style, Fill } from 'ol/style'
 import { fromLonLat } from 'ol/proj'
 import { ref } from 'vue'
 import type { Map as OLMap } from 'ol'
+import { createLogger } from '@/utils/logger'
+
+const logger = createLogger('usePolarOverlay')
 
 export interface PolarOverlayOptions {
   latitudeThreshold?: number
@@ -26,6 +29,8 @@ export function usePolarOverlay(options: PolarOverlayOptions = {}) {
   const polarLayer = ref<VectorLayer<VectorSource> | null>(null)
   const isVisible = ref(true) // Always visible by default
 
+  logger.debug('Initializing polar overlay', { config })
+
   /**
    * Creates a polygon feature representing the polar region above the specified latitude
    */
@@ -33,6 +38,12 @@ export function usePolarOverlay(options: PolarOverlayOptions = {}) {
     const latThreshold = config.latitudeThreshold
     const lonValues: number[] = []
     const latValues: number[] = []
+
+    logger.debug('Creating polar polygon', {
+      projectionName,
+      isNorthPole,
+      latThreshold
+    })
 
     // Create a circle of points around the pole at the threshold latitude
     const numPoints = 360 // One point per degree for smooth circle
@@ -57,6 +68,11 @@ export function usePolarOverlay(options: PolarOverlayOptions = {}) {
     const feature = new Feature({
       geometry: polygon,
       name: isNorthPole ? 'North Polar Region' : 'South Polar Region'
+    })
+
+    logger.debug('Polar polygon created', {
+      numCoordinates: coordinates.length,
+      featureName: feature.get('name')
     })
 
     return feature
@@ -102,12 +118,17 @@ export function usePolarOverlay(options: PolarOverlayOptions = {}) {
    */
   const addPolarOverlay = (map: OLMap, projectionName: string): void => {
     if (polarLayer.value) {
+      logger.debug('Removing existing polar overlay before adding new one')
       removePolarOverlay(map)
     }
 
     polarLayer.value = createPolarLayer(projectionName)
     map.addLayer(polarLayer.value as any)
-    console.log(`Polar overlay added for projection ${projectionName}`)
+    logger.info('Polar overlay added', {
+      projectionName,
+      latitudeThreshold: config.latitudeThreshold,
+      isVisible: isVisible.value
+    })
   }
 
   /**
@@ -117,7 +138,7 @@ export function usePolarOverlay(options: PolarOverlayOptions = {}) {
     if (polarLayer.value && map) {
       map.removeLayer(polarLayer.value as any)
       polarLayer.value = null
-      console.log('Polar overlay removed')
+      logger.debug('Polar overlay removed from map')
     }
   }
 
@@ -128,7 +149,7 @@ export function usePolarOverlay(options: PolarOverlayOptions = {}) {
     isVisible.value = !isVisible.value
     if (polarLayer.value) {
       polarLayer.value.setVisible(isVisible.value)
-      console.log(`Polar overlay visibility: ${isVisible.value}`)
+      logger.debug('Polar overlay visibility toggled', { isVisible: isVisible.value })
     }
   }
 
@@ -139,6 +160,7 @@ export function usePolarOverlay(options: PolarOverlayOptions = {}) {
     isVisible.value = visible
     if (polarLayer.value) {
       polarLayer.value.setVisible(visible)
+      logger.debug('Polar overlay visibility set', { visible })
     }
   }
 
@@ -146,7 +168,8 @@ export function usePolarOverlay(options: PolarOverlayOptions = {}) {
    * Updates the overlay opacity
    */
   const setPolarOverlayOpacity = (opacity: number): void => {
-    config.opacity = Math.max(0, Math.min(1, opacity))
+    const clampedOpacity = Math.max(0, Math.min(1, opacity))
+    config.opacity = clampedOpacity
     if (polarLayer.value) {
       const style = new Style({
         fill: new Fill({
@@ -156,6 +179,7 @@ export function usePolarOverlay(options: PolarOverlayOptions = {}) {
         })
       })
       polarLayer.value.setStyle(style)
+      logger.debug('Polar overlay opacity updated', { opacity: clampedOpacity })
     }
   }
 

@@ -1604,12 +1604,12 @@ export const refreshScatterPlot = async (msg: string) => {
       await initScatterPlotWith(recTreeStore.selectedReqId)
       await addOverlaysToScatterPlot()
     } else {
-      logger.warn(
+      logger.debug(
         'Ignoring refreshScatterPlot with no chart to refresh, plotRef.chart is undefined'
       )
     }
   } else {
-    logger.warn('Ignoring refreshScatterPlot with no plot to refresh, plotRef is undefined')
+    logger.debug('Ignoring refreshScatterPlot with no plot to refresh, plotRef is undefined')
   }
 }
 

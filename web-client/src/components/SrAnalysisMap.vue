@@ -388,7 +388,7 @@ onMounted(async () => {
   window.onerror = (message, source, lineno, colno, error) => {
     if (typeof message === 'string' && message.includes('coordinates must be finite numbers')) {
       const currentView = mapRef.value?.map.getView()
-      logger.warn(
+      logger.debug(
         'Caught projection error during map rendering - likely zoom beyond projection extent',
         {
           zoom: currentView?.getZoom(),

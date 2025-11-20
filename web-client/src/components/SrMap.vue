@@ -1138,7 +1138,7 @@ function addRecordLayer(): void {
       }
     })
   } else {
-    logger.warn('Skipping addRecordLayer when map is null')
+    logger.debug('Skipping addRecordLayer when map is null')
   }
   const endTime = performance.now() // End time
   logger.debug('addRecordLayer performance', {

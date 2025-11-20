@@ -43,7 +43,7 @@ export function useWmsCap(projectionName: string) {
         'https://nimbus.cr.usgs.gov/arcgis/services/Antarctica/USGS_EROS_Antarctica_Reference/MapServer/WmsServer'
     }
   } else {
-    logger.warn('No Services found for projectionName', { projectionName })
+    logger.debug('No Services found for projectionName', { projectionName })
   }
   const map = mapStore.getMap()
   if (map) {
