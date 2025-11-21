@@ -664,9 +664,13 @@ export async function processSelectedElPnt(d: ElevationDataItem): Promise<void> 
   if (ttRef) {
     ttRef.hideTooltip()
   }
-  useAtlChartFilterStore().setShowPhotonCloud(false)
+  const atlChartFilterStore = useAtlChartFilterStore()
+  atlChartFilterStore.setShowPhotonCloud(false)
   clearPlot()
-  useAtlChartFilterStore().setSelectedOverlayedReqIds([])
+  atlChartFilterStore.setSelectedOverlayedReqIds([])
+
+  // Reset zoom when filters change (clicking on elevation point)
+  atlChartFilterStore.resetZoom()
   const mission = useFieldNameStore().getMissionForReqId(useRecTreeStore().selectedReqId)
 
   if (mission === 'ICESat-2') {
