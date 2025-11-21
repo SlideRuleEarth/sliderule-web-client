@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import SrReqDisplay from './SrReqDisplay.vue'
-import { useMapStore } from '@/stores/mapStore'
+import { useRequestMapStore } from '@/stores/requestMapStore'
 import { onMounted, defineAsyncComponent } from 'vue'
 import { useSlideruleDefaults } from '@/stores/defaultsStore'
 // eslint-disable-next-line @typescript-eslint/promise-function-async
@@ -8,7 +8,7 @@ const SrGenUserPresets = defineAsyncComponent(() => import('./SrGenUserPresets.v
 
 onMounted(() => {
   //console.log('Mounted SrGenUserSidebar');
-  useMapStore().setPolySource('Draw on Map')
+  useRequestMapStore().setPolySource('Draw on Map')
 })
 </script>
 

@@ -2,20 +2,29 @@
 import { ref, onMounted, computed } from 'vue'
 import { Control } from 'ol/control'
 import { getDefaultBaseLayerForView, getUniqueViews } from '@/composables/SrViews'
-import { useMapStore } from '@/stores/mapStore'
 import SrMenu from './SrMenu.vue'
 import { createLogger } from '@/utils/logger'
 import { srProjections } from '@/composables/SrProjections'
+import type { useRequestMapStore } from '@/stores/requestMapStore'
 
 const logger = createLogger('SrViewControl')
 
-const mapStore = useMapStore()
+interface Props {
+  mapStore: ReturnType<typeof useRequestMapStore>
+}
+
+const props = defineProps<Props>()
 const viewControlElement = ref(null)
 const emit = defineEmits(['view-control-created', 'update-view'])
 
+const selectedView = computed({
+  get: () => props.mapStore.selectedView,
+  set: (value: string) => props.mapStore.setSelectedView(value)
+})
+
 // Compute tooltip text showing current projection
 const projectionTooltip = computed(() => {
-  const srViewObj = mapStore.getSrViewObj()
+  const srViewObj = props.mapStore.getSrViewObj()
   const projName = srViewObj.projectionName
   const projInfo = srProjections.value[projName]
   if (projInfo) {
@@ -34,13 +43,13 @@ onMounted(() => {
 
 function updateView() {
   //console.log("updateView view:", event);
-  const baseLayer = getDefaultBaseLayerForView(mapStore.getSelectedView())
+  const baseLayer = getDefaultBaseLayerForView(props.mapStore.getSelectedView())
   if (baseLayer.value) {
-    mapStore.setSelectedBaseLayer(baseLayer.value)
+    props.mapStore.setSelectedBaseLayer(baseLayer.value)
   } else {
     logger.error('updateView Error: defaulted baseLayer is null')
   }
-  logger.debug('updateView', { view: mapStore.selectedView })
+  logger.debug('updateView', { view: props.mapStore.selectedView })
 
   emit('update-view')
 }
@@ -49,11 +58,11 @@ function updateView() {
 <template>
   <div ref="viewControlElement" class="sr-view-control ol-unselectable ol-control">
     <SrMenu
-      v-model="mapStore.selectedView"
+      v-model="selectedView"
       @change="updateView"
       :menuOptions="getUniqueViews().value"
-      :getSelectedMenuItem="mapStore.getSelectedView"
-      :setSelectedMenuItem="mapStore.setSelectedView"
+      :getSelectedMenuItem="props.mapStore.getSelectedView"
+      :setSelectedMenuItem="props.mapStore.setSelectedView"
       :tooltipText="projectionTooltip"
     />
   </div>

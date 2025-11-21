@@ -4,7 +4,6 @@ import ImageLayer from 'ol/layer/Image.js'
 import TileWMS from 'ol/source/TileWMS' // Import the TileWMS module
 import ImageArcGISRest from 'ol/source/ImageArcGISRest.js'
 import type ImageSource from 'ol/source/Image.js'
-import { useMapStore } from '@/stores/mapStore.js'
 import type { ServerType } from 'ol/source/wms.js'
 import { XYZ } from 'ol/source.js'
 import TileGrid from 'ol/tilegrid/TileGrid.js'
@@ -278,25 +277,21 @@ export const layers = ref<{ [key: string]: SrLayer }>({
   }
 })
 
-export const getSrLayersForCurrentView = () => {
-  const mapStore = useMapStore()
-  const srViewObj = mapStore.getSrViewObj()
-  const projName = srViewObj.projectionName
+export const getSrLayersForCurrentView = (projectionName: string) => {
   return Object.values(layers.value).filter((layer) =>
-    layer.allowed_reprojections.includes(projName)
+    layer.allowed_reprojections.includes(projectionName)
   )
 }
 
-export const getSrLayersForCurrentProjection = () => {
-  const mapStore = useMapStore()
+export const getSrLayersForCurrentProjection = (projectionName: string) => {
   return Object.values(layers.value).filter((layer) =>
-    layer.allowed_reprojections.includes(mapStore.getSrViewObj().projectionName)
+    layer.allowed_reprojections.includes(projectionName)
   )
 }
 
-export const getSrBaseLayersForCurrentView = () => {
+export const getSrBaseLayersForCurrentView = (projectionName: string) => {
   //logger.debug('getSrBaseLayersForCurrentView', view);
-  const allLayersList = getSrLayersForCurrentView()
+  const allLayersList = getSrLayersForCurrentView(projectionName)
   const layerList = Object.values(allLayersList).filter((layer) => layer.isBaseLayer)
   //logger.debug('getSrBaseLayersForCurrentView', layerList);
   return layerList
@@ -305,7 +300,7 @@ export const getSrBaseLayersForCurrentView = () => {
 export const addLayersForCurrentView = (map: OLMap, projectionName: string) => {
   //logger.debug('--------------------addLayersForCurrentView--------------------');
   try {
-    const srLayersForView = getSrLayersForCurrentView()
+    const srLayersForView = getSrLayersForCurrentView(projectionName)
     srLayersForView.forEach((srLayerForView) => {
       if (!srLayerForView.isBaseLayer) {
         // base layer is managed by baseLayerControl

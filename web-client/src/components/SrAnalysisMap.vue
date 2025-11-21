@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useMapStore } from '@/stores/mapStore'
+import { useAnalysisViewMapStore } from '@/stores/analysisViewMapStore'
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import type OLMap from 'ol/Map.js'
 import ProgressSpinner from 'primevue/progressspinner'
@@ -81,7 +81,7 @@ const stringifyFunc = (coordinate: Coordinate) => {
 const mapContainer = ref<HTMLElement | null>(null)
 const mapRef = ref<{ map: OLMap }>()
 const legendRef = ref<any>()
-const mapStore = useMapStore()
+const analysisViewMapStore = useAnalysisViewMapStore()
 const requestsStore = useRequestsStore()
 const recTreeStore = useRecTreeStore()
 const deckStore = useDeckStore()
@@ -129,7 +129,7 @@ const locationFinderReady = computed(() => {
 const handleEvent = (event: any) => {
   logger.debug('Map event', { event })
 }
-const computedProjName = computed(() => mapStore.getSrViewObj().projectionName)
+const computedProjName = computed(() => analysisViewMapStore.getSrViewObj().projectionName)
 
 // Track current zoom level (DEBUG)
 const currentZoom = ref<number>(0)
@@ -358,12 +358,12 @@ onMounted(async () => {
       return
     }
   }
-  mapStore.setSelectedView(viewObj.view) // Set the selected view in the map store
-  //const selectedView = mapStore.getSelectedView(); // Get the selected view
+  analysisViewMapStore.setSelectedView(viewObj.view) // Set the selected view in the map store
+  //const selectedView = analysisViewMapStore.getSelectedView(); // Get the selected view
   //logger.debug(`SrAnalysisMap onMounted: selected view is ${selectedView} with srViewName: ${srViewName}`);
 
   if (viewObj.baseLayerName) {
-    mapStore.setSelectedBaseLayer(viewObj.baseLayerName)
+    analysisViewMapStore.setSelectedBaseLayer(viewObj.baseLayerName)
     //logger.debug(`SrAnalysisMap onMounted: set default baseLayer to ${viewObj.baseLayerName} for selected view ${selectedView}`);
   } else {
     logger.error('SrAnalysisMap onMounted: defaulted baseLayer is null')
@@ -371,7 +371,7 @@ onMounted(async () => {
   await updateAnalysisMapView('onMounted')
 
   // Add graticule layer AFTER view is set - it needs the view to calculate grid lines
-  const graticule = mapStore.getOrCreateGraticule(map)
+  const graticule = analysisViewMapStore.getOrCreateGraticule(map)
   map.addLayer(graticule)
 
   logger.debug('Graticule layer added to analysis map after view set', {
@@ -485,7 +485,10 @@ function handleGraticuleControlCreated(graticuleControl: any) {
 
 const handleUpdateBaseLayer = async () => {
   //logger.debug("SrAnalysisMap handleUpdateBaseLayer called");
-  const srViewKey = findSrViewKey(useMapStore().selectedView, useMapStore().selectedBaseLayer)
+  const srViewKey = findSrViewKey(
+    useAnalysisViewMapStore().selectedView,
+    useAnalysisViewMapStore().selectedBaseLayer
+  )
   if (srViewKey.value) {
     await updateSrViewName(srViewKey.value) // Update the SrViewName in the DB based on the current selection
     //logger.debug("SrAnalysisMap handleUpdateBaseLayer: Updated SrViewName based on User selected view and base layer:", srViewKey.value);
@@ -611,9 +614,9 @@ const updateAnalysisMapView = async (reason: string) => {
       }
 
       // Set the map store to use the compatible view
-      mapStore.setSelectedView(actualViewToUse.view)
+      analysisViewMapStore.setSelectedView(actualViewToUse.view)
       if (actualViewToUse.baseLayerName) {
-        mapStore.setSelectedBaseLayer(actualViewToUse.baseLayerName)
+        analysisViewMapStore.setSelectedBaseLayer(actualViewToUse.baseLayerName)
       }
       logger.debug('Applied view from record', {
         savedView: srViewName,
@@ -623,10 +626,20 @@ const updateAnalysisMapView = async (reason: string) => {
         fallback: actualViewToUse !== viewObj
       })
 
-      const srViewObj = mapStore.getSrViewObj() // Fixed memory references
-      const srViewKey = findSrViewKey(mapStore.getSelectedView(), mapStore.getSelectedBaseLayer())
+      const srViewObj = analysisViewMapStore.getSrViewObj() // Fixed memory references
+      const srViewKey = findSrViewKey(
+        analysisViewMapStore.getSelectedView(),
+        analysisViewMapStore.getSelectedBaseLayer()
+      )
       if (srViewKey.value) {
-        updateMapView(map, srViewKey.value, reason, false, props.selectedReqId)
+        updateMapView(
+          map,
+          srViewKey.value,
+          reason,
+          analysisViewMapStore,
+          false,
+          props.selectedReqId
+        )
         addLayersForCurrentView(map, srViewObj.projectionName)
 
         // TEMPORARY DEBUG: Log all layers after view is set up
@@ -669,7 +682,13 @@ const updateAnalysisMapView = async (reason: string) => {
           )
           map.addLayer(recordsLayer)
           //dumpMapLayers(map,'SrAnalysisMap');
-          void renderSvrReqPoly(map, props.selectedReqId, 'Records Layer', true)
+          void renderSvrReqPoly(
+            map,
+            props.selectedReqId,
+            'Records Layer',
+            true,
+            analysisViewMapStore
+          )
         }
 
         deckStore.clearDeckInstance() // Clear any existing instance first
@@ -893,10 +912,14 @@ function handleSaveTooltip() {
           :selectedReqId="props.selectedReqId"
         />
         <SrBaseLayerControl
+          :mapStore="analysisViewMapStore"
           @baselayer-control-created="handleBaseLayerControlCreated"
           @update-baselayer="handleUpdateBaseLayer"
         />
-        <SrGraticuleControl @graticule-control-created="handleGraticuleControlCreated" />
+        <SrGraticuleControl
+          :mapStore="analysisViewMapStore"
+          @graticule-control-created="handleGraticuleControlCreated"
+        />
         <SrLocationFinder
           v-if="
             hasLinkToElevationPlot &&

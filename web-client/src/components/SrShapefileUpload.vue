@@ -6,7 +6,7 @@ import type OLMap from 'ol/Map.js'
 import type { Feature as OLFeature } from 'ol'
 import type { Geometry } from 'ol/geom'
 import { useToast } from 'primevue/usetoast'
-import { useMapStore } from '@/stores/mapStore'
+import { useRequestMapStore } from '@/stores/requestMapStore'
 
 // ✅ NEW imports from your updated composable
 import {
@@ -26,7 +26,7 @@ const emit = defineEmits<{
   (_e: 'done'): void // use lowercase; parent listens as @done
 }>()
 
-const mapStore = useMapStore()
+const mapStore = useRequestMapStore()
 const toast = useToast()
 
 const showDialog = ref(false)
@@ -80,7 +80,7 @@ const onFilesSelected = (event: Event) => {
       // 1) Load → store → draw → fit (toasts included inside)
       await loadShapefileToMap(input, {
         loadReqPoly: props.loadReqPoly,
-        map: useMapStore().getMap() as OLMap | null, // optional; loadShapefileToMap will default to the store
+        map: useRequestMapStore().getMap() as OLMap | null, // optional; loadShapefileToMap will default to the store
         fitToExtent: true,
         toast: toast,
         toastLifeMs: 10000

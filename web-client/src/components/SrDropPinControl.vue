@@ -33,7 +33,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { Control } from 'ol/control'
-import { useMapStore } from '@/stores/mapStore'
+import { useRequestMapStore } from '@/stores/requestMapStore'
 import Button from 'primevue/button'
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue'
 import { useToast } from 'primevue'
@@ -46,7 +46,7 @@ const toast = useToast()
 const recTreeStore = useRecTreeStore()
 const reqParamsStore = useReqParamsStore()
 
-const mapStore = useMapStore()
+const mapStore = useRequestMapStore()
 const emit = defineEmits(['drop-pin-control-created'])
 
 const dropPinWrapper = ref<HTMLElement | null>(null)

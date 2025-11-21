@@ -12,7 +12,7 @@ import { srProjections } from '@/composables/SrProjections'
 import proj4 from 'proj4'
 import { register } from 'ol/proj/proj4.js'
 import 'ol-geocoder/dist/ol-geocoder.min.css'
-import { useMapStore } from '@/stores/mapStore'
+import { useRequestMapStore } from '@/stores/requestMapStore'
 import { useGeoCoderStore } from '@/stores/geoCoderStore'
 import { get as getProjection } from 'ol/proj.js'
 import { addLayersForCurrentView } from '@/composables/SrLayers'
@@ -148,7 +148,7 @@ const geoCoderStore = useGeoCoderStore()
 const lonlat_template = 'Latitude:{y}\u00B0, Longitude:{x}\u00B0'
 const meters_template = 'y:{y}m, x:{x}m'
 const stringifyFunc = (coordinate: Coordinate) => {
-  const projName = useMapStore().getSrViewObj().projectionName
+  const projName = useRequestMapStore().getSrViewObj().projectionName
   let newProj = getProjection(projName)
   let newCoord = coordinate
   if (!debugStore.useMetersForMousePosition) {
@@ -166,7 +166,7 @@ const stringifyFunc = (coordinate: Coordinate) => {
 }
 const srDrawControlRef = ref<SrDrawControlMethods | null>(null)
 const mapRef = ref<{ map: OLMap }>()
-const mapStore = useMapStore()
+const mapStore = useRequestMapStore()
 const toast = useToast()
 
 // Initialize polar overlay composable - always visible
@@ -389,7 +389,7 @@ dragBox.on('boxend', function () {
       // Get the coordinates of the polygon shaped as a rectangle
       mapStore.polyCoords = geometry.getCoordinates()
       if (mapRef.value?.map) {
-        enableTagDisplay(mapRef.value?.map, vectorSource)
+        enableTagDisplay(mapRef.value?.map, vectorSource, mapStore)
       } else {
         logger.error('Map is null in dragBox boxend handler')
       }
@@ -489,7 +489,7 @@ drawPolygon.on('drawend', function (event) {
         const rings = geometry.getCoordinates() // This retrieves all rings
         //console.log("Original polyCoords:", rings);
 
-        const projName = useMapStore().getSrViewObj().projectionName
+        const projName = useRequestMapStore().getSrViewObj().projectionName
         let thisProj = getProjection(projName)
         let flatLonLatPairs
         if (thisProj?.getUnits() !== 'degrees') {
@@ -557,7 +557,7 @@ drawPolygon.on('drawend', function (event) {
             }
           }
           if (map) {
-            enableTagDisplay(map, vectorSource)
+            enableTagDisplay(map, vectorSource, mapStore)
           } else {
             logger.error('Map is null when enabling tag display')
           }
@@ -626,7 +626,7 @@ drawPolygon.on('drawend', function (event) {
 
 const clearDrawingLayer = () => {
   //console.log("Clearing Drawing Layer");
-  disableTagDisplay()
+  disableTagDisplay(mapStore)
   let cleared = false
   const vectorLayer = mapRef.value?.map
     .getLayers()
@@ -858,7 +858,7 @@ onMounted(async () => {
       }
       const projectionNames = useProjectionNames()
       projectionNames.value.forEach((name) => {
-        const wmsCap = useWmsCap(name)
+        const wmsCap = useWmsCap(name, mapStore)
         if (wmsCap) {
           mapStore.cacheWmsCapForProjection(name, wmsCap)
         } else {
@@ -867,7 +867,7 @@ onMounted(async () => {
         //
         // TBD WMTS element is same as WMS element, can't add both?
         //
-        // const wmtsCap = useWmtsCap(name);
+        // const wmtsCap = useWmtsCap(name, mapStore);
         // if(wmtsCap){
         //   mapStore.cacheWmtsCapForProjection(name, wmtsCap);
         // } else {
@@ -889,7 +889,7 @@ onMounted(async () => {
         stopEvent: false
       })
       map.addOverlay(dragAreaOverlay.value as unknown as import('ol/Overlay').default)
-      await updateReqMapView('SrMap onMounted', canRestoreZoomCenter(map))
+      await updateReqMapView('SrMap onMounted', canRestoreZoomCenter(map, mapStore))
 
       // Add graticule layer AFTER view is set - it needs the view to calculate grid lines
       const graticule = mapStore.getOrCreateGraticule(map)
@@ -971,7 +971,7 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   logger.debug('Saving map zoom state before unmount')
   if (mapRef.value?.map) {
-    saveMapZoomState(mapRef.value.map)
+    saveMapZoomState(mapRef.value.map, mapStore)
   } else {
     logger.error('mapRef.value?.map is null on unmount')
   }
@@ -1091,55 +1091,69 @@ function addRecordLayer(): void {
   const reqIds = recTreeStore.allReqIds
   const selectedReqId = recTreeStore.selectedReqId
   const map = mapRef.value?.map
-  if (map) {
-    // Clear existing features from records and pin layers before re-rendering
-    // This ensures features are rendered in the current projection's coordinate system
-    recordsVectorSource.clear()
-    pinVectorSource.clear()
 
-    assignStyleFunctionToPinLayer(map, useMapStore().getMinZoomToShowPin())
-    reqIds.forEach((reqId) => {
-      try {
-        // Skip the currently selected request - it's being edited on Drawing Layer
-        // Only render it if it's a different request (for viewing past requests)
-        if (reqId === selectedReqId && reqParamsStore.poly) {
-          logger.debug('Skipping selected reqId in addRecordLayer (it is on Drawing Layer)', {
-            reqId
-          })
-          return
-        }
+  // Check if map and layers are ready
+  if (!map) {
+    logger.debug('Skipping addRecordLayer: map not ready')
+    return
+  }
 
-        const api = recTreeStore.findApiForReqId(reqId)
-        if (api.includes('atl13')) {
-          renderSvrReqPin(map, reqId).catch((error) => {
-            logger.error('renderSvrReqPin failed in addRecordLayer', {
-              reqId,
-              error: error instanceof Error ? error.message : String(error)
-            })
-          })
-        }
-        renderSvrReqPoly(map, reqId).catch((error) => {
-          logger.error('renderSvrReqPoly failed in addRecordLayer', {
+  // Check if Records Layer exists on the map
+  const hasRecordsLayer = map
+    .getLayers()
+    .getArray()
+    .some((layer) => layer.get('name') === 'Records Layer')
+  if (!hasRecordsLayer) {
+    logger.debug('Skipping addRecordLayer: Records Layer not yet added to map')
+    return
+  }
+
+  // Clear existing features from records and pin layers before re-rendering
+  // This ensures features are rendered in the current projection's coordinate system
+  recordsVectorSource.clear()
+  pinVectorSource.clear()
+
+  assignStyleFunctionToPinLayer(map, useRequestMapStore().getMinZoomToShowPin())
+  reqIds.forEach((reqId) => {
+    try {
+      // Skip the currently selected request - it's being edited on Drawing Layer
+      // Only render it if it's a different request (for viewing past requests)
+      if (reqId === selectedReqId && reqParamsStore.poly) {
+        logger.debug('Skipping selected reqId in addRecordLayer (it is on Drawing Layer)', {
+          reqId
+        })
+        return
+      }
+
+      const api = recTreeStore.findApiForReqId(reqId)
+      if (api.includes('atl13')) {
+        renderSvrReqPin(map, reqId).catch((error) => {
+          logger.error('renderSvrReqPin failed in addRecordLayer', {
             reqId,
             error: error instanceof Error ? error.message : String(error)
           })
         })
-        renderSvrReqRegionMask(map, reqId).catch((error) => {
-          logger.error('renderSvrReqRegionMask failed in addRecordLayer', {
-            reqId,
-            error: error instanceof Error ? error.message : String(error)
-          })
-        })
-      } catch (error) {
-        logger.error('Synchronous error in addRecordLayer loop', {
+      }
+      renderSvrReqPoly(map, reqId).catch((error) => {
+        logger.error('renderSvrReqPoly failed in addRecordLayer', {
           reqId,
           error: error instanceof Error ? error.message : String(error)
         })
-      }
-    })
-  } else {
-    logger.debug('Skipping addRecordLayer when map is null')
-  }
+      })
+      renderSvrReqRegionMask(map, reqId).catch((error) => {
+        logger.error('renderSvrReqRegionMask failed in addRecordLayer', {
+          reqId,
+          error: error instanceof Error ? error.message : String(error)
+        })
+      })
+    } catch (error) {
+      logger.error('Synchronous error in addRecordLayer loop', {
+        reqId,
+        error: error instanceof Error ? error.message : String(error)
+      })
+    }
+  })
+
   const endTime = performance.now() // End time
   logger.debug('addRecordLayer performance', {
     reqIdsCount: reqIds.length,
@@ -1159,7 +1173,7 @@ function drawCurrentReqPolyAndPin() {
       if (vectorSource) {
         // Draw the raw polygon
         if (reqParamsStore.poly) {
-          renderRequestPolygon(map, reqParamsStore.poly, 'red')
+          renderRequestPolygon(map, reqParamsStore.poly, 'red', 0, 'Drawing Layer', false, mapStore)
         }
 
         // Always recalculate convex hull right before drawing
@@ -1169,7 +1183,7 @@ function drawCurrentReqPolyAndPin() {
 
           if (hull && hull.length > 0) {
             // Draw convex hull in a different color (using hullColor)
-            renderRequestPolygon(map, hull, hullColor, 0, 'Drawing Layer', false)
+            renderRequestPolygon(map, hull, hullColor, 0, 'Drawing Layer', false, mapStore)
           }
         }
 
@@ -1369,7 +1383,7 @@ const updateReqMapView = async (reason: string, restoreView: boolean = false) =>
         applyProjectionExtentFiltering(uploadedFeaturesVectorLayer, srViewObj.projectionName, map)
         applyProjectionExtentFiltering(bathymetryFeaturesVectorLayer, srViewObj.projectionName, map)
 
-        await updateMapView(map, srViewKey.value, reason, restoreView)
+        await updateMapView(map, srViewKey.value, reason, mapStore, restoreView)
         map.addLayer(drawVectorLayer)
         map.addLayer(pinVectorLayer)
         map.addLayer(recordsLayer)
@@ -1409,7 +1423,7 @@ const handleUpdateSrView = async () => {
     const map = mapRef.value?.map
     try {
       if (map) {
-        saveMapZoomState(map)
+        saveMapZoomState(map, mapStore)
         await updateReqMapView('handleUpdateSrView', false) // Don't restore - use projection defaults
         addRecordLayer() // this happens asynchronously after changing view
       } else {
@@ -1427,7 +1441,10 @@ const handleUpdateSrView = async () => {
 
 const handleUpdateBaseLayer = async () => {
   const baseLayer = mapStore.getSelectedBaseLayer()
-  const srViewKey = findSrViewKey(useMapStore().selectedView, useMapStore().selectedBaseLayer)
+  const srViewKey = findSrViewKey(
+    useRequestMapStore().selectedView,
+    useRequestMapStore().selectedBaseLayer
+  )
   if (srViewKey.value) {
     await updateSrViewName(srViewKey.value) // Update the SrViewName in the DB based on the current selection
   } else {
@@ -1452,7 +1469,7 @@ const handleUpdateBaseLayer = async () => {
       } else {
         logger.error('Zoom is null in handleUpdateBaseLayer')
       }
-      saveMapZoomState(map)
+      saveMapZoomState(map, mapStore)
       await updateReqMapView('handleUpdateBaseLayer', true)
     } else {
       logger.error('Map is null in handleUpdateBaseLayer')
@@ -1637,14 +1654,19 @@ watch(
           :offsetY="'18.5rem'"
         />
         <SrViewControl
+          :mapStore="mapStore"
           @view-control-created="handleViewControlCreated"
           @update-view="handleUpdateSrView"
         />
         <SrBaseLayerControl
+          :mapStore="mapStore"
           @baselayer-control-created="handleBaseLayerControlCreated"
           @update-baselayer="handleUpdateBaseLayer"
         />
-        <SrGraticuleControl @graticule-control-created="handleGraticuleControlCreated" />
+        <SrGraticuleControl
+          :mapStore="mapStore"
+          @graticule-control-created="handleGraticuleControlCreated"
+        />
         <SrUploadRegionControl
           v-if="reqParamsStore.iceSat2SelectedAPI != 'atl13x'"
           :reportUploadProgress="true"

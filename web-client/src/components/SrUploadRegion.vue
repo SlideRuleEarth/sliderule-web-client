@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue'
 import Dialog from 'primevue/dialog'
 import Button from 'primevue/button'
-import { useMapStore } from '@/stores/mapStore'
+import { useRequestMapStore } from '@/stores/requestMapStore'
 import SrGeoJsonFileUpload from '@/components/SrGeoJsonFileUpload.vue'
 import SrSliderInput from '@/components/SrSliderInput.vue'
 import { useReqParamsStore } from '@/stores/reqParamsStore'
@@ -33,7 +33,7 @@ const computedTooltipText = computed(() =>
 const computedLabelText = computed(() =>
   props.loadReqPoly ? 'Upload Region of Interest' : 'Upload Features to Map'
 )
-const mapStore = useMapStore()
+const mapStore = useRequestMapStore()
 const reqParamsStore = useReqParamsStore()
 
 const showDialog = ref(false)

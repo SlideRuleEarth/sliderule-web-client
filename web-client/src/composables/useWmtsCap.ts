@@ -1,13 +1,15 @@
 import ol_control_WMTSCapabilities from 'ol-ext/control/WMTSCapabilities'
-import { useMapStore } from '@/stores/mapStore'
 import { createLogger } from '@/utils/logger'
+import BaseEvent from 'ol/events/Event'
+import type { useRequestMapStore } from '@/stores/requestMapStore'
+import type { useAnalysisViewMapStore } from '@/stores/analysisViewMapStore'
 
 const logger = createLogger('useWmtsCap')
-import BaseEvent from 'ol/events/Event'
 
-const mapStore = useMapStore()
-
-export function useWmtsCap(projectionName: string) {
+export function useWmtsCap(
+  projectionName: string,
+  mapStore: ReturnType<typeof useRequestMapStore> | ReturnType<typeof useAnalysisViewMapStore>
+) {
   logger.debug('useWmtsCap called', { projectionName })
   let services = {}
   if (projectionName === 'EPSG:3857') {

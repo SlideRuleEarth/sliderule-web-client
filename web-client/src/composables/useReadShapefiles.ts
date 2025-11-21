@@ -8,7 +8,7 @@ import type { Geometry } from 'ol/geom'
 import shp from 'shpjs'
 import JSZip from 'jszip'
 import { useGeoJsonStore } from '@/stores/geoJsonStore'
-import { useMapStore } from '@/stores/mapStore'
+import { useRequestMapStore } from '@/stores/requestMapStore'
 import type OLMap from 'ol/Map.js'
 import { handleGeoJsonLoad, zoomOutToFullMap } from '@/utils/SrMapUtils'
 import { prjToSupportedEpsg } from '@/utils/prjToEpsg'
@@ -140,7 +140,7 @@ export async function loadShapefileToMap(
   const { loadReqPoly = false, fitToExtent = true, toast, toastLifeMs = 5000 } = options
 
   const geoJsonStore = useGeoJsonStore()
-  const map = options.map ?? useMapStore().getMap()
+  const map = options.map ?? useRequestMapStore().getMap()
   let drawExtent: number[] | undefined
   const { geojson, warning, detectedProjection } = await parseShapefileToGeoJSON(input)
   logger.debug('Shapefile parsed', { geojson, warning, detectedProjection })
@@ -310,8 +310,8 @@ export async function readShapefileToOlFeatures(
   const detected = prjToSupportedEpsg(prjText ?? null)
   let sourceCRS = forced || detected || 'EPSG:4326'
 
-  // Use the map’s current projection as target (or the override)
-  const mapTarget = useMapStore().getSrViewObj()?.projectionName || 'EPSG:3857'
+  // Use the map's current projection as target (or the override)
+  const mapTarget = useRequestMapStore().getSrViewObj()?.projectionName || 'EPSG:3857'
   const targetCRS = opts?.targetCRS || mapTarget
 
   // If for some reason it’s not registered, fall back safely

@@ -136,7 +136,7 @@ vi.mock('ol/proj', () => ({
 
 vi.mock('@/stores/geoJsonStore', () => storesMock)
 vi.mock('@/stores/reqParamsStore', () => storesMock)
-vi.mock('@/stores/mapStore', () => storesMock)
+vi.mock('@/stores/requestMapStore', () => storesMock)
 
 vi.mock('@/utils/SrMapUtils', () => ({
   // eslint-disable-next-line @typescript-eslint/promise-function-async

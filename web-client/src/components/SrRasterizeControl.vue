@@ -19,7 +19,7 @@
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import Control from 'ol/control/Control'
 import SrRasterize from './SrRasterize.vue'
-import { useMapStore } from '@/stores/mapStore'
+import { useRequestMapStore } from '@/stores/requestMapStore'
 
 type Corner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
 
@@ -38,7 +38,7 @@ const props = defineProps({
   zIndex: { type: [Number, String], default: undefined }
 })
 
-const mapStore = useMapStore()
+const mapStore = useRequestMapStore()
 
 const emit = defineEmits<{
   /** Parent (SrMap.vue) listens and calls map.addControl(control) */

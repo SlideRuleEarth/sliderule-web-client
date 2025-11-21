@@ -1,5 +1,6 @@
-import { useMapStore } from '@/stores/mapStore'
 import { computed } from 'vue'
+import { useRequestMapStore } from '@/stores/requestMapStore'
+import { useAnalysisViewMapStore } from '@/stores/analysisViewMapStore'
 import { useGeoJsonStore } from '@/stores/geoJsonStore'
 import { ScatterplotLayer } from '@deck.gl/layers'
 import { COORDINATE_SYSTEM } from '@deck.gl/core'
@@ -92,7 +93,7 @@ export const polyCoordsExist = computed(() => {
   let exist = false
   if (useGeoJsonStore().getReqGeoJsonData()) {
     exist = true
-  } else if (useMapStore().polyCoords.length > 0) {
+  } else if (useRequestMapStore().polyCoords.length > 0) {
     exist = true
   } else {
     exist = false
@@ -108,7 +109,7 @@ export const clearReqGeoJsonData = () => {
 }
 
 export const clearPolyCoords = () => {
-  useMapStore().polyCoords = []
+  useRequestMapStore().polyCoords = []
   clearReqGeoJsonData()
 }
 
@@ -171,9 +172,10 @@ export function drawGeoJson(
   color: string,
   noFill: boolean = false,
   tag: string = '',
-  dataProjection: string = 'EPSG:4326'
+  dataProjection: string = 'EPSG:4326',
+  map?: OLMap,
+  projectionName?: string
 ): Extent | undefined {
-  const map = useMapStore().map
   if (!map || !vectorSource || !geoJsonData) return
 
   const format = new GeoJSON()
@@ -192,7 +194,7 @@ export function drawGeoJson(
 
     features = format.readFeatures(normalized, {
       dataProjection,
-      featureProjection: useMapStore().getSrViewObj()?.projectionName || 'EPSG:3857'
+      featureProjection: projectionName || map.getView().getProjection().getCode() || 'EPSG:3857'
     })
   } catch (e) {
     logger.error('Failed to parse GeoJSON', { error: e instanceof Error ? e.message : String(e) })
@@ -332,7 +334,10 @@ export function handleGeoJsonLoad(
           JSON.stringify({ type: 'Feature', geometry, properties }),
           polyColor,
           false,
-          `polygon-${fIndex + 1}`
+          `polygon-${fIndex + 1}`,
+          'EPSG:4326',
+          map,
+          map.getView().getProjection().getCode()
         )
         if (extent) combinedExtent = expandExtent(combinedExtent, extent)
       } else {
@@ -364,7 +369,10 @@ export function handleGeoJsonLoad(
             JSON.stringify(polygonFeature),
             polyColor,
             false,
-            `polygon-${fIndex + 1}-${i + 1}`
+            `polygon-${fIndex + 1}-${i + 1}`,
+            'EPSG:4326',
+            map,
+            map.getView().getProjection().getCode()
           )
           if (extent) combinedExtent = expandExtent(combinedExtent, extent)
         } else {
@@ -395,7 +403,10 @@ export function handleGeoJsonLoad(
           JSON.stringify(lineFeature),
           /* use a dedicated lineColor if you have one */ polyColor,
           false,
-          `line-${fIndex + 1}`
+          `line-${fIndex + 1}`,
+          'EPSG:4326',
+          map,
+          map.getView().getProjection().getCode()
         )
         if (extent) combinedExtent = expandExtent(combinedExtent, extent)
       } else {
@@ -426,7 +437,10 @@ export function handleGeoJsonLoad(
             JSON.stringify(lineFeature),
             /* use a dedicated lineColor if you have one */ polyColor,
             false,
-            `line-${fIndex + 1}-${i + 1}`
+            `line-${fIndex + 1}-${i + 1}`,
+            'EPSG:4326',
+            map,
+            map.getView().getProjection().getCode()
           )
           if (extent) combinedExtent = expandExtent(combinedExtent, extent)
         } else {
@@ -455,7 +469,10 @@ export function handleGeoJsonLoad(
         JSON.stringify(pointFeature),
         pointColor,
         false,
-        `point-${fIndex + 1}`
+        `point-${fIndex + 1}`,
+        'EPSG:4326',
+        map,
+        map.getView().getProjection().getCode()
       )
       if (extent) combinedExtent = expandExtent(combinedExtent, extent)
     } else if (geometry.type === 'MultiPoint') {
@@ -479,7 +496,10 @@ export function handleGeoJsonLoad(
           JSON.stringify(pointFeature),
           pointColor,
           false,
-          `point-${fIndex + 1}-${i + 1}`
+          `point-${fIndex + 1}-${i + 1}`,
+          'EPSG:4326',
+          map,
+          map.getView().getProjection().getCode()
         )
         if (extent) combinedExtent = expandExtent(combinedExtent, extent)
       }
@@ -505,7 +525,10 @@ export function handleGeoJsonLoad(
         JSON.stringify(geoJson),
         hullColor,
         false,
-        `${label}-combined`
+        `${label}-combined`,
+        'EPSG:4326',
+        map,
+        map.getView().getProjection().getCode()
       )
       if (extent) combinedExtent = expandExtent(combinedExtent, extent)
 
@@ -531,8 +554,11 @@ function expandExtent(current: number[] | undefined, next: number[]): number[] {
   ]
 }
 
-export function enableTagDisplay(map: OLMap, _vectorSource: VectorSource): void {
-  const mapStore = useMapStore()
+export function enableTagDisplay(
+  map: OLMap,
+  _vectorSource: VectorSource,
+  mapStore: ReturnType<typeof useRequestMapStore> | ReturnType<typeof useAnalysisViewMapStore>
+): void {
   mapStore.pointerMoveListenerKey = map.on('pointermove', function (evt) {
     const pixel = map.getEventPixel(evt.originalEvent)
     const features = map.getFeaturesAtPixel(pixel)
@@ -562,15 +588,17 @@ export function enableTagDisplay(map: OLMap, _vectorSource: VectorSource): void 
   })
 
   map.getViewport().addEventListener('mouseout', function () {
-    useMapStore().tooltipRef.hideTooltip()
+    mapStore.tooltipRef.hideTooltip()
   })
 }
 
-export function disableTagDisplay(): void {
-  const pointerMoveListenerKey = useMapStore().getPointerMoveListenerKey()
+export function disableTagDisplay(
+  mapStore: ReturnType<typeof useRequestMapStore> | ReturnType<typeof useAnalysisViewMapStore>
+): void {
+  const pointerMoveListenerKey = mapStore.getPointerMoveListenerKey()
   if (pointerMoveListenerKey !== null) {
     unByKey(pointerMoveListenerKey as EventsKey)
-    useMapStore().setPointerMoveListenerKey(null)
+    mapStore.setPointerMoveListenerKey(null)
   }
 }
 
@@ -660,7 +688,7 @@ export async function processSelectedElPnt(d: ElevationDataItem): Promise<void> 
   const gcs = useGlobalChartStore()
   gcs.setSelectedElevationRec(d)
   gcs.use_rgt_in_filter = true
-  const ttRef = useMapStore().tooltipRef
+  const ttRef = useAnalysisViewMapStore().tooltipRef
   if (ttRef) {
     ttRef.hideTooltip()
   }
@@ -1034,9 +1062,11 @@ export function dumpFeaturesToConsole(vectorSource: VectorSource): void {
   // });
 }
 
-export function saveMapZoomState(map: OLMap) {
+export function saveMapZoomState(
+  map: OLMap,
+  mapStore: ReturnType<typeof useRequestMapStore> | ReturnType<typeof useAnalysisViewMapStore>
+) {
   if (map) {
-    const mapStore = useMapStore()
     const view = map.getView()
     const center = view.getCenter()
     if (center) {
@@ -1056,8 +1086,10 @@ export function saveMapZoomState(map: OLMap) {
   }
 }
 
-export function canRestoreZoomCenter(_map: OLMap): boolean {
-  const mapStore = useMapStore()
+export function canRestoreZoomCenter(
+  _map: OLMap,
+  mapStore: ReturnType<typeof useRequestMapStore> | ReturnType<typeof useAnalysisViewMapStore>
+): boolean {
   const extentToRestore = mapStore.getExtentToRestore()
   const centerToRestore = mapStore.getCenterToRestore()
   const zoomToRestore = mapStore.getZoomToRestore()
@@ -1066,10 +1098,10 @@ export function canRestoreZoomCenter(_map: OLMap): boolean {
 
 export function restoreMapView(
   proj: ProjectionLike,
+  mapStore: ReturnType<typeof useRequestMapStore> | ReturnType<typeof useAnalysisViewMapStore>,
   minZoom?: number,
   maxZoom?: number
 ): OlView | null {
-  const mapStore = useMapStore()
   const extentToRestore = mapStore.getExtentToRestore()
   const centerToRestore = mapStore.getCenterToRestore()
   let zoomToRestore = mapStore.getZoomToRestore()
@@ -1185,7 +1217,8 @@ export function renderRequestPolygon(
   color: string,
   reqId: number = 0,
   layerName: string = 'Drawing Layer',
-  forceZoom: boolean = false
+  forceZoom: boolean = false,
+  mapStore?: ReturnType<typeof useRequestMapStore> | ReturnType<typeof useAnalysisViewMapStore>
 ): void {
   const vectorLayer = map
     .getLayers()
@@ -1256,7 +1289,7 @@ export function renderRequestPolygon(
   vectorSource.addFeature(feature)
 
   if (reqId === 0) {
-    if (!canRestoreZoomCenter(map)) {
+    if (mapStore && !canRestoreZoomCenter(map, mapStore)) {
       const extent = polygon.getExtent()
       if (extent.every((val) => Number.isFinite(val))) {
         map.getView().fit(extent, { size: map.getSize(), padding: [20, 20, 20, 20] })
@@ -1423,14 +1456,15 @@ export async function renderSvrReqPoly(
   map: OLMap,
   reqId: number,
   layerName: string = 'Records Layer',
-  forceZoom: boolean = false
+  forceZoom: boolean = false,
+  mapStore?: ReturnType<typeof useRequestMapStore> | ReturnType<typeof useAnalysisViewMapStore>
 ): Promise<SrRegion> {
   let poly: SrRegion = []
   try {
     if (map) {
       poly = await db.getSvrReqPoly(reqId)
       if (poly.length > 0) {
-        renderRequestPolygon(map, poly, 'blue', reqId, layerName, forceZoom)
+        renderRequestPolygon(map, poly, 'blue', reqId, layerName, forceZoom, mapStore)
       } else {
         logger.debug('No svrReqPoly for reqId', { reqId })
       }
@@ -1468,7 +1502,17 @@ export async function renderSvrReqRegionMask(
 
         if (regionGeoJsonData && regionGeoJsonData.rows && regionGeoJsonData.rows > 0) {
           //logger.debug("drawCurrentReqPolyAndPin drawing reqGeoJsonData:",geoJsonData);
-          drawGeoJson(uniqueId, vectorSource, regionGeoJsonData, 'red', true)
+          drawGeoJson(
+            uniqueId,
+            vectorSource,
+            regionGeoJsonData,
+            'red',
+            true,
+            '',
+            'EPSG:4326',
+            map,
+            map.getView().getProjection().getCode()
+          )
         } else {
           //logger.debug(`renderSvrReqRegionMask: No region mask found in svrParms for reqId ${reqId} regionGeoJsonData:`, regionGeoJsonData);
         }
@@ -1504,6 +1548,7 @@ export function updateMapView(
   map: OLMap,
   srViewKey: string,
   reason: string,
+  mapStore: ReturnType<typeof useRequestMapStore> | ReturnType<typeof useAnalysisViewMapStore>,
   restore: boolean = false,
   _reqId: number = 0
 ): void {
@@ -1575,7 +1620,7 @@ export function updateMapView(
           srViewObj.projectionName === 'EPSG:3413' ||
           srViewObj.projectionName === 'EPSG:3031'
 
-        useMapStore().runViewListenerCleanup()
+        mapStore.runViewListenerCleanup()
 
         let newView = new OlView({
           projection: newProj,
@@ -1586,9 +1631,14 @@ export function updateMapView(
           maxZoom: srProjObj.max_zoom
         })
 
-        useMapStore().setExtentToRestore(extent)
+        mapStore.setExtentToRestore(extent)
         if (restore) {
-          const restoredView = restoreMapView(newProj, srProjObj.min_zoom, srProjObj.max_zoom)
+          const restoredView = restoreMapView(
+            newProj,
+            mapStore,
+            srProjObj.min_zoom,
+            srProjObj.max_zoom
+          )
           if (restoredView) {
             newView = restoredView
           } else {
@@ -1622,7 +1672,7 @@ export function updateMapView(
             }
           }
           newView.on('change:resolution', enforceZoomBounds)
-          useMapStore().setViewListenerCleanup(() => {
+          mapStore.setViewListenerCleanup(() => {
             newView.un('change:resolution', enforceZoomBounds)
           })
           enforceZoomBounds()
@@ -1647,7 +1697,6 @@ export function updateMapView(
         // - Polar projections (North/South): graticule ON by default
         // - Global projections: graticule OFF by default
         const shouldEnableGraticule = isPolarProjection
-        const mapStore = useMapStore()
         if (mapStore.graticuleState !== shouldEnableGraticule) {
           mapStore.setGraticuleState(shouldEnableGraticule)
           logger.debug('Auto-toggled graticule for projection', {

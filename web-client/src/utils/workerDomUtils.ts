@@ -1,9 +1,9 @@
 import type { SrRequestRecord, SrRunContext } from '@/db/SlideRuleDb'
 import { checkAreaOfConvexHullError } from './SrMapUtils'
 import { useSysConfigStore } from '@/stores/sysConfigStore'
-import { type TimeoutHandle } from '@/stores/mapStore'
+import { type TimeoutHandle } from '@/stores/requestMapStore'
 import { useCurReqSumStore } from '@/stores/curReqSumStore'
-import { useMapStore } from '@/stores/mapStore'
+import { useRequestMapStore } from '@/stores/requestMapStore'
 import { useRequestsStore } from '@/stores/requestsStore'
 import { useReqParamsStore, useAutoReqParamsStore } from '@/stores/reqParamsStore'
 import { useSrToastStore } from '@/stores/srToastStore'
@@ -38,7 +38,7 @@ const logger = createLogger('WorkerDomUtils')
 const consoleStore = useSrSvrConsoleStore()
 const sysConfigStore = useSysConfigStore()
 const curReqSumStore = useCurReqSumStore()
-const mapStore = useMapStore()
+const mapStore = useRequestMapStore()
 const requestsStore = useRequestsStore()
 const atlChartFilterStore = useAtlChartFilterStore()
 const chartStore = useChartStore()
@@ -489,7 +489,10 @@ export async function processRunSlideRuleClicked(rc: SrRunContext | null = null)
       } else {
         // with granule selection enabled, polygon is not required
       }
-      const srViewKey = findSrViewKey(useMapStore().selectedView, useMapStore().selectedBaseLayer)
+      const srViewKey = findSrViewKey(
+        useRequestMapStore().selectedView,
+        useRequestMapStore().selectedBaseLayer
+      )
       if (srViewKey.value) {
         srReqRec.srViewName = srViewKey.value
       } else {

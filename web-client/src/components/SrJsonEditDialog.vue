@@ -13,7 +13,7 @@ import { useJsonImporter } from '@/composables/SrJsonImporter'
 import { importRequestJsonToStore } from '@/utils/importRequestToStore'
 import { useToast } from 'primevue/usetoast'
 import { useReqParamsStore } from '@/stores/reqParamsStore'
-import { useMapStore } from '@/stores/mapStore'
+import { useRequestMapStore } from '@/stores/requestMapStore'
 import { fromLonLat } from 'ol/proj'
 import { Polygon as OlPolygon } from 'ol/geom'
 import { Feature } from 'ol'
@@ -23,7 +23,7 @@ import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('SrJsonEditDialog')
 const reqParamsStore = useReqParamsStore()
-const mapStore = useMapStore()
+const mapStore = useRequestMapStore()
 
 const toast = useToast()
 

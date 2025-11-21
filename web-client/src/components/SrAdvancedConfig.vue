@@ -62,7 +62,7 @@
         :setValue="debugStore.setEnableSpotPatternDetails"
         label="Enable Spot Pattern Details"
       />
-      <SrGraticuleSelect />
+      <SrGraticuleSelect :mapStore="requestMapStore" />
       <SrToggleButton
         :value="debugStore.showZoomDebug"
         :getValue="debugStore.getShowZoomDebug"
@@ -134,6 +134,7 @@ import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore'
 import { useDebugStore } from '@/stores/debugStore'
 import { useDeckStore } from '@/stores/deckStore'
 import { useRequestsStore } from '@/stores/requestsStore'
+import { useRequestMapStore } from '@/stores/requestMapStore'
 import SrCheckbox from './SrCheckbox.vue'
 import InputNumber from 'primevue/inputnumber'
 import { useGlobalChartStore } from '@/stores/globalChartStore'
@@ -146,6 +147,7 @@ const srParquetCfgStore = useSrParquetCfgStore()
 const reqParamsStore = useReqParamsStore()
 const deckStore = useDeckStore()
 const requestsStore = useRequestsStore()
+const requestMapStore = useRequestMapStore()
 const globalChartStore = useGlobalChartStore()
 const tourStore = useTourStore()
 

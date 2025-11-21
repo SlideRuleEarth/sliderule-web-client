@@ -25,7 +25,7 @@ async function loadParametersFromRequest(reqId: number) {
   logger.debug('Loading parameters from request', { reqId })
 
   // Clear ALL layers (Drawing, Records, Pin) to remove any old polygons before loading new ones
-  const mapStore = await import('@/stores/mapStore').then((m) => m.useMapStore())
+  const mapStore = await import('@/stores/requestMapStore').then((m) => m.useRequestMapStore())
   const map = mapStore.getMap()
   if (map) {
     const { clearPolyCoords, clearReqGeoJsonData } = await import('@/utils/SrMapUtils')
@@ -237,7 +237,9 @@ async function loadParametersFromRequest(reqId: number) {
 
       // Zoom to the polygon extent (don't draw on Records Layer - we'll draw on Drawing Layer below)
       if (parameters.poly && parameters.poly.length > 0) {
-        const mapStore = await import('@/stores/mapStore').then((m) => m.useMapStore())
+        const mapStore = await import('@/stores/requestMapStore').then((m) =>
+          m.useRequestMapStore()
+        )
         const map = mapStore.getMap()
 
         if (map) {
@@ -296,7 +298,8 @@ async function loadParametersFromRequest(reqId: number) {
               'red',
               0,
               'Drawing Layer',
-              false
+              false,
+              mapStore
             )
 
             // Always recalculate convex hull right before drawing
@@ -306,7 +309,15 @@ async function loadParametersFromRequest(reqId: number) {
             reqParamsStore.setConvexHull(hull)
 
             if (hull && hull.length > 0) {
-              renderRequestPolygon(map as OLMap, hull, hullColor, 0, 'Drawing Layer', false)
+              renderRequestPolygon(
+                map as OLMap,
+                hull,
+                hullColor,
+                0,
+                'Drawing Layer',
+                false,
+                mapStore
+              )
             }
           } else {
             logger.error('Vector source is null when trying to redraw')

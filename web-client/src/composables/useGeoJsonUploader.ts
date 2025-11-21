@@ -6,7 +6,7 @@ import { createLogger } from '@/utils/logger'
 const logger = createLogger('useGeoJsonUploader')
 import type OLMap from 'ol/Map.js'
 import type { FileUploadUploaderEvent } from 'primevue/fileupload'
-import { useMapStore } from '@/stores/mapStore'
+import { useRequestMapStore } from '@/stores/requestMapStore'
 import { handleGeoJsonLoad, zoomOutToFullMap, getMaxZoomForExtent } from '@/utils/SrMapUtils'
 
 export function useGeoJsonUploader(
@@ -41,7 +41,7 @@ export function useGeoJsonUploader(
     }
 
     reader.onload = async (e) => {
-      const mapStore = useMapStore()
+      const mapStore = useRequestMapStore()
       const map = mapStore.getMap() as OLMap
       let drawExtent: number[] | undefined
 

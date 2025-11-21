@@ -1,19 +1,29 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Control } from 'ol/control'
-import { useMapStore } from '@/stores/mapStore'
 import Checkbox from 'primevue/checkbox'
 import { createLogger } from '@/utils/logger'
+import type { useRequestMapStore } from '@/stores/requestMapStore'
+import type { useAnalysisViewMapStore } from '@/stores/analysisViewMapStore'
 
 const logger = createLogger('SrGraticuleControl')
 
-const mapStore = useMapStore()
+interface Props {
+  mapStore: ReturnType<typeof useRequestMapStore> | ReturnType<typeof useAnalysisViewMapStore>
+}
+
+const props = defineProps<Props>()
 const graticuleControlElement = ref<HTMLElement | null>(null)
 const emit = defineEmits<{
   (_e: 'graticule-control-created', _control: Control): void
 }>()
 
 let customControl: Control | null = null
+
+const graticuleState = computed({
+  get: () => props.mapStore.graticuleState,
+  set: (value: boolean) => props.mapStore.setGraticuleState(value)
+})
 
 onMounted(() => {
   if (graticuleControlElement.value) {
@@ -29,8 +39,8 @@ onUnmounted(() => {
 })
 
 function handleGraticuleChanged() {
-  logger.debug('handleGraticuleChanged', { graticuleState: mapStore.graticuleState })
-  mapStore.setGraticuleForMap()
+  logger.debug('handleGraticuleChanged', { graticuleState: props.mapStore.graticuleState })
+  props.mapStore.setGraticuleForMap()
 }
 </script>
 
@@ -38,7 +48,7 @@ function handleGraticuleChanged() {
   <div ref="graticuleControlElement" class="sr-graticule-control ol-unselectable ol-control">
     <div class="graticule-checkbox-container" title="Toggle Graticule">
       <Checkbox
-        v-model="mapStore.graticuleState"
+        v-model="graticuleState"
         :binary="true"
         @change="handleGraticuleChanged"
         inputId="graticule-toggle"
