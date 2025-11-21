@@ -106,7 +106,7 @@ export function formatKeyValuePair(key: string, value: any, reqId?: number): str
     formattedValue = `[${arr[0]}, ..., ${arr[value.length - 1]}]`
   } else if (typeof value === 'number') {
     let num = parseFloat(value.toPrecision(10))
-    formattedValue = Number.isInteger(num) ? num.toFixed(0) : num.toFixed(3)
+    formattedValue = Number.isInteger(num) ? num.toFixed(0) : num.toFixed(6)
   } else if (Array.isArray(value)) {
     if (value.length === 0) {
       formattedValue = '[]'
