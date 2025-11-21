@@ -1107,6 +1107,18 @@ export async function getScatterOptions(req_id: number): Promise<any> {
         ...seriesData.map((series) => series.series.name),
         ...(slopeSeries ? [slopeSeries.name] : [])
       ]
+      logger.debug('getScatterOptions: Creating options with zoom values', {
+        reqIdStr,
+        yZoomStart: atlChartFilterStore.yZoomStart,
+        yZoomEnd: atlChartFilterStore.yZoomEnd,
+        yZoomStartValue: atlChartFilterStore.yZoomStartValue,
+        yZoomEndValue: atlChartFilterStore.yZoomEndValue,
+        willUseValueMode:
+          atlChartFilterStore.yZoomStartValue !== undefined &&
+          atlChartFilterStore.yZoomEndValue !== undefined,
+        yAxisMin: Math.min(...seriesData.map((s) => s.min).filter((m): m is number => m !== null)),
+        yAxisMax: Math.max(...seriesData.map((s) => s.max).filter((m): m is number => m !== null))
+      })
       options = {
         title: {
           text: globalChartStore.titleOfElevationPlot,
@@ -1175,8 +1187,14 @@ export async function getScatterOptions(req_id: number): Promise<any> {
             xAxisIndex: 0,
             filterMode: 'filter',
             bottom: 1,
-            start: atlChartFilterStore.xZoomStart, // Start zoom level
-            end: atlChartFilterStore.xZoomEnd // End zoom level
+            // Use actual data values if available, otherwise fall back to percentages
+            ...(atlChartFilterStore.xZoomStartValue !== undefined &&
+            atlChartFilterStore.xZoomEndValue !== undefined
+              ? {
+                  startValue: atlChartFilterStore.xZoomStartValue,
+                  endValue: atlChartFilterStore.xZoomEndValue
+                }
+              : { start: atlChartFilterStore.xZoomStart, end: atlChartFilterStore.xZoomEnd })
           },
           {
             type: 'slider', // This creates a slider to zoom in the Y-axis
@@ -1184,23 +1202,41 @@ export async function getScatterOptions(req_id: number): Promise<any> {
             filterMode: 'filter',
             left: '95%',
             width: 20,
-            start: atlChartFilterStore.yZoomStart, // Start zoom level
-            end: atlChartFilterStore.yZoomEnd, // End zoom level
-            showDataShadow: false
+            showDataShadow: false,
+            // Use actual data values if available, otherwise fall back to percentages
+            ...(atlChartFilterStore.yZoomStartValue !== undefined &&
+            atlChartFilterStore.yZoomEndValue !== undefined
+              ? {
+                  startValue: atlChartFilterStore.yZoomStartValue,
+                  endValue: atlChartFilterStore.yZoomEndValue
+                }
+              : { start: atlChartFilterStore.yZoomStart, end: atlChartFilterStore.yZoomEnd })
           },
           {
             type: 'inside', // This allows zooming inside the chart using mouse wheel or touch gestures
             xAxisIndex: 0,
             filterMode: 'filter',
-            start: atlChartFilterStore.xZoomStart, // Start zoom level
-            end: atlChartFilterStore.xZoomEnd // End zoom level
+            // Use actual data values if available, otherwise fall back to percentages
+            ...(atlChartFilterStore.xZoomStartValue !== undefined &&
+            atlChartFilterStore.xZoomEndValue !== undefined
+              ? {
+                  startValue: atlChartFilterStore.xZoomStartValue,
+                  endValue: atlChartFilterStore.xZoomEndValue
+                }
+              : { start: atlChartFilterStore.xZoomStart, end: atlChartFilterStore.xZoomEnd })
           },
           {
             type: 'inside', // This allows zooming inside the chart using mouse wheel or touch gestures
             yAxisIndex: seriesData.length > 1 ? [0, 1] : 0,
             filterMode: 'filter',
-            start: atlChartFilterStore.yZoomStart, // Start zoom level
-            end: atlChartFilterStore.yZoomEnd // End zoom level
+            // Use actual data values if available, otherwise fall back to percentages
+            ...(atlChartFilterStore.yZoomStartValue !== undefined &&
+            atlChartFilterStore.yZoomEndValue !== undefined
+              ? {
+                  startValue: atlChartFilterStore.yZoomStartValue,
+                  endValue: atlChartFilterStore.yZoomEndValue
+                }
+              : { start: atlChartFilterStore.yZoomStart, end: atlChartFilterStore.yZoomEnd })
           }
         ]
       }
@@ -1275,35 +1311,107 @@ const initScatterPlotWith = async (reqId: number) => {
   const options = chart.getOption() as EChartsOption
   //console.log(`initScatterPlotWith ${reqId} BEFORE options:`, options);
   const zoomCntrls = Array.isArray(options?.dataZoom) ? options.dataZoom : [options?.dataZoom]
+  logger.debug('initScatterPlotWith: Capturing zoom BEFORE rebuild', {
+    reqId,
+    beforeYStart: atlChartFilterStore.yZoomStart,
+    beforeYEnd: atlChartFilterStore.yZoomEnd,
+    beforeYStartValue: atlChartFilterStore.yZoomStartValue,
+    beforeYEndValue: atlChartFilterStore.yZoomEndValue,
+    yAxisFromChart: Array.isArray(options?.yAxis)
+      ? options.yAxis.map((a: any) => ({ name: a?.name, min: a?.min, max: a?.max }))
+      : { name: options?.yAxis?.name, min: options?.yAxis?.min, max: options?.yAxis?.max }
+  })
   for (let zoomNdx = 0; zoomNdx < zoomCntrls.length; zoomNdx++) {
     const zoomCntrl = zoomCntrls[zoomNdx] //console.log(`initScatterPlotWith ${reqId} zoomCntrls[${zoomNdx}]:`, zoomCntrls[zoomNdx]);
     if (zoomCntrl) {
       zoomCntrl.filterMode = 'filter'
       //console.log(`initScatterPlotWith ALL ${reqId} zoomCntrls[${zoomNdx}]:`, zoomCntrl);
-      if (zoomCntrl.start) {
-        logger.debug('Zoom control start', { reqId, zoomNdx, start: zoomCntrl.start })
+      if (zoomCntrl.start !== undefined) {
+        logger.debug('Zoom control start', {
+          reqId,
+          zoomNdx,
+          start: zoomCntrl.start,
+          startValue: zoomCntrl.startValue
+        })
         if (zoomCntrl.xAxisIndex !== undefined) {
-          atlChartFilterStore.xZoomStart = zoomCntrl.start
+          // Only update percentage if we don't have value-based zoom active
+          if (atlChartFilterStore.xZoomStartValue === undefined) {
+            atlChartFilterStore.xZoomStart = zoomCntrl.start
+          }
+          // Only capture data values if we don't already have valid values stored
+          // (to avoid overwriting good values with recalculated ones after axis changes)
+          if (
+            atlChartFilterStore.xZoomStartValue === undefined &&
+            zoomCntrl.startValue !== undefined &&
+            typeof zoomCntrl.startValue === 'number'
+          ) {
+            atlChartFilterStore.xZoomStartValue = zoomCntrl.startValue
+          }
           //console.log(`initScatterPlotWith ${reqId} xZoomStart:`, atlChartFilterStore.xZoomStart);
         }
         if (zoomCntrl.yAxisIndex !== undefined) {
-          atlChartFilterStore.yZoomStart = zoomCntrl.start
+          // Only update percentage if we don't have value-based zoom active
+          if (atlChartFilterStore.yZoomStartValue === undefined) {
+            atlChartFilterStore.yZoomStart = zoomCntrl.start
+          }
+          // Only capture data values if we don't already have valid values stored
+          if (
+            atlChartFilterStore.yZoomStartValue === undefined &&
+            zoomCntrl.startValue !== undefined &&
+            typeof zoomCntrl.startValue === 'number'
+          ) {
+            atlChartFilterStore.yZoomStartValue = zoomCntrl.startValue
+          }
           //console.log(`initScatterPlotWith ${reqId} yZoomStart:`, atlChartFilterStore.yZoomStart);
         }
       }
-      if (zoomCntrl.end) {
-        logger.debug('Zoom control end', { reqId, zoomNdx, end: zoomCntrl.end })
+      if (zoomCntrl.end !== undefined) {
+        logger.debug('Zoom control end', {
+          reqId,
+          zoomNdx,
+          end: zoomCntrl.end,
+          endValue: zoomCntrl.endValue
+        })
         if (zoomCntrl.xAxisIndex !== undefined) {
-          atlChartFilterStore.xZoomEnd = zoomCntrl.end
+          // Only update percentage if we don't have value-based zoom active
+          if (atlChartFilterStore.xZoomEndValue === undefined) {
+            atlChartFilterStore.xZoomEnd = zoomCntrl.end
+          }
+          // Only capture data values if we don't already have valid values stored
+          if (
+            atlChartFilterStore.xZoomEndValue === undefined &&
+            zoomCntrl.endValue !== undefined &&
+            typeof zoomCntrl.endValue === 'number'
+          ) {
+            atlChartFilterStore.xZoomEndValue = zoomCntrl.endValue
+          }
           //console.log(`initScatterPlotWith ${reqId} xZoomEnd:`, atlChartFilterStore.xZoomEnd);
         }
         if (zoomCntrl.yAxisIndex !== undefined) {
-          atlChartFilterStore.yZoomEnd = zoomCntrl.end
+          // Only update percentage if we don't have value-based zoom active
+          if (atlChartFilterStore.yZoomEndValue === undefined) {
+            atlChartFilterStore.yZoomEnd = zoomCntrl.end
+          }
+          // Only capture data values if we don't already have valid values stored
+          if (
+            atlChartFilterStore.yZoomEndValue === undefined &&
+            zoomCntrl.endValue !== undefined &&
+            typeof zoomCntrl.endValue === 'number'
+          ) {
+            atlChartFilterStore.yZoomEndValue = zoomCntrl.endValue
+          }
           //console.log(`initScatterPlotWith ${reqId} yZoomEnd:`, atlChartFilterStore.yZoomEnd);
         }
       }
     }
   }
+  logger.debug('initScatterPlotWith: After capture, BEFORE clearPlot', {
+    reqId,
+    afterYStart: atlChartFilterStore.yZoomStart,
+    afterYEnd: atlChartFilterStore.yZoomEnd,
+    afterYStartValue: atlChartFilterStore.yZoomStartValue,
+    afterYEndValue: atlChartFilterStore.yZoomEndValue
+  })
   //console.log(`initScatterPlotWith for reqId:${reqId} SAVED VALUES: xZoomStart:${atlChartFilterStore.xZoomStart} xZoomEnd:${atlChartFilterStore.xZoomEnd} yZoomStart:${atlChartFilterStore.yZoomStart} yZoomEnd:${atlChartFilterStore.yZoomEnd} `);
 
   //console.log(`initScatterPlotWith ${reqId} y_options:`, y_options);
@@ -1342,6 +1450,7 @@ function removeUnusedOptions(options: any): any {
   delete options.visualMap
   delete options.timeline
   delete options.calendar
+  delete options.dataZoom // Don't include dataZoom - let it come from store values
   //console.log('removeUnusedOptions returning options:', options);
   return options
 }
@@ -1543,16 +1652,86 @@ async function appendSeries(reqId: number): Promise<void> {
     // -----------------------------
     //     APPLY UPDATED OPTIONS
     // -----------------------------
+    // Build dataZoom from store values to preserve zoom state
+    const atlChartFilterStore = useAtlChartFilterStore()
+    const dataZoomConfig = [
+      {
+        type: 'slider' as const,
+        xAxisIndex: 0,
+        filterMode: 'filter' as const,
+        bottom: 1,
+        ...(atlChartFilterStore.xZoomStartValue !== undefined &&
+        atlChartFilterStore.xZoomEndValue !== undefined
+          ? {
+              startValue: atlChartFilterStore.xZoomStartValue,
+              endValue: atlChartFilterStore.xZoomEndValue
+            }
+          : { start: atlChartFilterStore.xZoomStart, end: atlChartFilterStore.xZoomEnd })
+      },
+      {
+        type: 'slider' as const,
+        yAxisIndex: updatedYAxis.length > 1 ? [0, 1] : 0,
+        filterMode: 'filter' as const,
+        left: '95%',
+        width: 20,
+        showDataShadow: false,
+        ...(atlChartFilterStore.yZoomStartValue !== undefined &&
+        atlChartFilterStore.yZoomEndValue !== undefined
+          ? {
+              startValue: atlChartFilterStore.yZoomStartValue,
+              endValue: atlChartFilterStore.yZoomEndValue
+            }
+          : { start: atlChartFilterStore.yZoomStart, end: atlChartFilterStore.yZoomEnd })
+      },
+      {
+        type: 'inside' as const,
+        xAxisIndex: 0,
+        filterMode: 'filter' as const,
+        ...(atlChartFilterStore.xZoomStartValue !== undefined &&
+        atlChartFilterStore.xZoomEndValue !== undefined
+          ? {
+              startValue: atlChartFilterStore.xZoomStartValue,
+              endValue: atlChartFilterStore.xZoomEndValue
+            }
+          : { start: atlChartFilterStore.xZoomStart, end: atlChartFilterStore.xZoomEnd })
+      },
+      {
+        type: 'inside' as const,
+        yAxisIndex: updatedYAxis.length > 1 ? [0, 1] : 0,
+        filterMode: 'filter' as const,
+        ...(atlChartFilterStore.yZoomStartValue !== undefined &&
+        atlChartFilterStore.yZoomEndValue !== undefined
+          ? {
+              startValue: atlChartFilterStore.yZoomStartValue,
+              endValue: atlChartFilterStore.yZoomEndValue
+            }
+          : { start: atlChartFilterStore.yZoomStart, end: atlChartFilterStore.yZoomEnd })
+      }
+    ]
+
     chart.setOption(
       {
         ...filteredOptions,
         legend: updatedLegend,
         series: updatedSeries,
-        yAxis: updatedYAxis
+        yAxis: updatedYAxis,
+        dataZoom: dataZoomConfig
       },
       { notMerge: true }
     )
     //console.log(`appendSeries ${reqId} AFTER options:`, chart.getOption());
+
+    // DO NOT re-capture zoom values here! When ECharts updates the axis range, it automatically
+    // recalculates startValue/endValue based on the NEW range, which gives us wrong values.
+    // We want to keep the original user-selected data window values that were captured
+    // in initScatterPlotWith BEFORE the axis range changed.
+    logger.debug('appendSeries: Keeping original zoom values (not re-capturing)', {
+      reqId,
+      yZoomStart: useAtlChartFilterStore().yZoomStart,
+      yZoomEnd: useAtlChartFilterStore().yZoomEnd,
+      yZoomStartValue: useAtlChartFilterStore().yZoomStartValue,
+      yZoomEndValue: useAtlChartFilterStore().yZoomEndValue
+    })
 
     //console.log( `appendSeries(${reqIdStr}): Successfully appended scatter series and updated yAxis + legend.`,chart.getOption());
   } catch (error) {
