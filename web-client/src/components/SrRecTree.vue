@@ -289,7 +289,7 @@ const deleteReqAndChildren = async (id: number) => {
 }
 
 const deleteAllReqs = async () => {
-  void cleanupDelAllRequests()
+  await cleanupDelAllRequests()
   treeNodes.value = await requestsStore.getTreeTableNodes(onlySuccess.value)
   await recTreeStore.loadTreeData()
   recTreeStore.initToFirstRecord()
