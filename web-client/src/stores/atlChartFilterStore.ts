@@ -26,7 +26,8 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     xZoomEndValue: undefined as number | undefined,
     yZoomStartValue: undefined as number | undefined,
     yZoomEndValue: undefined as number | undefined,
-    showSlopeLines: false as boolean // Optional property for slope lines
+    showSlopeLines: false as boolean, // Optional property for slope lines
+    lastReqId: -1 as number // Track the last reqId to detect when a new track is loaded
   }),
 
   getters: {},
@@ -114,6 +115,17 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     },
     getShowPhotonCloud() {
       return this.showPhotonCloud
+    },
+    resetZoom() {
+      logger.debug('Resetting zoom to defaults')
+      this.xZoomStart = 0
+      this.xZoomEnd = 100
+      this.yZoomStart = 0
+      this.yZoomEnd = 100
+      this.xZoomStartValue = undefined
+      this.xZoomEndValue = undefined
+      this.yZoomStartValue = undefined
+      this.yZoomEndValue = undefined
     }
   }
 })

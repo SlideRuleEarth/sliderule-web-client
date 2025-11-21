@@ -1298,6 +1298,17 @@ const initScatterPlotWith = async (reqId: number) => {
     logger.error('reqId is empty or invalid', { reqId })
     return
   }
+
+  // Check if this is a new track (reqId changed) - if so, reset zoom
+  if (atlChartFilterStore.lastReqId !== reqId) {
+    logger.debug('New track detected - resetting zoom', {
+      oldReqId: atlChartFilterStore.lastReqId,
+      newReqId: reqId
+    })
+    atlChartFilterStore.resetZoom()
+    atlChartFilterStore.lastReqId = reqId
+  }
+
   await updateWhereClauseAndXData(reqId)
   const reqIdStr = reqId.toString()
   const y_options = chartStore.getYDataOptions(reqIdStr)

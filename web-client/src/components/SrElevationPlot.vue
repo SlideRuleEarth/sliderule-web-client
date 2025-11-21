@@ -547,14 +547,7 @@ watch(
       chartInstance.on('restore', () => {
         void (async () => {
           logger.debug('Zoom or settings were reset')
-          atlChartFilterStore.xZoomStart = 0
-          atlChartFilterStore.xZoomEnd = 100
-          atlChartFilterStore.yZoomStart = 0
-          atlChartFilterStore.yZoomEnd = 100
-          atlChartFilterStore.xZoomStartValue = undefined
-          atlChartFilterStore.xZoomEndValue = undefined
-          atlChartFilterStore.yZoomStartValue = undefined
-          atlChartFilterStore.yZoomEndValue = undefined
+          atlChartFilterStore.resetZoom()
           dialogsInitialized.value = false // Reset dialogsInitialized to false to re-initialize dialogs
           await initPlot() // Re-initialize the plot to reset any settings
           if (chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length > 0) {
