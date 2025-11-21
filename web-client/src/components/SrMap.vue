@@ -1575,19 +1575,23 @@ watch(
     }
   }
 )
-watch(showBathymetryFeatures, (newValue) => {
-  //console.log(`SrMap watch showBathymetryFeatures changed to ${newValue} defaultBathymetryFeaturesLoaded: ${defaultBathymetryFeaturesLoaded.value}`);
-  if (defaultBathymetryFeaturesLoaded.value === false) {
-    void loadDefaultBathymetryFeatures()
-  }
-  if (newValue) {
-    // Show bathymetry features
-    bathymetryFeaturesVectorLayer.setVisible(true)
-  } else {
-    // Hide bathymetry features
-    bathymetryFeaturesVectorLayer.setVisible(false)
-  }
-})
+watch(
+  showBathymetryFeatures,
+  (newValue) => {
+    //console.log(`SrMap watch showBathymetryFeatures changed to ${newValue} defaultBathymetryFeaturesLoaded: ${defaultBathymetryFeaturesLoaded.value}`);
+    if (defaultBathymetryFeaturesLoaded.value === false) {
+      void loadDefaultBathymetryFeatures()
+    }
+    if (newValue) {
+      // Show bathymetry features
+      bathymetryFeaturesVectorLayer.setVisible(true)
+    } else {
+      // Hide bathymetry features
+      bathymetryFeaturesVectorLayer.setVisible(false)
+    }
+  },
+  { immediate: true }
+)
 </script>
 
 <template>
