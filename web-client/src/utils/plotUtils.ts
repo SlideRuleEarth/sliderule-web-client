@@ -1138,7 +1138,54 @@ export async function getScatterOptions(req_id: number): Promise<any> {
         },
         tooltip: {
           trigger: 'item',
-          formatter: (params: any) => formatTooltip(params, latFieldName, lonFieldName, reqIdStr)
+          formatter: (params: any) => formatTooltip(params, latFieldName, lonFieldName, reqIdStr),
+          confine: true,
+          position: function (
+            point: number[],
+            _params: any,
+            _dom: HTMLElement,
+            _rect: any,
+            size: any
+          ) {
+            // point is the mouse position [x, y]
+            // size contains viewSize and contentSize: {viewSize: [width, height], contentSize: [width, height]}
+            const tooltipWidth = size.contentSize[0]
+            const tooltipHeight = size.contentSize[1]
+            const chartWidth = size.viewSize[0]
+            const chartHeight = size.viewSize[1]
+
+            let x = point[0]
+            let y = point[1]
+
+            // Offset tooltip from cursor
+            const offset = 15
+
+            // Default position: right and below cursor
+            x = point[0] + offset
+            y = point[1] + offset
+
+            // If tooltip would overflow right edge, position it to the left of cursor
+            if (x + tooltipWidth > chartWidth) {
+              x = point[0] - tooltipWidth - offset
+            }
+
+            // If tooltip would overflow bottom edge, position it above cursor
+            if (y + tooltipHeight > chartHeight) {
+              y = point[1] - tooltipHeight - offset
+            }
+
+            // Ensure tooltip doesn't go off left edge
+            if (x < 0) {
+              x = offset
+            }
+
+            // Ensure tooltip doesn't go off top edge
+            if (y < 0) {
+              y = offset
+            }
+
+            return [x, y]
+          }
         },
         legend: {
           data: legendNames,
