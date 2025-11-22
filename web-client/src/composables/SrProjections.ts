@@ -26,7 +26,10 @@ export const srProjections = ref<{ [key: string]: SrProjection }>({
     default_zoom: 2,
     min_zoom: 0,
     max_zoom: 19,
-    bbox: [-180.0, -85.06, 180.0, 85.06]
+    bbox: [-180.0, -85.06, 180.0, 85.06],
+    // CRITICAL: Define extent explicitly to prevent applyTransform from using tainted projection state
+    // Web Mercator extent must be symmetric for correct coordinate transformations
+    extent: [-20037508.342789244, -20037508.342789244, 20037508.342789244, 20037508.342789244]
   },
   'EPSG:4326': {
     // Web Mercator -- This is the 'standard' projection for web maps (coordinate units in lon lat)
