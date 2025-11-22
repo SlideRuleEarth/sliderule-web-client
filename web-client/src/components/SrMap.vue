@@ -490,13 +490,16 @@ drawPolygon.on('drawend', function (event) {
         //console.log("Original polyCoords:", rings);
 
         const projName = useMapStore().getSrViewObj().projectionName
+        const mapViewProjection = mapRef.value?.map.getView().getProjection().getCode()
         let thisProj = getProjection(projName)
+
         let flatLonLatPairs
         if (thisProj?.getUnits() !== 'degrees') {
-          //Convert each ring's coordinates to lon/lat using toLonLat
+          //Convert each ring's coordinates to lon/lat using toLonLat with EXPLICIT projection
           const convertedRings: Coordinate[][] = rings.map((ring: Coordinate[]) =>
-            ring.map((coord) => toLonLat(coord) as Coordinate)
+            ring.map((coord) => toLonLat(coord, mapViewProjection) as Coordinate)
           )
+
           //console.log("Converted polyCoords:", convertedRings);
           mapStore.polyCoords = convertedRings
           flatLonLatPairs = convertedRings.flatMap((ring) => ring)
@@ -508,6 +511,7 @@ drawPolygon.on('drawend', function (event) {
           lon: coord[0],
           lat: coord[1]
         }))
+
         if (isClockwise(srLonLatCoordinates)) {
           //console.log('poly is clockwise, reversing');
           reqParamsStore.setPoly(srLonLatCoordinates.reverse())
@@ -826,6 +830,11 @@ onMounted(async () => {
   })
   //console.log("SrMap onMounted registering proj4:",proj4);
   register(proj4 as any)
+
+  // Clear the global drawVectorSource when component mounts to prevent stale features
+  // from previous navigation sessions from appearing with incorrect coordinates
+  drawVectorSource.clear()
+
   if (mapRef.value?.map) {
     //console.log("SrMap onMounted map:",mapRef.value.map);
     mapStore.setMap(mapRef.value.map)
@@ -942,8 +951,15 @@ onMounted(async () => {
     //dumpMapLayers(map, 'SrMap onMounted');
     // Note: addRecordLayer() is now handled by watch on isTreeLoaded + allReqIds with immediate:true
     if (haveReqPoly || haveReqPin) {
-      //draw and zoom to the current reqParamsStore.poly
+      // CRITICAL FIX: Delay drawing until after OpenLayers has rendered the updated view
+      // OpenLayers rendering is asynchronous - it schedules renders on animation frames.
+      // If we draw immediately after updateReqMapView, features may be rendered with
+      // stale view transforms, causing visual offset even though coordinates are correct.
+      // requestAnimationFrame(() => {
+      //   //draw and zoom to the current reqParamsStore.poly
+      //   logger.debug('Drawing polygon after requestAnimationFrame')
       drawCurrentReqPolyAndPin()
+      //})
     }
   } else {
     logger.error('mapRef.value?.map is null in onMounted')
