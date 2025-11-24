@@ -155,7 +155,7 @@ function createDeck(container: HTMLDivElement) {
   deckInstance.value = new Deck({
     parent: container,
     useDevicePixels: false,
-    _animate: false, // Disable animation for better performance
+    _animate: true, // Enable animation to ensure initial render
     views: [
       new OrbitView({
         id: viewId,
@@ -573,23 +573,17 @@ export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
     )
   }
 
-  requestAnimationFrame(() => {
-    deckInstance.value?.setProps({ layers })
-  })
+  deckInstance.value?.setProps({ layers })
 }
 
 export function updateFovy(fovy: number) {
-  requestAnimationFrame(() => {
-    deckInstance.value?.setProps({
-      views: [
-        new OrbitView({
-          id: viewId,
-          orbitAxis: deck3DConfigStore.orbitAxis,
-          fovy: fovy
-        })
-      ]
-    })
-    //console.log('Redrawing deck with new FOVY');
-    deckInstance.value?.redraw() // <-- manual redraw for non-animated mode
+  deckInstance.value?.setProps({
+    views: [
+      new OrbitView({
+        id: viewId,
+        orbitAxis: deck3DConfigStore.orbitAxis,
+        fovy: fovy
+      })
+    ]
   })
 }
