@@ -13,6 +13,7 @@ import { useSlideruleDefaults } from '@/stores/defaultsStore'
 import { useGeoJsonStore } from './geoJsonStore'
 import { useChartStore } from '@/stores/chartStore'
 import { useRasterParamsStore } from '@/stores/rasterParamsStore'
+import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('ReqParamsStore')
@@ -285,14 +286,20 @@ const createReqParamsStore = (id: string) =>
           this.isAtl24PhotonOverlay = true
         } else {
           this.enableAtl24Classification = false
-          this.enableAtl08Classification = true
-          this.atl08LandType = [
-            'atl08_noise',
-            'atl08_ground',
-            'atl08_canopy',
-            'atl08_top_of_canopy',
-            'atl08_unclassified'
-          ]
+          // Check the includeAtl08 checkbox state
+          const includeAtl08 = useAtlChartFilterStore().includeAtl08
+          this.enableAtl08Classification = includeAtl08
+          if (includeAtl08) {
+            this.atl08LandType = [
+              'atl08_noise',
+              'atl08_ground',
+              'atl08_canopy',
+              'atl08_top_of_canopy',
+              'atl08_unclassified'
+            ]
+          } else {
+            this.atl08LandType = []
+          }
           this.useDatum = false
           this.isAtl24PhotonOverlay = false
         }
