@@ -286,7 +286,7 @@ const createReqParamsStore = (id: string) =>
           this.isAtl24PhotonOverlay = true
         } else {
           this.enableAtl24Classification = false
-          // Check the includeAtl08 checkbox state
+          // Check the includeAtl08 checkbox state to include atl08 in atl03x photon cloud overlay
           const includeAtl08 = useAtlChartFilterStore().includeAtl08
           this.enableAtl08Classification = includeAtl08
           if (includeAtl08) {

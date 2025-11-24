@@ -1520,7 +1520,10 @@ export class SlideRuleDexie extends Dexie {
     }
   }
 
-  async findCachedRec(runContext: SrRunContext): Promise<number | undefined> {
+  async findCachedRec(
+    runContext: SrRunContext,
+    includeAtl08: boolean
+  ): Promise<number | undefined> {
     try {
       const candidates = await this.runContexts
         .where('[parentReqId+rgt+cycle+beam+track]')
@@ -1539,20 +1542,33 @@ export class SlideRuleDexie extends Dexie {
       } else {
         logger.debug('Found candidate(s) for run context', { count: candidates.length, runContext })
       }
-
+      let returnedReqId: number | undefined = undefined
       // Filter candidates by checking if corresponding request has func === 'atl03x'
       for (const rec of candidates) {
         const req = await this.requests.get(rec.reqId)
-        if (req?.func === 'atl03x') {
-          return rec.reqId
+        logger.debug('Evaluating candidate record', { rec, req, includeAtl08 })
+        if (
+          req?.func === 'atl03x' &&
+          req.status === 'success' &&
+          req.num_bytes &&
+          req.num_bytes > 0
+        ) {
+          if (req?.parameters?.parms.atl08_class && includeAtl08) {
+            returnedReqId = rec.reqId
+            break // prefer ones with atl08_class specified
+          } else if (!req?.parameters?.parms.atl08_class && !includeAtl08) {
+            returnedReqId = rec.reqId
+            break // prefer ones without atl08_class specified
+          }
         }
       }
-
-      logger.debug('No atl03x func match found in candidates', {
-        count: candidates.length,
-        runContext
-      })
-      return undefined
+      if (!returnedReqId) {
+        logger.debug('No matching atl03x func found in candidates after filtering', {
+          count: candidates.length,
+          runContext
+        })
+      }
+      return returnedReqId
     } catch (error) {
       logger.error('Failed to find matching atl03x record for run context', { error })
       throw error

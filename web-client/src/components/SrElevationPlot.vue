@@ -40,7 +40,6 @@ import SrAtl08Colors from '@/components/SrAtl08Colors.vue'
 import SrAtl24Colors from './SrAtl24Colors.vue'
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue'
 import Dialog from 'primevue/dialog'
-import Button from 'primevue/button'
 import type { AppendToType } from '@/types/SrTypes'
 import { processSelectedElPnt } from '@/utils/SrMapUtils'
 import SrCycleSelect from '@/components/SrCycleSelect.vue'
@@ -57,8 +56,6 @@ const tooltipRef = ref()
 const currentTooltipContent = ref<string>('')
 const showContextMenu = ref(false)
 const contextMenuPosition = ref({ x: 0, y: 0 })
-const showAtl08Dialog = ref(false)
-const pendingRunContext = ref<any>(null)
 
 const props = defineProps({
   startingReqId: {
@@ -589,40 +586,56 @@ const messageClass = computed(() => {
   }
 })
 
-async function handleAtl08DialogConfirm() {
-  if (!pendingRunContext.value) return
-
-  const runContext = pendingRunContext.value
-  const parentReqIdStr = runContext.parentReqId.toString()
-
-  await useAutoReqParamsStore().presetForScatterPlotOverlay(runContext.parentReqId)
-  await processRunSlideRuleClicked(runContext) // worker is started here
-
-  if (runContext.reqId > 0) {
-    const thisReqIdStr = runContext.reqId.toString()
-    initDataBindingsToChartStore([thisReqIdStr]) //after run gives us a reqId
-    chartStore.setSavedColorEncodeData(
-      parentReqIdStr,
-      chartStore.getSelectedColorEncodeData(parentReqIdStr)
-    )
-    chartStore.setSelectedColorEncodeData(parentReqIdStr, 'solid')
-    await initSymbolSize(runContext.reqId) // for new record
-    initializeColorEncoding(runContext.reqId, 'atl03x')
-  } else {
-    logger.error('watch atlChartFilterStore.showPhotonCloud: processRunSlideRuleClicked failed')
+async function handlePhotonCloudShow() {
+  if (loadingComponent.value) {
+    logger.warn('Skipped handlePhotonCloudShow: Loading component is still active')
+    return
   }
 
+  const runContext = await getPhotonOverlayRunContext()
+  const parentReqIdStr = runContext.parentReqId.toString()
+  const parentFuncStr = recTreeStore.findApiForReqId(runContext.parentReqId)
+  if (parentFuncStr === 'atl24x') {
+    // initially hide the atl024x because it is a different height datum. This avoids confusion
+    chartStore.setInitLegendUnselected(parentReqIdStr, true)
+  }
+  logger.debug('Photon cloud run context', { runContext, parentFuncStr })
+  // atl03sp is decrepcated here so fetch and use atl03x instead even if the old one exists
+  const isAtl03sp = recTreeStore.findApiForReqId(runContext.reqId) === 'atl03sp' //because it is deprecated
+  if (runContext.reqId <= 0 || isAtl03sp) {
+    // need to fetch the data because atl03sp is deprecated
+    //console.log('showPhotonCloud runContext.reqId:', runContext.reqId, ' runContext.parentReqId:', runContext.parentReqId, 'runContext.trackFilter:', runContext.trackFilter);
+    await useAutoReqParamsStore().presetForScatterPlotOverlay(runContext.parentReqId)
+    await processRunSlideRuleClicked(runContext) // worker is started here
+    //console.log('SrElevationPlot watch atlChartFilterStore.showPhotonCloud runContext:',runContext, 'reqId:', runContext.reqId, parentReqIdStr, ' parentFuncStr:', parentFuncStr);
+    if (runContext.reqId > 0) {
+      const thisReqIdStr = runContext.reqId.toString()
+      initDataBindingsToChartStore([thisReqIdStr]) //after run gives us a reqId
+      chartStore.setSavedColorEncodeData(
+        parentReqIdStr,
+        chartStore.getSelectedColorEncodeData(parentReqIdStr)
+      )
+      chartStore.setSelectedColorEncodeData(parentReqIdStr, 'solid')
+      await initSymbolSize(runContext.reqId) // for new record
+      initializeColorEncoding(runContext.reqId, 'atl03x')
+      // The worker will now fetch the data from the server
+      // and write the opfs file then update
+      // the map selected layer and the chart
+    } else {
+      logger.error('handlePhotonCloudShow: processRunSlideRuleClicked failed')
+    }
+  } else {
+    // we already have the data
+    initializeColorEncoding(runContext.reqId, parentFuncStr)
+    const sced = chartStore.getSelectedColorEncodeData(parentReqIdStr)
+    //console.log('sced:', sced, ' reqIdStr:', parentReqIdStr);
+    chartStore.setSavedColorEncodeData(parentReqIdStr, sced)
+    chartStore.setSelectedColorEncodeData(parentReqIdStr, 'solid')
+    await prepareDbForReqId(runContext.reqId)
+    await callPlotUpdateDebounced('from handlePhotonCloudShow')
+  }
   const msg = `Click 'Hide Photon Cloud Overlay' to remove highlighted track Photon Cloud data from the plot`
   requestsStore.setConsoleMsg(msg)
-
-  showAtl08Dialog.value = false
-  pendingRunContext.value = null
-}
-
-function handleAtl08DialogCancel() {
-  atlChartFilterStore.showPhotonCloud = false
-  showAtl08Dialog.value = false
-  pendingRunContext.value = null
 }
 
 watch(
@@ -631,39 +644,18 @@ watch(
     logger.debug('showPhotonCloud changed', { oldShowPhotonCloud, newShowPhotonCloud })
     if (!loadingComponent.value) {
       if (newShowPhotonCloud) {
-        const runContext = await getPhotonOverlayRunContext()
-        const parentReqIdStr = runContext.parentReqId.toString()
-        const parentFuncStr = recTreeStore.findApiForReqId(runContext.parentReqId)
-        if (parentFuncStr === 'atl24x') {
-          // initially hide the atl024x because it is a different height datum. This avoids confusion
-          chartStore.setInitLegendUnselected(parentReqIdStr, true)
-        }
-        logger.debug('Photon cloud run context', { runContext, parentFuncStr })
-        // atl03sp is decrepcated here so fetch and use atl03x instead even if the old one exists
-        const isAtl03sp = recTreeStore.findApiForReqId(runContext.reqId) === 'atl03sp' //because it is deprecated
-        if (runContext.reqId <= 0 || isAtl03sp) {
-          // need to fetch the data because atl03sp is deprecated
-          // Show dialog to ask user about ATL08 inclusion
-          pendingRunContext.value = runContext
-          showAtl08Dialog.value = true
-        } else {
-          // we already have the data
-          initializeColorEncoding(runContext.reqId, parentFuncStr)
-          const sced = chartStore.getSelectedColorEncodeData(parentReqIdStr)
-          chartStore.setSavedColorEncodeData(parentReqIdStr, sced)
-          chartStore.setSelectedColorEncodeData(parentReqIdStr, 'solid')
-          await prepareDbForReqId(runContext.reqId)
-          await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud TRUE')
-          const msg = `Click 'Hide Photon Cloud Overlay' to remove highlighted track Photon Cloud data from the plot`
-          requestsStore.setConsoleMsg(msg)
-        }
+        await handlePhotonCloudShow()
       } else {
         chartStore.setInitLegendUnselected(recTreeStore.selectedReqIdStr, false)
+        //console.log(`calling chartStore.getSavedColorEncodeData(${recTreeStore.selectedReqIdStr})`)
         const sced = chartStore.getSavedColorEncodeData(recTreeStore.selectedReqIdStr)
+        //console.log(`called chartStore.getSavedColorEncodeData(${recTreeStore.selectedReqIdStr}) sced:${sced}`)
         if (sced && sced != 'unset') {
+          //console.log('Restoring to sced:', sced, ' reqIdStr:', recTreeStore.selectedReqIdStr);
           chartStore.setSelectedColorEncodeData(recTreeStore.selectedReqIdStr, sced)
           chartStore.setSavedColorEncodeData(recTreeStore.selectedReqIdStr, 'unset')
         }
+        //console.log('SrElevationPlot handlePhotonCloudChange - showPhotonCloud FALSE');
         atlChartFilterStore.setSelectedOverlayedReqIds([])
         await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud FALSE')
       }
@@ -682,6 +674,21 @@ watch(
     })
     // Handle the change in slope lines visibility
     await callPlotUpdateDebounced('from watch atlChartFilterStore.showSlopeLines')
+  }
+)
+
+watch(
+  () => atlChartFilterStore.includeAtl08,
+  async (newValue) => {
+    logger.debug('ATL08 inclusion changed', {
+      newValue,
+      includeAtl08: atlChartFilterStore.includeAtl08,
+      showPhotonCloud: atlChartFilterStore.showPhotonCloud
+    })
+    // If photon cloud is visible, reload it with the new ATL08 setting
+    if (atlChartFilterStore.showPhotonCloud) {
+      await handlePhotonCloudShow()
+    }
   }
 )
 </script>
@@ -909,6 +916,22 @@ watch(
           </ToggleButton>
         </div>
         <div
+          v-if="mission === 'ICESat-2'"
+          class="atl08-checkbox-group"
+          @mouseover="
+            tooltipRef?.showTooltip($event, 'Include ATL08 classification in photon cloud overlay')
+          "
+          @mouseleave="tooltipRef?.hideTooltip()"
+        >
+          <Checkbox
+            v-model="atlChartFilterStore.includeAtl08"
+            binary
+            inputId="elevPlotAtl08Checkbox"
+            size="small"
+          />
+          <label for="elevPlotAtl08Checkbox" class="sr-checkbox-label">with atl08</label>
+        </div>
+        <div
           v-if="
             recTreeStore.selectedApi.includes('atl06') ||
             recTreeStore.selectedApi.includes('atl03x-surface')
@@ -966,31 +989,6 @@ watch(
         </div>
       </div>
     </div>
-    <!-- ATL08 Dialog -->
-    <Dialog
-      v-model:visible="showAtl08Dialog"
-      header="Photon Cloud Options"
-      :modal="true"
-      :closable="false"
-      :style="{ width: '30rem' }"
-    >
-      <div class="atl08-dialog-content">
-        <p>Would you like to include ATL08 classification in the photon cloud overlay?</p>
-        <div class="atl08-dialog-checkbox">
-          <Checkbox
-            v-model="atlChartFilterStore.includeAtl08"
-            binary
-            inputId="dialogAtl08Checkbox"
-            size="small"
-          />
-          <label for="dialogAtl08Checkbox" class="sr-checkbox-label">Include atl08</label>
-        </div>
-      </div>
-      <template #footer>
-        <Button label="Cancel" text @click="handleAtl08DialogCancel" />
-        <Button label="Continue" @click="handleAtl08DialogConfirm" />
-      </template>
-    </Dialog>
   </div>
 </template>
 
@@ -1184,20 +1182,14 @@ watch(
   display: flex;
   flex-direction: row;
   align-items: center; /* vertical centering */
-  margin-left: 0rem;
+  margin-left: 0.25rem;
 }
 
-.atl08-dialog-content {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.atl08-dialog-checkbox {
+.atl08-checkbox-group {
   display: flex;
   flex-direction: row;
-  align-items: center;
-  gap: 0.5rem;
+  align-items: center; /* vertical centering */
+  margin-left: 0rem;
 }
 
 .sr-checkbox-label {
