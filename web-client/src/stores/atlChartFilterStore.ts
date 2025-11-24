@@ -18,6 +18,7 @@ export const useAtlChartFilterStore = defineStore('atlChartFilter', {
     isWarning: true as boolean,
     showMessage: false as boolean,
     showPhotonCloud: false as boolean,
+    includeAtl08: false as boolean, // Include ATL08 classification in photon cloud
     xZoomStart: 0 as number,
     xZoomEnd: 100 as number,
     yZoomStart: 0 as number,
