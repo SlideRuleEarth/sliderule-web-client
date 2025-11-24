@@ -210,6 +210,7 @@ export interface AtlReqParams {
   poly?: SrRegion | null
   cmr?: { polygon?: SrRegion; version?: string }
   output?: OutputFormat
+  atl08_class?: string[]
   [key: string]: any // Other dynamic keys
 }
 
