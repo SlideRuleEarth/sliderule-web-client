@@ -862,6 +862,12 @@ onMounted(async () => {
         //console.log("SrMap onMounted adding geocoder");
         map.addControl(geocoder)
         geocoder.on('addresschosen', onAddressChosen)
+
+        // Add tooltip to geocoder button
+        const geocoderButton = document.querySelector<HTMLButtonElement>('.gcd-gl-btn')
+        if (geocoderButton) {
+          geocoderButton.title = 'Search for a location'
+        }
       } else {
         logger.error('Geocoder is null on mount')
       }
