@@ -212,12 +212,19 @@ function createDeck(container: HTMLDivElement) {
                     <strong>Time:</strong> ${timeStr}<br>
                 </div>
                 `,
+        className: 'deck-3d-tooltip',
         style: {
           background: 'rgba(20, 20, 20, 0.85)',
           color: 'white',
           padding: '8px',
           fontSize: '13px',
-          borderRadius: '4px'
+          borderRadius: '4px',
+          maxWidth: '250px',
+          overflowWrap: 'break-word',
+          whiteSpace: 'normal',
+          boxSizing: 'border-box',
+          zIndex: '9999',
+          pointerEvents: 'none'
         }
       }
     },

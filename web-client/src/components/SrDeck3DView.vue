@@ -193,6 +193,11 @@ watch(
 </script>
 
 <style scoped>
+.deck-view-container {
+  position: relative;
+  overflow: visible;
+}
+
 .deck-canvas {
   position: relative; /* ✅ ensures canvas stays in scroll flow */
   display: block;
@@ -203,6 +208,36 @@ watch(
   /* border: 1px solid #ccc;  */
   overflow: hidden; /* if you want scrollbars */
   will-change: transform; /* Hint for performance */
+}
+
+/* Allow deck.gl tooltips to overflow the container */
+:deep(.deck-tooltip) {
+  position: fixed !important;
+  z-index: 9999 !important;
+}
+
+/* Specific styling for 3D view tooltip */
+:deep(.deck-3d-tooltip) {
+  max-width: 250px !important;
+  width: auto !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  white-space: normal !important;
+  box-sizing: border-box !important;
+}
+
+:deep(.deck-3d-tooltip div) {
+  max-width: 100% !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  white-space: normal !important;
+  display: block !important;
+}
+
+:deep(.deck-3d-tooltip strong),
+:deep(.deck-3d-tooltip em) {
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
 }
 /* Override PrimeVue component widths */
 :deep(.p-inputnumber-input) {
