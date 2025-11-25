@@ -39,6 +39,24 @@ export const srViews = ref<{ [key: string]: SrView }>({
     projectionName: 'EPSG:3413',
     baseLayerName: 'Arctic Imagery NSIDC'
   },
+  'North Sea Ice Blue Marble': {
+    hide: false,
+    view: 'North Sea Ice',
+    projectionName: 'EPSG:3413',
+    baseLayerName: 'NASA Blue Marble Arctic'
+  },
+  'North Sea Ice Shaded Relief': {
+    hide: false,
+    view: 'North Sea Ice',
+    projectionName: 'EPSG:3413',
+    baseLayerName: 'NASA Blue Marble Shaded Relief Arctic'
+  },
+  'North Sea Ice MODIS': {
+    hide: false,
+    view: 'North Sea Ice',
+    projectionName: 'EPSG:3413',
+    baseLayerName: 'NASA MODIS Arctic'
+  },
   'South Antarctic Imagery': {
     hide: false,
     view: 'South',

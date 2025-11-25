@@ -91,6 +91,15 @@ const nsidcTileGrid = new TileGrid({
   tileSize: [256, 256]
 })
 
+// NASA GIBS EPSG:3413 tile grid configuration
+// For 500m and 250m tile matrix sets
+// Origin and resolutions from NASA GIBS GetCapabilities
+const nasaGibsArcticTileGrid = new TileGrid({
+  origin: [-4194304, 4194304],
+  resolutions: [8192.0, 4096.0, 2048.0, 1024.0, 512.0, 256.0, 128.0, 64.0, 32.0],
+  tileSize: [512, 512]
+})
+
 export const layers = ref<{ [key: string]: SrLayer }>({
   'Esri World Topo': {
     title: 'Esri World Topo',
@@ -189,6 +198,46 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     init_visibility: false,
     init_opacity: 0.7,
     max_zoom: 15
+  },
+  'NASA Blue Marble Arctic': {
+    title: 'NASA Blue Marble Arctic',
+    type: 'xyz',
+    isBaseLayer: true,
+    // NASA GIBS Blue Marble Next Generation - monthly global imagery mosaic
+    url: 'https://gibs.earthdata.nasa.gov/wmts/epsg3413/best/BlueMarble_NextGeneration/default/2004-12-01/500m/{z}/{y}/{x}.jpeg',
+    attributionKey: 'nasa_gibs',
+    source_projection: 'EPSG:3413',
+    allowed_reprojections: ['EPSG:3413'],
+    init_visibility: true,
+    init_opacity: 1,
+    max_zoom: 8
+  },
+  'NASA Blue Marble Shaded Relief Arctic': {
+    title: 'NASA Blue Marble Shaded Relief Arctic',
+    type: 'xyz',
+    isBaseLayer: true,
+    // NASA GIBS Blue Marble with shaded relief and bathymetry
+    url: 'https://gibs.earthdata.nasa.gov/wmts/epsg3413/best/BlueMarble_ShadedRelief_Bathymetry/default/2004-12-01/500m/{z}/{y}/{x}.jpeg',
+    attributionKey: 'nasa_gibs',
+    source_projection: 'EPSG:3413',
+    allowed_reprojections: ['EPSG:3413'],
+    init_visibility: true,
+    init_opacity: 1,
+    max_zoom: 8
+  },
+  'NASA MODIS Arctic': {
+    title: 'NASA MODIS Arctic',
+    type: 'xyz',
+    isBaseLayer: true,
+    // NASA GIBS MODIS Terra Corrected Reflectance - daily true color imagery
+    // Note: TIME parameter needs to be updated for current imagery
+    url: 'https://gibs.earthdata.nasa.gov/wmts/epsg3413/best/MODIS_Terra_CorrectedReflectance_TrueColor/default/2024-01-01/250m/{z}/{y}/{x}.jpg',
+    attributionKey: 'nasa_gibs',
+    source_projection: 'EPSG:3413',
+    allowed_reprojections: ['EPSG:3413'],
+    init_visibility: true,
+    init_opacity: 1,
+    max_zoom: 8
   },
   'Artic Reference': {
     title: 'Artic Reference',
@@ -457,6 +506,15 @@ export const getLayer = (
               tileGridResolutions: nsidcTileGrid.getResolutions().length
             })
           }
+        }
+        // Add custom tile grid for NASA GIBS EPSG:3413 layers
+        if (srLayer.source_projection === 'EPSG:3413' && isNasaGibs) {
+          xyzOptions.tileGrid = nasaGibsArcticTileGrid
+          logger.debug('[SrLayers] NASA GIBS EPSG:3413 configured:', {
+            layerTitle: title,
+            tileGridResolutions: nasaGibsArcticTileGrid.getResolutions().length,
+            maxZoom: srLayer.max_zoom
+          })
         }
         // Add custom tile grid for EPSG:3031 to ensure proper tile loading
         // BUT: Skip tile grid for NASA GIBS layers as they use standard WMTS tile matrices
