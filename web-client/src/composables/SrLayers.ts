@@ -91,12 +91,18 @@ const nsidcTileGrid = new TileGrid({
   tileSize: [256, 256]
 })
 
-// NASA GIBS EPSG:3413 tile grid configuration
-// For 500m and 250m tile matrix sets
+// NASA GIBS EPSG:3413 tile grid configuration for 500m TileMatrixSet
 // Origin and resolutions from NASA GIBS GetCapabilities
-const nasaGibsArcticTileGrid = new TileGrid({
+const nasaGibs500mArcticTileGrid = new TileGrid({
   origin: [-4194304, 4194304],
-  resolutions: [8192.0, 4096.0, 2048.0, 1024.0, 512.0, 256.0, 128.0, 64.0, 32.0],
+  resolutions: [8192.0, 4096.0, 2048.0, 1024.0, 512.0],
+  tileSize: [512, 512]
+})
+
+// NASA GIBS EPSG:3413 tile grid configuration for 250m TileMatrixSet
+const nasaGibs250mArcticTileGrid = new TileGrid({
+  origin: [-4194304, 4194304],
+  resolutions: [8192.0, 4096.0, 2048.0, 1024.0, 512.0, 256.0],
   tileSize: [512, 512]
 })
 
@@ -230,14 +236,14 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     type: 'xyz',
     isBaseLayer: true,
     // NASA GIBS MODIS Terra Corrected Reflectance - daily true color imagery
-    // Note: TIME parameter needs to be updated for current imagery
-    url: 'https://gibs.earthdata.nasa.gov/wmts/epsg3413/best/MODIS_Terra_CorrectedReflectance_TrueColor/default/2024-01-01/250m/{z}/{y}/{x}.jpg',
+    // Using summer date (July) when Arctic has sunlight - winter dates show no data due to polar night
+    url: 'https://gibs.earthdata.nasa.gov/wmts/epsg3413/best/MODIS_Terra_CorrectedReflectance_TrueColor/default/2024-07-15/250m/{z}/{y}/{x}.jpg',
     attributionKey: 'nasa_gibs',
     source_projection: 'EPSG:3413',
     allowed_reprojections: ['EPSG:3413'],
     init_visibility: true,
     init_opacity: 1,
-    max_zoom: 8
+    max_zoom: 5
   },
   'Artic Reference': {
     title: 'Artic Reference',
@@ -508,11 +514,14 @@ export const getLayer = (
           }
         }
         // Add custom tile grid for NASA GIBS EPSG:3413 layers
+        // Use 250m grid for layers with 250m in URL, otherwise use 500m grid
         if (srLayer.source_projection === 'EPSG:3413' && isNasaGibs) {
-          xyzOptions.tileGrid = nasaGibsArcticTileGrid
+          const is250m = srLayer.url.includes('/250m/')
+          xyzOptions.tileGrid = is250m ? nasaGibs250mArcticTileGrid : nasaGibs500mArcticTileGrid
           logger.debug('[SrLayers] NASA GIBS EPSG:3413 configured:', {
             layerTitle: title,
-            tileGridResolutions: nasaGibsArcticTileGrid.getResolutions().length,
+            tileMatrixSet: is250m ? '250m' : '500m',
+            tileGridResolutions: xyzOptions.tileGrid.getResolutions().length,
             maxZoom: srLayer.max_zoom
           })
         }
