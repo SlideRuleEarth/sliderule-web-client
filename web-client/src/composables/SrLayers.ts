@@ -5,6 +5,7 @@ import TileWMS from 'ol/source/TileWMS' // Import the TileWMS module
 import ImageArcGISRest from 'ol/source/ImageArcGISRest.js'
 import type ImageSource from 'ol/source/Image.js'
 import { useMapStore } from '@/stores/mapStore.js'
+import { useGoogleApiKeyStore } from '@/stores/googleApiKeyStore'
 import type { ServerType } from 'ol/source/wms.js'
 import { XYZ } from 'ol/source.js'
 import TileGrid from 'ol/tilegrid/TileGrid.js'
@@ -133,15 +134,15 @@ export const layers = ref<{ [key: string]: SrLayer }>({
   },
   Google: {
     title: 'Google',
-    type: 'xyz',
+    type: 'google', // Special type for Google Maps API
     isBaseLayer: true,
-    url: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+    url: 'https://tile.googleapis.com/v1/2dtiles/{z}/{x}/{y}', // Official Google Map Tiles API
     attributionKey: 'google',
     source_projection: 'EPSG:3857',
     allowed_reprojections: ['EPSG:3857', 'EPSG:4326'],
     init_visibility: true,
     init_opacity: 1,
-    max_zoom: 19
+    max_zoom: 22
   },
   'USGS 3DEP': {
     title: 'USGS 3DEP',
@@ -332,6 +333,12 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     init_opacity: 0.2
   }
 })
+
+// Check if Google Maps layer is available (has valid API key)
+export const isGoogleLayerAvailable = (): boolean => {
+  const googleApiKeyStore = useGoogleApiKeyStore()
+  return googleApiKeyStore.hasValidKey()
+}
 
 export const getSrLayersForCurrentView = () => {
   const mapStore = useMapStore()
@@ -631,6 +638,62 @@ export const getLayer = (
             hasSource: !!layerInstance.getSource()
           })
         }
+      } else if (srLayer.type === 'google') {
+        // Handle Google Maps API with user-provided API key
+        const googleApiKeyStore = useGoogleApiKeyStore()
+
+        if (!googleApiKeyStore.hasValidKey()) {
+          logger.warn('[SrLayers] Google layer requested but no valid API key configured')
+          // Return undefined - the UI will prompt the user for an API key
+          return undefined
+        }
+
+        const apiKey = googleApiKeyStore.getApiKey()
+        const sessionToken = googleApiKeyStore.getSessionToken()
+
+        // Session should exist from when the key was validated
+        // If not, the user needs to re-enter their key in Settings
+        if (!sessionToken) {
+          logger.error(
+            '[SrLayers] No Google session token available - please re-validate your API key in Settings'
+          )
+          return undefined
+        }
+
+        // Build the tile URL with session token and API key
+        const googleTileUrl = `https://tile.googleapis.com/v1/2dtiles/{z}/{x}/{y}?session=${sessionToken}&key=${apiKey}`
+
+        const googleXyzOptions: any = {
+          url: googleTileUrl,
+          projection: srLayer.source_projection,
+          attributions: srAttributions[srLayer.attributionKey],
+          wrapX: true,
+          crossOrigin: 'anonymous',
+          maxZoom: srLayer.max_zoom
+        }
+
+        const googleXyzSource = new XYZ(googleXyzOptions)
+
+        // Add error handling for tile load errors
+        googleXyzSource.on('tileloaderror', (event: any) => {
+          const tile = event.tile
+          const tileCoord = tile.getTileCoord()
+          logger.error('[SrLayers] Google tile load error:', {
+            zoom: tileCoord[0],
+            x: tileCoord[1],
+            y: tileCoord[2]
+          })
+        })
+
+        layerInstance = new TileLayer({
+          source: googleXyzSource,
+          ...localTileLayerOptions
+        })
+
+        logger.debug('[SrLayers] Created Google TileLayer with official API:', {
+          layerTitle: title,
+          hasSession: !!sessionToken
+        })
       } else if (srLayer.type === 'imagearcgisrest') {
         // Handle ArcGIS Image Services (dynamic image layers, not tiled)
         const imageLayerOptions: any = {
