@@ -145,7 +145,7 @@ function clearKey() {
           <li>
             <strong>Important - Restrict your key:</strong>
             <ul>
-              <li>Under "Application restrictions", select <strong>"HTTP referrers"</strong></li>
+              <li>Under "Application restrictions", select <strong>"Websites"</strong></li>
               <li>
                 Click "Add" and enter: <code>{{ currentHost }}/*</code>
               </li>

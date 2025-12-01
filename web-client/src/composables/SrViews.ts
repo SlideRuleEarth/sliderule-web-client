@@ -19,13 +19,13 @@ export const srViews = ref<{ [key: string]: SrView }>({
     hide: false,
     view: 'Global Mercator',
     projectionName: 'EPSG:3857',
-    baseLayerName: 'Google'
+    baseLayerName: 'Google Satellite'
   },
   'Global Mercator OSM': {
     hide: false,
     view: 'Global Mercator',
     projectionName: 'EPSG:3857',
-    baseLayerName: 'OpenStreet'
+    baseLayerName: 'OpenStreetMap Standard'
   },
   'Global Sentinel-2 2024': {
     hide: false,
