@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, defineExpose } from 'vue'
+import { ref, computed } from 'vue'
 import SrFeatureTreeNode, {
   type FeatureNode,
   type MiniFeature,
