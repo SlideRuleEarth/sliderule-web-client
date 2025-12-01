@@ -708,9 +708,10 @@ export const getLayer = (
     }
 
     // Set maxZoom on layer if specified in layer definition
-    // EXCEPT for NASA GIBS layers - they need source maxZoom for tile limiting but no layer maxZoom for overzooming
+    // EXCEPT for NASA GIBS and EOX layers - they need source maxZoom for tile limiting but no layer maxZoom for overzooming
     const isNasaGibsLayer = srLayer.url.includes('gibs.earthdata.nasa.gov')
-    if (srLayer.max_zoom !== undefined && !isNasaGibsLayer) {
+    const isEoxLayer = srLayer.url.includes('tiles.maps.eox.at')
+    if (srLayer.max_zoom !== undefined && !isNasaGibsLayer && !isEoxLayer) {
       localTileLayerOptions.maxZoom = srLayer.max_zoom
       logger.debug('[SrLayers] Setting layer maxZoom:', {
         layerTitle: title,
@@ -773,6 +774,18 @@ export const getLayer = (
             sourceProjection: srLayer.source_projection,
             url: srLayer.url,
             note: 'No maxZoom set - tiles beyond availability will be scaled automatically'
+          })
+        }
+
+        // EOX Sentinel-2 Cloudless layers - enable overzooming beyond zoom 13
+        // Tiles are available up to zoom 13, setting source maxZoom enables scaling beyond that
+        const isEoxLayer = srLayer.url.includes('tiles.maps.eox.at')
+        if (isEoxLayer) {
+          xyzOptions.maxZoom = 13
+          logger.debug('[SrLayers] EOX layer configured for overzooming:', {
+            layerTitle: title,
+            sourceMaxZoom: 13,
+            note: 'Tiles available up to zoom 13, will scale beyond'
           })
         }
         // Add custom tile grid for EPSG:5936 to ensure proper tile loading
