@@ -359,8 +359,8 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     init_opacity: 1,
     max_zoom: 19
   },
-  OpenStreet: {
-    title: 'OpenStreet',
+  'OpenStreetMap Standard': {
+    title: 'OpenStreetMap Standard',
     type: 'xyz',
     isBaseLayer: true,
     url: 'https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -371,8 +371,8 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     init_opacity: 1,
     max_zoom: 19
   },
-  Google: {
-    title: 'Google',
+  'Google Satellite': {
+    title: 'Google Satellite',
     type: 'google', // Special type for Google Maps API
     isBaseLayer: true,
     url: 'https://tile.googleapis.com/v1/2dtiles/{z}/{x}/{y}', // Official Google Map Tiles API

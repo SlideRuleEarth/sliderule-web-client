@@ -20,6 +20,12 @@ export const useGoogleApiKeyStore = defineStore('googleApiKey', {
     sessionToken: null as string | null,
     sessionExpiry: null as number | null
   }),
+  persist: {
+    // Use localStorage for persistence across browser sessions (not just tabs)
+    storage: localStorage,
+    // Only persist the API key and session - validation status will be re-checked
+    pick: ['apiKey', 'sessionToken', 'sessionExpiry']
+  },
   actions: {
     setApiKey(key: string | null) {
       this.apiKey = key
@@ -134,6 +140,14 @@ export const useGoogleApiKeyStore = defineStore('googleApiKey', {
         })
         this.validationStatus = 'invalid'
         return false
+      }
+    },
+    async initializeOnStartup(): Promise<void> {
+      // If we have an API key but validation status is unknown (e.g., after page reload),
+      // automatically re-validate the session
+      if (this.apiKey && this.validationStatus === 'unknown') {
+        logger.debug('API key found with unknown status, re-validating session')
+        await this.validateApiKey(this.apiKey)
       }
     },
     async refreshSession(): Promise<boolean> {

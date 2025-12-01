@@ -26,6 +26,7 @@ import ConfirmationService from 'primevue/confirmationservice'
 import OpenLayersMap, { type Vue3OpenlayersGlobalOptions } from 'vue3-openlayers'
 import log from './utils/logger'
 import { initSentinel2CloudlessLayers } from './composables/SrLayers'
+import { useGoogleApiKeyStore } from './stores/googleApiKeyStore'
 
 const SrPreset = definePreset(Lara, {
   semantic: {
@@ -163,4 +164,10 @@ log.info('Vue app mounted', { mode: import.meta.env.MODE, baseUrl: import.meta.e
 // Initialize dynamic layer data (fetches available Sentinel-2 Cloudless years from EOX)
 initSentinel2CloudlessLayers().catch((err) => {
   log.warn('Failed to initialize Sentinel-2 Cloudless layers', { error: err })
+})
+
+// Re-validate Google API key session if one exists from a previous session
+const googleApiKeyStore = useGoogleApiKeyStore()
+googleApiKeyStore.initializeOnStartup().catch((err) => {
+  log.warn('Failed to initialize Google API key session', { error: err })
 })
