@@ -27,6 +27,42 @@ export const srViews = ref<{ [key: string]: SrView }>({
     projectionName: 'EPSG:3857',
     baseLayerName: 'OpenStreet'
   },
+  'Global Sentinel-2 2024': {
+    hide: false,
+    view: 'Global Mercator',
+    projectionName: 'EPSG:3857',
+    baseLayerName: 'Sentinel-2 Cloudless 2024'
+  },
+  'Global Sentinel-2 2023': {
+    hide: false,
+    view: 'Global Mercator',
+    projectionName: 'EPSG:3857',
+    baseLayerName: 'Sentinel-2 Cloudless 2023'
+  },
+  'Global Sentinel-2 2022': {
+    hide: false,
+    view: 'Global Mercator',
+    projectionName: 'EPSG:3857',
+    baseLayerName: 'Sentinel-2 Cloudless 2022'
+  },
+  'Global Sentinel-2 2021': {
+    hide: false,
+    view: 'Global Mercator',
+    projectionName: 'EPSG:3857',
+    baseLayerName: 'Sentinel-2 Cloudless 2021'
+  },
+  'Global Sentinel-2 2020': {
+    hide: false,
+    view: 'Global Mercator',
+    projectionName: 'EPSG:3857',
+    baseLayerName: 'Sentinel-2 Cloudless 2020'
+  },
+  'Global VIIRS': {
+    hide: false,
+    view: 'Global Mercator',
+    projectionName: 'EPSG:3857',
+    baseLayerName: 'NASA VIIRS True Color'
+  },
   'North Alaska': {
     hide: false,
     view: 'North Alaska',
@@ -57,6 +93,12 @@ export const srViews = ref<{ [key: string]: SrView }>({
     projectionName: 'EPSG:3413',
     baseLayerName: 'NASA MODIS Arctic'
   },
+  'North Sea Ice VIIRS': {
+    hide: false,
+    view: 'North Sea Ice',
+    projectionName: 'EPSG:3413',
+    baseLayerName: 'NASA VIIRS Arctic'
+  },
   'South Antarctic Imagery': {
     hide: false,
     view: 'South',
@@ -80,6 +122,12 @@ export const srViews = ref<{ [key: string]: SrView }>({
     view: 'South',
     projectionName: 'EPSG:3031',
     baseLayerName: 'RadarMosaic'
+  },
+  'South VIIRS': {
+    hide: false,
+    view: 'South',
+    projectionName: 'EPSG:3031',
+    baseLayerName: 'NASA VIIRS Antarctic'
   }
 })
 

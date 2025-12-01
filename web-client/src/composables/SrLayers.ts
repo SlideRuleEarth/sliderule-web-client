@@ -15,6 +15,236 @@ import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('SrLayers')
 
+// Cache for NASA GIBS layer metadata (layerId -> metadata)
+const gibsMetadataCache: Map<string, { dateRange?: string; ongoing?: boolean; fetchedAt: number }> =
+  new Map()
+const GIBS_CACHE_TTL = 24 * 60 * 60 * 1000 // 24 hours
+
+/**
+ * Fetch NASA GIBS layer metadata to get available date information
+ * @param layerId - The GIBS layer identifier (e.g., 'VIIRS_SNPP_CorrectedReflectance_TrueColor')
+ * @returns Promise with layer metadata including date range
+ */
+export const fetchGibsLayerMetadata = async (
+  layerId: string
+): Promise<{ ongoing: boolean; startDate?: string; endDate?: string } | null> => {
+  // Check cache first
+  const cached = gibsMetadataCache.get(layerId)
+  if (cached && Date.now() - cached.fetchedAt < GIBS_CACHE_TTL) {
+    return { ongoing: cached.ongoing ?? false }
+  }
+
+  try {
+    const response = await fetch(
+      `https://gibs.earthdata.nasa.gov/layer-metadata/v1.0/${layerId}.json`
+    )
+    if (!response.ok) {
+      logger.warn(`Failed to fetch GIBS metadata for ${layerId}: ${response.status}`)
+      return null
+    }
+    const data = await response.json()
+    const metadata = {
+      ongoing: data.ongoing ?? false,
+      startDate: data.startDate,
+      endDate: data.endDate,
+      fetchedAt: Date.now()
+    }
+    gibsMetadataCache.set(layerId, metadata)
+    return metadata
+  } catch (error) {
+    logger.error(`Error fetching GIBS metadata for ${layerId}:`, { error })
+    return null
+  }
+}
+
+/**
+ * Get the best date to use for a NASA GIBS layer
+ * For ongoing layers, uses 3 days ago (to account for processing delay)
+ * For polar regions, uses a summer date to avoid polar night gaps
+ * @param layerId - The GIBS layer identifier
+ * @param preferSummer - Use a fixed summer date for polar regions
+ * @param hemisphere - 'north' for Arctic (July), 'south' for Antarctic (January)
+ */
+export const getGibsDate = async (
+  layerId: string,
+  preferSummer: boolean = false,
+  hemisphere: 'north' | 'south' = 'north'
+): Promise<string> => {
+  const now = new Date()
+  const year = now.getFullYear()
+
+  // For polar regions, prefer a summer date to ensure visibility
+  if (preferSummer) {
+    if (hemisphere === 'north') {
+      return `${year}-07-15` // Arctic summer
+    } else {
+      return `${year}-01-15` // Antarctic summer
+    }
+  }
+
+  // Try to fetch metadata to confirm layer is ongoing
+  const metadata = await fetchGibsLayerMetadata(layerId)
+
+  if (metadata?.ongoing) {
+    // For ongoing layers, use 3 days ago to account for processing delay
+    const date = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000)
+    const yyyy = date.getFullYear()
+    const mm = String(date.getMonth() + 1).padStart(2, '0')
+    const dd = String(date.getDate()).padStart(2, '0')
+    return `${yyyy}-${mm}-${dd}`
+  }
+
+  // Fallback: use 3 days ago anyway
+  const date = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000)
+  const yyyy = date.getFullYear()
+  const mm = String(date.getMonth() + 1).padStart(2, '0')
+  const dd = String(date.getDate()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}`
+}
+
+/**
+ * Get a GIBS date synchronously (without API call) - uses calculated date
+ * @param preferSummer - Use a fixed summer date for polar regions
+ * @param hemisphere - 'north' for Arctic (July), 'south' for Antarctic (January)
+ */
+export const getGibsDateSync = (
+  preferSummer: boolean = false,
+  hemisphere: 'north' | 'south' = 'north'
+): string => {
+  const now = new Date()
+  const year = now.getFullYear()
+
+  if (preferSummer) {
+    return hemisphere === 'north' ? `${year}-07-15` : `${year}-01-15`
+  }
+
+  // Use 3 days ago for near-real-time data
+  const date = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000)
+  const yyyy = date.getFullYear()
+  const mm = String(date.getMonth() + 1).padStart(2, '0')
+  const dd = String(date.getDate()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}`
+}
+
+// Cache for EOX Sentinel-2 Cloudless available years
+let sentinel2CloudlessYears: number[] | null = null
+let sentinel2FetchPromise: Promise<number[]> | null = null
+
+/**
+ * Fetch available Sentinel-2 Cloudless years from EOX WMTS capabilities
+ * @returns Promise with array of available years (e.g., [2016, 2017, ..., 2024])
+ */
+export const fetchSentinel2CloudlessYears = async (): Promise<number[]> => {
+  // Return cached result if available
+  if (sentinel2CloudlessYears) {
+    return sentinel2CloudlessYears
+  }
+
+  // Return existing promise if fetch is in progress
+  if (sentinel2FetchPromise) {
+    return sentinel2FetchPromise
+  }
+
+  sentinel2FetchPromise = (async () => {
+    try {
+      const response = await fetch('https://tiles.maps.eox.at/wmts/1.0.0/WMTSCapabilities.xml')
+      if (!response.ok) {
+        logger.warn(`Failed to fetch EOX WMTS capabilities: ${response.status}`)
+        return getDefaultSentinel2Years()
+      }
+
+      const text = await response.text()
+      const years: number[] = []
+
+      // Parse layer identifiers to extract years
+      // Pattern: s2cloudless-YYYY_3857 or s2cloudless_3857 (for 2016)
+      const layerMatches = text.matchAll(/s2cloudless(?:-(\d{4}))?_3857/g)
+      for (const match of layerMatches) {
+        const year = match[1] ? parseInt(match[1]) : 2016 // No suffix means 2016
+        if (!years.includes(year)) {
+          years.push(year)
+        }
+      }
+
+      // Sort years in descending order (newest first)
+      years.sort((a, b) => b - a)
+
+      if (years.length === 0) {
+        logger.warn('No Sentinel-2 Cloudless layers found in capabilities')
+        return getDefaultSentinel2Years()
+      }
+
+      sentinel2CloudlessYears = years
+      logger.debug('Fetched Sentinel-2 Cloudless years:', { years })
+      return years
+    } catch (error) {
+      logger.error('Error fetching EOX WMTS capabilities:', { error })
+      return getDefaultSentinel2Years()
+    } finally {
+      sentinel2FetchPromise = null
+    }
+  })()
+
+  return sentinel2FetchPromise
+}
+
+/**
+ * Get default Sentinel-2 Cloudless years (fallback if fetch fails)
+ */
+const getDefaultSentinel2Years = (): number[] => {
+  const currentYear = new Date().getFullYear()
+  // Return last 5 years as fallback
+  return [currentYear, currentYear - 1, currentYear - 2, currentYear - 3, currentYear - 4]
+}
+
+/**
+ * Get the latest available Sentinel-2 Cloudless year synchronously
+ * Uses current year as default, actual availability checked via fetchSentinel2CloudlessYears
+ */
+export const getLatestSentinel2Year = (): number => {
+  if (sentinel2CloudlessYears && sentinel2CloudlessYears.length > 0) {
+    return sentinel2CloudlessYears[0]
+  }
+  return new Date().getFullYear()
+}
+
+/**
+ * Generate a Sentinel-2 Cloudless layer configuration for a given year
+ */
+export const createSentinel2CloudlessLayer = (year: number): SrLayer => ({
+  title: `Sentinel-2 Cloudless ${year}`,
+  type: 'xyz',
+  isBaseLayer: true,
+  url: `https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-${year}_3857/default/g/{z}/{y}/{x}.jpg`,
+  attributionKey: 'sentinel2_eox',
+  source_projection: 'EPSG:3857',
+  allowed_reprojections: ['EPSG:3857', 'EPSG:4326'],
+  init_visibility: true,
+  init_opacity: 1,
+  max_zoom: 14
+})
+
+/**
+ * Add Sentinel-2 Cloudless layers dynamically after fetching available years
+ * Call this on app initialization to populate all available years
+ */
+export const initSentinel2CloudlessLayers = async (): Promise<void> => {
+  const years = await fetchSentinel2CloudlessYears()
+
+  for (const year of years) {
+    const layerTitle = `Sentinel-2 Cloudless ${year}`
+    // Only add if not already present
+    if (!layers.value[layerTitle]) {
+      layers.value[layerTitle] = createSentinel2CloudlessLayer(year)
+    }
+  }
+
+  logger.debug('Initialized Sentinel-2 Cloudless layers:', {
+    count: years.length,
+    years
+  })
+}
+
 export const srAttributions = {
   esri: 'Tiles © Esri contributors',
   openStreetMap: '© OpenStreetMap contributors',
@@ -24,7 +254,9 @@ export const srAttributions = {
     'U.S. Geological Survey (USGS), British Antarctic Survey (BAS), National Aeronautics and Space Administration (NASA)',
   glims: 'GLIMS Glacier Data © Contributors',
   nasa_gibs: 'NASA GIBS',
-  ahocevar: 'Ahocevar'
+  ahocevar: 'Ahocevar',
+  sentinel2_eox:
+    'Sentinel-2 cloudless - https://s2maps.eu by EOX IT Services GmbH (Contains modified Copernicus Sentinel data)'
 }
 
 export interface SrLayer {
@@ -102,6 +334,13 @@ const nasaGibs500mArcticTileGrid = new TileGrid({
 
 // NASA GIBS EPSG:3413 tile grid configuration for 250m TileMatrixSet
 const nasaGibs250mArcticTileGrid = new TileGrid({
+  origin: [-4194304, 4194304],
+  resolutions: [8192.0, 4096.0, 2048.0, 1024.0, 512.0, 256.0],
+  tileSize: [512, 512]
+})
+
+// NASA GIBS EPSG:3031 tile grid configuration for 250m TileMatrixSet (Antarctic)
+const nasaGibs250mAntarcticTileGrid = new TileGrid({
   origin: [-4194304, 4194304],
   resolutions: [8192.0, 4096.0, 2048.0, 1024.0, 512.0, 256.0],
   tileSize: [512, 512]
@@ -197,8 +436,8 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     type: 'xyz',
     isBaseLayer: false,
     // NASA GIBS Harmonized Landsat Sentinel-2 (HLS) - 30m resolution Arctic imagery
-    // Using RESTful WMTS endpoint for tile access
-    url: 'https://gibs.earthdata.nasa.gov/wmts/epsg3413/best/HLS_S30_Nadir_BRDF_Adjusted_Reflectance/default/2024-01-01/250m/{z}/{y}/{x}.jpg',
+    // Using summer date for Arctic to ensure sunlight
+    url: `https://gibs.earthdata.nasa.gov/wmts/epsg3413/best/HLS_S30_Nadir_BRDF_Adjusted_Reflectance/default/${getGibsDateSync(true, 'north')}/250m/{z}/{y}/{x}.jpg`,
     attributionKey: 'nasa_gibs',
     source_projection: 'EPSG:3413',
     allowed_reprojections: ['EPSG:3413'],
@@ -238,7 +477,7 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     isBaseLayer: true,
     // NASA GIBS MODIS Terra Corrected Reflectance - daily true color imagery
     // Using summer date (July) when Arctic has sunlight - winter dates show no data due to polar night
-    url: 'https://gibs.earthdata.nasa.gov/wmts/epsg3413/best/MODIS_Terra_CorrectedReflectance_TrueColor/default/2024-07-15/250m/{z}/{y}/{x}.jpg',
+    url: `https://gibs.earthdata.nasa.gov/wmts/epsg3413/best/MODIS_Terra_CorrectedReflectance_TrueColor/default/${getGibsDateSync(true, 'north')}/250m/{z}/{y}/{x}.jpg`,
     attributionKey: 'nasa_gibs',
     source_projection: 'EPSG:3413',
     allowed_reprojections: ['EPSG:3413'],
@@ -331,6 +570,50 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     layerName: 'GLIMS_GLACIER',
     init_visibility: false,
     init_opacity: 0.2
+  },
+  // Sentinel-2 Cloudless imagery from EOX - high resolution (10m) yearly composites
+  // Additional years (2016-2023) are loaded dynamically via initSentinel2CloudlessLayers()
+  // This default layer uses current year; call initSentinel2CloudlessLayers() on app init for all available years
+  [`Sentinel-2 Cloudless ${new Date().getFullYear()}`]: createSentinel2CloudlessLayer(
+    new Date().getFullYear()
+  ),
+  // NASA VIIRS True Color imagery - daily satellite imagery
+  // Date is calculated dynamically (3 days ago) to ensure availability
+  'NASA VIIRS True Color': {
+    title: 'NASA VIIRS True Color',
+    type: 'xyz',
+    isBaseLayer: true,
+    url: `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_SNPP_CorrectedReflectance_TrueColor/default/${getGibsDateSync()}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg`,
+    attributionKey: 'nasa_gibs',
+    source_projection: 'EPSG:3857',
+    allowed_reprojections: ['EPSG:3857', 'EPSG:4326'],
+    init_visibility: true,
+    init_opacity: 1,
+    max_zoom: 9
+  },
+  'NASA VIIRS Arctic': {
+    title: 'NASA VIIRS Arctic',
+    type: 'xyz',
+    isBaseLayer: true,
+    // NASA GIBS VIIRS True Color for Arctic - using summer date when Arctic has sunlight
+    url: `https://gibs.earthdata.nasa.gov/wmts/epsg3413/best/VIIRS_SNPP_CorrectedReflectance_TrueColor/default/${getGibsDateSync(true, 'north')}/250m/{z}/{y}/{x}.jpg`,
+    attributionKey: 'nasa_gibs',
+    source_projection: 'EPSG:3413',
+    allowed_reprojections: ['EPSG:3413'],
+    init_visibility: true,
+    init_opacity: 1
+  },
+  'NASA VIIRS Antarctic': {
+    title: 'NASA VIIRS Antarctic',
+    type: 'xyz',
+    isBaseLayer: true,
+    // NASA GIBS VIIRS True Color for Antarctic - using January date (Antarctic summer)
+    url: `https://gibs.earthdata.nasa.gov/wmts/epsg3031/best/VIIRS_SNPP_CorrectedReflectance_TrueColor/default/${getGibsDateSync(true, 'south')}/250m/{z}/{y}/{x}.jpg`,
+    attributionKey: 'nasa_gibs',
+    source_projection: 'EPSG:3031',
+    allowed_reprojections: ['EPSG:3031'],
+    init_visibility: true,
+    init_opacity: 1
   }
 })
 
@@ -532,8 +815,18 @@ export const getLayer = (
             maxZoom: srLayer.max_zoom
           })
         }
+        // Add custom tile grid for NASA GIBS EPSG:3031 layers (Antarctic)
+        if (srLayer.source_projection === 'EPSG:3031' && isNasaGibs) {
+          xyzOptions.tileGrid = nasaGibs250mAntarcticTileGrid
+          logger.debug('[SrLayers] NASA GIBS EPSG:3031 configured:', {
+            layerTitle: title,
+            tileMatrixSet: '250m',
+            tileGridResolutions: xyzOptions.tileGrid.getResolutions().length,
+            maxZoom: srLayer.max_zoom
+          })
+        }
         // Add custom tile grid for EPSG:3031 to ensure proper tile loading
-        // BUT: Skip tile grid for NASA GIBS layers as they use standard WMTS tile matrices
+        // Skip tile grid for NASA GIBS layers as they have their own tile grid above
         if (srLayer.source_projection === 'EPSG:3031' && !isNasaGibs) {
           xyzOptions.tileGrid = antarticTileGrid
           // Set source maxZoom to 10 to enable overzooming beyond tile availability
