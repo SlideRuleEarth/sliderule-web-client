@@ -6,6 +6,7 @@ import ImageArcGISRest from 'ol/source/ImageArcGISRest.js'
 import type ImageSource from 'ol/source/Image.js'
 import { useMapStore } from '@/stores/mapStore.js'
 import { useGoogleApiKeyStore } from '@/stores/googleApiKeyStore'
+import { useArcgisApiKeyStore } from '@/stores/arcgisApiKeyStore'
 import type { ServerType } from 'ol/source/wms.js'
 import { XYZ } from 'ol/source.js'
 import TileGrid from 'ol/tilegrid/TileGrid.js'
@@ -247,6 +248,7 @@ export const initSentinel2CloudlessLayers = async (): Promise<void> => {
 
 export const srAttributions = {
   esri: 'Tiles © Esri contributors',
+  esri_dev: 'Powered by Esri | © Esri, Maxar, Earthstar Geographics, and the GIS User Community',
   openStreetMap: '© OpenStreetMap contributors',
   google: 'Map data © Google',
   usgs: 'USGS National Map 3D Elevation Program (3DEP)',
@@ -614,6 +616,44 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     allowed_reprojections: ['EPSG:3031'],
     init_visibility: true,
     init_opacity: 1
+  },
+  // ArcGIS Developer layers - require API key from ArcGIS Developer account
+  // These provide higher resolution imagery than the free Esri layers
+  'ArcGIS World Imagery': {
+    title: 'ArcGIS World Imagery',
+    type: 'arcgis-dev', // Special type for ArcGIS Developer API
+    isBaseLayer: true,
+    url: 'https://ibasemaps-api.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attributionKey: 'esri_dev',
+    source_projection: 'EPSG:3857',
+    allowed_reprojections: ['EPSG:3857', 'EPSG:4326'],
+    init_visibility: true,
+    init_opacity: 1,
+    max_zoom: 23
+  },
+  'ArcGIS Hillshade': {
+    title: 'ArcGIS Hillshade',
+    type: 'arcgis-dev',
+    isBaseLayer: false,
+    url: 'https://ibasemaps-api.arcgis.com/arcgis/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}',
+    attributionKey: 'esri_dev',
+    source_projection: 'EPSG:3857',
+    allowed_reprojections: ['EPSG:3857', 'EPSG:4326'],
+    init_visibility: false,
+    init_opacity: 0.5,
+    max_zoom: 23
+  },
+  'ArcGIS Ocean Base': {
+    title: 'ArcGIS Ocean Base',
+    type: 'arcgis-dev',
+    isBaseLayer: true,
+    url: 'https://ibasemaps-api.arcgis.com/arcgis/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}',
+    attributionKey: 'esri_dev',
+    source_projection: 'EPSG:3857',
+    allowed_reprojections: ['EPSG:3857', 'EPSG:4326'],
+    init_visibility: true,
+    init_opacity: 1,
+    max_zoom: 16
   }
 })
 
@@ -621,6 +661,12 @@ export const layers = ref<{ [key: string]: SrLayer }>({
 export const isGoogleLayerAvailable = (): boolean => {
   const googleApiKeyStore = useGoogleApiKeyStore()
   return googleApiKeyStore.hasValidKey()
+}
+
+// Check if ArcGIS Developer layer is available (has valid API key)
+export const isArcgisLayerAvailable = (): boolean => {
+  const arcgisApiKeyStore = useArcgisApiKeyStore()
+  return arcgisApiKeyStore.hasValidKey()
 }
 
 export const getSrLayersForCurrentView = () => {
@@ -999,6 +1045,52 @@ export const getLayer = (
         logger.debug('[SrLayers] Created Google TileLayer with official API:', {
           layerTitle: title,
           hasSession: !!sessionToken
+        })
+      } else if (srLayer.type === 'arcgis-dev') {
+        // Handle ArcGIS Developer API with user-provided API key
+        const arcgisApiKeyStore = useArcgisApiKeyStore()
+
+        if (!arcgisApiKeyStore.hasValidKey()) {
+          logger.warn('[SrLayers] ArcGIS Developer layer requested but no valid API key configured')
+          // Return undefined - the UI will prompt the user for an API key
+          return undefined
+        }
+
+        const apiKey = arcgisApiKeyStore.getApiKey()
+
+        // Build the tile URL with API key token
+        const arcgisTileUrl = `${srLayer.url}?token=${apiKey}`
+
+        const arcgisXyzOptions: any = {
+          url: arcgisTileUrl,
+          projection: srLayer.source_projection,
+          attributions: srAttributions[srLayer.attributionKey],
+          wrapX: true,
+          crossOrigin: 'anonymous',
+          maxZoom: srLayer.max_zoom
+        }
+
+        const arcgisXyzSource = new XYZ(arcgisXyzOptions)
+
+        // Add error handling for tile load errors
+        arcgisXyzSource.on('tileloaderror', (event: any) => {
+          const tile = event.tile
+          const tileCoord = tile.getTileCoord()
+          logger.error('[SrLayers] ArcGIS Developer tile load error:', {
+            zoom: tileCoord[0],
+            x: tileCoord[1],
+            y: tileCoord[2]
+          })
+        })
+
+        layerInstance = new TileLayer({
+          source: arcgisXyzSource,
+          ...localTileLayerOptions
+        })
+
+        logger.debug('[SrLayers] Created ArcGIS Developer TileLayer:', {
+          layerTitle: title,
+          hasApiKey: !!apiKey
         })
       } else if (srLayer.type === 'imagearcgisrest') {
         // Handle ArcGIS Image Services (dynamic image layers, not tiled)

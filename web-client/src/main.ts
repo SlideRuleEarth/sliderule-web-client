@@ -27,6 +27,7 @@ import OpenLayersMap, { type Vue3OpenlayersGlobalOptions } from 'vue3-openlayers
 import log from './utils/logger'
 import { initSentinel2CloudlessLayers } from './composables/SrLayers'
 import { useGoogleApiKeyStore } from './stores/googleApiKeyStore'
+import { useArcgisApiKeyStore } from './stores/arcgisApiKeyStore'
 
 const SrPreset = definePreset(Lara, {
   semantic: {
@@ -170,4 +171,10 @@ initSentinel2CloudlessLayers().catch((err) => {
 const googleApiKeyStore = useGoogleApiKeyStore()
 googleApiKeyStore.initializeOnStartup().catch((err) => {
   log.warn('Failed to initialize Google API key session', { error: err })
+})
+
+// Re-validate ArcGIS API key if one exists from a previous session
+const arcgisApiKeyStore = useArcgisApiKeyStore()
+arcgisApiKeyStore.initializeOnStartup().catch((err) => {
+  log.warn('Failed to initialize ArcGIS API key', { error: err })
 })

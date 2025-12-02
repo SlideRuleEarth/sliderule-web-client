@@ -10,6 +10,7 @@ import SrStorageUsage from '@/components/SrStorageUsage.vue'
 import SrAdvOptPanel from '@/components/SrAdvOptPanel.vue'
 import SrDefaults from '@/components/SrDefaults.vue'
 import SrGoogleApiKeyInput from '@/components/SrGoogleApiKeyInput.vue'
+import SrArcgisApiKeyInput from '@/components/SrArcgisApiKeyInput.vue'
 import Card from 'primevue/card'
 </script>
 
@@ -38,7 +39,14 @@ import Card from 'primevue/card'
               <AccordionPanel value="1">
                 <AccordionHeader>Map Provider API Keys</AccordionHeader>
                 <AccordionContent>
-                  <SrGoogleApiKeyInput />
+                  <div class="sr-api-keys-section">
+                    <h4>Google Maps</h4>
+                    <SrGoogleApiKeyInput />
+                  </div>
+                  <div class="sr-api-keys-section">
+                    <h4>ArcGIS Developer</h4>
+                    <SrArcgisApiKeyInput />
+                  </div>
                 </AccordionContent>
               </AccordionPanel>
 
@@ -128,5 +136,25 @@ import Card from 'primevue/card'
 :deep(.p-accordion-panel) {
   width: 100%;
   max-width: 100%;
+}
+
+/* API Keys sections styling */
+.sr-api-keys-section {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--surface-200);
+}
+
+.sr-api-keys-section:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.sr-api-keys-section h4 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-color);
 }
 </style>
