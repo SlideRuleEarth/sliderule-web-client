@@ -407,7 +407,8 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     source_projection: 'EPSG:3857',
     allowed_reprojections: ['EPSG:3857'],
     init_visibility: false,
-    init_opacity: 0.5
+    init_opacity: 0.5,
+    max_zoom: 12
   },
   'Arctic Ocean Base': {
     title: 'Arctic Ocean Base',
