@@ -862,6 +862,13 @@ function handleSaveTooltip() {
         :controls="controls"
         class="sr-ol-analysis-map"
       >
+        <MapControls.OlLayerSwitcherControl
+          :show_progress="true"
+          :mouseover="false"
+          :reordering="true"
+          :trash="false"
+          :extent="true"
+        />
         <MapControls.OlZoomControl />
 
         <MapControls.OlMousePositionControl
@@ -1307,6 +1314,62 @@ function handleSaveTooltip() {
   left: 0.5rem;
   background: rgba(255, 255, 255, 0.25);
   border-radius: var(--p-border-radius);
+}
+
+/* Ensure OL controls container is above Deck.gl canvas (which has z-index: 1) */
+:deep(.ol-overlaycontainer-stopevent) {
+  z-index: 10 !important;
+}
+
+/* Layer Switcher Control */
+:deep(.ol-control.ol-layerswitcher) {
+  top: 5rem;
+  bottom: auto;
+  left: auto;
+  right: 0.5rem;
+  background-color: transparent;
+  border-radius: var(--p-border-radius);
+  z-index: 10000; /* Above Deck.gl overlay */
+}
+
+:deep(.ol-control.ol-layerswitcher > button) {
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  background: transparent;
+  display: grid;
+  place-items: center;
+  line-height: 1;
+  font-size: 1rem;
+}
+
+:deep(.ol-control.ol-layerswitcher .panel-container) {
+  width: 18rem;
+  max-width: 90vw;
+  background-color: var(--p-primary-100);
+  color: var(--p-primary-color);
+  border-radius: var(--p-border-radius);
+}
+
+:deep(.ol-control.ol-layerswitcher .panel) {
+  max-height: 40vh;
+  overflow: auto;
+}
+
+:deep(.ol-layerswitcher label) {
+  background-color: transparent;
+  color: var(--p-primary-color);
+  font-weight: bold;
+  font-family: var(--p-font-family);
+  border-radius: var(--p-border-radius);
+}
+
+:deep(.ol-layerswitcher .panel .li-content) {
+  padding: 0.25rem 0.5rem;
+}
+
+:deep(.ol-layerswitcher .panel .li-content > label) {
+  font-size: 0.85rem;
 }
 
 /* Graticule styling - ensure labels aren't clipped */
