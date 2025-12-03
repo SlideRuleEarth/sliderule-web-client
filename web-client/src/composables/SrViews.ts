@@ -1,10 +1,17 @@
 import { ref, computed } from 'vue'
 
+export interface SrOverlayConfig {
+  layerName: string
+  opacity: number
+  visible?: boolean // defaults to true if not specified
+}
+
 export interface SrView {
   hide: boolean
   view: string
   projectionName: string
   baseLayerName: string
+  overlays?: SrOverlayConfig[] // optional preset overlays with opacities
 }
 
 // srViews is now an object with keys as view names
@@ -37,7 +44,11 @@ export const srViews = ref<{ [key: string]: SrView }>({
     hide: false,
     view: 'Global Mercator',
     projectionName: 'EPSG:3857',
-    baseLayerName: 'EOX Terrain Light'
+    baseLayerName: 'EOX Terrain Light',
+    overlays: [
+      { layerName: 'NASA ASTER Color Relief', opacity: 0.5 },
+      { layerName: 'NASA ASTER Color Index', opacity: 0.4 }
+    ]
   },
   'Global Mercator OpenTopo': {
     hide: false,
@@ -233,4 +244,40 @@ export const findSrViewKey = (viewName: string, baseLayerName: string) => {
     )
     return entry ? entry[0] : null // Return the key if found, otherwise null
   })
+}
+
+/**
+ * Apply overlay settings from a view configuration to the map layers
+ * This sets visibility and opacity for overlay layers specified in the view
+ * @param map - OpenLayers map instance
+ * @param srView - The view configuration containing overlay settings
+ */
+export const applyViewOverlays = (map: any, srView: SrView | null) => {
+  if (!map || !srView?.overlays || srView.overlays.length === 0) {
+    return
+  }
+
+  const layers = map.getLayers().getArray()
+
+  for (const overlayConfig of srView.overlays) {
+    const layer = layers.find((l: any) => l.get('title') === overlayConfig.layerName)
+    if (layer) {
+      layer.setOpacity(overlayConfig.opacity)
+      layer.setVisible(overlayConfig.visible !== false) // default to true
+    }
+  }
+}
+
+/**
+ * Get the overlay configuration for a view
+ * @param viewName - The view name
+ * @param baseLayerName - The base layer name
+ * @returns The overlay configuration array or undefined
+ */
+export const getViewOverlays = (
+  viewName: string,
+  baseLayerName: string
+): SrOverlayConfig[] | undefined => {
+  const view = findSrView(viewName, baseLayerName).value
+  return view?.overlays
 }

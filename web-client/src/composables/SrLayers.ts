@@ -10,7 +10,7 @@ import type { ServerType } from 'ol/source/wms.js'
 import { XYZ } from 'ol/source.js'
 import TileGrid from 'ol/tilegrid/TileGrid.js'
 import type OLMap from 'ol/Map.js'
-// import { srViews } from "./SrViews"; // Unused import
+import { applyViewOverlays, findSrView } from './SrViews'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('SrLayers')
@@ -748,6 +748,18 @@ export const addLayersForCurrentView = (map: OLMap, projectionName: string) => {
         })
       }
     })
+
+    // Apply view-specific overlay settings (visibility and opacity)
+    const mapStore = useMapStore()
+    const srView = findSrView(mapStore.getSelectedView(), mapStore.getSelectedBaseLayer()).value
+    if (srView?.overlays) {
+      logger.debug('addLayersForCurrentView applying overlay settings', {
+        view: mapStore.getSelectedView(),
+        baseLayer: mapStore.getSelectedBaseLayer(),
+        overlays: srView.overlays
+      })
+      applyViewOverlays(map, srView)
+    }
   } catch (error) {
     logger.error('addLayersForCurrentView error', {
       error: error instanceof Error ? error.message : String(error)
