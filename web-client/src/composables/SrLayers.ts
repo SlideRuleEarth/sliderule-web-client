@@ -126,123 +126,47 @@ export const getGibsDateSync = (
   return `${yyyy}-${mm}-${dd}`
 }
 
-// Cache for EOX Sentinel-2 Cloudless available years
-let sentinel2CloudlessYears: number[] | null = null
-let sentinel2FetchPromise: Promise<number[]> | null = null
+// Sentinel-2 Cloudless: fetch latest available year from EOX on startup
+let sentinel2LatestYear: number = new Date().getFullYear() - 2 // Safe fallback
 
 /**
- * Fetch available Sentinel-2 Cloudless years from EOX WMTS capabilities
- * @returns Promise with array of available years (e.g., [2016, 2017, ..., 2024])
+ * Fetch the latest available Sentinel-2 Cloudless year from EOX WMTS capabilities
+ * Called on app init to update the layer URL with the most recent available year
  */
-export const fetchSentinel2CloudlessYears = async (): Promise<number[]> => {
-  // Return cached result if available
-  if (sentinel2CloudlessYears) {
-    return sentinel2CloudlessYears
-  }
-
-  // Return existing promise if fetch is in progress
-  if (sentinel2FetchPromise) {
-    return sentinel2FetchPromise
-  }
-
-  sentinel2FetchPromise = (async () => {
-    try {
-      const response = await fetch('https://tiles.maps.eox.at/wmts/1.0.0/WMTSCapabilities.xml')
-      if (!response.ok) {
-        logger.warn(`Failed to fetch EOX WMTS capabilities: ${response.status}`)
-        return getDefaultSentinel2Years()
-      }
-
-      const text = await response.text()
-      const years: number[] = []
-
-      // Parse layer identifiers to extract years
-      // Pattern: s2cloudless-YYYY_3857 or s2cloudless_3857 (for 2016)
-      const layerMatches = text.matchAll(/s2cloudless(?:-(\d{4}))?_3857/g)
-      for (const match of layerMatches) {
-        const year = match[1] ? parseInt(match[1]) : 2016 // No suffix means 2016
-        if (!years.includes(year)) {
-          years.push(year)
-        }
-      }
-
-      // Sort years in descending order (newest first)
-      years.sort((a, b) => b - a)
-
-      if (years.length === 0) {
-        logger.warn('No Sentinel-2 Cloudless layers found in capabilities')
-        return getDefaultSentinel2Years()
-      }
-
-      sentinel2CloudlessYears = years
-      logger.debug('Fetched Sentinel-2 Cloudless years:', { years })
-      return years
-    } catch (error) {
-      logger.error('Error fetching EOX WMTS capabilities:', { error })
-      return getDefaultSentinel2Years()
-    } finally {
-      sentinel2FetchPromise = null
+export const initSentinel2LatestYear = async (): Promise<void> => {
+  try {
+    const response = await fetch('https://tiles.maps.eox.at/wmts/1.0.0/WMTSCapabilities.xml')
+    if (!response.ok) {
+      logger.warn(`Failed to fetch EOX WMTS capabilities: ${response.status}`)
+      return
     }
-  })()
 
-  return sentinel2FetchPromise
-}
+    const text = await response.text()
+    const years: number[] = []
 
-/**
- * Get default Sentinel-2 Cloudless years (fallback if fetch fails)
- */
-const getDefaultSentinel2Years = (): number[] => {
-  const currentYear = new Date().getFullYear()
-  // Return last 5 years as fallback
-  return [currentYear, currentYear - 1, currentYear - 2, currentYear - 3, currentYear - 4]
-}
-
-/**
- * Get the latest available Sentinel-2 Cloudless year synchronously
- * Uses current year as default, actual availability checked via fetchSentinel2CloudlessYears
- */
-export const getLatestSentinel2Year = (): number => {
-  if (sentinel2CloudlessYears && sentinel2CloudlessYears.length > 0) {
-    return sentinel2CloudlessYears[0]
-  }
-  return new Date().getFullYear()
-}
-
-/**
- * Generate a Sentinel-2 Cloudless layer configuration for a given year
- */
-export const createSentinel2CloudlessLayer = (year: number): SrLayer => ({
-  title: `Sentinel-2 Cloudless ${year}`,
-  type: 'xyz',
-  isBaseLayer: true,
-  url: `https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-${year}_3857/default/g/{z}/{y}/{x}.jpg`,
-  attributionKey: 'sentinel2_eox',
-  source_projection: 'EPSG:3857',
-  allowed_reprojections: ['EPSG:3857', 'EPSG:4326'],
-  init_visibility: true,
-  init_opacity: 1,
-  max_zoom: 14
-})
-
-/**
- * Add Sentinel-2 Cloudless layers dynamically after fetching available years
- * Call this on app initialization to populate all available years
- */
-export const initSentinel2CloudlessLayers = async (): Promise<void> => {
-  const years = await fetchSentinel2CloudlessYears()
-
-  for (const year of years) {
-    const layerTitle = `Sentinel-2 Cloudless ${year}`
-    // Only add if not already present
-    if (!layers.value[layerTitle]) {
-      layers.value[layerTitle] = createSentinel2CloudlessLayer(year)
+    // Parse layer identifiers to extract years
+    // Pattern: s2cloudless-YYYY_3857 or s2cloudless_3857 (for 2016)
+    const layerMatches = text.matchAll(/s2cloudless(?:-(\d{4}))?_3857/g)
+    for (const match of layerMatches) {
+      const year = match[1] ? parseInt(match[1]) : 2016
+      if (!years.includes(year)) {
+        years.push(year)
+      }
     }
-  }
 
-  logger.debug('Initialized Sentinel-2 Cloudless layers:', {
-    count: years.length,
-    years
-  })
+    if (years.length > 0) {
+      // Get the most recent year
+      sentinel2LatestYear = Math.max(...years)
+      // Update the layer URL with the latest year
+      const layer = layers.value['Sentinel-2 Cloudless']
+      if (layer) {
+        layer.url = `https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-${sentinel2LatestYear}_3857/default/g/{z}/{y}/{x}.jpg`
+        logger.debug('Updated Sentinel-2 Cloudless to latest year:', { year: sentinel2LatestYear })
+      }
+    }
+  } catch (error) {
+    logger.error('Error fetching EOX WMTS capabilities:', { error })
+  }
 }
 
 export const srAttributions = {
@@ -645,12 +569,20 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     init_visibility: false,
     init_opacity: 0.2
   },
-  // Sentinel-2 Cloudless imagery from EOX - high resolution (10m) yearly composites
-  // Additional years (2016-2023) are loaded dynamically via initSentinel2CloudlessLayers()
-  // This default layer uses current year; call initSentinel2CloudlessLayers() on app init for all available years
-  [`Sentinel-2 Cloudless ${new Date().getFullYear()}`]: createSentinel2CloudlessLayer(
-    new Date().getFullYear()
-  ),
+  // Sentinel-2 Cloudless imagery from EOX - high resolution (10m) yearly composite
+  // URL is updated on startup with latest available year via initSentinel2LatestYear()
+  'Sentinel-2 Cloudless': {
+    title: 'Sentinel-2 Cloudless',
+    type: 'xyz',
+    isBaseLayer: true,
+    url: `https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-${new Date().getFullYear() - 2}_3857/default/g/{z}/{y}/{x}.jpg`,
+    attributionKey: 'sentinel2_eox',
+    source_projection: 'EPSG:3857',
+    allowed_reprojections: ['EPSG:3857', 'EPSG:4326'],
+    init_visibility: true,
+    init_opacity: 1,
+    max_zoom: 14
+  },
   // NASA VIIRS True Color imagery - daily satellite imagery
   // Date is calculated dynamically (3 days ago) to ensure availability
   'NASA VIIRS True Color': {
@@ -851,15 +783,19 @@ export const getLayer = (
           crossOrigin: 'anonymous' // Required for NASA GIBS
         }
 
-        // NASA GIBS layers - allow natural tile loading and overzooming
-        // Don't set maxZoom on source or layer - OpenLayers will handle 404s gracefully
-        // and automatically scale available tiles when zooming beyond their availability
-        if (isNasaGibs) {
-          logger.debug('[SrLayers] Configuring NASA GIBS layer for natural overzooming:', {
+        // NASA GIBS EPSG:3857 layers - set source maxZoom to enable overzooming
+        // This prevents tile requests beyond availability (which return 400 errors)
+        // and allows OpenLayers to scale existing tiles when zooming beyond the limit
+        if (
+          isNasaGibs &&
+          srLayer.source_projection === 'EPSG:3857' &&
+          srLayer.max_zoom !== undefined
+        ) {
+          xyzOptions.maxZoom = srLayer.max_zoom
+          logger.debug('[SrLayers] NASA GIBS EPSG:3857 configured for overzooming:', {
             layerTitle: title,
-            sourceProjection: srLayer.source_projection,
-            url: srLayer.url,
-            note: 'No maxZoom set - tiles beyond availability will be scaled automatically'
+            sourceMaxZoom: srLayer.max_zoom,
+            note: 'Tiles limited to source maxZoom, will scale beyond'
           })
         }
 
