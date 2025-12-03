@@ -56,35 +56,11 @@ export const srViews = ref<{ [key: string]: SrView }>({
     projectionName: 'EPSG:3857',
     baseLayerName: 'OpenTopoMap'
   },
-  'Global Sentinel-2 2024': {
+  'Global Sentinel-2': {
     hide: false,
     view: 'Global Mercator',
     projectionName: 'EPSG:3857',
-    baseLayerName: 'Sentinel-2 Cloudless 2024'
-  },
-  'Global Sentinel-2 2023': {
-    hide: false,
-    view: 'Global Mercator',
-    projectionName: 'EPSG:3857',
-    baseLayerName: 'Sentinel-2 Cloudless 2023'
-  },
-  'Global Sentinel-2 2022': {
-    hide: false,
-    view: 'Global Mercator',
-    projectionName: 'EPSG:3857',
-    baseLayerName: 'Sentinel-2 Cloudless 2022'
-  },
-  'Global Sentinel-2 2021': {
-    hide: false,
-    view: 'Global Mercator',
-    projectionName: 'EPSG:3857',
-    baseLayerName: 'Sentinel-2 Cloudless 2021'
-  },
-  'Global Sentinel-2 2020': {
-    hide: false,
-    view: 'Global Mercator',
-    projectionName: 'EPSG:3857',
-    baseLayerName: 'Sentinel-2 Cloudless 2020'
+    baseLayerName: 'Sentinel-2 Cloudless'
   },
   'Global VIIRS': {
     hide: false,
