@@ -256,7 +256,9 @@ export const srAttributions = {
   nasa_gibs: 'NASA GIBS',
   ahocevar: 'Ahocevar',
   sentinel2_eox:
-    'Sentinel-2 cloudless - https://s2maps.eu by EOX IT Services GmbH (Contains modified Copernicus Sentinel data)'
+    'Sentinel-2 cloudless - https://s2maps.eu by EOX IT Services GmbH (Contains modified Copernicus Sentinel data)',
+  eox_terrain: 'Terrain © EOX IT Services GmbH, Data © OpenStreetMap contributors',
+  opentopomap: '© OpenTopoMap (CC-BY-SA)'
 }
 
 export interface SrLayer {
@@ -406,6 +408,78 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     allowed_reprojections: ['EPSG:3857'],
     init_visibility: false,
     init_opacity: 0.5
+  },
+  'NASA ASTER Color Relief': {
+    title: 'NASA ASTER Color Relief',
+    type: 'xyz',
+    isBaseLayer: false,
+    url: 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/ASTER_GDEM_Color_Shaded_Relief/default/GoogleMapsCompatible_Level12/{z}/{y}/{x}.jpg',
+    attributionKey: 'nasa_gibs',
+    source_projection: 'EPSG:3857',
+    allowed_reprojections: ['EPSG:3857'],
+    init_visibility: false,
+    init_opacity: 0.7,
+    max_zoom: 12
+  },
+  'NASA ASTER Color Index': {
+    title: 'NASA ASTER Color Index',
+    type: 'xyz',
+    isBaseLayer: false,
+    url: 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/ASTER_GDEM_Color_Index/default/GoogleMapsCompatible_Level12/{z}/{y}/{x}.png',
+    attributionKey: 'nasa_gibs',
+    source_projection: 'EPSG:3857',
+    allowed_reprojections: ['EPSG:3857'],
+    init_visibility: false,
+    init_opacity: 0.7,
+    max_zoom: 12
+  },
+  'NASA SRTM Color Index': {
+    title: 'NASA SRTM Color Index',
+    type: 'xyz',
+    isBaseLayer: false,
+    url: 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/SRTM_Color_Index/default/GoogleMapsCompatible_Level12/{z}/{y}/{x}.png',
+    attributionKey: 'nasa_gibs',
+    source_projection: 'EPSG:3857',
+    allowed_reprojections: ['EPSG:3857'],
+    init_visibility: false,
+    init_opacity: 0.7,
+    max_zoom: 12
+  },
+  'NASA Blue Marble Topo': {
+    title: 'NASA Blue Marble Topo',
+    type: 'xyz',
+    isBaseLayer: true,
+    url: 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_ShadedRelief_Bathymetry/default/2004-12-01/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpeg',
+    attributionKey: 'nasa_gibs',
+    source_projection: 'EPSG:3857',
+    allowed_reprojections: ['EPSG:3857', 'EPSG:4326'],
+    init_visibility: true,
+    init_opacity: 1,
+    max_zoom: 8
+  },
+  'EOX Terrain Light': {
+    title: 'EOX Terrain Light',
+    type: 'xyz',
+    isBaseLayer: true,
+    url: 'https://tiles.maps.eox.at/wmts/1.0.0/terrain-light_3857/default/g/{z}/{y}/{x}.jpg',
+    attributionKey: 'eox_terrain',
+    source_projection: 'EPSG:3857',
+    allowed_reprojections: ['EPSG:3857', 'EPSG:4326'],
+    init_visibility: true,
+    init_opacity: 1,
+    max_zoom: 21
+  },
+  OpenTopoMap: {
+    title: 'OpenTopoMap',
+    type: 'xyz',
+    isBaseLayer: true,
+    url: 'https://{a-c}.tile.opentopomap.org/{z}/{x}/{y}.png',
+    attributionKey: 'opentopomap',
+    source_projection: 'EPSG:3857',
+    allowed_reprojections: ['EPSG:3857', 'EPSG:4326'],
+    init_visibility: true,
+    init_opacity: 1,
+    max_zoom: 17
   },
   'Arctic Ocean Base': {
     title: 'Arctic Ocean Base',

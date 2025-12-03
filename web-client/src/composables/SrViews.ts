@@ -27,6 +27,24 @@ export const srViews = ref<{ [key: string]: SrView }>({
     projectionName: 'EPSG:3857',
     baseLayerName: 'OpenStreetMap Standard'
   },
+  'Global Mercator NASA Topo': {
+    hide: false,
+    view: 'Global Mercator',
+    projectionName: 'EPSG:3857',
+    baseLayerName: 'NASA Blue Marble Topo'
+  },
+  'Global Mercator EOX Terrain': {
+    hide: false,
+    view: 'Global Mercator',
+    projectionName: 'EPSG:3857',
+    baseLayerName: 'EOX Terrain Light'
+  },
+  'Global Mercator OpenTopo': {
+    hide: false,
+    view: 'Global Mercator',
+    projectionName: 'EPSG:3857',
+    baseLayerName: 'OpenTopoMap'
+  },
   'Global Sentinel-2 2024': {
     hide: false,
     view: 'Global Mercator',
