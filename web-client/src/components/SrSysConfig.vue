@@ -16,6 +16,12 @@
       :disabled="computedLoggedIn"
       @click="showAuthDialog = true"
     />
+    <Button
+      label="Reset to Public Cluster"
+      icon="pi pi-refresh"
+      severity="secondary"
+      @click="resetToDefaults"
+    />
     <div>
       <SrClusterInfo />
     </div>
@@ -250,6 +256,17 @@ function updateDesiredNodes() {
   sysConfigStore.setDesiredNodes(desiredNodes.value)
   sysConfigStore.setTimeToLive(ttl.value)
   void desiredOrgNumNodes()
+}
+
+function resetToDefaults() {
+  jwtStore.clearAllJwts()
+  sysConfigStore.$reset()
+  toast.add({
+    severity: 'info',
+    summary: 'Reset Complete',
+    detail: 'Configuration and authentication have been reset to defaults',
+    life: srToastStore.getLife()
+  })
 }
 
 onMounted(() => {
