@@ -13,7 +13,7 @@
     <Button
       label="Login"
       icon="pi pi-sign-in"
-      :disabled="computedLoggedIn"
+      :disabled="computedLoggedIn || isPublicCluster"
       @click="showAuthDialog = true"
     />
     <Button
@@ -96,6 +96,7 @@ import { useSrToastStore } from '@/stores/srToastStore'
 import { useJwtStore } from '@/stores/SrJWTStore'
 import SrClusterInfo from './SrClusterInfo.vue'
 import { createLogger } from '@/utils/logger'
+import { authenticatedFetch } from '@/utils/fetchUtils'
 
 const logger = createLogger('SrSysConfig')
 const toast = useToast()
@@ -121,6 +122,11 @@ const ttl = ref(720)
 
 const computedOrgIsPublic = computed(() => {
   return jwtStore.getIsPublic(sysConfigStore.getDomain(), sysConfigStore.getOrganization())
+})
+
+// The "sliderule" organization is the public cluster that doesn't require login
+const isPublicCluster = computed(() => {
+  return sysConfigStore.getOrganization() === 'sliderule'
 })
 
 const computedLoggedIn = computed(() => {
@@ -197,53 +203,64 @@ async function authenticate(): Promise<boolean> {
   }
 }
 async function desiredOrgNumNodes() {
-  const psHost = `https://ps.${sysConfigStore.getDomain()}`
-  let jwt = jwtStore.getCredentials()
-  if (jwt) {
-    const response = await fetch(
-      `${psHost}/api/desired_org_num_nodes_ttl/${sysConfigStore.getOrganization()}/${sysConfigStore.getDesiredNodes()}/${sysConfigStore.getTimeToLive()}/`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-          Authorization: `Bearer ${jwt.accessToken}`
-        }
-      }
-    )
-    if (response.ok) {
-      const result = await response.json()
-      if (result.status === 'QUEUED') {
-        toast.add({
-          severity: 'info',
-          summary: 'Desired Nodes Request Queued',
-          detail: result.msg,
-          life: srToastStore.getLife()
-        })
-      } else {
-        logger.error('Failed to get Desired Nodes', { statusText: response.statusText })
-        toast.add({
-          severity: 'error',
-          summary: 'Failed to Retrieve Desired Nodes',
-          detail: `Error: ${result.msg}`,
-          life: srToastStore.getLife()
-        })
-      }
-    } else {
-      logger.error('Failed to get Num Nodes', { statusText: response.statusText })
-      toast.add({
-        severity: 'error',
-        summary: 'Failed to Retrieve Nodes',
-        detail: `Error: ${response.statusText}`,
-        life: srToastStore.getLife()
-      })
-    }
-  } else {
+  // Check if logged in first
+  if (!jwtStore.getCredentials()) {
     logger.error('Login expired or not logged in')
     toast.add({
       severity: 'info',
       summary: 'Need to Login',
       detail: 'Please log in again',
+      life: srToastStore.getLife()
+    })
+    return
+  }
+
+  const psHost = `https://ps.${sysConfigStore.getDomain()}`
+  // Use authenticatedFetch - it handles JWT header and 401 retry automatically
+  const response = await authenticatedFetch(
+    `${psHost}/api/desired_org_num_nodes_ttl/${sysConfigStore.getOrganization()}/${sysConfigStore.getDesiredNodes()}/${sysConfigStore.getTimeToLive()}/`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json'
+      }
+    }
+  )
+
+  if (response.ok) {
+    const result = await response.json()
+    if (result.status === 'QUEUED') {
+      toast.add({
+        severity: 'info',
+        summary: 'Desired Nodes Request Queued',
+        detail: result.msg,
+        life: srToastStore.getLife()
+      })
+    } else {
+      logger.error('Failed to get Desired Nodes', { statusText: response.statusText })
+      toast.add({
+        severity: 'error',
+        summary: 'Failed to Retrieve Desired Nodes',
+        detail: `Error: ${result.msg}`,
+        life: srToastStore.getLife()
+      })
+    }
+  } else if (response.status === 401) {
+    // 401 after retry means refresh token also expired
+    logger.error('Authentication failed - please log in again')
+    toast.add({
+      severity: 'info',
+      summary: 'Session Expired',
+      detail: 'Please log in again',
+      life: srToastStore.getLife()
+    })
+  } else {
+    logger.error('Failed to get Num Nodes', { statusText: response.statusText })
+    toast.add({
+      severity: 'error',
+      summary: 'Failed to Retrieve Nodes',
+      detail: `Error: ${response.statusText}`,
       life: srToastStore.getLife()
     })
   }
