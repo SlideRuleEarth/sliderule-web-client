@@ -709,6 +709,9 @@ onmessage = async (event) => {
               //console.warn('emsg:', emsg);
               if (emsg.includes('SlideRuleError')) {
                 code = 'SLIDERULE'
+              } else if (emsg.includes('RATE_LIMITED')) {
+                code = 'RATE_LIMITED'
+                // Keep the detailed message from core.ts - it already contains the user-friendly message
               } else if (
                 emsg.includes('Failed to fetch') ||
                 (error instanceof TypeError && error.message === 'Failed to fetch')

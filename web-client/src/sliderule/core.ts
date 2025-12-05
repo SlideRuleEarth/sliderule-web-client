@@ -345,6 +345,16 @@ async function fetchAndProcessResult(
     //console.log('fetchAndProcessResult response:', response);
     // Check if the response is ok (status in the range 200-299)
     if (!response.ok) {
+      if (response.status === 429) {
+        const retryAfter = response.headers.get('Retry-After') || '60'
+        const error = new Error(
+          `RATE_LIMITED: You have exceeded the request limit for the shared cluster. ` +
+            `Please wait ${retryAfter} seconds before retrying, or contact support@mail.slideruleearth.io ` +
+            `to provision a private cluster for higher throughput.`
+        )
+        error.name = 'RateLimitError'
+        throw error
+      }
       throw new Error(`fetchAndProcessResult HTTP error! status: ${response.status}`)
     }
 
