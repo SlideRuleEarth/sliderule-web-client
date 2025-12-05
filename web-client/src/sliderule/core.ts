@@ -345,17 +345,42 @@ async function fetchAndProcessResult(
     //console.log('fetchAndProcessResult response:', response);
     // Check if the response is ok (status in the range 200-299)
     if (!response.ok) {
+      // Read server message from response body for all errors
+      let serverMessage = ''
+      try {
+        const contentType = response.headers.get('content-type')
+        if (contentType?.includes('application/json')) {
+          const body = await response.json()
+          serverMessage = body.message || body.error || JSON.stringify(body)
+        } else {
+          serverMessage = await response.text()
+        }
+      } catch {
+        // Ignore body parsing errors
+      }
+
       if (response.status === 429) {
         const retryAfter = response.headers.get('Retry-After') || '60'
+        logger.warn('Rate limited by server', { retryAfter, serverMessage, url })
+
+        // Format: RATE_LIMITED:retryAfter:serverMessage:userMessage
         const error = new Error(
-          `RATE_LIMITED: You have exceeded the request limit for the shared cluster. ` +
-            `Please wait ${retryAfter} seconds before retrying, or contact support@mail.slideruleearth.io ` +
-            `to provision a private cluster for higher throughput.`
+          `RATE_LIMITED:${retryAfter}:${serverMessage}:` +
+            `Your request has been rate limited, please reach out to support@mail.slideruleearth.io for possible use of a private cluster.`
         )
         error.name = 'RateLimitError'
         throw error
       }
-      throw new Error(`fetchAndProcessResult HTTP error! status: ${response.status}`)
+
+      // All other HTTP errors
+      // Format: HTTP_ERROR:status:serverMessage:userMessage
+      logger.error('HTTP error from server', { status: response.status, serverMessage, url })
+      const error = new Error(
+        `HTTP_ERROR:${response.status}:${serverMessage}:` +
+          `Server returned error ${response.status}${serverMessage ? ': ' + serverMessage : ''}`
+      )
+      error.name = 'HttpError'
+      throw error
     }
 
     // Examine the headers from the response
