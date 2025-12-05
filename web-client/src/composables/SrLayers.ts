@@ -285,6 +285,18 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     init_opacity: 1,
     max_zoom: 19
   },
+  'Esri World Imagery': {
+    title: 'Esri World Imagery',
+    type: 'xyz',
+    isBaseLayer: true,
+    url: 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attributionKey: 'esri',
+    source_projection: 'EPSG:3857',
+    allowed_reprojections: ['EPSG:3857', 'EPSG:4326'],
+    init_visibility: true,
+    init_opacity: 1,
+    max_zoom: 19
+  },
   'OpenStreetMap Standard': {
     title: 'OpenStreetMap Standard',
     type: 'xyz',
