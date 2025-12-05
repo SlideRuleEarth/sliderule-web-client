@@ -321,6 +321,16 @@ const orgMenuItems = computed(() => [
     command: () => {
       handleLogout()
     }
+  },
+  {
+    separator: true
+  },
+  {
+    label: 'Reset to Public Cluster',
+    icon: 'pi pi-refresh',
+    command: () => {
+      void resetToPublicCluster()
+    }
   }
 ])
 
@@ -334,6 +344,19 @@ function handleLogout() {
     severity: 'info',
     summary: 'Logged Out',
     detail: 'You have been logged out successfully',
+    life: srToastStore.getLife()
+  })
+}
+
+async function resetToPublicCluster() {
+  jwtStore.clearAllJwts()
+  sysConfigStore.$reset()
+  await sysConfigStore.fetchServerVersionInfo()
+  await sysConfigStore.fetchCurrentNodes()
+  toast.add({
+    severity: 'info',
+    summary: 'Reset Complete',
+    detail: 'Configuration and authentication have been reset to defaults',
     life: srToastStore.getLife()
   })
 }
