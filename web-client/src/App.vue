@@ -16,6 +16,7 @@ import { useRecTreeStore } from '@/stores/recTreeStore'
 import { useRoute } from 'vue-router'
 import SrClearCache from '@/components/SrClearCache.vue'
 import { useSysConfigStore } from '@/stores/sysConfigStore'
+import { useJwtStore } from '@/stores/SrJWTStore'
 import SrJsonDisplayDialog from '@/components/SrJsonDisplayDialog.vue'
 import introJs from 'intro.js'
 import { useTourStore } from '@/stores/tourStore.js'
@@ -30,6 +31,8 @@ const recTreeStore = useRecTreeStore()
 const toast = useToast()
 const deviceStore = useDeviceStore()
 const tourStore = useTourStore()
+const sysConfigStore = useSysConfigStore()
+const jwtStore = useJwtStore()
 const route = useRoute()
 const showServerVersionDialog = ref(false) // Reactive state for controlling dialog visibility
 const showClientVersionDialog = ref(false) // Reactive state for controlling dialog visibility
@@ -46,6 +49,28 @@ const checkUnsupported = () => {
   })
   if (deviceStore.getBrowser() === 'Unknown Browser' || deviceStore.getOS() === 'Unknown OS') {
     showUnsupportedDialog.value = true
+  }
+}
+
+const checkPrivateClusterAuth = () => {
+  const domain = sysConfigStore.getDomain()
+  const org = sysConfigStore.getOrganization()
+
+  // Skip check for public cluster
+  if (org === 'sliderule') {
+    return
+  }
+
+  // Check if user has valid credentials for this private cluster
+  const jwt = jwtStore.getCredentials()
+  if (!jwt) {
+    toast.add({
+      severity: 'warn',
+      summary: 'Authentication Required',
+      detail: `You have a private cluster "${org}" configured but are not logged in. Go to Settings to log in.`,
+      life: srToastStore.getLife()
+    })
+    logger.info('Private cluster configured without authentication', { domain, org })
   }
 }
 
@@ -199,6 +224,7 @@ onMounted(async () => {
   // });
 
   checkUnsupported()
+  checkPrivateClusterAuth()
   tourStore.checkSeen()
   await nextTick()
 

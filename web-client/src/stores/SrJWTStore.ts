@@ -3,7 +3,6 @@ import { useSysConfigStore } from '@/stores/sysConfigStore'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('SrJWTStore')
-const sysConfigStore = useSysConfigStore()
 
 // Refresh access token when 80% of its lifetime has passed (48 min for 1-hour token)
 const REFRESH_THRESHOLD = 0.8
@@ -65,6 +64,7 @@ export const useJwtStore = defineStore('jwtStore', {
       this.jwtMap = {}
     },
     getCredentials(): SrJWT | null {
+      const sysConfigStore = useSysConfigStore()
       let jwt: SrJWT | null = null
       try {
         jwt = this.getJwt(sysConfigStore.getDomain(), sysConfigStore.getOrganization())
@@ -217,6 +217,7 @@ export const useJwtStore = defineStore('jwtStore', {
 
     // Initialize refresh timers for existing tokens on startup
     initializeRefreshTimers() {
+      const sysConfigStore = useSysConfigStore()
       const domain = sysConfigStore.getDomain()
       const org = sysConfigStore.getOrganization()
 
@@ -232,6 +233,7 @@ export const useJwtStore = defineStore('jwtStore', {
      * @returns The fresh access token, or null if not authenticated
      */
     async ensureFreshToken(): Promise<string | null> {
+      const sysConfigStore = useSysConfigStore()
       const domain = sysConfigStore.getDomain()
       const org = sysConfigStore.getOrganization()
       const jwt = this.getJwt(domain, org)
