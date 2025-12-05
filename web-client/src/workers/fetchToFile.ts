@@ -711,7 +711,46 @@ onmessage = async (event) => {
                 code = 'SLIDERULE'
               } else if (emsg.includes('RATE_LIMITED')) {
                 code = 'RATE_LIMITED'
-                // Keep the detailed message from core.ts - it already contains the user-friendly message
+                // Parse the rate limit message parts: RATE_LIMITED:retryAfter:serverMsg:userMessage
+                const parts = emsg.split(':')
+                const retryAfter = parts[1] || '60'
+                const serverMessage = parts[2] || ''
+
+                // Post to terminal window
+                if (serverMessage) {
+                  postMessage(
+                    await serverMsg(
+                      reqID,
+                      `Rate limit: ${serverMessage} (retry after ${retryAfter}s)`
+                    )
+                  )
+                } else {
+                  postMessage(
+                    await serverMsg(
+                      reqID,
+                      `Rate limited by server. Retry after ${retryAfter} seconds.`
+                    )
+                  )
+                }
+
+                // Keep user-friendly message for error display
+                emsg = parts.slice(3).join(':') || emsg
+              } else if (emsg.includes('HTTP_ERROR')) {
+                code = 'HTTP_ERROR'
+                // Parse the HTTP error message parts: HTTP_ERROR:status:serverMsg:userMessage
+                const parts = emsg.split(':')
+                const status = parts[1] || 'unknown'
+                const serverMessage = parts[2] || ''
+
+                // Post server message to terminal window
+                if (serverMessage) {
+                  postMessage(await serverMsg(reqID, `Server error (${status}): ${serverMessage}`))
+                } else {
+                  postMessage(await serverMsg(reqID, `Server returned HTTP error ${status}`))
+                }
+
+                // Keep user-friendly message for error display
+                emsg = parts.slice(3).join(':') || emsg
               } else if (
                 emsg.includes('Failed to fetch') ||
                 (error instanceof TypeError && error.message === 'Failed to fetch')

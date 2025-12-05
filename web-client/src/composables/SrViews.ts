@@ -22,6 +22,12 @@ export const srViews = ref<{ [key: string]: SrView }>({
     projectionName: 'EPSG:3857',
     baseLayerName: 'Esri World Topo'
   },
+  'Global Mercator Esri Imagery': {
+    hide: false,
+    view: 'Global Mercator',
+    projectionName: 'EPSG:3857',
+    baseLayerName: 'Esri World Imagery'
+  },
   'Global Mercator Google': {
     hide: false,
     view: 'Global Mercator',
