@@ -59,7 +59,8 @@
   <Dialog
     class="sr-desired-nodes-dialog"
     v-model:visible="showDesiredNodesDialog"
-    :showHeader="false"
+    header="Request Nodes"
+    :closable="true"
     modal
   >
     <div>
@@ -83,7 +84,14 @@
           :decimalPlaces="0"
         />
       </div>
-      <Button label="Submit" @click="updateDesiredNodes"></Button>
+      <div class="sr-dialog-buttons">
+        <Button
+          label="Cancel"
+          severity="secondary"
+          @click="showDesiredNodesDialog = false"
+        ></Button>
+        <Button label="Submit" @click="updateDesiredNodes"></Button>
+      </div>
     </div>
   </Dialog>
 </template>
@@ -330,5 +338,11 @@ onMounted(() => {
   justify-content: center;
   align-items: center;
   width: 100%;
+}
+.sr-dialog-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
 }
 </style>
