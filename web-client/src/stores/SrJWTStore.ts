@@ -4,11 +4,6 @@ import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('SrJWTStore')
 
-// Refresh access token when 80% of its lifetime has passed (48 min for 1-hour token)
-const REFRESH_THRESHOLD = 0.8
-// Minimum time before expiry to trigger refresh (5 minutes in ms)
-const MIN_REFRESH_BUFFER_MS = 5 * 60 * 1000
-
 interface SrJWT {
   accessToken: string
   refreshToken: string
@@ -18,16 +13,23 @@ interface SrJWT {
 interface JwtStoreState {
   isPublicMap: Record<string, Record<string, boolean>>
   jwtMap: Record<string, Record<string, SrJWT>>
-  refreshTimers: Record<string, ReturnType<typeof setTimeout>>
   isRefreshing: Record<string, Promise<boolean> | null>
+  lastRefreshTime: Record<string, number> // Track last refresh to prevent loops
+  refreshAttemptCount: Record<string, number> // Count consecutive refresh attempts
 }
+
+// Minimum time between refresh attempts (30 seconds) - prevents rapid refresh loops
+const MIN_REFRESH_INTERVAL_MS = 30 * 1000
+// Maximum consecutive refresh attempts before forcing re-login
+const MAX_REFRESH_ATTEMPTS = 3
 
 export const useJwtStore = defineStore('jwtStore', {
   state: (): JwtStoreState => ({
     isPublicMap: {},
     jwtMap: {},
-    refreshTimers: {},
-    isRefreshing: {}
+    isRefreshing: {},
+    lastRefreshTime: {},
+    refreshAttemptCount: {}
   }),
   actions: {
     setIsPublic(domain: string, org: string, isPublic: boolean) {
@@ -44,15 +46,19 @@ export const useJwtStore = defineStore('jwtStore', {
         this.jwtMap[domain] = {}
       }
       this.jwtMap[domain][org] = jwt
-      // Schedule proactive refresh for the new token
-      this.scheduleRefresh(domain, org)
+      // Note: No proactive refresh scheduling - tokens refresh on-demand via 401 retry
+      // If the session is idle and token expires, user must log in again
     },
     getJwt(domain: string, org: string): SrJWT | null {
       return this.jwtMap[domain]?.[org] || null
     },
     removeJwt(domain: string, org: string) {
-      // Cancel any scheduled refresh first
-      this.cancelRefresh(domain, org)
+      // Clear any pending refresh state
+      const key = this._getKey(domain, org)
+      delete this.isRefreshing[key]
+      delete this.lastRefreshTime[key]
+      delete this.refreshAttemptCount[key]
+
       if (this.jwtMap[domain] && this.jwtMap[domain][org]) {
         delete this.jwtMap[domain][org]
         if (Object.keys(this.jwtMap[domain]).length === 0) {
@@ -93,59 +99,6 @@ export const useJwtStore = defineStore('jwtStore', {
       return `${domain}:${org}`
     },
 
-    // Schedule proactive token refresh before expiration
-    scheduleRefresh(domain: string, org: string) {
-      const key = this._getKey(domain, org)
-      const jwt = this.getJwt(domain, org)
-
-      if (!jwt) {
-        logger.debug('No JWT to schedule refresh for', { domain, org })
-        return
-      }
-
-      // Cancel any existing timer
-      this.cancelRefresh(domain, org)
-
-      const now = Date.now()
-      const expTime = new Date(jwt.expiration).getTime()
-      const timeUntilExpiry = expTime - now
-
-      // Calculate refresh time: either at REFRESH_THRESHOLD (80%) of lifetime, or MIN_REFRESH_BUFFER before expiry
-      const tokenLifetime = 60 * 60 * 1000 // Assume 1 hour access token lifetime
-      const refreshAtThreshold = tokenLifetime * REFRESH_THRESHOLD
-      const refreshTime = Math.min(timeUntilExpiry - MIN_REFRESH_BUFFER_MS, refreshAtThreshold)
-
-      if (refreshTime <= 0) {
-        // Token is about to expire or already expired, refresh immediately
-        logger.debug('Token near expiry, refreshing immediately', { domain, org })
-        void this.refreshAccessToken(domain, org)
-        return
-      }
-
-      logger.debug('Scheduling token refresh', {
-        domain,
-        org,
-        refreshInMs: refreshTime,
-        refreshInMinutes: Math.round(refreshTime / 60000)
-      })
-
-      this.refreshTimers[key] = setTimeout(() => {
-        void this.refreshAccessToken(domain, org)
-      }, refreshTime)
-    },
-
-    // Cancel scheduled refresh
-    cancelRefresh(domain: string, org: string) {
-      const key = this._getKey(domain, org)
-      if (this.refreshTimers[key]) {
-        clearTimeout(this.refreshTimers[key])
-        delete this.refreshTimers[key]
-        logger.debug('Cancelled refresh timer', { domain, org })
-      }
-      // Also clear any pending refresh promise
-      delete this.isRefreshing[key]
-    },
-
     // Refresh access token using refresh token
     async refreshAccessToken(domain: string, org: string): Promise<boolean> {
       const key = this._getKey(domain, org)
@@ -156,11 +109,42 @@ export const useJwtStore = defineStore('jwtStore', {
         return this.isRefreshing[key]!
       }
 
+      // Safeguard: prevent rapid refresh attempts (protects against loops)
+      const lastRefresh = this.lastRefreshTime[key] || 0
+      const timeSinceLastRefresh = Date.now() - lastRefresh
+      if (timeSinceLastRefresh < MIN_REFRESH_INTERVAL_MS) {
+        logger.warn('Refresh attempted too soon, skipping to prevent loop', {
+          domain,
+          org,
+          timeSinceLastRefreshMs: timeSinceLastRefresh,
+          minIntervalMs: MIN_REFRESH_INTERVAL_MS
+        })
+        return false
+      }
+
+      // Safeguard: limit total refresh attempts - force re-login if exceeded
+      const attemptCount = (this.refreshAttemptCount[key] || 0) + 1
+      if (attemptCount > MAX_REFRESH_ATTEMPTS) {
+        logger.error('Max refresh attempts exceeded, forcing re-login', {
+          domain,
+          org,
+          attempts: attemptCount,
+          maxAttempts: MAX_REFRESH_ATTEMPTS
+        })
+        this.removeJwt(domain, org)
+        this.refreshAttemptCount[key] = 0
+        return false
+      }
+      this.refreshAttemptCount[key] = attemptCount
+
       const jwt = this.getJwt(domain, org)
       if (!jwt?.refreshToken) {
         logger.error('No refresh token available', { domain, org })
         return false
       }
+
+      // Record refresh attempt time
+      this.lastRefreshTime[key] = Date.now()
 
       const refreshPromise = (async (): Promise<boolean> => {
         const psHost = `https://ps.${domain}`
@@ -168,7 +152,7 @@ export const useJwtStore = defineStore('jwtStore', {
         try {
           logger.debug('Refreshing access token', { domain, org })
 
-          const response = await fetch(`${psHost}/api/token/refresh/`, {
+          const response = await fetch(`${psHost}/api/org_token/refresh/`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
@@ -180,14 +164,27 @@ export const useJwtStore = defineStore('jwtStore', {
 
           if (response.ok) {
             const result = await response.json()
-            // Update only the access token and expiration, keep the refresh token
+            // Update tokens - API returns access and refresh tokens
+            // Note: refresh endpoint does NOT return expiration, so we calculate it
+            // Access tokens are typically 1 hour (60 minutes)
+            const ACCESS_TOKEN_LIFETIME_MS = 60 * 60 * 1000
+            const newExpiration = result.expiration
+              ? new Date(result.expiration)
+              : new Date(Date.now() + ACCESS_TOKEN_LIFETIME_MS)
+
             const updatedJwt: SrJWT = {
               accessToken: result.access,
-              refreshToken: jwt.refreshToken, // Keep existing refresh token
-              expiration: result.expiration
+              refreshToken: result.refresh || jwt.refreshToken,
+              expiration: newExpiration
             }
             this.setJwt(domain, org, updatedJwt)
-            logger.debug('Access token refreshed successfully', { domain, org })
+            // Reset attempt counter on success
+            this.refreshAttemptCount[key] = 0
+            logger.debug('Access token refreshed successfully', {
+              domain,
+              org,
+              expiresAt: newExpiration.toISOString()
+            })
             return true
           } else {
             logger.error('Failed to refresh token', {
@@ -213,17 +210,6 @@ export const useJwtStore = defineStore('jwtStore', {
 
       this.isRefreshing[key] = refreshPromise
       return refreshPromise
-    },
-
-    // Initialize refresh timers for existing tokens on startup
-    initializeRefreshTimers() {
-      const sysConfigStore = useSysConfigStore()
-      const domain = sysConfigStore.getDomain()
-      const org = sysConfigStore.getOrganization()
-
-      if (this.getJwt(domain, org)) {
-        this.scheduleRefresh(domain, org)
-      }
     },
 
     /**

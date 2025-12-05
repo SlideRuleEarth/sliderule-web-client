@@ -5,11 +5,6 @@ import { Buffer } from 'buffer/'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('FetchUtils')
-//
-// System Configuration
-//
-const sysConfigStore = useSysConfigStore()
-const jwtStore = useJwtStore()
 
 /**
  * Authenticated fetch wrapper with automatic 401 retry.
@@ -22,6 +17,10 @@ export async function authenticatedFetch(
   options: RequestInit = {},
   isRetry = false
 ): Promise<Response> {
+  // Get stores lazily to avoid circular dependency issues
+  const sysConfigStore = useSysConfigStore()
+  const jwtStore = useJwtStore()
+
   const domain = sysConfigStore.getDomain()
   const org = sysConfigStore.getOrganization()
 
@@ -88,6 +87,10 @@ export async function getArrowFetchUrlAndOptions(
   reqid: number,
   forceAsGeo: boolean = false
 ): Promise<{ url: string; options: RequestInit }> {
+  // Get stores lazily to avoid circular dependency issues
+  const sysConfigStore = useSysConfigStore()
+  const jwtStore = useJwtStore()
+
   let api = await db.getFunc(reqid)
   if (api === 'atl03x-surface' || api === 'atl03x-phoreal') {
     api = 'atl03x'
@@ -120,7 +123,7 @@ export async function getArrowFetchUrlAndOptions(
     options.body = body
   }
   // add JWT for Authorization header if present
-  let srJWT = useJwtStore().getJwt(sysConfigStore.getDomain(), sysConfigStore.getOrganization())
+  let srJWT = jwtStore.getJwt(sysConfigStore.getDomain(), sysConfigStore.getOrganization())
   if (srJWT) {
     options.headers = {
       ...options.headers,

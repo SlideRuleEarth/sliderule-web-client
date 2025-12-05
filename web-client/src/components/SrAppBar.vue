@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import Button from 'primevue/button'
 import Menu from 'primevue/menu'
+import Badge from 'primevue/badge'
 import { ref, computed, onMounted } from 'vue'
 import { useSysConfigStore } from '@/stores/sysConfigStore'
+import { useJwtStore } from '@/stores/SrJWTStore'
 import { useRoute } from 'vue-router'
 import { useDeviceStore } from '@/stores/deviceStore'
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue'
@@ -13,6 +15,7 @@ const logger = createLogger('SrAppBar')
 const build_env = import.meta.env.VITE_BUILD_ENV
 const banner_text = import.meta.env.VITE_BANNER_TEXT
 const sysConfigStore = useSysConfigStore()
+const jwtStore = useJwtStore()
 const deviceStore = useDeviceStore()
 const route = useRoute()
 const tooltipRef = ref()
@@ -255,6 +258,20 @@ const computedServerVersionLabel = computed(() => {
   return sysConfigStore.version || 'v?.?.?'
 })
 
+const showOrgBadge = computed(() => {
+  const org = sysConfigStore.getOrganization()
+  return org && org !== 'sliderule'
+})
+
+const orgBadgeLabel = computed(() => {
+  return sysConfigStore.getOrganization()
+})
+
+const orgBadgeSeverity = computed(() => {
+  const jwt = jwtStore.getCredentials()
+  return jwt ? 'info' : 'warn'
+})
+
 const mobileMenu = ref<InstanceType<typeof Menu> | null>(null)
 
 const mobileMenuItems = [
@@ -313,8 +330,42 @@ function dumpRouteInfo() {
 
 onMounted(async () => {
   setDarkMode()
-  await sysConfigStore.fetchServerVersionInfo()
-  await sysConfigStore.fetchCurrentNodes()
+  const org = sysConfigStore.getOrganization()
+  const isPrivateCluster = org && org !== 'sliderule'
+
+  if (isPrivateCluster) {
+    // For private clusters, only fetch if we have credentials
+    // Otherwise, the login dialog will be shown and fetchOrgInfo will be called after login
+    const jwt = jwtStore.getCredentials()
+    if (jwt) {
+      // Use the authenticated PS endpoint for private clusters
+      const psHost = `https://ps.${sysConfigStore.getDomain()}`
+      try {
+        const response = await fetch(`${psHost}/api/org_num_nodes/${org}/`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            Authorization: `Bearer ${jwt.accessToken}`
+          }
+        })
+        if (response.ok) {
+          const result = await response.json()
+          sysConfigStore.setMinNodes(result.min_nodes)
+          sysConfigStore.setCurrentNodes(result.current_nodes)
+          sysConfigStore.setMaxNodes(result.max_nodes)
+          sysConfigStore.setVersion(result.version)
+        }
+      } catch (error) {
+        logger.error('Failed to fetch org info', { error })
+      }
+    }
+    // If no credentials, don't try to fetch - App.vue will show login dialog
+  } else {
+    // Public cluster - use direct server endpoints
+    await sysConfigStore.fetchServerVersionInfo()
+    await sysConfigStore.fetchCurrentNodes()
+  }
   dumpRouteInfo()
 })
 
@@ -379,6 +430,12 @@ function hideTooltip() {
       <Menu :model="mobileMenuItems" popup ref="mobileMenu" />
       <img src="/IceSat-2_SlideRule_logo.png" alt="SlideRule logo" class="logo" />
       <span class="sr-title">SlideRule</span>
+      <Badge
+        v-if="showOrgBadge"
+        :value="orgBadgeLabel"
+        :severity="orgBadgeSeverity"
+        class="sr-org-badge"
+      />
       <div
         class="sr-show-server-version"
         @mouseover="showServerTooltip($event)"
@@ -517,6 +574,11 @@ function hideTooltip() {
   font-weight: 600;
   color: var(--p-button-text-primary-color);
   margin-left: 0.5rem;
+}
+
+.sr-org-badge {
+  margin-left: 0.5rem;
+  font-size: 0.75rem;
 }
 
 .ol-geocoder {

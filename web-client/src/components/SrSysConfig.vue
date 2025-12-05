@@ -5,16 +5,20 @@
       label="Domain"
       @update:model-value="domainChanged"
     />
-    <SrTextInput
-      v-model="sysConfigStore.organization"
-      label="Organization"
-      @update:model-value="orgChanged"
-    />
+    <div class="sr-org-input-row">
+      <label for="organization-input" class="sr-org-label">Organization</label>
+      <InputText
+        id="organization-input"
+        v-model="sysConfigStore.organization"
+        class="sr-org-input"
+        @keyup.enter="orgChanged"
+      />
+    </div>
     <Button
       label="Login"
       icon="pi pi-sign-in"
       :disabled="computedLoggedIn || isPublicCluster"
-      @click="showAuthDialog = true"
+      @click="authDialogStore.show()"
     />
     <Button
       label="Reset to Public Cluster"
@@ -32,30 +36,6 @@
       @click="showDesiredNodesDialog = true"
     />
   </div>
-  <!-- Authentication Dialog -->
-  <Dialog v-model:visible="showAuthDialog" header="Login" :showHeader="true" :closable="true" modal>
-    <div class="card">
-      <form class="sr-user-pass-dialog" @submit.prevent="authenticate">
-        <div class="sr-p-field">
-          <label for="username">Username</label>
-          <InputText id="username" v-model="username" type="text" autocomplete="username" />
-        </div>
-        <div class="sr-p-field">
-          <label for="password">Password</label>
-          <Password
-            id="password"
-            v-model="password"
-            type="password"
-            toggleMask
-            autocomplete="current-password"
-          />
-        </div>
-        <div class="sr-p-button">
-          <Button label="Login" type="submit"></Button>
-        </div>
-      </form>
-    </div>
-  </Dialog>
   <Dialog
     class="sr-desired-nodes-dialog"
     v-model:visible="showDesiredNodesDialog"
@@ -100,14 +80,14 @@
 import { computed, onMounted, ref } from 'vue'
 import { useSysConfigStore } from '@/stores/sysConfigStore'
 import Dialog from 'primevue/dialog'
-import InputText from 'primevue/inputtext'
-import Password from 'primevue/password'
 import Button from 'primevue/button'
+import InputText from 'primevue/inputtext'
 import SrTextInput from '@/components/SrTextInput.vue'
 import SrSliderInput from '@/components/SrSliderInput.vue'
 import { useToast } from 'primevue/usetoast'
 import { useSrToastStore } from '@/stores/srToastStore'
 import { useJwtStore } from '@/stores/SrJWTStore'
+import { useAuthDialogStore } from '@/stores/authDialogStore'
 import SrClusterInfo from './SrClusterInfo.vue'
 import { createLogger } from '@/utils/logger'
 import { authenticatedFetch } from '@/utils/fetchUtils'
@@ -117,12 +97,8 @@ const toast = useToast()
 const srToastStore = useSrToastStore()
 const sysConfigStore = useSysConfigStore()
 const jwtStore = useJwtStore()
-
-const showAuthDialog = ref(false)
+const authDialogStore = useAuthDialogStore()
 const showDesiredNodesDialog = ref(false)
-const username = ref('')
-const password = ref('')
-const orgName = ref('')
 const desiredNodes = ref(1)
 const ttl = ref(720)
 
@@ -154,68 +130,24 @@ function domainChanged(_newDomain: string) {
   //console.log('Domain changed:', newDomain);
 }
 
-function orgChanged(_newOrg: string) {
-  jwtStore.removeJwt(sysConfigStore.getDomain(), sysConfigStore.getOrganization())
-  //console.log('Organization changed:', newOrg);
-}
-
-async function authenticate(): Promise<boolean> {
-  orgName.value = sysConfigStore.getOrganization()
-  const psHost = `https://ps.${sysConfigStore.getDomain()}`
-  logger.debug('authenticate', { username: username.value, orgName: orgName.value })
-  const body = JSON.stringify({
-    username: username.value,
-    password: password.value,
-    org_name: orgName.value
-  })
-  try {
-    const response = await fetch(`${psHost}/api/org_token/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body
-    })
-    const result = await response.json()
-    if (response.ok) {
-      const jwt = {
-        accessToken: result.access,
-        refreshToken: result.refresh,
-        expiration: result.expiration
-      }
-      jwtStore.setJwt(sysConfigStore.getDomain(), sysConfigStore.getOrganization(), jwt) // Assuming result contains the JWT
+function orgChanged() {
+  const newOrg = sysConfigStore.getOrganization()
+  jwtStore.removeJwt(sysConfigStore.getDomain(), newOrg)
+  // Check if new organization requires login
+  if (newOrg !== 'sliderule') {
+    const jwt = jwtStore.getJwt(sysConfigStore.getDomain(), newOrg)
+    if (!jwt) {
       toast.add({
-        severity: 'success',
-        summary: 'Successfully Authenticated',
-        detail: `Authentication successful for ${orgName.value}`,
+        severity: 'warn',
+        summary: 'Authentication Required',
+        detail: `Private cluster "${newOrg}" requires login.`,
         life: srToastStore.getLife()
       })
-      return true // Assuming expiration is in the response
-    } else {
-      logger.error('Failed to authenticate', { response })
-      toast.add({
-        severity: 'error',
-        summary: 'Failed Authenticate',
-        detail: 'Login FAILED',
-        life: srToastStore.getLife()
-      })
-      return false
+      authDialogStore.show()
     }
-  } catch (error) {
-    logger.error('Authentication request error', {
-      error: error instanceof Error ? error.message : String(error)
-    })
-    toast.add({
-      severity: 'error',
-      summary: 'Failed Authenticate',
-      detail: 'Login FAILED',
-      life: srToastStore.getLife()
-    })
-    return false
-  } finally {
-    showAuthDialog.value = false // Close the dialog
   }
 }
+
 async function desiredOrgNumNodes() {
   // Check if logged in first
   if (!jwtStore.getCredentials()) {
@@ -289,9 +221,12 @@ function updateDesiredNodes() {
   void desiredOrgNumNodes()
 }
 
-function resetToDefaults() {
+async function resetToDefaults() {
   jwtStore.clearAllJwts()
   sysConfigStore.$reset()
+  // Fetch public cluster server version
+  await sysConfigStore.fetchServerVersionInfo()
+  await sysConfigStore.fetchCurrentNodes()
   toast.add({
     severity: 'info',
     summary: 'Reset Complete',
@@ -344,5 +279,24 @@ onMounted(() => {
   justify-content: flex-end;
   gap: 0.5rem;
   margin-top: 1rem;
+}
+
+.sr-org-input-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.125rem;
+}
+
+.sr-org-label {
+  font-size: small;
+  white-space: nowrap;
+  margin-right: 0.5rem;
+}
+
+.sr-org-input {
+  width: 15em;
+  text-align: right;
+  padding: 0.25rem;
 }
 </style>

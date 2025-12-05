@@ -15,7 +15,7 @@
         <SrLabelInfoIconButton
           :label="label"
           :labelFontSize="labelFontSize"
-          :labelFor="'srSelectMenu-' + label"
+          :labelFor="uniqueId"
           :tooltipText="tooltipText"
           :tooltipUrl="tooltipUrl"
           :insensitive="insensitive"
@@ -28,7 +28,7 @@
           optionLabel="label"
           :scrollHeight="scrollHeight"
           multiple
-          :id="'srSelectMenu-' + label"
+          :id="uniqueId"
         />
       </div>
     </div>
@@ -40,6 +40,9 @@ import Listbox from 'primevue/listbox'
 import { watch, onMounted, computed } from 'vue'
 import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue'
 import type { SrListNumberItem } from '@/types/SrTypes'
+
+// Generate a unique ID for this component instance
+const uniqueId = `srSelectMenu-${Math.random().toString(36).substring(2, 9)}`
 
 const props = defineProps({
   label: {
