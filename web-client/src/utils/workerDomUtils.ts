@@ -374,11 +374,10 @@ async function runFetchToFileWorker(srReqRec: SrRequestRecord): Promise<void> {
           requestsStore.setSvrMsg('')
         }
       }
-      let srJWT = useJwtStore().getJwt(sysConfigStore.getDomain(), sysConfigStore.getOrganization())
-      let accessToken = ''
-      if (srJWT) {
-        accessToken = srJWT.accessToken
-      }
+      // Ensure token is fresh before starting long-running worker job
+      // Refreshes proactively if token expires within 9 minutes
+      const accessToken = (await useJwtStore().ensureFreshToken()) ?? ''
+
       const cmd = {
         type: 'run',
         req_id: srReqRec.req_id,

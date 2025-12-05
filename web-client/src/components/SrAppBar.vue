@@ -1,8 +1,14 @@
 <script setup lang="ts">
 import Button from 'primevue/button'
 import Menu from 'primevue/menu'
+import Dialog from 'primevue/dialog'
 import { ref, computed, onMounted } from 'vue'
+import { useToast } from 'primevue/usetoast'
+import { useSrToastStore } from '@/stores/srToastStore'
+import { authenticatedFetch } from '@/utils/fetchUtils'
+import SrSliderInput from '@/components/SrSliderInput.vue'
 import { useSysConfigStore } from '@/stores/sysConfigStore'
+import { useJwtStore } from '@/stores/SrJWTStore'
 import { useRoute } from 'vue-router'
 import { useDeviceStore } from '@/stores/deviceStore'
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue'
@@ -13,9 +19,18 @@ const logger = createLogger('SrAppBar')
 const build_env = import.meta.env.VITE_BUILD_ENV
 const banner_text = import.meta.env.VITE_BANNER_TEXT
 const sysConfigStore = useSysConfigStore()
+const jwtStore = useJwtStore()
 const deviceStore = useDeviceStore()
 const route = useRoute()
 const tooltipRef = ref()
+const toast = useToast()
+const srToastStore = useSrToastStore()
+
+// Org menu and cluster dialog state
+const orgMenu = ref<InstanceType<typeof Menu> | null>(null)
+const showClusterDialog = ref(false)
+const desiredNodes = ref(1)
+const ttl = ref(720)
 
 const docsMenu = ref<InstanceType<typeof Menu> | null>(null)
 const displayTour = computed(() => {
@@ -255,6 +270,217 @@ const computedServerVersionLabel = computed(() => {
   return sysConfigStore.version || 'v?.?.?'
 })
 
+const showOrgBadge = computed(() => {
+  const org = sysConfigStore.getOrganization()
+  return org && org !== 'sliderule'
+})
+
+const orgBadgeLabel = computed(() => {
+  return sysConfigStore.getOrganization()
+})
+
+const orgBadgeSeverity = computed(() => {
+  const jwt = jwtStore.getCredentials()
+  return jwt ? 'info' : 'warn'
+})
+
+const computedLoggedIn = computed(() => {
+  return jwtStore.getCredentials() !== null
+})
+
+const computedOrgIsPublic = computed(() => {
+  return jwtStore.getIsPublic(sysConfigStore.getDomain(), sysConfigStore.getOrganization())
+})
+
+const maxNodes = computed(() => sysConfigStore.getMaxNodes())
+
+const minNodes = computed(() => sysConfigStore.getMinNodes())
+const currentNodes = computed(() => sysConfigStore.getCurrentNodes())
+const clusterVersion = computed(() => sysConfigStore.getVersion())
+
+const computedClusterType = computed(() => {
+  if (!computedLoggedIn.value) {
+    return 'Unknown'
+  } else {
+    return computedOrgIsPublic.value ? 'Public' : 'Private'
+  }
+})
+
+const orgMenuItems = computed(() => [
+  {
+    label: 'Request Nodes',
+    icon: 'pi pi-server',
+    disabled: computedOrgIsPublic.value || !computedLoggedIn.value,
+    command: () => {
+      showClusterDialog.value = true
+    }
+  },
+  {
+    label: 'Logout',
+    icon: 'pi pi-sign-out',
+    command: () => {
+      handleLogout()
+    }
+  },
+  {
+    separator: true
+  },
+  {
+    label: 'Reset to Public Cluster',
+    icon: 'pi pi-refresh',
+    command: () => {
+      void resetToPublicCluster()
+    }
+  }
+])
+
+const toggleOrgMenu = (event: Event) => {
+  orgMenu.value?.toggle(event)
+}
+
+function handleLogout() {
+  jwtStore.removeJwt(sysConfigStore.getDomain(), sysConfigStore.getOrganization())
+  toast.add({
+    severity: 'info',
+    summary: 'Logged Out',
+    detail: 'You have been logged out successfully',
+    life: srToastStore.getLife()
+  })
+}
+
+async function resetToPublicCluster() {
+  jwtStore.clearAllJwts()
+  sysConfigStore.$reset()
+  await sysConfigStore.fetchServerVersionInfo()
+  await sysConfigStore.fetchCurrentNodes()
+  toast.add({
+    severity: 'info',
+    summary: 'Reset Complete',
+    detail: 'Configuration and authentication have been reset to defaults',
+    life: srToastStore.getLife()
+  })
+}
+
+async function getOrgNumNodes() {
+  if (!jwtStore.getCredentials()) {
+    logger.error('Login expired or not logged in')
+    toast.add({
+      severity: 'info',
+      summary: 'Need to Login',
+      detail: 'Please log in again',
+      life: srToastStore.getLife()
+    })
+    return
+  }
+
+  const psHost = `https://ps.${sysConfigStore.getDomain()}`
+  const response = await authenticatedFetch(
+    `${psHost}/api/org_num_nodes/${sysConfigStore.getOrganization()}/`,
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json'
+      }
+    }
+  )
+
+  if (response.ok) {
+    const result = await response.json()
+    logger.debug('getOrgNumNodes result', { result })
+    sysConfigStore.setMinNodes(result.min_nodes)
+    sysConfigStore.setCurrentNodes(result.current_nodes)
+    sysConfigStore.setMaxNodes(result.max_nodes)
+    sysConfigStore.setVersion(result.version)
+    jwtStore.setIsPublic(
+      sysConfigStore.getDomain(),
+      sysConfigStore.getOrganization(),
+      result.is_public
+    )
+  } else if (response.status === 401) {
+    logger.error('Authentication failed - please log in again')
+    toast.add({
+      severity: 'info',
+      summary: 'Session Expired',
+      detail: 'Please log in again',
+      life: srToastStore.getLife()
+    })
+  } else {
+    logger.error('Failed to get Num Nodes', { statusText: response.statusText })
+    toast.add({
+      severity: 'error',
+      summary: 'Failed to Retrieve Nodes',
+      detail: `Error: ${response.statusText}`,
+      life: srToastStore.getLife()
+    })
+  }
+}
+
+async function submitDesiredNodes() {
+  if (!jwtStore.getCredentials()) {
+    logger.error('Login expired or not logged in')
+    toast.add({
+      severity: 'info',
+      summary: 'Need to Login',
+      detail: 'Please log in again',
+      life: srToastStore.getLife()
+    })
+    return
+  }
+
+  const psHost = `https://ps.${sysConfigStore.getDomain()}`
+  sysConfigStore.setDesiredNodes(desiredNodes.value)
+  sysConfigStore.setTimeToLive(ttl.value)
+
+  const response = await authenticatedFetch(
+    `${psHost}/api/desired_org_num_nodes_ttl/${sysConfigStore.getOrganization()}/${desiredNodes.value}/${ttl.value}/`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json'
+      }
+    }
+  )
+
+  if (response.ok) {
+    const result = await response.json()
+    if (result.status === 'QUEUED') {
+      toast.add({
+        severity: 'info',
+        summary: 'Desired Nodes Request Queued',
+        detail: result.msg,
+        life: srToastStore.getLife()
+      })
+      showClusterDialog.value = false
+    } else {
+      logger.error('Failed to request nodes', { statusText: response.statusText })
+      toast.add({
+        severity: 'error',
+        summary: 'Failed to Request Nodes',
+        detail: `Error: ${result.msg}`,
+        life: srToastStore.getLife()
+      })
+    }
+  } else if (response.status === 401) {
+    logger.error('Authentication failed - please log in again')
+    toast.add({
+      severity: 'info',
+      summary: 'Session Expired',
+      detail: 'Please log in again',
+      life: srToastStore.getLife()
+    })
+  } else {
+    logger.error('Failed to request nodes', { statusText: response.statusText })
+    toast.add({
+      severity: 'error',
+      summary: 'Failed to Request Nodes',
+      detail: `Error: ${response.statusText}`,
+      life: srToastStore.getLife()
+    })
+  }
+}
+
 const mobileMenu = ref<InstanceType<typeof Menu> | null>(null)
 
 const mobileMenuItems = [
@@ -313,8 +539,42 @@ function dumpRouteInfo() {
 
 onMounted(async () => {
   setDarkMode()
-  await sysConfigStore.fetchServerVersionInfo()
-  await sysConfigStore.fetchCurrentNodes()
+  const org = sysConfigStore.getOrganization()
+  const isPrivateCluster = org && org !== 'sliderule'
+
+  if (isPrivateCluster) {
+    // For private clusters, only fetch if we have credentials
+    // Otherwise, the login dialog will be shown and fetchOrgInfo will be called after login
+    const jwt = jwtStore.getCredentials()
+    if (jwt) {
+      // Use the authenticated PS endpoint for private clusters
+      const psHost = `https://ps.${sysConfigStore.getDomain()}`
+      try {
+        const response = await fetch(`${psHost}/api/org_num_nodes/${org}/`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            Authorization: `Bearer ${jwt.accessToken}`
+          }
+        })
+        if (response.ok) {
+          const result = await response.json()
+          sysConfigStore.setMinNodes(result.min_nodes)
+          sysConfigStore.setCurrentNodes(result.current_nodes)
+          sysConfigStore.setMaxNodes(result.max_nodes)
+          sysConfigStore.setVersion(result.version)
+        }
+      } catch (error) {
+        logger.error('Failed to fetch org info', { error })
+      }
+    }
+    // If no credentials, don't try to fetch - App.vue will show login dialog
+  } else {
+    // Public cluster - use direct server endpoints
+    await sysConfigStore.fetchServerVersionInfo()
+    await sysConfigStore.fetchCurrentNodes()
+  }
   dumpRouteInfo()
 })
 
@@ -379,6 +639,16 @@ function hideTooltip() {
       <Menu :model="mobileMenuItems" popup ref="mobileMenu" />
       <img src="/IceSat-2_SlideRule_logo.png" alt="SlideRule logo" class="logo" />
       <span class="sr-title">SlideRule</span>
+      <Button
+        v-if="showOrgBadge"
+        type="button"
+        :label="orgBadgeLabel"
+        :severity="orgBadgeSeverity"
+        class="sr-org-menu-button"
+        size="small"
+        @click="toggleOrgMenu"
+      />
+      <Menu :model="orgMenuItems" popup ref="orgMenu" />
       <div
         class="sr-show-server-version"
         @mouseover="showServerTooltip($event)"
@@ -493,10 +763,127 @@ function hideTooltip() {
       <Menu :model="aboutMenuItems" popup ref="aboutMenu" />
     </div>
   </div>
+
+  <Dialog
+    v-model:visible="showClusterDialog"
+    header="Cluster Status"
+    :closable="true"
+    modal
+    class="sr-cluster-dialog"
+  >
+    <div class="sr-cluster-info">
+      <div class="sr-cluster-field">
+        <label>Type:</label>
+        <span>{{ computedClusterType }}</span>
+      </div>
+      <div class="sr-cluster-field">
+        <label>Min Nodes:</label>
+        <span>{{ minNodes }}</span>
+      </div>
+      <div class="sr-cluster-field">
+        <label>Current Nodes:</label>
+        <span>{{ currentNodes }}</span>
+      </div>
+      <div class="sr-cluster-field">
+        <label>Max Nodes:</label>
+        <span>{{ maxNodes }}</span>
+      </div>
+      <div class="sr-cluster-field">
+        <label>Version:</label>
+        <span>{{ clusterVersion }}</span>
+      </div>
+      <div class="sr-refresh-btn">
+        <Button
+          icon="pi pi-refresh"
+          :disabled="!computedLoggedIn"
+          size="small"
+          @click="getOrgNumNodes"
+        />
+      </div>
+    </div>
+
+    <div class="sr-request-nodes-section">
+      <h4>Request Nodes</h4>
+      <p>Enter the desired number of nodes and time to live:</p>
+      <SrSliderInput
+        v-model="desiredNodes"
+        label="Desired Nodes"
+        :min="1"
+        :max="maxNodes"
+        :defaultValue="1"
+        :decimalPlaces="0"
+      />
+      <SrSliderInput
+        v-model="ttl"
+        label="Time to Live (minutes)"
+        :min="15"
+        :max="720"
+        :defaultValue="720"
+        :decimalPlaces="0"
+      />
+    </div>
+
+    <div class="sr-dialog-buttons">
+      <Button label="Cancel" severity="secondary" @click="showClusterDialog = false" />
+      <Button
+        label="Submit"
+        :disabled="computedOrgIsPublic || !computedLoggedIn"
+        @click="submitDesiredNodes"
+      />
+    </div>
+  </Dialog>
 </template>
 
 <style scoped>
 .sr-show-server-version {
+}
+
+.sr-org-menu-button {
+  margin-left: 0.5rem;
+  font-size: 0.75rem;
+}
+
+.sr-cluster-info {
+  margin-bottom: 1.5rem;
+}
+
+.sr-cluster-field {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+}
+
+.sr-cluster-field label {
+  font-weight: bold;
+}
+
+.sr-refresh-btn {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
+.sr-request-nodes-section {
+  border-top: 1px solid var(--p-surface-border);
+  padding-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+.sr-request-nodes-section h4 {
+  margin: 0 0 0.5rem 0;
+}
+
+.sr-request-nodes-section p {
+  margin: 0 0 1rem 0;
+  font-size: 0.9rem;
+  color: var(--p-text-muted-color);
+}
+
+.sr-dialog-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
 }
 .sr-nav-container {
   height: 4rem;
@@ -517,6 +904,11 @@ function hideTooltip() {
   font-weight: 600;
   color: var(--p-button-text-primary-color);
   margin-left: 0.5rem;
+}
+
+.sr-org-badge {
+  margin-left: 0.5rem;
+  font-size: 0.75rem;
 }
 
 .ol-geocoder {

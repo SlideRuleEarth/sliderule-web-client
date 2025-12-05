@@ -35,10 +35,10 @@
         :decimalPlaces="0"
       />
       <br />
-      <label for="maxNumPntsToDisplay">Max Num El Pnts to Display on Plot</label>
+      <label for="maxNumPntsToDisplayPlot">Max Num El Pnts to Display on Plot</label>
       <InputNumber
         v-model="globalChartStore.max_pnts_on_plot"
-        inputId="maxNumPntsToDisplay"
+        inputId="maxNumPntsToDisplayPlot"
         class="sr-max-num-pnts-to-display"
         size="small"
         :min="10000"

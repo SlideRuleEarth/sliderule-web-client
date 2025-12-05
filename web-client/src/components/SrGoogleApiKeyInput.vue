@@ -174,7 +174,7 @@ function clearKey() {
       </span>
     </Message>
 
-    <div class="sr-api-key-form">
+    <form class="sr-api-key-form" @submit.prevent="validateAndSave">
       <div class="sr-input-row">
         <InputText
           v-model="inputKey"
@@ -182,6 +182,7 @@ function clearKey() {
           placeholder="Enter Google API key"
           class="sr-api-key-input-field"
           :disabled="isValidating"
+          autocomplete="off"
         />
         <Button
           :icon="showKey ? 'pi pi-eye-slash' : 'pi pi-eye'"
@@ -189,13 +190,14 @@ function clearKey() {
           class="p-button-text"
           :disabled="isValidating"
           v-tooltip="showKey ? 'Hide key' : 'Show key'"
+          type="button"
         />
       </div>
       <div class="sr-button-row">
         <Button
           label="Validate & Save"
           icon="pi pi-check"
-          @click="validateAndSave"
+          type="submit"
           :loading="isValidating"
           :disabled="!inputKey.trim()"
           class="sr-save-button"
@@ -208,9 +210,10 @@ function clearKey() {
           severity="danger"
           :disabled="isValidating"
           class="sr-clear-button"
+          type="button"
         />
       </div>
-    </div>
+    </form>
   </div>
 </template>
 

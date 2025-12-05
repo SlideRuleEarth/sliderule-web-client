@@ -16,7 +16,13 @@ import { useRecTreeStore } from '@/stores/recTreeStore'
 import { useRoute } from 'vue-router'
 import SrClearCache from '@/components/SrClearCache.vue'
 import { useSysConfigStore } from '@/stores/sysConfigStore'
+import { useJwtStore } from '@/stores/SrJWTStore'
+import { useAuthDialogStore } from '@/stores/authDialogStore'
 import SrJsonDisplayDialog from '@/components/SrJsonDisplayDialog.vue'
+import InputText from 'primevue/inputtext'
+import Password from 'primevue/password'
+import Button from 'primevue/button'
+import { authenticatedFetch } from '@/utils/fetchUtils'
 import introJs from 'intro.js'
 import { useTourStore } from '@/stores/tourStore.js'
 import { useViewportHeight } from '@/composables/useViewportHeight'
@@ -30,7 +36,14 @@ const recTreeStore = useRecTreeStore()
 const toast = useToast()
 const deviceStore = useDeviceStore()
 const tourStore = useTourStore()
+const sysConfigStore = useSysConfigStore()
+const jwtStore = useJwtStore()
+const authDialogStore = useAuthDialogStore()
 const route = useRoute()
+
+// Global login dialog state
+const loginUsername = ref('')
+const loginPassword = ref('')
 const showServerVersionDialog = ref(false) // Reactive state for controlling dialog visibility
 const showClientVersionDialog = ref(false) // Reactive state for controlling dialog visibility
 const showUnsupportedDialog = ref(false) // Reactive state for controlling dialog visibility
@@ -47,6 +60,137 @@ const checkUnsupported = () => {
   if (deviceStore.getBrowser() === 'Unknown Browser' || deviceStore.getOS() === 'Unknown OS') {
     showUnsupportedDialog.value = true
   }
+}
+
+const checkPrivateClusterAuth = () => {
+  const domain = sysConfigStore.getDomain()
+  const org = sysConfigStore.getOrganization()
+
+  // Skip check for public cluster
+  if (org === 'sliderule') {
+    return
+  }
+
+  // Check if user has valid credentials for this private cluster
+  const jwt = jwtStore.getCredentials()
+  if (!jwt) {
+    toast.add({
+      severity: 'warn',
+      summary: 'Authentication Required',
+      detail: `Private cluster "${org}" requires login.`,
+      life: srToastStore.getLife()
+    })
+    logger.info('Private cluster configured without authentication', { domain, org })
+    authDialogStore.show()
+  }
+}
+
+async function fetchOrgInfo(): Promise<void> {
+  const psHost = `https://ps.${sysConfigStore.getDomain()}`
+  try {
+    const response = await authenticatedFetch(
+      `${psHost}/api/org_num_nodes/${sysConfigStore.getOrganization()}/`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json'
+        }
+      }
+    )
+
+    if (response.ok) {
+      const result = await response.json()
+      logger.debug('fetchOrgInfo result', { result })
+      sysConfigStore.setMinNodes(result.min_nodes)
+      sysConfigStore.setCurrentNodes(result.current_nodes)
+      sysConfigStore.setMaxNodes(result.max_nodes)
+      sysConfigStore.setVersion(result.version)
+    } else {
+      logger.error('Failed to fetch org info', { status: response.status })
+    }
+  } catch (error) {
+    logger.error('Error fetching org info', {
+      error: error instanceof Error ? error.message : String(error)
+    })
+  }
+}
+
+async function handleGlobalLogin(): Promise<void> {
+  const orgName = sysConfigStore.getOrganization()
+  const psHost = `https://ps.${sysConfigStore.getDomain()}`
+  logger.debug('handleGlobalLogin', { username: loginUsername.value, orgName })
+
+  const body = JSON.stringify({
+    username: loginUsername.value,
+    password: loginPassword.value,
+    org_name: orgName
+  })
+
+  try {
+    const response = await fetch(`${psHost}/api/org_token/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body
+    })
+    const result = await response.json()
+    if (response.ok) {
+      const jwt = {
+        accessToken: result.access,
+        refreshToken: result.refresh,
+        expiration: result.expiration
+      }
+      jwtStore.setJwt(sysConfigStore.getDomain(), sysConfigStore.getOrganization(), jwt)
+      await fetchOrgInfo()
+      toast.add({
+        severity: 'success',
+        summary: 'Successfully Authenticated',
+        detail: `Authentication successful for ${orgName}`,
+        life: srToastStore.getLife()
+      })
+      // Clear form and close dialog
+      loginUsername.value = ''
+      loginPassword.value = ''
+      authDialogStore.hide()
+    } else {
+      logger.error('Failed to authenticate', { response })
+      toast.add({
+        severity: 'error',
+        summary: 'Authentication Failed',
+        detail: 'Login failed. Please check your credentials.',
+        life: srToastStore.getLife()
+      })
+    }
+  } catch (error) {
+    logger.error('Authentication request error', {
+      error: error instanceof Error ? error.message : String(error)
+    })
+    toast.add({
+      severity: 'error',
+      summary: 'Authentication Failed',
+      detail: 'Login failed. Please try again.',
+      life: srToastStore.getLife()
+    })
+  }
+}
+
+async function resetToPublicCluster() {
+  jwtStore.clearAllJwts()
+  sysConfigStore.$reset()
+  loginUsername.value = ''
+  loginPassword.value = ''
+  authDialogStore.hide()
+  // Fetch public cluster server version
+  await sysConfigStore.fetchServerVersionInfo()
+  await sysConfigStore.fetchCurrentNodes()
+  toast.add({
+    severity: 'info',
+    summary: 'Reset Complete',
+    detail: 'Configuration and authentication have been reset to defaults',
+    life: srToastStore.getLife()
+  })
 }
 
 // Watcher (initially inactive)
@@ -199,6 +343,7 @@ onMounted(async () => {
   // });
 
   checkUnsupported()
+  checkPrivateClusterAuth()
   tourStore.checkSeen()
   await nextTick()
 
@@ -675,6 +820,48 @@ async function handleLongTourButtonClick() {
         <Image :src="buzzImg" alt="Buzz Aldrin with a slide rule Gemini XII" class="buzz-image" />
       </div>
     </Dialog>
+
+    <!-- Global Login Dialog -->
+    <Dialog
+      v-model:visible="authDialogStore.visible"
+      header="Login"
+      :modal="true"
+      :closable="true"
+      style="width: 400px"
+    >
+      <form class="sr-global-login-form" @submit.prevent="handleGlobalLogin">
+        <p class="sr-login-org-info">
+          Logging in to: <strong>{{ sysConfigStore.getOrganization() }}</strong>
+        </p>
+        <div class="sr-login-field">
+          <label for="global-username">Username</label>
+          <InputText
+            id="global-username"
+            v-model="loginUsername"
+            type="text"
+            autocomplete="username"
+          />
+        </div>
+        <div class="sr-login-field">
+          <label for="global-password">Password</label>
+          <Password
+            id="global-password"
+            v-model="loginPassword"
+            toggleMask
+            autocomplete="current-password"
+          />
+        </div>
+        <div class="sr-login-buttons">
+          <Button
+            label="Reset to Public Cluster"
+            severity="secondary"
+            icon="pi pi-refresh"
+            @click="resetToPublicCluster"
+          />
+          <Button label="Login" type="submit" />
+        </div>
+      </form>
+    </Dialog>
   </div>
 </template>
 
@@ -763,5 +950,41 @@ async function handleLongTourButtonClick() {
   max-width: 100%;
   max-height: 80vh;
   object-fit: contain;
+}
+
+.sr-global-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.sr-login-org-info {
+  margin: 0;
+  padding: 0.5rem;
+  background-color: var(--p-primary-color);
+  color: var(--p-primary-contrast-color);
+  border-radius: var(--p-border-radius);
+  text-align: center;
+}
+
+.sr-login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sr-login-field :deep(.p-password) {
+  width: 100%;
+}
+
+.sr-login-field :deep(.p-password-input) {
+  width: 100%;
+}
+
+.sr-login-buttons {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
 }
 </style>

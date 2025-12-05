@@ -7,7 +7,7 @@
       <SrLabelInfoIconButton
         :label="label"
         :labelFontSize="labelFontSize"
-        labelFor="srSelectMenu-{{ label }}"
+        :labelFor="uniqueId"
         :tooltipText="tooltipText"
         :tooltipUrl="tooltipUrl"
         :insensitive="insensitive"
@@ -27,7 +27,7 @@
             'sr-select-menu-default-insensitive': insensitive
           }"
           name="sr-select-menu"
-          id="srSelectMenu-{{ label }}"
+          :id="uniqueId"
           aria-label="aria-label"
           :disabled="insensitive"
         >
@@ -44,6 +44,9 @@
 import { onMounted, computed, watch as _watch } from 'vue'
 import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue'
 import type { SrMenuNumberItem } from '@/types/SrTypes'
+
+// Generate a unique ID for this component instance
+const uniqueId = `srSelectMenu-${Math.random().toString(36).substring(2, 9)}`
 
 const props = defineProps({
   modelValue: Object as () => SrMenuNumberItem,

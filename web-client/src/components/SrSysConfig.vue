@@ -5,16 +5,20 @@
       label="Domain"
       @update:model-value="domainChanged"
     />
-    <SrTextInput
-      v-model="sysConfigStore.organization"
-      label="Organization"
-      @update:model-value="orgChanged"
-    />
+    <div class="sr-org-input-row">
+      <label for="organization-input" class="sr-org-label">Organization</label>
+      <InputText
+        id="organization-input"
+        v-model="sysConfigStore.organization"
+        class="sr-org-input"
+        @keyup.enter="orgChanged"
+      />
+    </div>
     <Button
       label="Login"
       icon="pi pi-sign-in"
-      :disabled="computedLoggedIn"
-      @click="showAuthDialog = true"
+      :disabled="computedLoggedIn || isPublicCluster"
+      @click="authDialogStore.show()"
     />
     <Button
       label="Reset to Public Cluster"
@@ -32,28 +36,11 @@
       @click="showDesiredNodesDialog = true"
     />
   </div>
-  <!-- Authentication Dialog -->
-  <Dialog v-model:visible="showAuthDialog" header="Login" :showHeader="true" :closable="true" modal>
-    <div class="card">
-      <div class="sr-user-pass-dialog">
-        <div class="sr-p-field">
-          <label for="username">Username</label>
-          <InputText id="username" v-model="username" type="text" />
-        </div>
-        <div class="sr-p-field">
-          <label for="password">Password</label>
-          <Password id="password" v-model="password" type="password" toggleMask />
-        </div>
-        <div class="sr-p-button">
-          <Button label="Login" @click="authenticate"></Button>
-        </div>
-      </div>
-    </div>
-  </Dialog>
   <Dialog
     class="sr-desired-nodes-dialog"
     v-model:visible="showDesiredNodesDialog"
-    :showHeader="false"
+    header="Request Nodes"
+    :closable="true"
     modal
   >
     <div>
@@ -77,7 +64,14 @@
           :decimalPlaces="0"
         />
       </div>
-      <Button label="Submit" @click="updateDesiredNodes"></Button>
+      <div class="sr-dialog-buttons">
+        <Button
+          label="Cancel"
+          severity="secondary"
+          @click="showDesiredNodesDialog = false"
+        ></Button>
+        <Button label="Submit" @click="updateDesiredNodes"></Button>
+      </div>
     </div>
   </Dialog>
 </template>
@@ -86,28 +80,25 @@
 import { computed, onMounted, ref } from 'vue'
 import { useSysConfigStore } from '@/stores/sysConfigStore'
 import Dialog from 'primevue/dialog'
-import InputText from 'primevue/inputtext'
-import Password from 'primevue/password'
 import Button from 'primevue/button'
+import InputText from 'primevue/inputtext'
 import SrTextInput from '@/components/SrTextInput.vue'
 import SrSliderInput from '@/components/SrSliderInput.vue'
 import { useToast } from 'primevue/usetoast'
 import { useSrToastStore } from '@/stores/srToastStore'
 import { useJwtStore } from '@/stores/SrJWTStore'
+import { useAuthDialogStore } from '@/stores/authDialogStore'
 import SrClusterInfo from './SrClusterInfo.vue'
 import { createLogger } from '@/utils/logger'
+import { authenticatedFetch } from '@/utils/fetchUtils'
 
 const logger = createLogger('SrSysConfig')
 const toast = useToast()
 const srToastStore = useSrToastStore()
 const sysConfigStore = useSysConfigStore()
 const jwtStore = useJwtStore()
-
-const showAuthDialog = ref(false)
+const authDialogStore = useAuthDialogStore()
 const showDesiredNodesDialog = ref(false)
-const username = ref('')
-const password = ref('')
-const orgName = ref('')
 const desiredNodes = ref(1)
 const ttl = ref(720)
 
@@ -123,6 +114,11 @@ const computedOrgIsPublic = computed(() => {
   return jwtStore.getIsPublic(sysConfigStore.getDomain(), sysConfigStore.getOrganization())
 })
 
+// The "sliderule" organization is the public cluster that doesn't require login
+const isPublicCluster = computed(() => {
+  return sysConfigStore.getOrganization() === 'sliderule'
+})
+
 const computedLoggedIn = computed(() => {
   return jwtStore.getCredentials() !== null
 })
@@ -134,116 +130,83 @@ function domainChanged(_newDomain: string) {
   //console.log('Domain changed:', newDomain);
 }
 
-function orgChanged(_newOrg: string) {
-  jwtStore.removeJwt(sysConfigStore.getDomain(), sysConfigStore.getOrganization())
-  //console.log('Organization changed:', newOrg);
-}
-
-async function authenticate(): Promise<boolean> {
-  orgName.value = sysConfigStore.getOrganization()
-  const psHost = `https://ps.${sysConfigStore.getDomain()}`
-  logger.debug('authenticate', { username: username.value, orgName: orgName.value })
-  const body = JSON.stringify({
-    username: username.value,
-    password: password.value,
-    org_name: orgName.value
-  })
-  try {
-    const response = await fetch(`${psHost}/api/org_token/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body
-    })
-    const result = await response.json()
-    if (response.ok) {
-      const jwt = {
-        accessToken: result.access,
-        refreshToken: result.refresh,
-        expiration: result.expiration
-      }
-      jwtStore.setJwt(sysConfigStore.getDomain(), sysConfigStore.getOrganization(), jwt) // Assuming result contains the JWT
+function orgChanged() {
+  const newOrg = sysConfigStore.getOrganization()
+  jwtStore.removeJwt(sysConfigStore.getDomain(), newOrg)
+  // Check if new organization requires login
+  if (newOrg !== 'sliderule') {
+    const jwt = jwtStore.getJwt(sysConfigStore.getDomain(), newOrg)
+    if (!jwt) {
       toast.add({
-        severity: 'success',
-        summary: 'Successfully Authenticated',
-        detail: `Authentication successful for ${orgName.value}`,
+        severity: 'warn',
+        summary: 'Authentication Required',
+        detail: `Private cluster "${newOrg}" requires login.`,
         life: srToastStore.getLife()
       })
-      return true // Assuming expiration is in the response
-    } else {
-      logger.error('Failed to authenticate', { response })
-      toast.add({
-        severity: 'error',
-        summary: 'Failed Authenticate',
-        detail: 'Login FAILED',
-        life: srToastStore.getLife()
-      })
-      return false
+      authDialogStore.show()
     }
-  } catch (error) {
-    logger.error('Authentication request error', {
-      error: error instanceof Error ? error.message : String(error)
-    })
-    toast.add({
-      severity: 'error',
-      summary: 'Failed Authenticate',
-      detail: 'Login FAILED',
-      life: srToastStore.getLife()
-    })
-    return false
-  } finally {
-    showAuthDialog.value = false // Close the dialog
   }
 }
+
 async function desiredOrgNumNodes() {
-  const psHost = `https://ps.${sysConfigStore.getDomain()}`
-  let jwt = jwtStore.getCredentials()
-  if (jwt) {
-    const response = await fetch(
-      `${psHost}/api/desired_org_num_nodes_ttl/${sysConfigStore.getOrganization()}/${sysConfigStore.getDesiredNodes()}/${sysConfigStore.getTimeToLive()}/`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-          Authorization: `Bearer ${jwt.accessToken}`
-        }
-      }
-    )
-    if (response.ok) {
-      const result = await response.json()
-      if (result.status === 'QUEUED') {
-        toast.add({
-          severity: 'info',
-          summary: 'Desired Nodes Request Queued',
-          detail: result.msg,
-          life: srToastStore.getLife()
-        })
-      } else {
-        logger.error('Failed to get Desired Nodes', { statusText: response.statusText })
-        toast.add({
-          severity: 'error',
-          summary: 'Failed to Retrieve Desired Nodes',
-          detail: `Error: ${result.msg}`,
-          life: srToastStore.getLife()
-        })
-      }
-    } else {
-      logger.error('Failed to get Num Nodes', { statusText: response.statusText })
-      toast.add({
-        severity: 'error',
-        summary: 'Failed to Retrieve Nodes',
-        detail: `Error: ${response.statusText}`,
-        life: srToastStore.getLife()
-      })
-    }
-  } else {
+  // Check if logged in first
+  if (!jwtStore.getCredentials()) {
     logger.error('Login expired or not logged in')
     toast.add({
       severity: 'info',
       summary: 'Need to Login',
       detail: 'Please log in again',
+      life: srToastStore.getLife()
+    })
+    return
+  }
+
+  const psHost = `https://ps.${sysConfigStore.getDomain()}`
+  // Use authenticatedFetch - it handles JWT header and 401 retry automatically
+  const response = await authenticatedFetch(
+    `${psHost}/api/desired_org_num_nodes_ttl/${sysConfigStore.getOrganization()}/${sysConfigStore.getDesiredNodes()}/${sysConfigStore.getTimeToLive()}/`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json'
+      }
+    }
+  )
+
+  if (response.ok) {
+    const result = await response.json()
+    if (result.status === 'QUEUED') {
+      toast.add({
+        severity: 'info',
+        summary: 'Desired Nodes Request Queued',
+        detail: result.msg,
+        life: srToastStore.getLife()
+      })
+    } else {
+      logger.error('Failed to get Desired Nodes', { statusText: response.statusText })
+      toast.add({
+        severity: 'error',
+        summary: 'Failed to Retrieve Desired Nodes',
+        detail: `Error: ${result.msg}`,
+        life: srToastStore.getLife()
+      })
+    }
+  } else if (response.status === 401) {
+    // 401 after retry means refresh token also expired
+    logger.error('Authentication failed - please log in again')
+    toast.add({
+      severity: 'info',
+      summary: 'Session Expired',
+      detail: 'Please log in again',
+      life: srToastStore.getLife()
+    })
+  } else {
+    logger.error('Failed to get Num Nodes', { statusText: response.statusText })
+    toast.add({
+      severity: 'error',
+      summary: 'Failed to Retrieve Nodes',
+      detail: `Error: ${response.statusText}`,
       life: srToastStore.getLife()
     })
   }
@@ -258,9 +221,12 @@ function updateDesiredNodes() {
   void desiredOrgNumNodes()
 }
 
-function resetToDefaults() {
+async function resetToDefaults() {
   jwtStore.clearAllJwts()
   sysConfigStore.$reset()
+  // Fetch public cluster server version
+  await sysConfigStore.fetchServerVersionInfo()
+  await sysConfigStore.fetchCurrentNodes()
   toast.add({
     severity: 'info',
     summary: 'Reset Complete',
@@ -307,5 +273,30 @@ onMounted(() => {
   justify-content: center;
   align-items: center;
   width: 100%;
+}
+.sr-dialog-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.sr-org-input-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.125rem;
+}
+
+.sr-org-label {
+  font-size: small;
+  white-space: nowrap;
+  margin-right: 0.5rem;
+}
+
+.sr-org-input {
+  width: 15em;
+  text-align: right;
+  padding: 0.25rem;
 }
 </style>
