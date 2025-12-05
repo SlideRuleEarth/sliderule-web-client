@@ -35,19 +35,25 @@
   <!-- Authentication Dialog -->
   <Dialog v-model:visible="showAuthDialog" header="Login" :showHeader="true" :closable="true" modal>
     <div class="card">
-      <div class="sr-user-pass-dialog">
+      <form class="sr-user-pass-dialog" @submit.prevent="authenticate">
         <div class="sr-p-field">
           <label for="username">Username</label>
-          <InputText id="username" v-model="username" type="text" />
+          <InputText id="username" v-model="username" type="text" autocomplete="username" />
         </div>
         <div class="sr-p-field">
           <label for="password">Password</label>
-          <Password id="password" v-model="password" type="password" toggleMask />
+          <Password
+            id="password"
+            v-model="password"
+            type="password"
+            toggleMask
+            autocomplete="current-password"
+          />
         </div>
         <div class="sr-p-button">
-          <Button label="Login" @click="authenticate"></Button>
+          <Button label="Login" type="submit"></Button>
         </div>
-      </div>
+      </form>
     </div>
   </Dialog>
   <Dialog

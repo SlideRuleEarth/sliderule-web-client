@@ -7,7 +7,7 @@
       <SrLabelInfoIconButton
         :label="label"
         :labelFontSize="labelFontSize"
-        labelFor="srSelectMenu-{{ label }}"
+        :labelFor="`srSelectMenu-${label}`"
         :tooltipText="tooltipText"
         :tooltipUrl="tooltipUrl"
         :insensitive="insensitive"
@@ -27,7 +27,7 @@
             'sr-select-menu-default-insensitive': insensitive
           }"
           name="sr-select-menu"
-          id="srSelectMenu-{{ label }}"
+          :id="`srSelectMenu-${label}`"
           aria-label="aria-label"
           :disabled="insensitive"
         >
