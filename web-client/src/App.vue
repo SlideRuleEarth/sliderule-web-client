@@ -849,6 +849,8 @@ async function handleLongTourButtonClick() {
             v-model="loginPassword"
             toggleMask
             autocomplete="current-password"
+            :feedback="false"
+            :showClear="true"
           />
         </div>
         <div class="sr-login-buttons">
