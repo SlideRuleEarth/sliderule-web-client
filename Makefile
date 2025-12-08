@@ -244,10 +244,6 @@ check-vars:
 # =========================
 # GitHub OAuth Lambda
 # =========================
-GITHUB_CLIENT_ID_TEST ?=
-GITHUB_CLIENT_SECRET_TEST ?=
-GITHUB_CLIENT_ID_PROD ?=
-GITHUB_CLIENT_SECRET_PROD ?=
 LAMBDA_BUCKET ?= sliderule-lambda-deployments
 
 package-github-oauth-lambda: ## Package the GitHub OAuth Lambda function
@@ -264,42 +260,88 @@ upload-github-oauth-lambda: package-github-oauth-lambda ## Upload Lambda zip to 
 	@echo "✅ Lambda uploaded to s3://$(LAMBDA_BUCKET)/github-oauth.zip"
 
 deploy-github-oauth-test: upload-github-oauth-lambda ## Deploy GitHub OAuth stack to test environment
+	@set -a && [ -f .env.test ] && . ./.env.test; set +a; \
+	CLIENT_ID=$${VITE_GITHUB_CLIENT_ID:-$(VITE_GITHUB_CLIENT_ID_TEST)}; \
+	if [ -z "$$CLIENT_ID" ]; then \
+		echo "❌ Error: VITE_GITHUB_CLIENT_ID must be set in .env.test"; \
+		exit 1; \
+	fi; \
+	echo "ℹ️  Note: GitHub Client Secret must exist in Secrets Manager:"; \
+	echo "   aws secretsmanager create-secret --name sliderule/github-oauth-client-secret-test --secret-string 'YOUR_SECRET'"; \
 	aws cloudformation deploy \
 		--template-file cloudformation/github-oauth.yaml \
 		--stack-name sliderule-github-oauth-test \
 		--parameter-overrides \
-			GitHubClientId=$(GITHUB_CLIENT_ID_TEST) \
-			GitHubClientSecret=$(GITHUB_CLIENT_SECRET_TEST) \
+			GitHubClientId=$$CLIENT_ID \
 			Environment=test \
 			FrontendUrl=https://testsliderule.org \
 			LambdaS3Bucket=$(LAMBDA_BUCKET) \
 		--capabilities CAPABILITY_NAMED_IAM \
 		--no-fail-on-empty-changeset
 	@echo "✅ GitHub OAuth test stack deployed"
+	@echo ""
 	@echo "API Gateway URL:"
 	@aws cloudformation describe-stacks \
 		--stack-name sliderule-github-oauth-test \
 		--query 'Stacks[0].Outputs[?OutputKey==`ApiGatewayUrl`].OutputValue' \
 		--output text
+	@echo ""
+	@echo "JWT Signing Key Secret (for your server):"
+	@aws cloudformation describe-stacks \
+		--stack-name sliderule-github-oauth-test \
+		--query 'Stacks[0].Outputs[?OutputKey==`JWTSigningKeySecretName`].OutputValue' \
+		--output text
 
 deploy-github-oauth-prod: upload-github-oauth-lambda ## Deploy GitHub OAuth stack to prod environment
+	@echo "ℹ️  Note: GitHub Client Secret must exist in Secrets Manager:"; \
+	echo "   aws secretsmanager create-secret --name sliderule/github-oauth-client-secret-prod --secret-string 'YOUR_SECRET'"
 	aws cloudformation deploy \
 		--template-file cloudformation/github-oauth.yaml \
 		--stack-name sliderule-github-oauth-prod \
 		--parameter-overrides \
-			GitHubClientId=$(GITHUB_CLIENT_ID_PROD) \
-			GitHubClientSecret=$(GITHUB_CLIENT_SECRET_PROD) \
+			GitHubClientId=$(VITE_GITHUB_CLIENT_ID_PROD) \
 			Environment=prod \
 			FrontendUrl=https://client.slideruleearth.io \
 			LambdaS3Bucket=$(LAMBDA_BUCKET) \
 		--capabilities CAPABILITY_NAMED_IAM \
 		--no-fail-on-empty-changeset
 	@echo "✅ GitHub OAuth prod stack deployed"
+	@echo ""
 	@echo "API Gateway URL:"
 	@aws cloudformation describe-stacks \
 		--stack-name sliderule-github-oauth-prod \
 		--query 'Stacks[0].Outputs[?OutputKey==`ApiGatewayUrl`].OutputValue' \
 		--output text
+	@echo ""
+	@echo "JWT Signing Key Secret (for your server):"
+	@aws cloudformation describe-stacks \
+		--stack-name sliderule-github-oauth-prod \
+		--query 'Stacks[0].Outputs[?OutputKey==`JWTSigningKeySecretName`].OutputValue' \
+		--output text
+
+create-github-oauth-secret-test: ## Create GitHub Client Secret in AWS Secrets Manager (one-time setup)
+	@if [ -z "$(SECRET)" ]; then \
+		echo "❌ Error: SECRET must be provided"; \
+		echo "   Usage: make create-github-oauth-secret-test SECRET='your-github-client-secret'"; \
+		exit 1; \
+	fi
+	aws secretsmanager create-secret \
+		--name sliderule/github-oauth-client-secret-test \
+		--secret-string "$(SECRET)" \
+		--description "GitHub OAuth Client Secret for SlideRule Web Client (test)"
+	@echo "✅ GitHub Client Secret created in Secrets Manager"
+
+create-github-oauth-secret-prod: ## Create GitHub Client Secret in AWS Secrets Manager (one-time setup)
+	@if [ -z "$(SECRET)" ]; then \
+		echo "❌ Error: SECRET must be provided"; \
+		echo "   Usage: make create-github-oauth-secret-prod SECRET='your-github-client-secret'"; \
+		exit 1; \
+	fi
+	aws secretsmanager create-secret \
+		--name sliderule/github-oauth-client-secret-prod \
+		--secret-string "$(SECRET)" \
+		--description "GitHub OAuth Client Secret for SlideRule Web Client (prod)"
+	@echo "✅ GitHub Client Secret created in Secrets Manager"
 
 destroy-github-oauth-test: ## Destroy GitHub OAuth stack from test environment
 	aws cloudformation delete-stack --stack-name sliderule-github-oauth-test

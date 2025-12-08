@@ -1,6 +1,7 @@
 import { db } from '@/db/SlideRuleDb'
 import { useSysConfigStore } from '@/stores/sysConfigStore'
 import { useJwtStore } from '@/stores/SrJWTStore'
+import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 import { Buffer } from 'buffer/'
 import { createLogger } from '@/utils/logger'
 
@@ -8,9 +9,12 @@ const logger = createLogger('FetchUtils')
 
 /**
  * Authenticated fetch wrapper with automatic 401 retry.
- * - Adds JWT Authorization header if available
- * - On 401, attempts to refresh the token and retry once
- * - Returns the Response object for further processing
+ * Authentication priority:
+ * 1. New GitHub OAuth JWT (if available and valid)
+ * 2. Legacy JWT (if available)
+ * 3. No auth header
+ *
+ * On 401 with legacy JWT, attempts to refresh the token and retry once.
  */
 export async function authenticatedFetch(
   url: string,
@@ -20,26 +24,40 @@ export async function authenticatedFetch(
   // Get stores lazily to avoid circular dependency issues
   const sysConfigStore = useSysConfigStore()
   const jwtStore = useJwtStore()
+  const githubAuthStore = useGitHubAuthStore()
 
   const domain = sysConfigStore.getDomain()
   const org = sysConfigStore.getOrganization()
 
-  // Add Authorization header if JWT is available
-  const jwt = jwtStore.getJwt(domain, org)
-  if (jwt) {
+  // Check for new GitHub OAuth JWT first
+  const githubToken = githubAuthStore.authToken
+  // Fall back to legacy JWT if GitHub token not available
+  const legacyJwt = jwtStore.getJwt(domain, org)
+
+  if (githubToken) {
+    // Use new GitHub OAuth JWT
     options.headers = {
       ...options.headers,
-      Authorization: `Bearer ${jwt.accessToken}`
+      Authorization: `Bearer ${githubToken}`
     }
+    logger.debug('authenticatedFetch using GitHub OAuth JWT', { url, isRetry })
+  } else if (legacyJwt) {
+    // Fall back to legacy JWT
+    options.headers = {
+      ...options.headers,
+      Authorization: `Bearer ${legacyJwt.accessToken}`
+    }
+    logger.debug('authenticatedFetch using legacy JWT', { url, isRetry })
+  } else {
+    logger.debug('authenticatedFetch without auth', { url, isRetry })
   }
-
-  logger.debug('authenticatedFetch', { url, isRetry, hasJwt: !!jwt })
 
   const response = await fetch(url, options)
 
-  // Handle 401 Unauthorized - attempt refresh and retry once
-  if (response.status === 401 && !isRetry && jwt) {
-    logger.debug('Received 401, attempting token refresh', { url })
+  // Handle 401 Unauthorized - attempt refresh and retry once (only for legacy JWT)
+  // GitHub OAuth JWT doesn't support refresh - user must re-authenticate
+  if (response.status === 401 && !isRetry && !githubToken && legacyJwt) {
+    logger.debug('Received 401 with legacy JWT, attempting token refresh', { url })
 
     const refreshed = await jwtStore.refreshAccessToken(domain, org)
 
@@ -122,14 +140,32 @@ export async function getArrowFetchUrlAndOptions(
     }
     options.body = body
   }
-  // add JWT for Authorization header if present
-  let srJWT = jwtStore.getJwt(sysConfigStore.getDomain(), sysConfigStore.getOrganization())
-  if (srJWT) {
+
+  // Add Authorization header - priority: GitHub OAuth JWT > Legacy JWT > None
+  const githubAuthStore = useGitHubAuthStore()
+  const githubToken = githubAuthStore.authToken
+
+  if (githubToken) {
+    // Use new GitHub OAuth JWT
     options.headers = {
       ...options.headers,
-      Authorization: `Bearer ${srJWT.accessToken}`
+      Authorization: `Bearer ${githubToken}`
+    }
+    logger.debug('getArrowFetchUrlAndOptions using GitHub OAuth JWT', { url })
+  } else {
+    // Fall back to legacy JWT if present
+    const srJWT = jwtStore.getJwt(sysConfigStore.getDomain(), sysConfigStore.getOrganization())
+    if (srJWT) {
+      options.headers = {
+        ...options.headers,
+        Authorization: `Bearer ${srJWT.accessToken}`
+      }
+      logger.debug('getArrowFetchUrlAndOptions using legacy JWT', { url })
+    } else {
+      logger.debug('getArrowFetchUrlAndOptions without auth', { url })
     }
   }
+
   logger.debug('fetch request', { url, options })
   return { url, options }
 }

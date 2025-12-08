@@ -7,20 +7,36 @@ for the SlideRuleEarth GitHub organization.
 Supports two flows:
 1. Authorization Code Flow (for web clients)
 2. Device Flow (for CLI/Python clients)
+
+Returns a signed JWT containing:
+- username: GitHub username
+- is_member: boolean for org membership
+- is_owner: boolean for org admin role
+- teams: list of team slugs the user belongs to
+- exp: expiration timestamp
+
+The JWT can be validated by the SlideRule server using the shared signing secret.
 """
 
 import json
 import os
 import secrets
 import urllib.parse
+from datetime import datetime, timedelta, timezone
 import boto3
 import requests
+import jwt
 
 # Configuration from environment variables
 GITHUB_CLIENT_ID = os.environ.get('GITHUB_CLIENT_ID')
 GITHUB_ORG = os.environ.get('GITHUB_ORG', 'SlideRuleEarth')
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://testsliderule.org')
-SECRET_ARN = os.environ.get('SECRET_ARN')
+CLIENT_SECRET_NAME = os.environ.get('CLIENT_SECRET_NAME')
+JWT_SIGNING_KEY_ARN = os.environ.get('JWT_SIGNING_KEY_ARN')
+
+# JWT configuration
+JWT_ALGORITHM = 'HS256'
+JWT_EXPIRATION_HOURS = int(os.environ.get('JWT_EXPIRATION_HOURS', '24'))
 
 # GitHub OAuth endpoints
 GITHUB_AUTHORIZE_URL = 'https://github.com/login/oauth/authorize'
@@ -28,15 +44,83 @@ GITHUB_TOKEN_URL = 'https://github.com/login/oauth/access_token'
 GITHUB_DEVICE_CODE_URL = 'https://github.com/login/device/code'
 GITHUB_API_URL = 'https://api.github.com'
 
+# Allowed redirect domains (for open redirect protection)
+# These are validated against the redirect_uri to prevent attackers from
+# redirecting tokens to malicious sites
+ALLOWED_REDIRECT_HOSTS = [
+    'testsliderule.org',
+    'client.slideruleearth.io',
+    'localhost',
+    '127.0.0.1',
+]
+
+# Cache for secrets (Lambda container reuse)
+_secrets_cache = {}
+
+
+def _get_secret(secret_arn):
+    """Retrieve a secret from AWS Secrets Manager."""
+    client = boto3.client('secretsmanager')
+    response = client.get_secret_value(SecretId=secret_arn)
+    return response['SecretString']
+
 
 def get_github_client_secret():
     """Retrieve GitHub client secret from AWS Secrets Manager."""
-    if not SECRET_ARN:
-        raise ValueError("SECRET_ARN environment variable not set")
+    if 'client_secret' not in _secrets_cache:
+        if not CLIENT_SECRET_NAME:
+            raise ValueError("CLIENT_SECRET_NAME environment variable not set")
+        _secrets_cache['client_secret'] = _get_secret(CLIENT_SECRET_NAME)
+    return _secrets_cache['client_secret']
 
-    client = boto3.client('secretsmanager')
-    response = client.get_secret_value(SecretId=SECRET_ARN)
-    return response['SecretString']
+
+def get_jwt_signing_key():
+    """Retrieve JWT signing key from AWS Secrets Manager."""
+    if 'jwt_signing_key' not in _secrets_cache:
+        if not JWT_SIGNING_KEY_ARN:
+            raise ValueError("JWT_SIGNING_KEY_ARN environment variable not set")
+        _secrets_cache['jwt_signing_key'] = _get_secret(JWT_SIGNING_KEY_ARN)
+    return _secrets_cache['jwt_signing_key']
+
+
+def is_valid_redirect_uri(uri):
+    """
+    Validate that a redirect URI points to an allowed domain.
+    Prevents open redirect attacks where an attacker could redirect
+    the JWT token to a malicious site.
+
+    Args:
+        uri: The redirect URI to validate
+
+    Returns:
+        True if the URI is safe to redirect to, False otherwise
+    """
+    if not uri:
+        return False
+
+    try:
+        parsed = urllib.parse.urlparse(uri)
+        host = parsed.hostname
+
+        if not host:
+            return False
+
+        # Check against allowed hosts
+        for allowed_host in ALLOWED_REDIRECT_HOSTS:
+            if host == allowed_host or host.endswith('.' + allowed_host):
+                return True
+
+        # Also allow the configured FRONTEND_URL host
+        frontend_parsed = urllib.parse.urlparse(FRONTEND_URL)
+        if host == frontend_parsed.hostname:
+            return True
+
+        print(f"Rejected redirect to unauthorized host: {host}")
+        return False
+
+    except Exception as e:
+        print(f"Error validating redirect URI: {e}")
+        return False
 
 
 def lambda_handler(event, context):
@@ -107,7 +191,7 @@ def handle_login(event):
 def handle_callback(event):
     """
     Handle GitHub OAuth callback.
-    Exchange code for token, check org membership, redirect to frontend.
+    Exchange code for token, check org membership, get teams, create JWT, redirect to frontend.
     """
     query_params = event.get('queryStringParameters') or {}
     code = query_params.get('code')
@@ -136,12 +220,28 @@ def handle_callback(event):
         # Check organization membership
         membership = check_org_membership(access_token, username)
 
+        # Get user's teams in the organization (only if they're a member)
+        teams = []
+        if membership['is_member']:
+            teams = get_user_teams(access_token, username)
+            print(f"User {username} belongs to teams: {teams}")
+
+        # Create signed JWT token
+        auth_token = create_auth_token(
+            username=username,
+            is_member=membership['is_member'],
+            is_owner=membership['is_owner'],
+            teams=teams
+        )
+
         # Redirect to frontend with results
         return redirect_to_frontend_with_result(
             state=state,
             username=username,
             is_member=membership['is_member'],
-            is_owner=membership['is_owner']
+            is_owner=membership['is_owner'],
+            teams=teams,
+            token=auth_token
         )
 
     except Exception as e:
@@ -243,7 +343,98 @@ def check_org_membership(access_token, username):
         }
 
 
-def redirect_to_frontend_with_result(state, username, is_member, is_owner):
+def get_user_teams(access_token, username):
+    """
+    Get all teams the user belongs to in the SlideRuleEarth organization.
+    Returns a list of team slugs.
+    """
+    teams = []
+
+    # GitHub API returns paginated results, so we need to handle pagination
+    url = f"{GITHUB_API_URL}/orgs/{GITHUB_ORG}/teams"
+    page = 1
+    per_page = 100
+
+    while True:
+        response = requests.get(
+            url,
+            headers={
+                'Authorization': f'Bearer {access_token}',
+                'Accept': 'application/vnd.github.v3+json'
+            },
+            params={
+                'page': page,
+                'per_page': per_page
+            }
+        )
+
+        if response.status_code != 200:
+            print(f"Failed to get org teams: {response.status_code} {response.text}")
+            break
+
+        org_teams = response.json()
+        if not org_teams:
+            break
+
+        # Check membership in each team
+        for team in org_teams:
+            team_slug = team.get('slug')
+            if team_slug and is_user_in_team(access_token, team_slug, username):
+                teams.append(team_slug)
+
+        # Check if there are more pages
+        if len(org_teams) < per_page:
+            break
+        page += 1
+
+    return teams
+
+
+def is_user_in_team(access_token, team_slug, username):
+    """Check if a user is a member of a specific team."""
+    response = requests.get(
+        f"{GITHUB_API_URL}/orgs/{GITHUB_ORG}/teams/{team_slug}/memberships/{username}",
+        headers={
+            'Authorization': f'Bearer {access_token}',
+            'Accept': 'application/vnd.github.v3+json'
+        }
+    )
+
+    if response.status_code == 200:
+        data = response.json()
+        # User must have 'active' state
+        return data.get('state') == 'active'
+
+    return False
+
+
+def create_auth_token(username, is_member, is_owner, teams):
+    """
+    Create a signed JWT containing the user's authentication info.
+    This token can be validated by the SlideRule server.
+    """
+    signing_key = get_jwt_signing_key()
+
+    now = datetime.now(timezone.utc)
+    expiration = now + timedelta(hours=JWT_EXPIRATION_HOURS)
+
+    payload = {
+        'sub': username,  # Subject (GitHub username)
+        'username': username,
+        'is_member': is_member,
+        'is_owner': is_owner,
+        'teams': teams,
+        'org': GITHUB_ORG,
+        'iat': int(now.timestamp()),  # Issued at
+        'exp': int(expiration.timestamp()),  # Expiration
+        'iss': 'sliderule-github-oauth'  # Issuer
+    }
+
+    token = jwt.encode(payload, signing_key, algorithm=JWT_ALGORITHM)
+    return token
+
+
+def redirect_to_frontend_with_result(state, username, is_member, is_owner, teams=None, token=None):
     """Redirect to frontend with successful authentication result."""
     # Parse original state to extract frontend redirect URI if present
     original_state = state
@@ -254,7 +445,13 @@ def redirect_to_frontend_with_result(state, username, is_member, is_owner):
         original_state = parts[0]
         frontend_redirect = parts[1] if len(parts) > 1 else None
 
-    # Build redirect URL
+    # Validate redirect URI to prevent open redirect attacks
+    # Only use frontend_redirect if it points to an allowed domain
+    if frontend_redirect and not is_valid_redirect_uri(frontend_redirect):
+        print(f"Security: Rejected invalid redirect URI: {frontend_redirect}")
+        frontend_redirect = None
+
+    # Build redirect URL (fall back to configured FRONTEND_URL if invalid)
     base_url = frontend_redirect or FRONTEND_URL
 
     # Ensure we redirect to the callback path on the frontend
@@ -267,6 +464,14 @@ def redirect_to_frontend_with_result(state, username, is_member, is_owner):
         'isMember': 'true' if is_member else 'false',
         'isOwner': 'true' if is_owner else 'false'
     }
+
+    # Add teams as comma-separated list
+    if teams:
+        params['teams'] = ','.join(teams)
+
+    # Add JWT token
+    if token:
+        params['token'] = token
 
     redirect_url = f"{base_url}?{urllib.parse.urlencode(params)}"
 
@@ -289,6 +494,11 @@ def redirect_to_frontend_with_error(state, error_message):
         parts = state.split('|', 1)
         original_state = parts[0]
         frontend_redirect = parts[1] if len(parts) > 1 else None
+
+    # Validate redirect URI to prevent open redirect attacks
+    if frontend_redirect and not is_valid_redirect_uri(frontend_redirect):
+        print(f"Security: Rejected invalid redirect URI in error flow: {frontend_redirect}")
+        frontend_redirect = None
 
     base_url = frontend_redirect or FRONTEND_URL
 
@@ -488,11 +698,27 @@ def handle_device_poll(event):
         # Check organization membership
         membership = check_org_membership(access_token, username)
 
+        # Get user's teams in the organization (only if they're a member)
+        teams = []
+        if membership['is_member']:
+            teams = get_user_teams(access_token, username)
+            print(f"User {username} belongs to teams: {teams}")
+
+        # Create signed JWT token
+        auth_token = create_auth_token(
+            username=username,
+            is_member=membership['is_member'],
+            is_owner=membership['is_owner'],
+            teams=teams
+        )
+
         return json_response(200, {
             'status': 'success',
             'username': username,
             'is_member': membership['is_member'],
             'is_owner': membership['is_owner'],
+            'teams': teams,
+            'token': auth_token,
             'organization': GITHUB_ORG
         })
 

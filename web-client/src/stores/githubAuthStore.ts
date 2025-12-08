@@ -5,8 +5,8 @@ const logger = createLogger('GitHubAuthStore')
 
 type AuthStatus = 'unknown' | 'authenticating' | 'authenticated' | 'not_authenticated' | 'error'
 
-// Auth validity duration (1 hour in milliseconds)
-const AUTH_VALIDITY_MS = 60 * 60 * 1000
+// Auth validity duration (24 hours in milliseconds - matches JWT expiration)
+const AUTH_VALIDITY_MS = 24 * 60 * 60 * 1000
 
 export const useGitHubAuthStore = defineStore('githubAuth', {
   state: () => ({
@@ -14,14 +14,16 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
     isMember: false,
     isOwner: false,
     username: null as string | null,
+    teams: [] as string[],
+    token: null as string | null,
     lastError: null as string | null,
     authTimestamp: null as number | null
   }),
   persist: {
     // Use sessionStorage - persists within tab until closed
     storage: sessionStorage,
-    // Persist membership info and timestamp
-    pick: ['isMember', 'isOwner', 'username', 'authTimestamp', 'authStatus']
+    // Persist membership info, token, and timestamp
+    pick: ['isMember', 'isOwner', 'username', 'teams', 'token', 'authTimestamp', 'authStatus']
   },
   getters: {
     /**
@@ -43,6 +45,54 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
      */
     canAccessMemberFeatures(): boolean {
       return this.isSlideRuleOrgMember && this.hasValidAuth
+    },
+
+    /**
+     * Get the JWT token for server requests (null if not authenticated or expired)
+     */
+    authToken(): string | null {
+      if (!this.hasValidAuth) return null
+      return this.token
+    },
+
+    /**
+     * Get the user's team memberships
+     */
+    userTeams: (state) => state.teams,
+
+    /**
+     * Check if user belongs to a specific team
+     */
+    isInTeam: (state) => (teamSlug: string) => state.teams.includes(teamSlug),
+
+    /**
+     * Get decoded JWT payload (for display purposes)
+     * Returns null if no token or invalid token format
+     */
+    decodedToken(): Record<string, unknown> | null {
+      if (!this.token) return null
+      try {
+        // JWT format: header.payload.signature
+        const parts = this.token.split('.')
+        if (parts.length !== 3) return null
+
+        // Decode the payload (middle part) - base64url to base64
+        const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+        const decoded = atob(payload)
+        return JSON.parse(decoded)
+      } catch (e) {
+        logger.warn('Failed to decode JWT token', e)
+        return null
+      }
+    },
+
+    /**
+     * Get formatted expiration time from token
+     */
+    tokenExpiresAt(): Date | null {
+      const decoded = this.decodedToken
+      if (!decoded || typeof decoded.exp !== 'number') return null
+      return new Date(decoded.exp * 1000)
     }
   },
   actions: {
@@ -107,6 +157,8 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
       username?: string
       isMember?: string
       isOwner?: string
+      teams?: string
+      token?: string
       error?: string
     }): boolean {
       logger.debug('Handling OAuth callback', params)
@@ -130,6 +182,8 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
       this.username = params.username || null
       this.isMember = params.isMember === 'true'
       this.isOwner = params.isOwner === 'true'
+      this.teams = params.teams ? params.teams.split(',').filter((t) => t) : []
+      this.token = params.token || null
       this.authTimestamp = Date.now()
       this.authStatus = 'authenticated'
       this.lastError = null
@@ -137,7 +191,9 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
       logger.info('GitHub auth successful', {
         username: this.username,
         isMember: this.isMember,
-        isOwner: this.isOwner
+        isOwner: this.isOwner,
+        teams: this.teams,
+        hasToken: !!this.token
       })
 
       return true
@@ -151,6 +207,8 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
       this.isMember = false
       this.isOwner = false
       this.username = null
+      this.teams = []
+      this.token = null
       this.authTimestamp = null
       this.lastError = null
       logger.info('GitHub auth cleared')
@@ -182,6 +240,20 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
           logger.debug('Stored GitHub auth expired, clearing')
           this.logout()
         }
+      }
+    },
+
+    /**
+     * Get Authorization header object for API requests.
+     * Returns the header object if authenticated, or empty object if not.
+     * Usage: fetch(url, { headers: { ...otherHeaders, ...githubAuthStore.getAuthHeader() } })
+     */
+    getAuthHeader(): Record<string, string> {
+      if (!this.hasValidAuth || !this.token) {
+        return {}
+      }
+      return {
+        'X-SlideRule-GitHub-Token': this.token
       }
     }
   }

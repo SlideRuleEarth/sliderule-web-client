@@ -6,11 +6,6 @@ Parameters:
     Type: String
     Description: GitHub OAuth App Client ID
 
-  GitHubClientSecret:
-    Type: String
-    NoEcho: true
-    Description: GitHub OAuth App Client Secret
-
   Environment:
     Type: String
     Default: test
@@ -35,13 +30,21 @@ Parameters:
     Description: S3 key for the Lambda deployment package
 
 Resources:
-  # Secrets Manager - Store GitHub Client Secret
-  GitHubClientSecretSecret:
+  # Note: GitHub Client Secret must be created manually in Secrets Manager before deploying:
+  #   aws secretsmanager create-secret --name sliderule/github-oauth-client-secret-test --secret-string "YOUR_SECRET"
+  #   aws secretsmanager create-secret --name sliderule/github-oauth-client-secret-prod --secret-string "YOUR_SECRET"
+
+  # Secrets Manager - Auto-generate JWT Signing Key
+  # This secret is shared between the Lambda and SlideRule server
+  JWTSigningKeySecret:
     Type: AWS::SecretsManager::Secret
     Properties:
-      Name: !Sub 'sliderule/github-oauth-${Environment}'
-      Description: GitHub OAuth Client Secret for SlideRule Web Client
-      SecretString: !Ref GitHubClientSecret
+      Name: !Sub 'sliderule/github-oauth-jwt-signing-key-${Environment}'
+      Description: JWT signing key for SlideRule GitHub OAuth tokens (auto-generated)
+      GenerateSecretString:
+        PasswordLength: 64
+        ExcludePunctuation: true
+        ExcludeCharacters: '"@/\'
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -70,7 +73,10 @@ Resources:
               - Effect: Allow
                 Action:
                   - secretsmanager:GetSecretValue
-                Resource: !Ref GitHubClientSecretSecret
+                Resource:
+                  # Reference existing GitHub client secret (created manually)
+                  - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:sliderule/github-oauth-client-secret-${Environment}*'
+                  - !Ref JWTSigningKeySecret
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -96,7 +102,9 @@ Resources:
           GITHUB_CLIENT_ID: !Ref GitHubClientId
           GITHUB_ORG: SlideRuleEarth
           FRONTEND_URL: !Ref FrontendUrl
-          SECRET_ARN: !Ref GitHubClientSecretSecret
+          # Reference existing secret by name (must be created manually before deploying)
+          CLIENT_SECRET_NAME: !Sub 'sliderule/github-oauth-client-secret-${Environment}'
+          JWT_SIGNING_KEY_ARN: !Ref JWTSigningKeySecret
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -201,8 +209,16 @@ Outputs:
     Export:
       Name: !Sub 'sliderule-github-oauth-lambda-arn-${Environment}'
 
-  SecretArn:
-    Description: Secrets Manager secret ARN
-    Value: !Ref GitHubClientSecretSecret
+  ClientSecretName:
+    Description: GitHub Client Secret name in Secrets Manager (must be created manually)
+    Value: !Sub 'sliderule/github-oauth-client-secret-${Environment}'
+
+  JWTSigningKeySecretArn:
+    Description: JWT Signing Key Secret ARN (Secrets Manager) - use this in your server to validate tokens
+    Value: !Ref JWTSigningKeySecret
     Export:
-      Name: !Sub 'sliderule-github-oauth-secret-arn-${Environment}'
+      Name: !Sub 'sliderule-github-oauth-jwt-signing-key-arn-${Environment}'
+
+  JWTSigningKeySecretName:
+    Description: JWT Signing Key Secret Name - use this to retrieve the key
+    Value: !Sub 'sliderule/github-oauth-jwt-signing-key-${Environment}'

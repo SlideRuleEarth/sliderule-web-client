@@ -28,7 +28,17 @@ function processCallback() {
     username: route.query.username as string | undefined,
     isMember: route.query.isMember as string | undefined,
     isOwner: route.query.isOwner as string | undefined,
+    teams: route.query.teams as string | undefined,
+    token: route.query.token as string | undefined,
     error: route.query.error as string | undefined
+  }
+
+  // Security: Immediately clear sensitive params from URL to prevent token exposure
+  // in browser history, logs, and referrer headers
+  if (params.token) {
+    const cleanUrl = window.location.origin + window.location.pathname
+    window.history.replaceState({}, document.title, cleanUrl)
+    logger.debug('Cleared sensitive params from URL')
   }
 
   // Process the callback
