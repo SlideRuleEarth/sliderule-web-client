@@ -152,6 +152,22 @@ Resources:
       RouteKey: 'GET /auth/github/callback'
       Target: !Sub 'integrations/${LambdaIntegration}'
 
+  # Route: POST /auth/github/device (Device Flow - request device code)
+  DeviceCodeRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: 'POST /auth/github/device'
+      Target: !Sub 'integrations/${LambdaIntegration}'
+
+  # Route: POST /auth/github/device/poll (Device Flow - poll for token)
+  DevicePollRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: 'POST /auth/github/device/poll'
+      Target: !Sub 'integrations/${LambdaIntegration}'
+
   # API Gateway Stage (auto-deploy)
   ApiStage:
     Type: AWS::ApiGatewayV2::Stage

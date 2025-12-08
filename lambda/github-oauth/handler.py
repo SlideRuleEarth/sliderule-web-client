@@ -3,6 +3,10 @@ GitHub OAuth Lambda Handler for SlideRule Web Client
 
 Handles OAuth authentication flow and organization membership verification
 for the SlideRuleEarth GitHub organization.
+
+Supports two flows:
+1. Authorization Code Flow (for web clients)
+2. Device Flow (for CLI/Python clients)
 """
 
 import json
@@ -21,6 +25,7 @@ SECRET_ARN = os.environ.get('SECRET_ARN')
 # GitHub OAuth endpoints
 GITHUB_AUTHORIZE_URL = 'https://github.com/login/oauth/authorize'
 GITHUB_TOKEN_URL = 'https://github.com/login/oauth/access_token'
+GITHUB_DEVICE_CODE_URL = 'https://github.com/login/device/code'
 GITHUB_API_URL = 'https://api.github.com'
 
 
@@ -41,10 +46,16 @@ def lambda_handler(event, context):
 
     print(f"Received request: {method} {path}")
 
+    # Web client Authorization Code flow
     if path == '/auth/github/login':
         return handle_login(event)
     elif path == '/auth/github/callback':
         return handle_callback(event)
+    # Device Flow for CLI/Python clients
+    elif path == '/auth/github/device':
+        return handle_device_code_request(event)
+    elif path == '/auth/github/device/poll':
+        return handle_device_poll(event)
     else:
         return {
             'statusCode': 404,
@@ -299,3 +310,196 @@ def redirect_to_frontend_with_error(state, error_message):
         },
         'body': ''
     }
+
+
+# =============================================================================
+# Device Flow handlers (for CLI/Python clients)
+# =============================================================================
+
+def json_response(status_code, body):
+    """Return a JSON API response with CORS headers."""
+    return {
+        'statusCode': status_code,
+        'headers': {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type'
+        },
+        'body': json.dumps(body)
+    }
+
+
+def handle_device_code_request(event):
+    """
+    Handle Device Flow initiation.
+    Returns device_code, user_code, and verification_uri for the user.
+
+    POST /auth/github/device
+    """
+    try:
+        # Request device code from GitHub
+        response = requests.post(
+            GITHUB_DEVICE_CODE_URL,
+            headers={
+                'Accept': 'application/json',
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            data={
+                'client_id': GITHUB_CLIENT_ID,
+                'scope': 'read:org'
+            }
+        )
+
+        if response.status_code != 200:
+            print(f"GitHub device code request failed: {response.status_code} {response.text}")
+            return json_response(500, {
+                'error': 'device_code_request_failed',
+                'error_description': f"GitHub returned status {response.status_code}"
+            })
+
+        data = response.json()
+
+        if 'error' in data:
+            return json_response(400, {
+                'error': data.get('error'),
+                'error_description': data.get('error_description', 'Unknown error')
+            })
+
+        # Return the device code info to the client
+        return json_response(200, {
+            'device_code': data.get('device_code'),
+            'user_code': data.get('user_code'),
+            'verification_uri': data.get('verification_uri'),
+            'verification_uri_complete': data.get('verification_uri_complete'),
+            'expires_in': data.get('expires_in'),
+            'interval': data.get('interval', 5)
+        })
+
+    except Exception as e:
+        print(f"Error in device code request: {str(e)}")
+        return json_response(500, {
+            'error': 'internal_error',
+            'error_description': str(e)
+        })
+
+
+def handle_device_poll(event):
+    """
+    Handle Device Flow polling.
+    Client polls this endpoint with device_code to check if user has authorized.
+
+    POST /auth/github/device/poll
+    Body: { "device_code": "..." }
+
+    Returns:
+    - 200 with membership info if authorized
+    - 202 with authorization_pending if user hasn't authorized yet
+    - 400 with error if authorization failed or expired
+    """
+    try:
+        # Parse request body
+        body = event.get('body', '{}')
+        if event.get('isBase64Encoded', False):
+            import base64
+            body = base64.b64decode(body).decode('utf-8')
+
+        try:
+            params = json.loads(body) if body else {}
+        except json.JSONDecodeError:
+            # Try URL-encoded format
+            params = dict(urllib.parse.parse_qsl(body))
+
+        device_code = params.get('device_code')
+
+        if not device_code:
+            return json_response(400, {
+                'error': 'missing_device_code',
+                'error_description': 'device_code is required'
+            })
+
+        # Poll GitHub for access token
+        client_secret = get_github_client_secret()
+
+        response = requests.post(
+            GITHUB_TOKEN_URL,
+            headers={
+                'Accept': 'application/json',
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            data={
+                'client_id': GITHUB_CLIENT_ID,
+                'client_secret': client_secret,
+                'device_code': device_code,
+                'grant_type': 'urn:ietf:params:oauth:grant-type:device_code'
+            }
+        )
+
+        data = response.json()
+
+        # Check for errors
+        if 'error' in data:
+            error = data.get('error')
+
+            # authorization_pending means user hasn't authorized yet - keep polling
+            if error == 'authorization_pending':
+                return json_response(202, {
+                    'status': 'pending',
+                    'error': error,
+                    'error_description': data.get('error_description', 'Waiting for user authorization')
+                })
+
+            # slow_down means client is polling too fast
+            if error == 'slow_down':
+                return json_response(202, {
+                    'status': 'pending',
+                    'error': error,
+                    'error_description': data.get('error_description', 'Polling too fast'),
+                    'interval': data.get('interval', 10)
+                })
+
+            # Other errors are terminal
+            return json_response(400, {
+                'status': 'error',
+                'error': error,
+                'error_description': data.get('error_description', 'Authorization failed')
+            })
+
+        # Success! We have an access token
+        access_token = data.get('access_token')
+        if not access_token:
+            return json_response(500, {
+                'status': 'error',
+                'error': 'no_access_token',
+                'error_description': 'No access token in response'
+            })
+
+        # Get user info
+        user_info = get_github_user(access_token)
+        username = user_info.get('login')
+
+        if not username:
+            return json_response(500, {
+                'status': 'error',
+                'error': 'no_username',
+                'error_description': 'Could not get GitHub username'
+            })
+
+        # Check organization membership
+        membership = check_org_membership(access_token, username)
+
+        return json_response(200, {
+            'status': 'success',
+            'username': username,
+            'is_member': membership['is_member'],
+            'is_owner': membership['is_owner'],
+            'organization': GITHUB_ORG
+        })
+
+    except Exception as e:
+        print(f"Error in device poll: {str(e)}")
+        return json_response(500, {
+            'status': 'error',
+            'error': 'internal_error',
+            'error_description': str(e)
+        })
