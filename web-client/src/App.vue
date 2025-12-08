@@ -18,7 +18,9 @@ import SrClearCache from '@/components/SrClearCache.vue'
 import { useSysConfigStore } from '@/stores/sysConfigStore'
 import { useJwtStore } from '@/stores/SrJWTStore'
 import { useAuthDialogStore } from '@/stores/authDialogStore'
+import { useGoogleApiKeyStore } from '@/stores/googleApiKeyStore'
 import SrJsonDisplayDialog from '@/components/SrJsonDisplayDialog.vue'
+import SrGoogleApiKeyInput from '@/components/SrGoogleApiKeyInput.vue'
 import InputText from 'primevue/inputtext'
 import Password from 'primevue/password'
 import Button from 'primevue/button'
@@ -39,6 +41,7 @@ const tourStore = useTourStore()
 const sysConfigStore = useSysConfigStore()
 const jwtStore = useJwtStore()
 const authDialogStore = useAuthDialogStore()
+const googleApiKeyStore = useGoogleApiKeyStore()
 const route = useRoute()
 
 // Global login dialog state
@@ -863,6 +866,17 @@ async function handleLongTourButtonClick() {
           <Button label="Login" type="submit" />
         </div>
       </form>
+    </Dialog>
+
+    <!-- Google API Key Dialog -->
+    <Dialog
+      v-model:visible="googleApiKeyStore.dialogVisible"
+      header="Google API Key Required"
+      :modal="true"
+      :closable="true"
+      style="width: 600px; max-width: 95vw"
+    >
+      <SrGoogleApiKeyInput />
     </Dialog>
   </div>
 </template>

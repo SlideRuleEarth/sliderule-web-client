@@ -88,6 +88,7 @@ async function validateAndSave() {
       life: 3000
     })
     inputKey.value = ''
+    googleApiKeyStore.hideDialog()
   } else {
     const errorType = googleApiKeyStore.getLastError()
     toast.add({
