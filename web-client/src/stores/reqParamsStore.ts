@@ -166,8 +166,6 @@ export function getDefaultReqParamsState(): SrReqParamsState {
     gedi_fields: [] as string[],
     useAtl13RefId: false,
     atl13: {
-      refid: 0 as number,
-      name: '' as string,
       coord: null as Atl13Coord | null
     } as { refid: number; name: string; coord: Atl13Coord | null },
     useAtl13Polygon: false,
