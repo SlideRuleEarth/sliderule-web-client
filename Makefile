@@ -15,6 +15,12 @@ BUILD_ENV = $(shell git --git-dir .git --work-tree . describe --abbrev --dirty -
 VERSION ?= latest
 BANNER_TEXT ?=
 
+# GitHub OAuth Configuration (for organization membership verification)
+# These are public Client IDs (not secrets) - safe to commit
+VITE_GITHUB_CLIENT_ID_TEST ?= Ov23liTqpZCtvFofQEFE
+VITE_GITHUB_OAUTH_API_URL_TEST ?= https://hn251osfa1.execute-api.us-west-2.amazonaws.com
+VITE_GITHUB_CLIENT_ID_PROD ?=
+VITE_GITHUB_OAUTH_API_URL_PROD ?=
 
 clean-all: # Clean up the web client dependencies 
 	rm -rf *.zip web-client/dist web-client/node_modules web-client/package-lock.json
@@ -75,13 +81,17 @@ verify-s3-assets-testsliderule:
 
 
 live-update-testsliderule: ## Update the web client at testsliderule.org with new build
-	make live-update S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org DOMAIN=testsliderule.org
+	make live-update S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org DOMAIN=testsliderule.org \
+		VITE_GITHUB_CLIENT_ID=$(VITE_GITHUB_CLIENT_ID_TEST) \
+		VITE_GITHUB_OAUTH_API_URL=$(VITE_GITHUB_OAUTH_API_URL_TEST)
 
 # live-update-demo-dot-slideruleearth: ## Update the web client at demo.slideruleearth.io with new build
 # 	make live-update S3_BUCKET=slideruleearth-demo-dot DOMAIN_APEX=slideruleearth.io DOMAIN=demo.slideruleearth.io
 
 live-update-client-dot-slideruleearth: ## Update the web client at client.slideruleearth.io with new build
-	make live-update S3_BUCKET=slideruleearth-webclient-dot DOMAIN_APEX=slideruleearth.io DOMAIN=client.slideruleearth.io
+	make live-update S3_BUCKET=slideruleearth-webclient-dot DOMAIN_APEX=slideruleearth.io DOMAIN=client.slideruleearth.io \
+		VITE_GITHUB_CLIENT_ID=$(VITE_GITHUB_CLIENT_ID_PROD) \
+		VITE_GITHUB_OAUTH_API_URL=$(VITE_GITHUB_OAUTH_API_URL_PROD)
 
 convert-icons: ## Convert Maki SVG icons in src/assets/maki-svg to PNGs in public/icons
 	@echo "🔄 Converting Maki SVG icons to PNGs..."
@@ -92,11 +102,15 @@ build: convert-icons ## Build the web client and update the dist folder
 	export VITE_APP_BUILD_DATE=$$(date +"%Y-%m-%d %T"); \
 	export VITE_APP_VERSION=$$(git describe --tags --abbrev=0); \
 	export VITE_BANNER_TEXT='$(BANNER_TEXT)'; \
+	export VITE_GITHUB_CLIENT_ID='$(VITE_GITHUB_CLIENT_ID)'; \
+	export VITE_GITHUB_OAUTH_API_URL='$(VITE_GITHUB_OAUTH_API_URL)'; \
 	cd web-client && \
 	echo "VITE_APP_BUILD_DATE=$$VITE_APP_BUILD_DATE" && \
 	echo "VITE_APP_VERSION=$$VITE_APP_VERSION" && \
 	echo "VITE_BUILD_ENV=$$VITE_BUILD_ENV" && \
 	echo "VITE_BANNER_TEXT=$$VITE_BANNER_TEXT" && \
+	echo "VITE_GITHUB_CLIENT_ID=$$VITE_GITHUB_CLIENT_ID" && \
+	echo "VITE_GITHUB_OAUTH_API_URL=$$VITE_GITHUB_OAUTH_API_URL" && \
 	npm run build
 
 run: ## Run the web client locally for development
@@ -124,13 +138,17 @@ destroy: # Destroy the web client
 
 deploy-client-to-testsliderule: ## Deploy the web client to the testsliderule.org cloudfront and update the s3 bucket
 	make deploy DOMAIN=testsliderule.org S3_BUCKET=testsliderule-webclient && \
-	make live-update DOMAIN=testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org
+	make live-update DOMAIN=testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org \
+		VITE_GITHUB_CLIENT_ID=$(VITE_GITHUB_CLIENT_ID_TEST) \
+		VITE_GITHUB_OAUTH_API_URL=$(VITE_GITHUB_OAUTH_API_URL_TEST)
 
 destroy-client-testsliderule: ## Destroy the web client from the testsliderule.org cloudfront and remove the S3 bucket
 	make destroy DOMAIN=testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org
 
 release-live-update-to-testsliderule: src-tag-and-push ## Release the web client to the live environment NEEDS VERSION
-	make live-update DOMAIN=testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org
+	make live-update DOMAIN=testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org \
+		VITE_GITHUB_CLIENT_ID=$(VITE_GITHUB_CLIENT_ID_TEST) \
+		VITE_GITHUB_OAUTH_API_URL=$(VITE_GITHUB_OAUTH_API_URL_TEST)
 
 # deploy-client-to-demo-dot-slideruleearth: ## Deploy the web client to the demo.slideruleearth.io cloudfront and update the s3 bucket
 # 	make deploy DOMAIN=demo.slideruleearth.io S3_BUCKET=slideruleearth-demo-dot DOMAIN_APEX=slideruleearth.io && \
@@ -222,7 +240,82 @@ check-vars:
 	@echo "   DOMAIN_APEX     = $(DOMAIN_APEX)"
 	@echo "   S3_BUCKET       = $(S3_BUCKET)"
 	@echo "   DISTRIBUTION_ID = $(DISTRIBUTION_ID)"
-	
+
+# =========================
+# GitHub OAuth Lambda
+# =========================
+GITHUB_CLIENT_ID_TEST ?=
+GITHUB_CLIENT_SECRET_TEST ?=
+GITHUB_CLIENT_ID_PROD ?=
+GITHUB_CLIENT_SECRET_PROD ?=
+LAMBDA_BUCKET ?= sliderule-lambda-deployments
+
+package-github-oauth-lambda: ## Package the GitHub OAuth Lambda function
+	cd lambda/github-oauth && \
+	rm -rf package github-oauth.zip && \
+	pip install -r requirements.txt -t package/ && \
+	cp handler.py package/ && \
+	cd package && zip -r ../github-oauth.zip . && \
+	cd .. && rm -rf package
+	@echo "✅ Lambda packaged: lambda/github-oauth/github-oauth.zip"
+
+upload-github-oauth-lambda: package-github-oauth-lambda ## Upload Lambda zip to S3
+	aws s3 cp lambda/github-oauth/github-oauth.zip s3://$(LAMBDA_BUCKET)/github-oauth.zip
+	@echo "✅ Lambda uploaded to s3://$(LAMBDA_BUCKET)/github-oauth.zip"
+
+deploy-github-oauth-test: upload-github-oauth-lambda ## Deploy GitHub OAuth stack to test environment
+	aws cloudformation deploy \
+		--template-file cloudformation/github-oauth.yaml \
+		--stack-name sliderule-github-oauth-test \
+		--parameter-overrides \
+			GitHubClientId=$(GITHUB_CLIENT_ID_TEST) \
+			GitHubClientSecret=$(GITHUB_CLIENT_SECRET_TEST) \
+			Environment=test \
+			FrontendUrl=https://testsliderule.org \
+			LambdaS3Bucket=$(LAMBDA_BUCKET) \
+		--capabilities CAPABILITY_NAMED_IAM \
+		--no-fail-on-empty-changeset
+	@echo "✅ GitHub OAuth test stack deployed"
+	@echo "API Gateway URL:"
+	@aws cloudformation describe-stacks \
+		--stack-name sliderule-github-oauth-test \
+		--query 'Stacks[0].Outputs[?OutputKey==`ApiGatewayUrl`].OutputValue' \
+		--output text
+
+deploy-github-oauth-prod: upload-github-oauth-lambda ## Deploy GitHub OAuth stack to prod environment
+	aws cloudformation deploy \
+		--template-file cloudformation/github-oauth.yaml \
+		--stack-name sliderule-github-oauth-prod \
+		--parameter-overrides \
+			GitHubClientId=$(GITHUB_CLIENT_ID_PROD) \
+			GitHubClientSecret=$(GITHUB_CLIENT_SECRET_PROD) \
+			Environment=prod \
+			FrontendUrl=https://client.slideruleearth.io \
+			LambdaS3Bucket=$(LAMBDA_BUCKET) \
+		--capabilities CAPABILITY_NAMED_IAM \
+		--no-fail-on-empty-changeset
+	@echo "✅ GitHub OAuth prod stack deployed"
+	@echo "API Gateway URL:"
+	@aws cloudformation describe-stacks \
+		--stack-name sliderule-github-oauth-prod \
+		--query 'Stacks[0].Outputs[?OutputKey==`ApiGatewayUrl`].OutputValue' \
+		--output text
+
+destroy-github-oauth-test: ## Destroy GitHub OAuth stack from test environment
+	aws cloudformation delete-stack --stack-name sliderule-github-oauth-test
+	@echo "✅ GitHub OAuth test stack deletion initiated"
+
+destroy-github-oauth-prod: ## Destroy GitHub OAuth stack from prod environment
+	aws cloudformation delete-stack --stack-name sliderule-github-oauth-prod
+	@echo "✅ GitHub OAuth prod stack deletion initiated"
+
+github-oauth-test-url: ## Get the API Gateway URL for the test GitHub OAuth stack
+	@aws cloudformation describe-stacks \
+		--stack-name sliderule-github-oauth-test \
+		--query 'Stacks[0].Outputs[?OutputKey==`ApiGatewayUrl`].OutputValue' \
+		--output text
+
+
 help: ## That's me!
 	@printf "\033[37m%-30s\033[0m %s\n" "#-----------------------------------------------------------------------------------------"
 	@printf "\033[37m%-30s\033[0m %s\n" "# Makefile Help       "

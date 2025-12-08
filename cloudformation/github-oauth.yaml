@@ -1,0 +1,192 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'GitHub OAuth Lambda for SlideRule Web Client - Organization Membership Verification'
+
+Parameters:
+  GitHubClientId:
+    Type: String
+    Description: GitHub OAuth App Client ID
+
+  GitHubClientSecret:
+    Type: String
+    NoEcho: true
+    Description: GitHub OAuth App Client Secret
+
+  Environment:
+    Type: String
+    Default: test
+    AllowedValues:
+      - test
+      - prod
+    Description: Environment (test or prod)
+
+  FrontendUrl:
+    Type: String
+    Default: https://testsliderule.org
+    Description: Frontend URL for redirects after OAuth
+
+  LambdaS3Bucket:
+    Type: String
+    Default: sliderule-lambda-deployments
+    Description: S3 bucket containing the Lambda deployment package
+
+  LambdaS3Key:
+    Type: String
+    Default: github-oauth.zip
+    Description: S3 key for the Lambda deployment package
+
+Resources:
+  # Secrets Manager - Store GitHub Client Secret
+  GitHubClientSecretSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub 'sliderule/github-oauth-${Environment}'
+      Description: GitHub OAuth Client Secret for SlideRule Web Client
+      SecretString: !Ref GitHubClientSecret
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: sliderule-web-client
+
+  # IAM Role for Lambda
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      # Note: RoleName removed to avoid iam:GetRole permission requirement
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: SecretsManagerAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref GitHubClientSecretSecret
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: sliderule-web-client
+
+  # Lambda Function
+  GitHubOAuthLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      # Note: FunctionName removed to let CloudFormation auto-generate
+      Description: !Sub 'GitHub OAuth handler for SlideRule Web Client (${Environment})'
+      Runtime: python3.12
+      Handler: handler.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 30
+      MemorySize: 256
+      Code:
+        S3Bucket: !Ref LambdaS3Bucket
+        S3Key: !Ref LambdaS3Key
+      Environment:
+        Variables:
+          GITHUB_CLIENT_ID: !Ref GitHubClientId
+          GITHUB_ORG: SlideRuleEarth
+          FRONTEND_URL: !Ref FrontendUrl
+          SECRET_ARN: !Ref GitHubClientSecretSecret
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: sliderule-web-client
+
+  # API Gateway HTTP API
+  HttpApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub 'sliderule-github-oauth-${Environment}'
+      Description: GitHub OAuth API for SlideRule Web Client
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowOrigins:
+          - !Ref FrontendUrl
+          - 'http://localhost:5173'
+          - 'http://localhost:5174'
+        AllowMethods:
+          - GET
+          - POST
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+        MaxAge: 300
+      Tags:
+        Environment: !Ref Environment
+        Application: sliderule-web-client
+
+  # API Gateway Integration with Lambda
+  LambdaIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref HttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt GitHubOAuthLambda.Arn
+      PayloadFormatVersion: '2.0'
+
+  # Route: GET /auth/github/login
+  LoginRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: 'GET /auth/github/login'
+      Target: !Sub 'integrations/${LambdaIntegration}'
+
+  # Route: GET /auth/github/callback
+  CallbackRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: 'GET /auth/github/callback'
+      Target: !Sub 'integrations/${LambdaIntegration}'
+
+  # API Gateway Stage (auto-deploy)
+  ApiStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref HttpApi
+      StageName: '$default'
+      AutoDeploy: true
+      Tags:
+        Environment: !Ref Environment
+        Application: sliderule-web-client
+
+  # Lambda Permission for API Gateway
+  LambdaApiGatewayPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref GitHubOAuthLambda
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/*/*'
+
+Outputs:
+  ApiGatewayUrl:
+    Description: API Gateway endpoint URL
+    Value: !GetAtt HttpApi.ApiEndpoint
+    Export:
+      Name: !Sub 'sliderule-github-oauth-api-url-${Environment}'
+
+  LambdaFunctionArn:
+    Description: Lambda function ARN
+    Value: !GetAtt GitHubOAuthLambda.Arn
+    Export:
+      Name: !Sub 'sliderule-github-oauth-lambda-arn-${Environment}'
+
+  SecretArn:
+    Description: Secrets Manager secret ARN
+    Value: !Ref GitHubClientSecretSecret
+    Export:
+      Name: !Sub 'sliderule-github-oauth-secret-arn-${Environment}'

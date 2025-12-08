@@ -10,6 +10,7 @@ import SrStorageUsage from '@/components/SrStorageUsage.vue'
 import SrAdvOptPanel from '@/components/SrAdvOptPanel.vue'
 import SrDefaults from '@/components/SrDefaults.vue'
 import SrGoogleApiKeyInput from '@/components/SrGoogleApiKeyInput.vue'
+import SrGitHubOrgAuth from '@/components/SrGitHubOrgAuth.vue'
 import Card from 'primevue/card'
 </script>
 
@@ -43,6 +44,13 @@ import Card from 'primevue/card'
               </AccordionPanel>
 
               <AccordionPanel value="2">
+                <AccordionHeader>GitHub Organization Verification</AccordionHeader>
+                <AccordionContent>
+                  <SrGitHubOrgAuth />
+                </AccordionContent>
+              </AccordionPanel>
+
+              <AccordionPanel value="3">
                 <AccordionHeader>Storage Usage</AccordionHeader>
                 <AccordionContent>
                   <SrStorageUsage />
@@ -50,14 +58,14 @@ import Card from 'primevue/card'
                 </AccordionContent>
               </AccordionPanel>
 
-              <AccordionPanel value="3">
+              <AccordionPanel value="4">
                 <AccordionHeader>Advanced</AccordionHeader>
                 <AccordionContent>
                   <SrAdvOptPanel />
                 </AccordionContent>
               </AccordionPanel>
 
-              <AccordionPanel value="4">
+              <AccordionPanel value="5">
                 <AccordionHeader>Defaults</AccordionHeader>
                 <AccordionContent>
                   <SrDefaults />
