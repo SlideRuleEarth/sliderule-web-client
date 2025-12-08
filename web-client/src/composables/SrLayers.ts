@@ -984,7 +984,8 @@ export const getLayer = (
 
         if (!googleApiKeyStore.hasValidKey()) {
           logger.warn('[SrLayers] Google layer requested but no valid API key configured')
-          // Return undefined - the UI will prompt the user for an API key
+          // Prompt the user to configure their API key
+          googleApiKeyStore.showDialog()
           return undefined
         }
 
@@ -992,11 +993,10 @@ export const getLayer = (
         const sessionToken = googleApiKeyStore.getSessionToken()
 
         // Session should exist from when the key was validated
-        // If not, the user needs to re-enter their key in Settings
+        // If not, the user needs to re-enter their key
         if (!sessionToken) {
-          logger.error(
-            '[SrLayers] No Google session token available - please re-validate your API key in Settings'
-          )
+          logger.error('[SrLayers] No Google session token available - prompting for API key')
+          googleApiKeyStore.showDialog()
           return undefined
         }
 

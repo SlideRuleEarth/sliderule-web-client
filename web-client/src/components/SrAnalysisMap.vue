@@ -41,6 +41,7 @@ import SrBaseLayerControl from '@/components/SrBaseLayerControl.vue'
 import SrGraticuleControl from '@/components/SrGraticuleControl.vue'
 import { findSrViewKey, srViews } from '@/composables/SrViews'
 import { addLayersForCurrentView } from '@/composables/SrLayers'
+import { useGoogleApiKeyStore } from '@/stores/googleApiKeyStore'
 import { useFieldNameStore } from '@/stores/fieldNameStore'
 import { selectSrViewForExtent } from '@/utils/srViewSelector'
 import SrLocationFinder from '@/components/SrLocationFinder.vue'
@@ -93,6 +94,7 @@ const atlChartFilterStore = useAtlChartFilterStore()
 const activeTabStore = useActiveTabStore()
 const fieldNameStore = useFieldNameStore()
 const debugStore = useDebugStore()
+const googleApiKeyStore = useGoogleApiKeyStore()
 const controls = ref([])
 const tooltipRef = ref<InstanceType<typeof SrCustomTooltip> | null>(null)
 const showContextMenu = ref(false)
@@ -282,6 +284,17 @@ watch(
       newMaxNumPntsToDisplay
     })
     await updateAnalysisMapView('New maxNumPntsToDisplay')
+  }
+)
+
+// Watch for Google API key validation to refresh the map
+watch(
+  () => googleApiKeyStore.refreshTrigger,
+  async (newValue, oldValue) => {
+    if (newValue > oldValue) {
+      logger.debug('Google API key validated, refreshing map')
+      await updateAnalysisMapView('Google API key validated')
+    }
   }
 )
 

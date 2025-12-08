@@ -18,7 +18,9 @@ export const useGoogleApiKeyStore = defineStore('googleApiKey', {
     validationStatus: 'unknown' as ValidationStatus,
     lastError: null as ErrorType,
     sessionToken: null as string | null,
-    sessionExpiry: null as number | null
+    sessionExpiry: null as number | null,
+    dialogVisible: false,
+    refreshTrigger: 0
   }),
   persist: {
     // Use sessionStorage - persists within tab until closed
@@ -107,6 +109,7 @@ export const useGoogleApiKeyStore = defineStore('googleApiKey', {
             this.setSessionToken(data.session, 23 * 60 * 60)
           }
           logger.debug('API key validated successfully')
+          this.triggerMapRefresh()
           return true
         } else {
           const errorData = await response.json().catch(() => ({}))
@@ -194,6 +197,16 @@ export const useGoogleApiKeyStore = defineStore('googleApiKey', {
         })
         return false
       }
+    },
+    triggerMapRefresh() {
+      this.refreshTrigger++
+      logger.debug('Map refresh triggered', { refreshTrigger: this.refreshTrigger })
+    },
+    showDialog() {
+      this.dialogVisible = true
+    },
+    hideDialog() {
+      this.dialogVisible = false
     }
   }
 })
