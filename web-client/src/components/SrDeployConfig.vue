@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import Select from 'primevue/select'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
-import { useSysConfigStore } from '@/stores/sysConfigStore'
 
 const githubAuthStore = useGitHubAuthStore()
-const sysConfigStore = useSysConfigStore()
+
+// Local refs for deployment configuration
+const domain = ref('slideruleearth.io')
+const clusterName = ref('')
 
 // Compute deploy cluster options: username, then teams (with -cluster suffix)
 const clusterOptions = computed(() => {
@@ -18,6 +20,17 @@ const clusterOptions = computed(() => {
   }
   return options
 })
+
+// Set default cluster name when options become available
+watch(
+  clusterOptions,
+  (options) => {
+    if (!clusterName.value && options.length > 0) {
+      clusterName.value = options[0]
+    }
+  },
+  { immediate: true }
+)
 
 // Available domain options
 const domainOptions = ['testsliderule.org', 'slideruleearth.io']
@@ -32,7 +45,7 @@ const isDomainDisabled = computed(() => !githubAuthStore.isOwner)
       <label for="deploy-domain" class="sr-deploy-label">Domain</label>
       <Select
         id="deploy-domain"
-        v-model="sysConfigStore.domain"
+        v-model="domain"
         :options="domainOptions"
         :disabled="isDomainDisabled"
         class="sr-deploy-select"
@@ -42,7 +55,7 @@ const isDomainDisabled = computed(() => !githubAuthStore.isOwner)
       <label for="deploy-cluster" class="sr-deploy-label">Cluster</label>
       <Select
         id="deploy-cluster"
-        v-model="sysConfigStore.organization"
+        v-model="clusterName"
         :options="clusterOptions"
         class="sr-deploy-select"
       />
