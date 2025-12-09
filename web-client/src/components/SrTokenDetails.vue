@@ -1,0 +1,108 @@
+<script setup lang="ts">
+import { computed } from 'vue'
+import { useGitHubAuthStore } from '@/stores/githubAuthStore'
+
+const githubAuthStore = useGitHubAuthStore()
+
+const decodedToken = computed(() => githubAuthStore.decodedToken)
+const tokenExpiresAt = computed(() => githubAuthStore.tokenExpiresAt)
+const teams = computed(() => githubAuthStore.teams)
+</script>
+
+<template>
+  <div v-if="decodedToken" class="sr-token-details">
+    <table class="sr-token-table">
+      <tbody>
+        <tr>
+          <td class="sr-token-label">Username:</td>
+          <td class="sr-token-value">{{ decodedToken.username }}</td>
+        </tr>
+        <tr>
+          <td class="sr-token-label">Organization:</td>
+          <td class="sr-token-value">{{ decodedToken.org }}</td>
+        </tr>
+        <tr>
+          <td class="sr-token-label">Member:</td>
+          <td class="sr-token-value">{{ decodedToken.is_member ? 'Yes' : 'No' }}</td>
+        </tr>
+        <tr>
+          <td class="sr-token-label">Owner:</td>
+          <td class="sr-token-value">{{ decodedToken.is_owner ? 'Yes' : 'No' }}</td>
+        </tr>
+        <tr>
+          <td class="sr-token-label">Teams:</td>
+          <td class="sr-token-value">
+            <span v-if="teams.length === 0" class="sr-no-teams">None</span>
+            <span v-else>{{ teams.join(', ') }}</span>
+          </td>
+        </tr>
+        <tr>
+          <td class="sr-token-label">Max Nodes:</td>
+          <td class="sr-token-value">{{ decodedToken.max_nodes ?? 'N/A' }}</td>
+        </tr>
+        <tr>
+          <td class="sr-token-label">Cluster TTL:</td>
+          <td class="sr-token-value">
+            {{
+              decodedToken.cluster_ttl_hours != null
+                ? `${decodedToken.cluster_ttl_hours} hours`
+                : 'N/A'
+            }}
+          </td>
+        </tr>
+        <tr>
+          <td class="sr-token-label">Issued:</td>
+          <td class="sr-token-value">
+            {{
+              decodedToken.iat ? new Date(Number(decodedToken.iat) * 1000).toLocaleString() : 'N/A'
+            }}
+          </td>
+        </tr>
+        <tr>
+          <td class="sr-token-label">Expires:</td>
+          <td class="sr-token-value">
+            {{ tokenExpiresAt ? tokenExpiresAt.toLocaleString() : 'N/A' }}
+          </td>
+        </tr>
+        <tr>
+          <td class="sr-token-label">Issuer:</td>
+          <td class="sr-token-value">{{ decodedToken.iss }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</template>
+
+<style scoped>
+.sr-token-details {
+  padding: 0.5rem 0;
+}
+
+.sr-token-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.sr-token-table td {
+  padding: 0.25rem 0.5rem;
+  vertical-align: top;
+}
+
+.sr-token-label {
+  font-weight: 500;
+  color: var(--text-color-secondary);
+  white-space: nowrap;
+  width: 1%;
+}
+
+.sr-token-value {
+  color: var(--text-color);
+  word-break: break-word;
+}
+
+.sr-no-teams {
+  color: var(--text-color-secondary);
+  font-style: italic;
+}
+</style>

@@ -12,6 +12,9 @@ import SrAdvOptPanel from '@/components/SrAdvOptPanel.vue'
 import SrDefaults from '@/components/SrDefaults.vue'
 import SrGoogleApiKeyInput from '@/components/SrGoogleApiKeyInput.vue'
 import SrGitHubOrgAuth from '@/components/SrGitHubOrgAuth.vue'
+import SrTokenDetails from '@/components/SrTokenDetails.vue'
+import SrSysConfig from '@/components/SrSysConfig.vue'
+import SrDeployConfig from '@/components/SrDeployConfig.vue'
 import Card from 'primevue/card'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 import { useSysConfigStore } from '@/stores/sysConfigStore'
@@ -28,6 +31,9 @@ const showLegacyProvisioning = computed(() => !githubAuthStore.canAccessMemberFe
 async function resetToPublicCluster() {
   jwtStore.clearAllJwts()
   sysConfigStore.$reset()
+  // Set defaults: slideruleearth.io and sliderule
+  sysConfigStore.setDomain('slideruleearth.io')
+  sysConfigStore.setOrganization('sliderule')
   await sysConfigStore.fetchServerVersionInfo()
   await sysConfigStore.fetchCurrentNodes()
 }
@@ -35,16 +41,11 @@ async function resetToPublicCluster() {
 // Controls which accordion panels are open (array because multiple="true")
 const activeAccordionPanels = ref<string[]>([])
 
-// Flag to expand token details when user just signed in
-const expandTokenDetails = ref(false)
-
 // Check on mount if user just authenticated
 onMounted(async () => {
   if (githubAuthStore.justAuthenticated) {
-    // Open the Login panel (value="0")
-    activeAccordionPanels.value = ['0']
-    // Expand token details
-    expandTokenDetails.value = true
+    // Open the Login and Token Details panels
+    activeAccordionPanels.value = ['0', '1']
     // Reset to public cluster on successful GitHub auth
     await resetToPublicCluster()
     // Clear the flag so it doesn't expand again on page refresh
@@ -57,8 +58,8 @@ watch(
   () => githubAuthStore.justAuthenticated,
   async (justAuth) => {
     if (justAuth) {
-      activeAccordionPanels.value = ['0']
-      expandTokenDetails.value = true
+      // Open the Login and Token Details panels
+      activeAccordionPanels.value = ['0', '1']
       // Reset to public cluster on successful GitHub auth
       await resetToPublicCluster()
       githubAuthStore.clearJustAuthenticated()
@@ -86,18 +87,33 @@ watch(
               <AccordionPanel value="0">
                 <AccordionHeader>Login</AccordionHeader>
                 <AccordionContent>
-                  <SrGitHubOrgAuth :expand-token-details="expandTokenDetails" />
+                  <SrGitHubOrgAuth />
+                  <SrSysConfig v-if="githubAuthStore.hasValidAuth" />
                 </AccordionContent>
               </AccordionPanel>
 
-              <AccordionPanel value="1">
+              <AccordionPanel v-if="githubAuthStore.hasValidAuth" value="1">
+                <AccordionHeader>Token Details</AccordionHeader>
+                <AccordionContent>
+                  <SrTokenDetails />
+                </AccordionContent>
+              </AccordionPanel>
+
+              <AccordionPanel v-if="githubAuthStore.canAccessMemberFeatures" value="2">
+                <AccordionHeader>Deployment</AccordionHeader>
+                <AccordionContent>
+                  <SrDeployConfig />
+                </AccordionContent>
+              </AccordionPanel>
+
+              <AccordionPanel value="3">
                 <AccordionHeader>Map Provider API Keys</AccordionHeader>
                 <AccordionContent>
                   <SrGoogleApiKeyInput />
                 </AccordionContent>
               </AccordionPanel>
 
-              <AccordionPanel value="2">
+              <AccordionPanel value="4">
                 <AccordionHeader>Storage Usage</AccordionHeader>
                 <AccordionContent>
                   <SrStorageUsage />
@@ -105,33 +121,26 @@ watch(
                 </AccordionContent>
               </AccordionPanel>
 
-              <AccordionPanel value="3">
+              <AccordionPanel value="5">
                 <AccordionHeader>Advanced</AccordionHeader>
                 <AccordionContent>
                   <SrAdvOptPanel />
                 </AccordionContent>
               </AccordionPanel>
 
-              <AccordionPanel value="4">
+              <AccordionPanel value="6">
                 <AccordionHeader>Defaults</AccordionHeader>
                 <AccordionContent>
                   <SrDefaults />
                 </AccordionContent>
               </AccordionPanel>
 
-              <AccordionPanel v-if="showLegacyProvisioning" value="5">
+              <AccordionPanel v-if="showLegacyProvisioning" value="7">
                 <AccordionHeader>Legacy Provisioning</AccordionHeader>
                 <AccordionContent>
                   <SrLegacyProvSys />
                 </AccordionContent>
               </AccordionPanel>
-
-              <!-- <AccordionPanel value="5">
-                    <AccordionHeader>Color Defaults</AccordionHeader>
-                    <AccordionContent>
-                        <SrColorPalette />
-                    </AccordionContent>
-                </AccordionPanel> -->
             </Accordion>
           </div>
         </template>
