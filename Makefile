@@ -319,6 +319,32 @@ deploy-github-oauth-prod: upload-github-oauth-lambda ## Deploy GitHub OAuth stac
 		--query 'Stacks[0].Outputs[?OutputKey==`JWTSigningKeySecretName`].OutputValue' \
 		--output text
 
+update-github-oauth-lambda-test: upload-github-oauth-lambda ## Update Lambda code only (test) - faster than full deploy
+	@FUNCTION_NAME=$$(aws cloudformation describe-stack-resource \
+		--stack-name sliderule-github-oauth-test \
+		--logical-resource-id GitHubOAuthLambda \
+		--query 'StackResourceDetail.PhysicalResourceId' \
+		--output text); \
+	echo "Updating Lambda: $$FUNCTION_NAME"; \
+	aws lambda update-function-code \
+		--function-name $$FUNCTION_NAME \
+		--s3-bucket $(LAMBDA_BUCKET) \
+		--s3-key github-oauth.zip
+	@echo "✅ Lambda code updated (test)"
+
+update-github-oauth-lambda-prod: upload-github-oauth-lambda ## Update Lambda code only (prod) - faster than full deploy
+	@FUNCTION_NAME=$$(aws cloudformation describe-stack-resource \
+		--stack-name sliderule-github-oauth-prod \
+		--logical-resource-id GitHubOAuthLambda \
+		--query 'StackResourceDetail.PhysicalResourceId' \
+		--output text); \
+	echo "Updating Lambda: $$FUNCTION_NAME"; \
+	aws lambda update-function-code \
+		--function-name $$FUNCTION_NAME \
+		--s3-bucket $(LAMBDA_BUCKET) \
+		--s3-key github-oauth.zip
+	@echo "✅ Lambda code updated (prod)"
+
 create-github-oauth-secret-test: ## Create GitHub Client Secret in AWS Secrets Manager (one-time setup)
 	@if [ -z "$(SECRET)" ]; then \
 		echo "❌ Error: SECRET must be provided"; \

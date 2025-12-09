@@ -151,6 +151,20 @@ function handleLogout() {
               </td>
             </tr>
             <tr>
+              <td class="sr-token-label">Max Nodes:</td>
+              <td class="sr-token-value">{{ decodedToken.max_nodes ?? 'N/A' }}</td>
+            </tr>
+            <tr>
+              <td class="sr-token-label">Cluster TTL:</td>
+              <td class="sr-token-value">
+                {{
+                  decodedToken.cluster_ttl_hours != null
+                    ? `${decodedToken.cluster_ttl_hours} hours`
+                    : 'N/A'
+                }}
+              </td>
+            </tr>
+            <tr>
               <td class="sr-token-label">Issued:</td>
               <td class="sr-token-value">
                 {{

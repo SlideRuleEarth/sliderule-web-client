@@ -5,8 +5,9 @@ const logger = createLogger('GitHubAuthStore')
 
 type AuthStatus = 'unknown' | 'authenticating' | 'authenticated' | 'not_authenticated' | 'error'
 
-// Auth validity duration (24 hours in milliseconds - matches JWT expiration)
-const AUTH_VALIDITY_MS = 24 * 60 * 60 * 1000
+// Token expiration hours - must match JWT_EXPIRATION_HOURS in Lambda handler
+const TOKEN_EXPIRATION_HOURS = 12
+const AUTH_VALIDITY_MS = TOKEN_EXPIRATION_HOURS * 60 * 60 * 1000
 
 export const useGitHubAuthStore = defineStore('githubAuth', {
   state: () => ({

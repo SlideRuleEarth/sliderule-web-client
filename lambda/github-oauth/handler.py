@@ -13,7 +13,9 @@ Returns a signed JWT containing:
 - is_member: boolean for org membership
 - is_owner: boolean for org admin role
 - teams: list of team slugs the user belongs to
-- exp: expiration timestamp
+- max_nodes: maximum compute nodes (15 for owners, 7 for members)
+- cluster_ttl_hours: max cluster runtime in hours (12 for owners, 8 for members)
+- exp: token expiration timestamp (default 12 hours, configurable via JWT_EXPIRATION_HOURS)
 
 The JWT can be validated by the SlideRule server using the shared signing secret.
 """
@@ -36,7 +38,7 @@ JWT_SIGNING_KEY_ARN = os.environ.get('JWT_SIGNING_KEY_ARN')
 
 # JWT configuration
 JWT_ALGORITHM = 'HS256'
-JWT_EXPIRATION_HOURS = int(os.environ.get('JWT_EXPIRATION_HOURS', '24'))
+JWT_EXPIRATION_HOURS = int(os.environ.get('JWT_EXPIRATION_HOURS', '12'))
 
 # GitHub OAuth endpoints
 GITHUB_AUTHORIZE_URL = 'https://github.com/login/oauth/authorize'
@@ -226,7 +228,7 @@ def handle_callback(event):
             teams = get_user_teams(access_token, username)
             print(f"User {username} belongs to teams: {teams}")
 
-        # Create signed JWT token
+        # Create signed JWT token for all users (used for rate limiting)
         auth_token = create_auth_token(
             username=username,
             is_member=membership['is_member'],
@@ -412,10 +414,31 @@ def create_auth_token(username, is_member, is_owner, teams):
     """
     Create a signed JWT containing the user's authentication info.
     This token can be validated by the SlideRule server.
+
+    Token includes max_nodes and cluster_ttl based on user role:
+    - Owners: max_nodes=15, cluster_ttl=12 hours
+    - Members: max_nodes=7, cluster_ttl=8 hours
+    - Non-members: max_nodes=0, cluster_ttl=0 (no access)
+
+    Token expiration is JWT_EXPIRATION_HOURS (default 12) regardless of role.
     """
     signing_key = get_jwt_signing_key()
 
     now = datetime.now(timezone.utc)
+
+    # Determine max_nodes and cluster TTL based on role
+    if is_owner:
+        max_nodes = 15
+        cluster_ttl_hours = 12
+    elif is_member:
+        max_nodes = 7
+        cluster_ttl_hours = 8
+    else:
+        # Non-members get no access
+        max_nodes = 0
+        cluster_ttl_hours = 0
+
+    # Token expiration based on JWT_EXPIRATION_HOURS config
     expiration = now + timedelta(hours=JWT_EXPIRATION_HOURS)
 
     payload = {
@@ -425,8 +448,10 @@ def create_auth_token(username, is_member, is_owner, teams):
         'is_owner': is_owner,
         'teams': teams,
         'org': GITHUB_ORG,
+        'max_nodes': max_nodes,
+        'cluster_ttl_hours': cluster_ttl_hours,  # Max cluster runtime
         'iat': int(now.timestamp()),  # Issued at
-        'exp': int(expiration.timestamp()),  # Expiration
+        'exp': int(expiration.timestamp()),  # Expiration (12 hours)
         'iss': 'sliderule-github-oauth'  # Issuer
     }
 
@@ -704,7 +729,7 @@ def handle_device_poll(event):
             teams = get_user_teams(access_token, username)
             print(f"User {username} belongs to teams: {teams}")
 
-        # Create signed JWT token
+        # Create signed JWT token for all users (used for rate limiting)
         auth_token = create_auth_token(
             username=username,
             is_member=membership['is_member'],
