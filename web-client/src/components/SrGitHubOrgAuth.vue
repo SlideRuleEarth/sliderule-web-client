@@ -1,8 +1,12 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import Button from 'primevue/button'
 import Message from 'primevue/message'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
+
+const props = defineProps<{
+  expandTokenDetails?: boolean
+}>()
 
 const githubAuthStore = useGitHubAuthStore()
 
@@ -16,7 +20,18 @@ const isAuthenticated = computed(() => authStatus.value === 'authenticated' && h
 const isAuthenticating = computed(() => authStatus.value === 'authenticating')
 
 // JWT details
-const showTokenDetails = ref(false)
+const showTokenDetails = ref(props.expandTokenDetails ?? false)
+
+// Watch for prop changes to expand token details
+watch(
+  () => props.expandTokenDetails,
+  (newVal) => {
+    if (newVal) {
+      showTokenDetails.value = true
+    }
+  }
+)
+
 const decodedToken = computed(() => githubAuthStore.decodedToken)
 const tokenExpiresAt = computed(() => githubAuthStore.tokenExpiresAt)
 const teams = computed(() => githubAuthStore.teams)

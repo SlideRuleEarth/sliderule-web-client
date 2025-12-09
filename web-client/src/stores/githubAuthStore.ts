@@ -17,12 +17,14 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
     teams: [] as string[],
     token: null as string | null,
     lastError: null as string | null,
-    authTimestamp: null as number | null
+    authTimestamp: null as number | null,
+    // Flag to indicate user just completed authentication (not persisted)
+    justAuthenticated: false
   }),
   persist: {
     // Use sessionStorage - persists within tab until closed
     storage: sessionStorage,
-    // Persist membership info, token, and timestamp
+    // Persist membership info, token, and timestamp (justAuthenticated intentionally not persisted)
     pick: ['isMember', 'isOwner', 'username', 'teams', 'token', 'authTimestamp', 'authStatus']
   },
   getters: {
@@ -187,6 +189,7 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
       this.authTimestamp = Date.now()
       this.authStatus = 'authenticated'
       this.lastError = null
+      this.justAuthenticated = true
 
       logger.info('GitHub auth successful', {
         username: this.username,
@@ -211,7 +214,15 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
       this.token = null
       this.authTimestamp = null
       this.lastError = null
+      this.justAuthenticated = false
       logger.info('GitHub auth cleared')
+    },
+
+    /**
+     * Clear the justAuthenticated flag (called after UI has responded to fresh auth)
+     */
+    clearJustAuthenticated() {
+      this.justAuthenticated = false
     },
 
     /**

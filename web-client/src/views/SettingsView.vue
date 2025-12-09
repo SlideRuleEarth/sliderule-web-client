@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref, onMounted, watch } from 'vue'
 import SingleColumnLayout from '@/layouts/SingleColumnLayout.vue'
 import Accordion from 'primevue/accordion'
 import AccordionPanel from 'primevue/accordionpanel'
@@ -12,6 +13,39 @@ import SrDefaults from '@/components/SrDefaults.vue'
 import SrGoogleApiKeyInput from '@/components/SrGoogleApiKeyInput.vue'
 import SrGitHubOrgAuth from '@/components/SrGitHubOrgAuth.vue'
 import Card from 'primevue/card'
+import { useGitHubAuthStore } from '@/stores/githubAuthStore'
+
+const githubAuthStore = useGitHubAuthStore()
+
+// Controls which accordion panels are open (array because multiple="true")
+const activeAccordionPanels = ref<string[]>([])
+
+// Flag to expand token details when user just signed in
+const expandTokenDetails = ref(false)
+
+// Check on mount if user just authenticated
+onMounted(() => {
+  if (githubAuthStore.justAuthenticated) {
+    // Open the GitHub Organization Verification panel (value="2")
+    activeAccordionPanels.value = ['2']
+    // Expand token details
+    expandTokenDetails.value = true
+    // Clear the flag so it doesn't expand again on page refresh
+    githubAuthStore.clearJustAuthenticated()
+  }
+})
+
+// Also watch in case the flag changes after mount (edge case)
+watch(
+  () => githubAuthStore.justAuthenticated,
+  (justAuth) => {
+    if (justAuth) {
+      activeAccordionPanels.value = ['2']
+      expandTokenDetails.value = true
+      githubAuthStore.clearJustAuthenticated()
+    }
+  }
+)
 </script>
 
 <template>
@@ -24,6 +58,7 @@ import Card from 'primevue/card'
         <template #content>
           <div class="sr-settings-opt-wrapper">
             <Accordion
+              v-model:value="activeAccordionPanels"
               class="sr-settings-accordion"
               :multiple="true"
               expandIcon="pi pi-plus"
@@ -46,7 +81,7 @@ import Card from 'primevue/card'
               <AccordionPanel value="2">
                 <AccordionHeader>GitHub Organization Verification</AccordionHeader>
                 <AccordionContent>
-                  <SrGitHubOrgAuth />
+                  <SrGitHubOrgAuth :expand-token-details="expandTokenDetails" />
                 </AccordionContent>
               </AccordionPanel>
 
