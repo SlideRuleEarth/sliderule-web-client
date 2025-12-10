@@ -45,9 +45,12 @@ function processCallback() {
   const success = githubAuthStore.handleCallback(params)
 
   if (success) {
-    logger.info('GitHub OAuth callback successful, redirecting to settings')
-    // Clean up URL and redirect to settings
-    void router.replace({ name: 'settings' })
+    // Retrieve the stored return path or default to home
+    const returnPath = sessionStorage.getItem('github_oauth_return_path') || '/'
+    sessionStorage.removeItem('github_oauth_return_path')
+    logger.info('GitHub OAuth callback successful, redirecting to', { returnPath })
+    // Clean up URL and redirect to stored path
+    void router.replace(returnPath)
   } else {
     // Show error and allow user to navigate manually
     errorMessage.value = githubAuthStore.lastError || 'Authentication failed'

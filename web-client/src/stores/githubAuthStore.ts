@@ -140,6 +140,10 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
 
       this.authStatus = 'authenticating'
 
+      // Store current path to return to after authentication
+      sessionStorage.setItem('github_oauth_return_path', window.location.pathname)
+      logger.debug('Stored return path', { path: window.location.pathname })
+
       // Build the login URL - the Lambda will handle the redirect to GitHub
       const loginUrl = new URL(`${apiUrl}/auth/github/login`)
       loginUrl.searchParams.set('state', state)

@@ -6,6 +6,10 @@ import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 import { useSysConfigStore } from '@/stores/sysConfigStore'
 import { useJwtStore } from '@/stores/SrJWTStore'
 
+const props = defineProps<{
+  disabled?: boolean
+}>()
+
 const githubAuthStore = useGitHubAuthStore()
 const sysConfigStore = useSysConfigStore()
 const jwtStore = useJwtStore()
@@ -50,6 +54,7 @@ async function resetToPublicCluster() {
         id="sysconfig-domain"
         v-model="sysConfigStore.domain"
         :options="domainOptions"
+        :disabled="props.disabled"
         class="sr-sysconfig-select"
       />
     </div>
@@ -59,10 +64,11 @@ async function resetToPublicCluster() {
         id="sysconfig-cluster"
         v-model="sysConfigStore.organization"
         :options="clusterOptions"
+        :disabled="props.disabled"
         class="sr-sysconfig-select"
       />
     </div>
-    <div class="sr-sysconfig-button-row">
+    <div v-if="!props.disabled" class="sr-sysconfig-button-row">
       <Button
         label="Reset to Public Cluster"
         icon="pi pi-refresh"

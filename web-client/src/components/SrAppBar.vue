@@ -2,7 +2,6 @@
 import Button from 'primevue/button'
 import Menu from 'primevue/menu'
 import Dialog from 'primevue/dialog'
-import Message from 'primevue/message'
 import { ref, computed, onMounted } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import { useSrToastStore } from '@/stores/srToastStore'
@@ -11,12 +10,8 @@ import SrSliderInput from '@/components/SrSliderInput.vue'
 import { useSysConfigStore } from '@/stores/sysConfigStore'
 import { useJwtStore } from '@/stores/SrJWTStore'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue'
-import SrSysConfig from '@/components/SrSysConfig.vue'
-import SrClusterInfo from '@/components/SrClusterInfo.vue'
-import SrTokenDetails from '@/components/SrTokenDetails.vue'
-import SrDeployConfig from '@/components/SrDeployConfig.vue'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('SrAppBar')
@@ -27,6 +22,7 @@ const sysConfigStore = useSysConfigStore()
 const jwtStore = useJwtStore()
 const githubAuthStore = useGitHubAuthStore()
 const route = useRoute()
+const router = useRouter()
 const tooltipRef = ref()
 const toast = useToast()
 const srToastStore = useSrToastStore()
@@ -34,7 +30,6 @@ const srToastStore = useSrToastStore()
 // Org menu and cluster dialog state
 const orgMenu = ref<InstanceType<typeof Menu> | null>(null)
 const showClusterDialog = ref(false)
-const showDashboardDialog = ref(false)
 const desiredNodes = ref(1)
 const ttl = ref(720)
 
@@ -46,42 +41,11 @@ const isGitHubAuthenticating = computed(() => githubAuthStore.authStatus === 'au
 const githubUsername = computed(() => githubAuthStore.username)
 const githubIsMember = computed(() => githubAuthStore.isMember)
 const githubIsOwner = computed(() => githubAuthStore.isOwner)
-const githubLastError = computed(() => githubAuthStore.lastError)
-const canAccessMemberFeatures = computed(() => githubAuthStore.canAccessMemberFeatures)
-
-const dashboardStatusSeverity = computed(() => {
-  if (githubAuthStore.authStatus === 'error') return 'error'
-  if (!isGitHubAuthenticated.value) return 'secondary'
-  if (githubIsOwner.value) return 'success'
-  if (githubIsMember.value) return 'success'
-  return 'warn'
-})
-
-const dashboardStatusMessage = computed(() => {
-  if (githubAuthStore.authStatus === 'error') {
-    return githubLastError.value || 'Authentication failed'
-  }
-  if (isGitHubAuthenticating.value) {
-    return 'Authenticating with GitHub...'
-  }
-  if (!isGitHubAuthenticated.value) {
-    return 'Not logged in to GitHub'
-  }
-  if (githubIsOwner.value) {
-    return `Logged in as ${githubUsername.value} - Organization Owner`
-  }
-  if (githubIsMember.value) {
-    return `Logged in as ${githubUsername.value} - Organization Member`
-  }
-  return `Logged in as ${githubUsername.value} - Not a member of SlideRuleEarth`
-})
-
 function handleGitHubLogin() {
   githubAuthStore.initiateLogin()
 }
 
 async function handleGitHubLogout() {
-  showDashboardDialog.value = false
   githubAuthStore.logout()
   jwtStore.clearAllJwts()
   sysConfigStore.$reset()
@@ -97,7 +61,6 @@ async function handleGitHubLogout() {
   })
 }
 
-const docsMenu = ref<InstanceType<typeof Menu> | null>(null)
 const displayTour = computed(() => {
   return route.name === 'home' || route.name === 'request'
 })
@@ -124,47 +87,6 @@ const tourMenuItems = [
 const toggleTourMenu = (event: Event) => {
   tourMenu.value?.toggle(event)
 }
-
-const docMenuItems = [
-  {
-    label: 'Documentation',
-    icon: 'pi pi-book',
-    items: [
-      {
-        label: 'About SlideRule',
-        icon: 'pi pi-info-circle',
-        command: () => {
-          window.open('https://slideruleearth.io')
-        }
-      },
-      {
-        label: 'SlideRule Python Client Doumentation',
-        icon: 'pi pi-book',
-        command: () => {
-          window.open('https://slideruleearth.io/web/rtd/')
-        }
-      },
-      {
-        label: 'ATLAS/ICESat-2 Photon Data User Guide',
-        icon: 'pi pi-book',
-        command: () => {
-          window.open(
-            'https://nsidc.org/sites/default/files/documents/user-guide/atl03-v006-userguide.pdf'
-          )
-        }
-      },
-      {
-        label: 'Algorithm Theoretical Basis Document Atl03',
-        icon: 'pi pi-book',
-        command: () => {
-          window.open(
-            'https://nsidc.org/sites/default/files/documents/technical-reference/icesat2_atl03_atbd_v006.pdf'
-          )
-        }
-      }
-    ]
-  }
-]
 
 const aboutMenu = ref<InstanceType<typeof Menu> | null>(null)
 const aboutMenuItems = [
@@ -197,6 +119,43 @@ const aboutMenuItems = [
     }
   },
   {
+    separator: true
+  },
+  {
+    label: 'Documentation',
+    icon: 'pi pi-book',
+    items: [
+      {
+        label: 'SlideRule Python Client Documentation',
+        icon: 'pi pi-book',
+        command: () => {
+          window.open('https://slideruleearth.io/web/rtd/')
+        }
+      },
+      {
+        label: 'ATLAS/ICESat-2 Photon Data User Guide',
+        icon: 'pi pi-book',
+        command: () => {
+          window.open(
+            'https://nsidc.org/sites/default/files/documents/user-guide/atl03-v006-userguide.pdf'
+          )
+        }
+      },
+      {
+        label: 'Algorithm Theoretical Basis Document Atl03',
+        icon: 'pi pi-book',
+        command: () => {
+          window.open(
+            'https://nsidc.org/sites/default/files/documents/technical-reference/icesat2_atl03_atbd_v006.pdf'
+          )
+        }
+      }
+    ]
+  },
+  {
+    separator: true
+  },
+  {
     label: 'Report an Issue',
     icon: 'pi pi-exclamation-circle',
     command: () => {
@@ -212,12 +171,29 @@ const aboutMenuItems = [
   }
 ]
 
-const toggleDocsMenu = (event: Event) => {
-  docsMenu.value?.toggle(event)
-}
-
 const toggleAboutMenu = (event: Event) => {
   aboutMenu.value?.toggle(event)
+}
+
+// User menu for logged-in users
+const userMenu = ref<InstanceType<typeof Menu> | null>(null)
+const userMenuItems = [
+  {
+    label: 'Log Out',
+    icon: 'pi pi-sign-out',
+    command: () => {
+      void handleGitHubLogout()
+    }
+  }
+]
+
+const toggleUserMenu = (event: Event) => {
+  userMenu.value?.toggle(event)
+}
+
+// Navigate to System view
+function navigateToSystem() {
+  void router.push('/system')
 }
 
 const emit = defineEmits([
@@ -594,30 +570,28 @@ const mobileMenuItems = computed(() => {
       command: handleAnalysisButtonClick
     },
     {
-      label: 'Documentation',
-      icon: 'pi pi-book',
-      items: docMenuItems[0].items
-    },
-    {
       label: 'Settings',
       icon: 'pi pi-cog',
       command: handleSettingsButtonClick
     },
     {
+      label: 'System',
+      icon: 'pi pi-server',
+      command: navigateToSystem
+    },
+    {
       label: 'About',
       icon: 'pi pi-info-circle',
-      command: aboutMenuItems[0].command
+      items: aboutMenuItems
     }
   ]
 
-  // Add login or account item based on auth state
+  // Add user menu when authenticated, or login button when not
   if (isGitHubAuthenticated.value) {
     items.push({
       label: githubUsername.value || 'Account',
       icon: 'pi pi-user',
-      command: () => {
-        showDashboardDialog.value = true
-      }
+      items: userMenuItems
     })
   } else {
     items.push({
@@ -859,14 +833,13 @@ function hideTooltip() {
       >
       </Button>
       <Button
-        icon="pi pi-book"
-        id="sr-docs-button"
-        label="Docs"
-        class="p-button-rounded p-button-text desktop-only tablet-icon-only"
-        @click="toggleDocsMenu"
+        icon="pi pi-server"
+        id="sr-system-button"
+        label="System"
+        class="p-button-rounded p-button-text desktop-only"
+        @click="navigateToSystem"
       >
       </Button>
-      <Menu :model="docMenuItems" popup ref="docsMenu" />
       <Button
         icon="pi pi-info-circle"
         id="sr-about-button"
@@ -889,13 +862,18 @@ function hideTooltip() {
       </Button>
       <Button
         v-if="isGitHubAuthenticated"
-        icon="pi pi-user"
         id="sr-user-button"
         :label="githubUsername || 'Account'"
-        class="p-button-rounded p-button-text desktop-only"
-        @click="showDashboardDialog = true"
+        class="p-button-rounded p-button-text desktop-only sr-user-button"
+        @click="toggleUserMenu"
       >
+        <template #icon>
+          <i class="pi pi-user"></i>
+          <span v-if="githubIsOwner" class="sr-role-badge sr-role-owner">Owner</span>
+          <span v-else-if="githubIsMember" class="sr-role-badge sr-role-member">Member</span>
+        </template>
       </Button>
+      <Menu :model="userMenuItems" popup ref="userMenu" />
     </div>
   </div>
 
@@ -965,48 +943,6 @@ function hideTooltip() {
         :disabled="computedOrgIsPublic || !computedLoggedIn"
         @click="submitDesiredNodes"
       />
-    </div>
-  </Dialog>
-
-  <Dialog
-    v-model:visible="showDashboardDialog"
-    header="Account Dashboard"
-    :closable="true"
-    modal
-    class="sr-dashboard-dialog"
-  >
-    <Message :severity="dashboardStatusSeverity" :closable="false" class="sr-dashboard-status">
-      {{ dashboardStatusMessage }}
-    </Message>
-
-    <div v-if="isGitHubAuthenticated" class="sr-dashboard-section">
-      <h4>Domain & Cluster</h4>
-      <SrSysConfig />
-    </div>
-
-    <div class="sr-dashboard-section">
-      <SrClusterInfo />
-    </div>
-
-    <div v-if="isGitHubAuthenticated" class="sr-dashboard-section">
-      <h4>Token Details</h4>
-      <SrTokenDetails />
-    </div>
-
-    <div v-if="canAccessMemberFeatures" class="sr-dashboard-section">
-      <h4>Deployment</h4>
-      <SrDeployConfig />
-    </div>
-
-    <div class="sr-dialog-buttons">
-      <Button
-        v-if="isGitHubAuthenticated"
-        label="Log Out"
-        icon="pi pi-sign-out"
-        severity="secondary"
-        @click="handleGitHubLogout"
-      />
-      <Button label="Close" @click="showDashboardDialog = false" />
     </div>
   </Dialog>
 </template>
@@ -1291,28 +1227,27 @@ function hideTooltip() {
   color: var(--p-red-300);
 }
 
-.sr-dashboard-dialog {
-  width: 28rem;
-  max-width: 95vw;
+/* User button with role badge */
+.sr-user-button {
+  position: relative;
 }
 
-.sr-dashboard-status {
-  margin: 0 0 1rem 0;
+.sr-role-badge {
+  font-size: 0.55rem;
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+  margin-left: 0.25rem;
+  font-weight: 600;
+  vertical-align: middle;
 }
 
-.sr-dashboard-section {
-  margin-bottom: 1rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--p-surface-border);
+.sr-role-owner {
+  background-color: var(--p-green-500);
+  color: white;
 }
 
-.sr-dashboard-section:last-of-type {
-  border-bottom: none;
-}
-
-.sr-dashboard-section h4 {
-  margin: 0 0 0.5rem 0;
-  font-size: 0.9rem;
-  color: var(--p-text-muted-color);
+.sr-role-member {
+  background-color: var(--p-green-500);
+  color: white;
 }
 </style>

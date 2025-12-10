@@ -34,6 +34,11 @@ const router = createRouter({
       component: () => import('@/views/SettingsView.vue')
     },
     {
+      path: '/system',
+      name: 'system',
+      component: () => import('@/views/SystemView.vue')
+    },
+    {
       path: '/rectree',
       name: 'rectree',
       component: () => import('@/views/RecTreeView.vue')
