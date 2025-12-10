@@ -58,8 +58,8 @@ watch(
   () => githubAuthStore.justAuthenticated,
   async (justAuth) => {
     if (justAuth) {
-      // Open the Login and Token Details panels
-      activeAccordionPanels.value = ['0', '1']
+      // Open the Login panel
+      activeAccordionPanels.value = ['0']
       // Reset to public cluster on successful GitHub auth
       await resetToPublicCluster()
       githubAuthStore.clearJustAuthenticated()

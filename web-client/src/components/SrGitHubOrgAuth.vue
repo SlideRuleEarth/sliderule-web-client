@@ -3,8 +3,12 @@ import { computed } from 'vue'
 import Button from 'primevue/button'
 import Message from 'primevue/message'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
+import { useSysConfigStore } from '@/stores/sysConfigStore'
+import { useJwtStore } from '@/stores/SrJWTStore'
 
 const githubAuthStore = useGitHubAuthStore()
+const sysConfigStore = useSysConfigStore()
+const jwtStore = useJwtStore()
 
 const authStatus = computed(() => githubAuthStore.authStatus)
 const username = computed(() => githubAuthStore.username)
@@ -31,15 +35,15 @@ const statusMessage = computed(() => {
     return 'Authenticating with GitHub...'
   }
   if (!isAuthenticated.value) {
-    return 'Not signed in to GitHub'
+    return 'Not logged in to GitHub'
   }
   if (isOwner.value) {
-    return `Signed in as ${username.value} - Organization Owner`
+    return `Logged in as ${username.value} - Organization Owner`
   }
   if (isMember.value) {
-    return `Signed in as ${username.value} - Organization Member`
+    return `Logged in as ${username.value} - Organization Member`
   }
-  return `Signed in as ${username.value} - Not a member of SlideRuleEarth`
+  return `Logged in as ${username.value} - Not a member of SlideRuleEarth`
 })
 
 const membershipDescription = computed(() => {
@@ -54,8 +58,15 @@ function handleLogin() {
   githubAuthStore.initiateLogin()
 }
 
-function handleLogout() {
+async function handleLogout() {
   githubAuthStore.logout()
+  // Reset to public cluster
+  jwtStore.clearAllJwts()
+  sysConfigStore.$reset()
+  sysConfigStore.setDomain('slideruleearth.io')
+  sysConfigStore.setOrganization('sliderule')
+  await sysConfigStore.fetchServerVersionInfo()
+  await sysConfigStore.fetchCurrentNodes()
 }
 </script>
 
@@ -72,10 +83,10 @@ function handleLogout() {
     <div class="sr-button-row">
       <div
         v-if="!isAuthenticated"
-        title="Sign in with GitHub to verify your membership in the SlideRuleEarth organization. Organization members have access to additional features."
+        title="Log in with GitHub to verify your membership in the SlideRuleEarth organization. Organization members have access to additional features."
       >
         <Button
-          label="Sign in with GitHub"
+          label="Log In with GitHub"
           icon="pi pi-github"
           @click="handleLogin"
           :loading="isAuthenticating"
@@ -85,7 +96,7 @@ function handleLogout() {
       </div>
       <Button
         v-if="isAuthenticated"
-        label="Sign Out"
+        label="Log Out"
         icon="pi pi-sign-out"
         @click="handleLogout"
         severity="secondary"

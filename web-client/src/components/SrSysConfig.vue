@@ -25,6 +25,11 @@ const clusterOptions = computed(() => {
 // Available domain options
 const domainOptions = ['testsliderule.org', 'slideruleearth.io']
 
+// Disable reset button if already on public cluster
+const isPublicCluster = computed(
+  () => sysConfigStore.organization === 'sliderule' && sysConfigStore.domain === 'slideruleearth.io'
+)
+
 // Reset to public cluster
 async function resetToPublicCluster() {
   jwtStore.clearAllJwts()
@@ -63,6 +68,7 @@ async function resetToPublicCluster() {
         icon="pi pi-refresh"
         severity="secondary"
         size="small"
+        :disabled="isPublicCluster"
         @click="resetToPublicCluster"
       />
     </div>

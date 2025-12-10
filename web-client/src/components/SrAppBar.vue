@@ -9,6 +9,7 @@ import { authenticatedFetch } from '@/utils/fetchUtils'
 import SrSliderInput from '@/components/SrSliderInput.vue'
 import { useSysConfigStore } from '@/stores/sysConfigStore'
 import { useJwtStore } from '@/stores/SrJWTStore'
+import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 import { useRoute } from 'vue-router'
 import { useDeviceStore } from '@/stores/deviceStore'
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue'
@@ -20,6 +21,7 @@ const build_env = import.meta.env.VITE_BUILD_ENV
 const banner_text = import.meta.env.VITE_BANNER_TEXT
 const sysConfigStore = useSysConfigStore()
 const jwtStore = useJwtStore()
+const githubAuthStore = useGitHubAuthStore()
 const deviceStore = useDeviceStore()
 const route = useRoute()
 const tooltipRef = ref()
@@ -316,10 +318,10 @@ const orgMenuItems = computed(() => [
     }
   },
   {
-    label: 'Logout',
+    label: 'Log Out',
     icon: 'pi pi-sign-out',
     command: () => {
-      handleLogout()
+      void handleLogout()
     }
   },
   {
@@ -338,8 +340,16 @@ const toggleOrgMenu = (event: Event) => {
   orgMenu.value?.toggle(event)
 }
 
-function handleLogout() {
-  jwtStore.removeJwt(sysConfigStore.getDomain(), sysConfigStore.getOrganization())
+async function handleLogout() {
+  // Log out from GitHub if authenticated
+  githubAuthStore.logout()
+  // Reset to public cluster
+  jwtStore.clearAllJwts()
+  sysConfigStore.$reset()
+  sysConfigStore.setDomain('slideruleearth.io')
+  sysConfigStore.setOrganization('sliderule')
+  await sysConfigStore.fetchServerVersionInfo()
+  await sysConfigStore.fetchCurrentNodes()
   toast.add({
     severity: 'info',
     summary: 'Logged Out',
