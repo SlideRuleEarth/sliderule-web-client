@@ -74,12 +74,10 @@ const statusMessage = computed(() => {
           </div>
 
           <div v-if="isAuthenticated" class="sr-system-section">
-            <h4>Token Details</h4>
             <SrTokenDetails />
           </div>
 
           <div v-if="canAccessMemberFeatures" class="sr-system-section">
-            <h4>Deployment</h4>
             <SrDeployConfig />
           </div>
         </template>
@@ -129,6 +127,8 @@ const statusMessage = computed(() => {
 .sr-system-section h4 {
   margin: 0 0 0.5rem 0;
   font-size: 0.9rem;
+  font-weight: 600;
+  text-align: center;
   color: var(--p-text-muted-color);
 }
 </style>

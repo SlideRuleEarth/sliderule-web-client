@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import Fieldset from 'primevue/fieldset'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 
 const githubAuthStore = useGitHubAuthStore()
@@ -10,67 +11,71 @@ const teams = computed(() => githubAuthStore.teams)
 </script>
 
 <template>
-  <div v-if="decodedToken" class="sr-token-details">
-    <table class="sr-token-table">
-      <tbody>
-        <tr>
-          <td class="sr-token-label">Username:</td>
-          <td class="sr-token-value">{{ decodedToken.username }}</td>
-        </tr>
-        <tr>
-          <td class="sr-token-label">Organization:</td>
-          <td class="sr-token-value">{{ decodedToken.org }}</td>
-        </tr>
-        <tr>
-          <td class="sr-token-label">Member:</td>
-          <td class="sr-token-value">{{ decodedToken.is_member ? 'Yes' : 'No' }}</td>
-        </tr>
-        <tr>
-          <td class="sr-token-label">Owner:</td>
-          <td class="sr-token-value">{{ decodedToken.is_owner ? 'Yes' : 'No' }}</td>
-        </tr>
-        <tr>
-          <td class="sr-token-label">Teams:</td>
-          <td class="sr-token-value">
-            <span v-if="teams.length === 0" class="sr-no-teams">None</span>
-            <span v-else>{{ teams.join(', ') }}</span>
-          </td>
-        </tr>
-        <tr>
-          <td class="sr-token-label">Max Nodes:</td>
-          <td class="sr-token-value">{{ decodedToken.max_nodes ?? 'N/A' }}</td>
-        </tr>
-        <tr>
-          <td class="sr-token-label">Cluster TTL:</td>
-          <td class="sr-token-value">
-            {{
-              decodedToken.cluster_ttl_hours != null
-                ? `${decodedToken.cluster_ttl_hours} hours`
-                : 'N/A'
-            }}
-          </td>
-        </tr>
-        <tr>
-          <td class="sr-token-label">Issued:</td>
-          <td class="sr-token-value">
-            {{
-              decodedToken.iat ? new Date(Number(decodedToken.iat) * 1000).toLocaleString() : 'N/A'
-            }}
-          </td>
-        </tr>
-        <tr>
-          <td class="sr-token-label">Expires:</td>
-          <td class="sr-token-value">
-            {{ tokenExpiresAt ? tokenExpiresAt.toLocaleString() : 'N/A' }}
-          </td>
-        </tr>
-        <tr>
-          <td class="sr-token-label">Issuer:</td>
-          <td class="sr-token-value">{{ decodedToken.iss }}</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+  <Fieldset v-if="decodedToken" legend="Token Details" toggleable>
+    <div class="sr-token-details">
+      <table class="sr-token-table">
+        <tbody>
+          <tr>
+            <td class="sr-token-label">Username:</td>
+            <td class="sr-token-value">{{ decodedToken.username }}</td>
+          </tr>
+          <tr>
+            <td class="sr-token-label">Organization:</td>
+            <td class="sr-token-value">{{ decodedToken.org }}</td>
+          </tr>
+          <tr>
+            <td class="sr-token-label">Member:</td>
+            <td class="sr-token-value">{{ decodedToken.is_member ? 'Yes' : 'No' }}</td>
+          </tr>
+          <tr>
+            <td class="sr-token-label">Owner:</td>
+            <td class="sr-token-value">{{ decodedToken.is_owner ? 'Yes' : 'No' }}</td>
+          </tr>
+          <tr>
+            <td class="sr-token-label">Teams:</td>
+            <td class="sr-token-value">
+              <span v-if="teams.length === 0" class="sr-no-teams">None</span>
+              <span v-else>{{ teams.join(', ') }}</span>
+            </td>
+          </tr>
+          <tr>
+            <td class="sr-token-label">Max Nodes:</td>
+            <td class="sr-token-value">{{ decodedToken.max_nodes ?? 'N/A' }}</td>
+          </tr>
+          <tr>
+            <td class="sr-token-label">Cluster TTL:</td>
+            <td class="sr-token-value">
+              {{
+                decodedToken.cluster_ttl_hours != null
+                  ? `${decodedToken.cluster_ttl_hours} hours`
+                  : 'N/A'
+              }}
+            </td>
+          </tr>
+          <tr>
+            <td class="sr-token-label">Issued:</td>
+            <td class="sr-token-value">
+              {{
+                decodedToken.iat
+                  ? new Date(Number(decodedToken.iat) * 1000).toLocaleString()
+                  : 'N/A'
+              }}
+            </td>
+          </tr>
+          <tr>
+            <td class="sr-token-label">Expires:</td>
+            <td class="sr-token-value">
+              {{ tokenExpiresAt ? tokenExpiresAt.toLocaleString() : 'N/A' }}
+            </td>
+          </tr>
+          <tr>
+            <td class="sr-token-label">Issuer:</td>
+            <td class="sr-token-value">{{ decodedToken.iss }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </Fieldset>
 </template>
 
 <style scoped>

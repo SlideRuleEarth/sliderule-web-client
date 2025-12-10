@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import Fieldset from 'primevue/fieldset'
 import Select from 'primevue/select'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 
@@ -40,27 +41,29 @@ const isDomainDisabled = computed(() => !githubAuthStore.isOwner)
 </script>
 
 <template>
-  <div class="sr-deploy-config">
-    <div class="sr-deploy-field">
-      <label for="deploy-domain" class="sr-deploy-label">Domain</label>
-      <Select
-        id="deploy-domain"
-        v-model="domain"
-        :options="domainOptions"
-        :disabled="isDomainDisabled"
-        class="sr-deploy-select"
-      />
+  <Fieldset legend="Deployment" toggleable>
+    <div class="sr-deploy-config">
+      <div class="sr-deploy-field">
+        <label for="deploy-domain" class="sr-deploy-label">Domain</label>
+        <Select
+          id="deploy-domain"
+          v-model="domain"
+          :options="domainOptions"
+          :disabled="isDomainDisabled"
+          class="sr-deploy-select"
+        />
+      </div>
+      <div class="sr-deploy-field">
+        <label for="deploy-cluster" class="sr-deploy-label">Cluster</label>
+        <Select
+          id="deploy-cluster"
+          v-model="clusterName"
+          :options="clusterOptions"
+          class="sr-deploy-select"
+        />
+      </div>
     </div>
-    <div class="sr-deploy-field">
-      <label for="deploy-cluster" class="sr-deploy-label">Cluster</label>
-      <Select
-        id="deploy-cluster"
-        v-model="clusterName"
-        :options="clusterOptions"
-        class="sr-deploy-select"
-      />
-    </div>
-  </div>
+  </Fieldset>
 </template>
 
 <style scoped>

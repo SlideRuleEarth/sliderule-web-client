@@ -854,6 +854,7 @@ function hideTooltip() {
         icon="pi pi-github"
         id="sr-login-button"
         label="Login"
+        title="Login with GitHub to access member features"
         class="p-button-rounded p-button-text desktop-only"
         :loading="isGitHubAuthenticating"
         :disabled="isGitHubAuthenticating"
