@@ -2,6 +2,7 @@
 import Button from 'primevue/button'
 import Menu from 'primevue/menu'
 import Dialog from 'primevue/dialog'
+import Message from 'primevue/message'
 import { ref, computed, onMounted } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import { useSrToastStore } from '@/stores/srToastStore'
@@ -11,8 +12,11 @@ import { useSysConfigStore } from '@/stores/sysConfigStore'
 import { useJwtStore } from '@/stores/SrJWTStore'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 import { useRoute } from 'vue-router'
-import { useDeviceStore } from '@/stores/deviceStore'
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue'
+import SrSysConfig from '@/components/SrSysConfig.vue'
+import SrClusterInfo from '@/components/SrClusterInfo.vue'
+import SrTokenDetails from '@/components/SrTokenDetails.vue'
+import SrDeployConfig from '@/components/SrDeployConfig.vue'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('SrAppBar')
@@ -22,7 +26,6 @@ const banner_text = import.meta.env.VITE_BANNER_TEXT
 const sysConfigStore = useSysConfigStore()
 const jwtStore = useJwtStore()
 const githubAuthStore = useGitHubAuthStore()
-const deviceStore = useDeviceStore()
 const route = useRoute()
 const tooltipRef = ref()
 const toast = useToast()
@@ -31,8 +34,68 @@ const srToastStore = useSrToastStore()
 // Org menu and cluster dialog state
 const orgMenu = ref<InstanceType<typeof Menu> | null>(null)
 const showClusterDialog = ref(false)
+const showDashboardDialog = ref(false)
 const desiredNodes = ref(1)
 const ttl = ref(720)
+
+// GitHub auth computed properties
+const isGitHubAuthenticated = computed(() => {
+  return githubAuthStore.authStatus === 'authenticated' && githubAuthStore.hasValidAuth
+})
+const isGitHubAuthenticating = computed(() => githubAuthStore.authStatus === 'authenticating')
+const githubUsername = computed(() => githubAuthStore.username)
+const githubIsMember = computed(() => githubAuthStore.isMember)
+const githubIsOwner = computed(() => githubAuthStore.isOwner)
+const githubLastError = computed(() => githubAuthStore.lastError)
+const canAccessMemberFeatures = computed(() => githubAuthStore.canAccessMemberFeatures)
+
+const dashboardStatusSeverity = computed(() => {
+  if (githubAuthStore.authStatus === 'error') return 'error'
+  if (!isGitHubAuthenticated.value) return 'secondary'
+  if (githubIsOwner.value) return 'success'
+  if (githubIsMember.value) return 'success'
+  return 'warn'
+})
+
+const dashboardStatusMessage = computed(() => {
+  if (githubAuthStore.authStatus === 'error') {
+    return githubLastError.value || 'Authentication failed'
+  }
+  if (isGitHubAuthenticating.value) {
+    return 'Authenticating with GitHub...'
+  }
+  if (!isGitHubAuthenticated.value) {
+    return 'Not logged in to GitHub'
+  }
+  if (githubIsOwner.value) {
+    return `Logged in as ${githubUsername.value} - Organization Owner`
+  }
+  if (githubIsMember.value) {
+    return `Logged in as ${githubUsername.value} - Organization Member`
+  }
+  return `Logged in as ${githubUsername.value} - Not a member of SlideRuleEarth`
+})
+
+function handleGitHubLogin() {
+  githubAuthStore.initiateLogin()
+}
+
+async function handleGitHubLogout() {
+  showDashboardDialog.value = false
+  githubAuthStore.logout()
+  jwtStore.clearAllJwts()
+  sysConfigStore.$reset()
+  sysConfigStore.setDomain('slideruleearth.io')
+  sysConfigStore.setOrganization('sliderule')
+  await sysConfigStore.fetchServerVersionInfo()
+  await sysConfigStore.fetchCurrentNodes()
+  toast.add({
+    severity: 'info',
+    summary: 'Logged Out',
+    detail: 'You have been logged out successfully',
+    life: srToastStore.getLife()
+  })
+}
 
 const docsMenu = ref<InstanceType<typeof Menu> | null>(null)
 const displayTour = computed(() => {
@@ -252,11 +315,7 @@ const formattedClientVersion = computed(() => {
 
 const testVersionWarning = computed(() => {
   //const tvw = isThisClean(build_env) ? '' : (deviceStore.isMobile? `TEST `:`WebClient Test Version`);
-  const tvw = isThisClean(build_env)
-    ? ''
-    : deviceStore.isMobile
-      ? `TEST ${deviceStore.screenWidth}`
-      : `WebClient Test Version`
+  const tvw = isThisClean(build_env) ? '' : `WebClient Test Version`
   return tvw
 })
 
@@ -308,33 +367,57 @@ const computedClusterType = computed(() => {
   }
 })
 
-const orgMenuItems = computed(() => [
-  {
-    label: 'Request Nodes',
-    icon: 'pi pi-server',
-    disabled: computedOrgIsPublic.value || !computedLoggedIn.value,
-    command: () => {
-      showClusterDialog.value = true
-    }
-  },
-  {
+function handleDeploy() {
+  logger.info('Deploy selected')
+  // TODO: Add API call to perform deploy lambda
+}
+
+const orgMenuItems = computed(() => {
+  const hasGitHubToken = githubAuthStore.hasValidAuth
+
+  const items = []
+
+  if (hasGitHubToken) {
+    items.push({
+      label: 'Deploy',
+      icon: 'pi pi-cloud-upload',
+      command: () => {
+        handleDeploy()
+      }
+    })
+  } else {
+    items.push({
+      label: 'Request Nodes',
+      icon: 'pi pi-server',
+      disabled: computedOrgIsPublic.value || !computedLoggedIn.value,
+      command: () => {
+        showClusterDialog.value = true
+      }
+    })
+  }
+
+  items.push({
     label: 'Log Out',
     icon: 'pi pi-sign-out',
     command: () => {
       void handleLogout()
     }
-  },
-  {
+  })
+
+  items.push({
     separator: true
-  },
-  {
+  })
+
+  items.push({
     label: 'Reset to Public Cluster',
     icon: 'pi pi-refresh',
     command: () => {
       void resetToPublicCluster()
     }
-  }
-])
+  })
+
+  return items
+})
 
 const toggleOrgMenu = (event: Event) => {
   orgMenu.value?.toggle(event)
@@ -493,38 +576,59 @@ async function submitDesiredNodes() {
 
 const mobileMenu = ref<InstanceType<typeof Menu> | null>(null)
 
-const mobileMenuItems = [
-  {
-    label: 'Request',
-    icon: 'pi pi-sliders-h',
-    command: handleRequestButtonClick
-  },
-  {
-    label: 'RecordTree',
-    icon: 'pi pi-list',
-    command: handleRecTreeButtonClick
-  },
-  {
-    label: 'Analysis',
-    icon: 'pi pi-chart-line',
-    command: handleAnalysisButtonClick
-  },
-  {
-    label: 'Documentation',
-    icon: 'pi pi-book',
-    items: docMenuItems[0].items
-  },
-  {
-    label: 'Settings',
-    icon: 'pi pi-cog',
-    command: handleSettingsButtonClick
-  },
-  {
-    label: 'About',
-    icon: 'pi pi-info-circle',
-    command: aboutMenuItems[0].command
+const mobileMenuItems = computed(() => {
+  const items = [
+    {
+      label: 'Request',
+      icon: 'pi pi-sliders-h',
+      command: handleRequestButtonClick
+    },
+    {
+      label: 'RecordTree',
+      icon: 'pi pi-list',
+      command: handleRecTreeButtonClick
+    },
+    {
+      label: 'Analysis',
+      icon: 'pi pi-chart-line',
+      command: handleAnalysisButtonClick
+    },
+    {
+      label: 'Documentation',
+      icon: 'pi pi-book',
+      items: docMenuItems[0].items
+    },
+    {
+      label: 'Settings',
+      icon: 'pi pi-cog',
+      command: handleSettingsButtonClick
+    },
+    {
+      label: 'About',
+      icon: 'pi pi-info-circle',
+      command: aboutMenuItems[0].command
+    }
+  ]
+
+  // Add login or account item based on auth state
+  if (isGitHubAuthenticated.value) {
+    items.push({
+      label: githubUsername.value || 'Account',
+      icon: 'pi pi-user',
+      command: () => {
+        showDashboardDialog.value = true
+      }
+    })
+  } else {
+    items.push({
+      label: 'Login',
+      icon: 'pi pi-github',
+      command: handleGitHubLogin
+    })
   }
-]
+
+  return items
+})
 
 const toggleMobileMenu = (event: Event) => {
   mobileMenu.value?.toggle(event)
@@ -648,7 +752,10 @@ function hideTooltip() {
       </Button>
       <Menu :model="mobileMenuItems" popup ref="mobileMenu" />
       <img src="/IceSat-2_SlideRule_logo.png" alt="SlideRule logo" class="logo" />
-      <span class="sr-title">SlideRule</span>
+      <span class="sr-title-wrapper">
+        <span class="sr-title">SlideRule</span>
+        <span v-if="testVersionWarning" class="sr-title-badge">{{ testVersionWarning }}</span>
+      </span>
       <Button
         v-if="showOrgBadge"
         type="button"
@@ -683,8 +790,6 @@ function hideTooltip() {
         @click="handleClientVersionButtonClick"
       >
       </Button>
-
-      <span class="sr-tvw">{{ testVersionWarning }}</span>
     </div>
     <div class="middle-content">
       <Button
@@ -711,7 +816,7 @@ function hideTooltip() {
           icon="pi pi-megaphone"
           label="Feedback"
           id="sr-feedback-button"
-          class="p-button-rounded p-button-text desktop-only"
+          class="p-button-rounded p-button-text desktop-only tablet-icon-only"
           @click="openMailClient"
         ></Button>
       </div>
@@ -746,15 +851,6 @@ function hideTooltip() {
       >
       </Button>
       <Button
-        icon="pi pi-book"
-        id="sr-docs-button"
-        label="Docs"
-        class="p-button-rounded p-button-text desktop-only"
-        @click="toggleDocsMenu"
-      >
-      </Button>
-      <Menu :model="docMenuItems" popup ref="docsMenu" />
-      <Button
         icon="pi pi-cog"
         id="sr-settings-button"
         label="Settings"
@@ -763,14 +859,43 @@ function hideTooltip() {
       >
       </Button>
       <Button
+        icon="pi pi-book"
+        id="sr-docs-button"
+        label="Docs"
+        class="p-button-rounded p-button-text desktop-only tablet-icon-only"
+        @click="toggleDocsMenu"
+      >
+      </Button>
+      <Menu :model="docMenuItems" popup ref="docsMenu" />
+      <Button
         icon="pi pi-info-circle"
         id="sr-about-button"
         label="About"
-        class="p-button-rounded p-button-text desktop-only"
+        class="p-button-rounded p-button-text desktop-only tablet-icon-only"
         @click="toggleAboutMenu"
       >
       </Button>
       <Menu :model="aboutMenuItems" popup ref="aboutMenu" />
+      <Button
+        v-if="!isGitHubAuthenticated"
+        icon="pi pi-github"
+        id="sr-login-button"
+        label="Login"
+        class="p-button-rounded p-button-text desktop-only"
+        :loading="isGitHubAuthenticating"
+        :disabled="isGitHubAuthenticating"
+        @click="handleGitHubLogin"
+      >
+      </Button>
+      <Button
+        v-if="isGitHubAuthenticated"
+        icon="pi pi-user"
+        id="sr-user-button"
+        :label="githubUsername || 'Account'"
+        class="p-button-rounded p-button-text desktop-only"
+        @click="showDashboardDialog = true"
+      >
+      </Button>
     </div>
   </div>
 
@@ -842,6 +967,48 @@ function hideTooltip() {
       />
     </div>
   </Dialog>
+
+  <Dialog
+    v-model:visible="showDashboardDialog"
+    header="Account Dashboard"
+    :closable="true"
+    modal
+    class="sr-dashboard-dialog"
+  >
+    <Message :severity="dashboardStatusSeverity" :closable="false" class="sr-dashboard-status">
+      {{ dashboardStatusMessage }}
+    </Message>
+
+    <div v-if="isGitHubAuthenticated" class="sr-dashboard-section">
+      <h4>Domain & Cluster</h4>
+      <SrSysConfig />
+    </div>
+
+    <div class="sr-dashboard-section">
+      <SrClusterInfo />
+    </div>
+
+    <div v-if="isGitHubAuthenticated" class="sr-dashboard-section">
+      <h4>Token Details</h4>
+      <SrTokenDetails />
+    </div>
+
+    <div v-if="canAccessMemberFeatures" class="sr-dashboard-section">
+      <h4>Deployment</h4>
+      <SrDeployConfig />
+    </div>
+
+    <div class="sr-dialog-buttons">
+      <Button
+        v-if="isGitHubAuthenticated"
+        label="Log Out"
+        icon="pi pi-sign-out"
+        severity="secondary"
+        @click="handleGitHubLogout"
+      />
+      <Button label="Close" @click="showDashboardDialog = false" />
+    </div>
+  </Dialog>
 </template>
 
 <style scoped>
@@ -909,11 +1076,41 @@ function hideTooltip() {
   align-items: center;
 }
 
+.sr-title-wrapper {
+  position: relative;
+  display: inline-block;
+  margin-left: 0.5rem;
+}
+
 .sr-title {
   font-size: 1.5rem;
   font-weight: 600;
   color: var(--p-button-text-primary-color);
-  margin-left: 0.5rem;
+}
+
+.sr-title-badge {
+  position: absolute;
+  top: -0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.55rem;
+  color: red;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.sr-debug-width {
+  position: absolute;
+  bottom: -0.75rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.5rem;
+  color: orange;
+  white-space: nowrap;
+  font-weight: 500;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 0 0.25rem;
+  border-radius: 2px;
 }
 
 .sr-org-badge {
@@ -961,11 +1158,6 @@ function hideTooltip() {
   /* Full width on smaller screens */
   min-width: 21rem;
 }
-.sr-tvw {
-  font-size: smaller;
-  color: red;
-  margin-left: 0.5rem;
-}
 .sr-banner-text {
   font-size: smaller;
   color: red;
@@ -978,6 +1170,13 @@ function hideTooltip() {
   .responsive-input {
     width: 300px;
     /* Fixed width on larger screens */
+  }
+}
+
+/* Tablet: show icon-only for certain buttons */
+@media (min-width: 769px) and (max-width: 1200px) {
+  .tablet-icon-only :deep(.p-button-label) {
+    display: none;
   }
 }
 
@@ -1090,5 +1289,30 @@ function hideTooltip() {
 :deep(.p-button.sr-server-version.danger .p-badge) {
   white-space: nowrap;
   color: var(--p-red-300);
+}
+
+.sr-dashboard-dialog {
+  width: 28rem;
+  max-width: 95vw;
+}
+
+.sr-dashboard-status {
+  margin: 0 0 1rem 0;
+}
+
+.sr-dashboard-section {
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--p-surface-border);
+}
+
+.sr-dashboard-section:last-of-type {
+  border-bottom: none;
+}
+
+.sr-dashboard-section h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9rem;
+  color: var(--p-text-muted-color);
 }
 </style>

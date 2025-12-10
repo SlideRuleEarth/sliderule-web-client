@@ -1,18 +1,24 @@
 <script setup lang="ts">
-import { useDeviceStore } from '@/stores/deviceStore';
-const deviceStore = useDeviceStore();
+import { useDeviceStore } from '@/stores/deviceStore'
+const deviceStore = useDeviceStore()
 </script>
 
 <template>
   <div class="device-info-card">
     <h2>Navigator / User Agent Information</h2>
     <ul>
-      <li><strong>Online Status:</strong> {{ deviceStore.getOnlineStatus() ? 'Online' : 'Offline' }}</li>
+      <li>
+        <strong>Online Status:</strong> {{ deviceStore.getOnlineStatus() ? 'Online' : 'Offline' }}
+      </li>
       <li><strong>Browser:</strong> {{ deviceStore.getBrowser() }}</li>
       <li><strong>Operating System:</strong> {{ deviceStore.getOS() }}</li>
+      <li><strong>Screen Width:</strong> {{ deviceStore.screenWidth }}px</li>
       <li><strong>User Agent:</strong> {{ deviceStore.getUserAgent() }}</li>
       <li><strong>Language:</strong> {{ deviceStore.getLanguage() }}</li>
-      <li><strong>WebGL:</strong> {{ deviceStore.getWebGLSupported() ? 'Supported' : 'Not Supported' }}</li>
+      <li>
+        <strong>WebGL:</strong>
+        {{ deviceStore.getWebGLSupported() ? 'Supported' : 'Not Supported' }}
+      </li>
     </ul>
   </div>
 </template>
