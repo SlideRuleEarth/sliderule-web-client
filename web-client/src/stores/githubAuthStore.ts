@@ -18,17 +18,25 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
     teams: [] as string[],
     teamRoles: {} as Record<string, string>,
     orgRoles: [] as string[],
-    allowedClusters: [] as string[],
+    accessibleClusters: [] as string[],
+    deployableClusters: [] as string[],
     token: null as string | null,
     lastError: null as string | null,
     authTimestamp: null as number | null,
+    // Token metadata (returned separately from server, not decoded from JWT)
+    org: null as string | null,
+    maxNodes: null as number | null,
+    clusterTtlHours: null as number | null,
+    tokenIssuedAt: null as number | null, // Unix timestamp
+    tokenExpiresAtTimestamp: null as number | null, // Unix timestamp
+    tokenIssuer: null as string | null,
     // Flag to indicate user just completed authentication (not persisted)
     justAuthenticated: false
   }),
   persist: {
     // Use sessionStorage - persists within tab until closed
     storage: sessionStorage,
-    // Persist membership info, token, and timestamp (justAuthenticated intentionally not persisted)
+    // Persist membership info, token, metadata, and timestamp (justAuthenticated intentionally not persisted)
     pick: [
       'isOrgMember',
       'isOrgOwner',
@@ -36,10 +44,17 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
       'teams',
       'teamRoles',
       'orgRoles',
-      'allowedClusters',
+      'accessibleClusters',
+      'deployableClusters',
       'token',
       'authTimestamp',
-      'authStatus'
+      'authStatus',
+      'org',
+      'maxNodes',
+      'clusterTtlHours',
+      'tokenIssuedAt',
+      'tokenExpiresAtTimestamp',
+      'tokenIssuer'
     ]
   },
   getters: {
@@ -93,38 +108,25 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
     isInTeam: (state) => (teamSlug: string) => state.teams.includes(teamSlug),
 
     /**
-     * Check if user is allowed to access a specific cluster
+     * Check if user can access a specific cluster
      */
-    isAllowedCluster: (state) => (cluster: string) => state.allowedClusters.includes(cluster),
+    isAccessibleCluster: (state) => (cluster: string) => state.accessibleClusters.includes(cluster),
 
     /**
-     * Get decoded JWT payload (for display purposes)
-     * Returns null if no token or invalid token format
+     * Get formatted expiration time from stored token metadata
+     * Note: Token is treated as opaque; expiration comes from server-provided metadata
      */
-    decodedToken(): Record<string, unknown> | null {
-      if (!this.token) return null
-      try {
-        // JWT format: header.payload.signature
-        const parts = this.token.split('.')
-        if (parts.length !== 3) return null
-
-        // Decode the payload (middle part) - base64url to base64
-        const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/')
-        const decoded = atob(payload)
-        return JSON.parse(decoded)
-      } catch (e) {
-        logger.warn('Failed to decode JWT token', e)
-        return null
-      }
+    tokenExpiresAt(): Date | null {
+      if (!this.tokenExpiresAtTimestamp) return null
+      return new Date(this.tokenExpiresAtTimestamp * 1000)
     },
 
     /**
-     * Get formatted expiration time from token
+     * Get formatted issued time from stored token metadata
      */
-    tokenExpiresAt(): Date | null {
-      const decoded = this.decodedToken
-      if (!decoded || typeof decoded.exp !== 'number') return null
-      return new Date(decoded.exp * 1000)
+    tokenIssuedAtDate(): Date | null {
+      if (!this.tokenIssuedAt) return null
+      return new Date(this.tokenIssuedAt * 1000)
     }
   },
   actions: {
@@ -187,6 +189,9 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
 
     /**
      * Handle the OAuth callback from the Lambda
+     *
+     * The JWT token is treated as opaque - all user info and token metadata
+     * are provided separately in URL params for UX purposes.
      */
     handleCallback(params: {
       state?: string
@@ -196,9 +201,17 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
       teams?: string
       teamRoles?: string
       orgRoles?: string
-      allowedClusters?: string
+      accessibleClusters?: string
+      deployableClusters?: string
       token?: string
       error?: string
+      // Token metadata (returned separately, not decoded from JWT)
+      org?: string
+      maxNodes?: string
+      clusterTtlHours?: string
+      tokenIssuedAt?: string
+      tokenExpiresAt?: string
+      tokenIssuer?: string
     }): boolean {
       logger.debug('Handling OAuth callback', params)
 
@@ -224,14 +237,27 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
       this.teams = params.teams ? params.teams.split(',').filter((t) => t) : []
       this.teamRoles = params.teamRoles ? JSON.parse(params.teamRoles) : {}
       this.orgRoles = params.orgRoles ? params.orgRoles.split(',').filter((r) => r) : []
-      this.allowedClusters = params.allowedClusters
-        ? params.allowedClusters.split(',').filter((c) => c)
+      this.accessibleClusters = params.accessibleClusters
+        ? params.accessibleClusters.split(',').filter((c) => c)
+        : []
+      this.deployableClusters = params.deployableClusters
+        ? params.deployableClusters.split(',').filter((c) => c)
         : []
       this.token = params.token || null
       this.authTimestamp = Date.now()
       this.authStatus = 'authenticated'
       this.lastError = null
       this.justAuthenticated = true
+
+      // Store token metadata (provided separately by server for UX)
+      this.org = params.org || null
+      this.maxNodes = params.maxNodes ? parseInt(params.maxNodes, 10) : null
+      this.clusterTtlHours = params.clusterTtlHours ? parseInt(params.clusterTtlHours, 10) : null
+      this.tokenIssuedAt = params.tokenIssuedAt ? parseInt(params.tokenIssuedAt, 10) : null
+      this.tokenExpiresAtTimestamp = params.tokenExpiresAt
+        ? parseInt(params.tokenExpiresAt, 10)
+        : null
+      this.tokenIssuer = params.tokenIssuer || null
 
       logger.info('GitHub auth successful', {
         username: this.username,
@@ -240,8 +266,11 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
         teams: this.teams,
         teamRoles: this.teamRoles,
         orgRoles: this.orgRoles,
-        allowedClusters: this.allowedClusters,
-        hasToken: !!this.token
+        accessibleClusters: this.accessibleClusters,
+        deployableClusters: this.deployableClusters,
+        hasToken: !!this.token,
+        maxNodes: this.maxNodes,
+        clusterTtlHours: this.clusterTtlHours
       })
 
       return true
@@ -258,11 +287,19 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
       this.teams = []
       this.teamRoles = {}
       this.orgRoles = []
-      this.allowedClusters = []
+      this.accessibleClusters = []
+      this.deployableClusters = []
       this.token = null
       this.authTimestamp = null
       this.lastError = null
       this.justAuthenticated = false
+      // Clear token metadata
+      this.org = null
+      this.maxNodes = null
+      this.clusterTtlHours = null
+      this.tokenIssuedAt = null
+      this.tokenExpiresAtTimestamp = null
+      this.tokenIssuer = null
       logger.info('GitHub auth cleared')
     },
 

@@ -10,8 +10,8 @@ const githubAuthStore = useGitHubAuthStore()
 const domain = ref('slideruleearth.io')
 const clusterName = ref('')
 
-// Use allowedClusters directly from the store
-const clusterOptions = computed(() => githubAuthStore.allowedClusters || [])
+// Use accessibleClusters directly from the store
+const clusterOptions = computed(() => githubAuthStore.accessibleClusters || [])
 
 // Set default cluster name when options become available
 watch(

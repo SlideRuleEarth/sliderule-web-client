@@ -16,9 +16,9 @@ const jwtStore = useJwtStore()
 
 // Cluster options from auth (includes 'sliderule' public cluster)
 const clusterOptions = computed(() => {
-  // If authenticated, use allowedClusters (which includes 'sliderule')
-  if (githubAuthStore.allowedClusters?.length > 0) {
-    return githubAuthStore.allowedClusters
+  // If authenticated, use accessibleClusters (which includes 'sliderule')
+  if (githubAuthStore.accessibleClusters?.length > 0) {
+    return githubAuthStore.accessibleClusters
   }
   // Fallback for non-authenticated users
   return ['sliderule']

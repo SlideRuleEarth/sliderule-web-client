@@ -117,8 +117,11 @@ class GitHubOrgAuth:
             if result.get('status') == 'success':
                 print(f"\nAuthentication successful!")
                 print(f"Logged in as: {result['username']}")
-                if result['is_member']:
-                    role = "Owner" if result['is_owner'] else "Member"
+                # Use is_org_member/is_org_owner from Lambda response
+                is_member = result.get('is_org_member', False)
+                is_owner = result.get('is_org_owner', False)
+                if is_member:
+                    role = "Owner" if is_owner else "Member"
                     print(f"Organization role: {role}")
                 else:
                     print(f"Not a member of {result['organization']}")
@@ -126,8 +129,8 @@ class GitHubOrgAuth:
                 return AuthResult(
                     success=True,
                     username=result['username'],
-                    is_member=result['is_member'],
-                    is_owner=result['is_owner'],
+                    is_member=is_member,
+                    is_owner=is_owner,
                     organization=result['organization'],
                     error=None
                 )

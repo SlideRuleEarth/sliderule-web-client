@@ -5,34 +5,48 @@ import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 
 const githubAuthStore = useGitHubAuthStore()
 
-const decodedToken = computed(() => githubAuthStore.decodedToken)
-const tokenExpiresAt = computed(() => githubAuthStore.tokenExpiresAt)
+// User info from store state (not decoded from JWT - provided separately by server)
+const username = computed(() => githubAuthStore.username)
+const org = computed(() => githubAuthStore.org)
+const isOrgMember = computed(() => githubAuthStore.isOrgMember)
+const isOrgOwner = computed(() => githubAuthStore.isOrgOwner)
 const teams = computed(() => githubAuthStore.teams)
 const teamRoles = computed(() => githubAuthStore.teamRoles)
 const orgRoles = computed(() => githubAuthStore.orgRoles)
-const allowedClusters = computed(() => githubAuthStore.allowedClusters)
+const accessibleClusters = computed(() => githubAuthStore.accessibleClusters)
+const deployableClusters = computed(() => githubAuthStore.deployableClusters)
+
+// Token metadata from store state (provided separately by server for UX)
+const maxNodes = computed(() => githubAuthStore.maxNodes)
+const clusterTtlHours = computed(() => githubAuthStore.clusterTtlHours)
+const tokenIssuedAt = computed(() => githubAuthStore.tokenIssuedAtDate)
+const tokenExpiresAt = computed(() => githubAuthStore.tokenExpiresAt)
+const tokenIssuer = computed(() => githubAuthStore.tokenIssuer)
+
+// Show token details when user is authenticated
+const isAuthenticated = computed(() => githubAuthStore.authStatus === 'authenticated')
 </script>
 
 <template>
-  <Fieldset v-if="decodedToken" legend="Token Details" toggleable>
+  <Fieldset v-if="isAuthenticated" legend="Token Details" toggleable>
     <div class="sr-token-details">
       <table class="sr-token-table">
         <tbody>
           <tr>
             <td class="sr-token-label">Username:</td>
-            <td class="sr-token-value">{{ decodedToken.username }}</td>
+            <td class="sr-token-value">{{ username ?? 'N/A' }}</td>
           </tr>
           <tr>
             <td class="sr-token-label">Organization:</td>
-            <td class="sr-token-value">{{ decodedToken.org }}</td>
+            <td class="sr-token-value">{{ org ?? 'N/A' }}</td>
           </tr>
           <tr>
             <td class="sr-token-label">Org Member:</td>
-            <td class="sr-token-value">{{ decodedToken.is_org_member ? 'Yes' : 'No' }}</td>
+            <td class="sr-token-value">{{ isOrgMember ? 'Yes' : 'No' }}</td>
           </tr>
           <tr>
             <td class="sr-token-label">Org Owner:</td>
-            <td class="sr-token-value">{{ decodedToken.is_org_owner ? 'Yes' : 'No' }}</td>
+            <td class="sr-token-value">{{ isOrgOwner ? 'Yes' : 'No' }}</td>
           </tr>
           <tr>
             <td class="sr-token-label">Teams:</td>
@@ -60,34 +74,33 @@ const allowedClusters = computed(() => githubAuthStore.allowedClusters)
             </td>
           </tr>
           <tr>
-            <td class="sr-token-label">Allowed Clusters:</td>
+            <td class="sr-token-label">Accessible Clusters:</td>
             <td class="sr-token-value">
-              <span v-if="allowedClusters.length === 0" class="sr-no-value">None</span>
-              <span v-else>{{ allowedClusters.join(', ') }}</span>
+              <span v-if="accessibleClusters.length === 0" class="sr-no-value">None</span>
+              <span v-else>{{ accessibleClusters.join(', ') }}</span>
+            </td>
+          </tr>
+          <tr>
+            <td class="sr-token-label">Deployable Clusters:</td>
+            <td class="sr-token-value">
+              <span v-if="deployableClusters.length === 0" class="sr-no-value">None</span>
+              <span v-else>{{ deployableClusters.join(', ') }}</span>
             </td>
           </tr>
           <tr>
             <td class="sr-token-label">Max Nodes:</td>
-            <td class="sr-token-value">{{ decodedToken.max_nodes ?? 'N/A' }}</td>
+            <td class="sr-token-value">{{ maxNodes ?? 'N/A' }}</td>
           </tr>
           <tr>
             <td class="sr-token-label">Cluster TTL:</td>
             <td class="sr-token-value">
-              {{
-                decodedToken.cluster_ttl_hours != null
-                  ? `${decodedToken.cluster_ttl_hours} hours`
-                  : 'N/A'
-              }}
+              {{ clusterTtlHours != null ? `${clusterTtlHours} hours` : 'N/A' }}
             </td>
           </tr>
           <tr>
             <td class="sr-token-label">Issued:</td>
             <td class="sr-token-value">
-              {{
-                decodedToken.iat
-                  ? new Date(Number(decodedToken.iat) * 1000).toLocaleString()
-                  : 'N/A'
-              }}
+              {{ tokenIssuedAt ? tokenIssuedAt.toLocaleString() : 'N/A' }}
             </td>
           </tr>
           <tr>
@@ -98,7 +111,7 @@ const allowedClusters = computed(() => githubAuthStore.allowedClusters)
           </tr>
           <tr>
             <td class="sr-token-label">Issuer:</td>
-            <td class="sr-token-value">{{ decodedToken.iss }}</td>
+            <td class="sr-token-value">{{ tokenIssuer ?? 'N/A' }}</td>
           </tr>
         </tbody>
       </table>

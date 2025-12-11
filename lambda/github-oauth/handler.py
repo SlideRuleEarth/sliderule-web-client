@@ -8,19 +8,25 @@ Supports two flows:
 1. Authorization Code Flow (for web clients)
 2. Device Flow (for CLI/Python clients)
 
-Returns a signed JWT containing:
-- username: GitHub username
-- is_org_member: boolean for org membership
-- is_org_owner: boolean for org admin role
-- teams: list of team slugs the user belongs to
-- org_roles: list of org-level roles (['owner', 'member'] for owners, ['member'] for members)
-- <team>-roles: for each team, a key like 'frontend-team-roles' with value ['member'] or ['maintainer']
-- allowed_clusters: list of cluster names the user can access (org members get username-cluster + team names)
-- max_nodes: maximum compute nodes (15 for owners, 7 for members)
-- cluster_ttl_hours: max cluster runtime in hours (12 for owners, 8 for members)
-- exp: token expiration timestamp (default 12 hours, configurable via JWT_EXPIRATION_HOURS)
+Returns:
+1. A minimal signed JWT containing only server-essential fields:
+   - sub/username: GitHub username (subject)
+   - accessible_clusters: list of cluster names the user can access
+   - deployable_clusters: list of cluster names the user can deploy/provision
+   - max_nodes: maximum compute nodes (15 for owners, 7 for members)
+   - cluster_ttl_hours: max cluster runtime in hours (12 for owners, 8 for members)
+   - iat: issued at timestamp
+   - exp: token expiration timestamp (default 12 hours, configurable via JWT_EXPIRATION_HOURS)
+   - iss: token issuer
 
-The JWT can be validated by the SlideRule server using the shared signing secret.
+2. User info returned separately (via URL params for web, JSON for device flow):
+   - username, is_org_member, is_org_owner
+   - teams, team_roles, org_roles
+   - accessible_clusters, deployable_clusters, max_nodes, cluster_ttl_hours
+   - org, token_issued_at, token_expires_at, token_issuer
+
+The JWT is validated server-side only. Clients should treat it as opaque and use
+the separately returned user info for display/UX purposes.
 """
 
 import base64
@@ -370,23 +376,26 @@ def handle_callback(event):
             teams, team_roles = get_user_teams(access_token, username)
             print(f"User {username} belongs to teams: {teams}, team_roles: {team_roles}")
 
-        # Compute org-level roles and allowed clusters
+        # Compute org-level roles and accessible/deployable clusters
         org_roles = compute_org_roles(membership['is_org_member'], membership['is_org_owner'])
-        allowed_clusters = compute_allowed_clusters(username, teams, membership['is_org_member'])
-        print(f"User {username} org_roles: {org_roles}, allowed_clusters: {allowed_clusters}")
+        accessible_clusters = compute_accessible_clusters(username, teams, membership['is_org_member'])
+        deployable_clusters = compute_deployable_clusters(
+            username, teams, membership['is_org_member'], membership['is_org_owner']
+        )
+        print(f"User {username} org_roles: {org_roles}, accessible_clusters: {accessible_clusters}, deployable_clusters: {deployable_clusters}")
 
-        # Create signed JWT token for all users (used for rate limiting)
+        # Compute token metadata (max_nodes, cluster_ttl, timestamps)
+        token_metadata = compute_token_metadata(membership['is_org_member'], membership['is_org_owner'])
+
+        # Create minimal signed JWT token (only server-essential fields)
         auth_token = create_auth_token(
             username=username,
-            is_org_member=membership['is_org_member'],
-            is_org_owner=membership['is_org_owner'],
-            teams=teams,
-            team_roles=team_roles,
-            org_roles=org_roles,
-            allowed_clusters=allowed_clusters
+            accessible_clusters=accessible_clusters,
+            deployable_clusters=deployable_clusters,
+            token_metadata=token_metadata
         )
 
-        # Redirect to frontend with results
+        # Redirect to frontend with results (user info + token metadata returned separately)
         return redirect_to_frontend_with_result(
             redirect_uri=redirect_uri,
             username=username,
@@ -395,8 +404,10 @@ def handle_callback(event):
             teams=teams,
             team_roles=team_roles,
             org_roles=org_roles,
-            allowed_clusters=allowed_clusters,
-            token=auth_token
+            accessible_clusters=accessible_clusters,
+            deployable_clusters=deployable_clusters,
+            token=auth_token,
+            token_metadata=token_metadata
         )
 
     except Exception as e:
@@ -631,37 +642,64 @@ def format_team_roles(team_roles):
     return formatted
 
 
-def compute_allowed_clusters(username, teams, is_org_member):
+def compute_accessible_clusters(username, teams, is_org_member):
     """
-    Compute allowed clusters for a user.
+    Compute accessible clusters for a user.
     - 'sliderule' public cluster is always included first
     - Org members get a personal cluster with -cluster suffix (username-cluster)
     - Teams are used directly as cluster names (no suffix)
 
     Returns a list of cluster names the user can access.
     """
-    allowed_clusters = ['sliderule']  # Public cluster always available
+    accessible_clusters = ['sliderule']  # Public cluster always available
     if is_org_member and username:
-        allowed_clusters.append(f"{username}-cluster")
+        accessible_clusters.append(f"{username}-cluster")
     if teams:
-        allowed_clusters.extend(teams)
-    return allowed_clusters
+        accessible_clusters.extend(teams)
+    return accessible_clusters
 
 
-def create_auth_token(username, is_org_member, is_org_owner, teams, team_roles, org_roles, allowed_clusters):
+def compute_deployable_clusters(username, teams, is_org_member, is_org_owner):
     """
-    Create a signed JWT containing the user's authentication info.
-    This token can be validated by the SlideRule server.
+    Compute clusters that the user can deploy/provision.
 
-    Token includes max_nodes and cluster_ttl based on user role:
-    - Owners: max_nodes=15, cluster_ttl=12 hours
-    - Members: max_nodes=7, cluster_ttl=8 hours
-    - Non-members: max_nodes=0, cluster_ttl=0 (no access)
+    - Non-members: empty list (no deployment rights)
+    - Org owners: ['sliderule-green', 'sliderule-blue', '<username>-cluster', ...teams]
+    - Org members: ['<username>-cluster', ...teams]
 
-    Token expiration is JWT_EXPIRATION_HOURS (default 12) regardless of role.
+    Returns a list of cluster names the user can deploy.
     """
-    signing_key = get_jwt_signing_key()
+    if not is_org_member:
+        return []
 
+    deployable = []
+
+    if is_org_owner:
+        # Owners can deploy to production clusters
+        deployable.extend(['sliderule-green', 'sliderule-blue'])
+
+    # All members can deploy to their personal cluster
+    if username:
+        deployable.append(f"{username}-cluster")
+
+    # All members can deploy to their team clusters
+    if teams:
+        deployable.extend(teams)
+
+    return deployable
+
+
+def compute_token_metadata(is_org_member, is_org_owner):
+    """
+    Compute token metadata (max_nodes, cluster_ttl, timestamps) based on user role.
+
+    Returns a dict with:
+    - max_nodes: maximum compute nodes
+    - cluster_ttl_hours: max cluster runtime in hours
+    - iat: issued at timestamp (int)
+    - exp: expiration timestamp (int)
+    - iss: issuer string
+    """
     now = datetime.now(timezone.utc)
 
     # Determine max_nodes and cluster TTL based on role
@@ -679,34 +717,58 @@ def create_auth_token(username, is_org_member, is_org_owner, teams, team_roles, 
     # Token expiration based on JWT_EXPIRATION_HOURS config
     expiration = now + timedelta(hours=JWT_EXPIRATION_HOURS)
 
-    # Build base payload
+    return {
+        'max_nodes': max_nodes,
+        'cluster_ttl_hours': cluster_ttl_hours,
+        'iat': int(now.timestamp()),
+        'exp': int(expiration.timestamp()),
+        'iss': 'sliderule-github-oauth'
+    }
+
+
+def create_auth_token(username, accessible_clusters, deployable_clusters, token_metadata):
+    """
+    Create a minimal signed JWT containing only server-essential fields.
+    This token is validated server-side only; clients should treat it as opaque.
+
+    Token includes only:
+    - sub/username: GitHub username (subject)
+    - accessible_clusters: list of cluster names the user can access
+    - deployable_clusters: list of cluster names the user can deploy/provision
+    - max_nodes: maximum compute nodes
+    - cluster_ttl_hours: max cluster runtime in hours
+    - iat: issued at timestamp
+    - exp: expiration timestamp
+    - iss: issuer
+
+    All other user info (is_org_member, teams, roles, etc.) is returned
+    separately to the client for UX purposes.
+    """
+    signing_key = get_jwt_signing_key()
+
+    # Build minimal payload with only server-essential fields
     payload = {
         'sub': username,  # Subject (GitHub username)
         'username': username,
-        'is_org_member': is_org_member,
-        'is_org_owner': is_org_owner,
-        'teams': teams,
-        'org_roles': org_roles,
-        'allowed_clusters': allowed_clusters,
-        'org': GITHUB_ORG,
-        'max_nodes': max_nodes,
-        'cluster_ttl_hours': cluster_ttl_hours,  # Max cluster runtime
-        'iat': int(now.timestamp()),  # Issued at
-        'exp': int(expiration.timestamp()),  # Expiration (12 hours)
-        'iss': 'sliderule-github-oauth'  # Issuer
+        'accessible_clusters': accessible_clusters,
+        'deployable_clusters': deployable_clusters,
+        'max_nodes': token_metadata['max_nodes'],
+        'cluster_ttl_hours': token_metadata['cluster_ttl_hours'],
+        'iat': token_metadata['iat'],
+        'exp': token_metadata['exp'],
+        'iss': token_metadata['iss']
     }
-
-    # Add team-level roles as <team>-roles keys
-    formatted_team_roles = format_team_roles(team_roles)
-    payload.update(formatted_team_roles)
 
     token = jwt.encode(payload, signing_key, algorithm=JWT_ALGORITHM)
     return token
 
 
-def redirect_to_frontend_with_result(redirect_uri, username, is_org_member, is_org_owner, teams=None, team_roles=None, org_roles=None, allowed_clusters=None, token=None):
+def redirect_to_frontend_with_result(redirect_uri, username, is_org_member, is_org_owner, teams=None, team_roles=None, org_roles=None, accessible_clusters=None, deployable_clusters=None, token=None, token_metadata=None):
     """
     Redirect to frontend with successful authentication result.
+
+    The JWT token is minimal (server-essential fields only). All user info
+    and token metadata are returned separately in URL params for client UX.
 
     Args:
         redirect_uri: The validated redirect URI from the signed state, or None to use default
@@ -716,8 +778,10 @@ def redirect_to_frontend_with_result(redirect_uri, username, is_org_member, is_o
         teams: List of team slugs
         team_roles: Dict of team slug to role
         org_roles: List of org-level roles
-        allowed_clusters: List of allowed cluster names
-        token: JWT token
+        accessible_clusters: List of clusters the user can access
+        deployable_clusters: List of clusters the user can deploy/provision
+        token: JWT token (opaque to client)
+        token_metadata: Dict with max_nodes, cluster_ttl_hours, iat, exp, iss
     """
     # Validate redirect URI to prevent open redirect attacks
     # Only use redirect_uri if it points to an allowed domain
@@ -735,7 +799,8 @@ def redirect_to_frontend_with_result(redirect_uri, username, is_org_member, is_o
     params = {
         'username': username,
         'isOrgMember': 'true' if is_org_member else 'false',
-        'isOrgOwner': 'true' if is_org_owner else 'false'
+        'isOrgOwner': 'true' if is_org_owner else 'false',
+        'org': GITHUB_ORG
     }
 
     # Add teams as comma-separated list
@@ -750,11 +815,23 @@ def redirect_to_frontend_with_result(redirect_uri, username, is_org_member, is_o
     if team_roles:
         params['teamRoles'] = json.dumps(team_roles)
 
-    # Add allowed clusters as comma-separated list
-    if allowed_clusters:
-        params['allowedClusters'] = ','.join(allowed_clusters)
+    # Add accessible clusters as comma-separated list
+    if accessible_clusters:
+        params['accessibleClusters'] = ','.join(accessible_clusters)
 
-    # Add JWT token
+    # Add deployable clusters as comma-separated list
+    if deployable_clusters:
+        params['deployableClusters'] = ','.join(deployable_clusters)
+
+    # Add token metadata (for client UX display)
+    if token_metadata:
+        params['maxNodes'] = str(token_metadata['max_nodes'])
+        params['clusterTtlHours'] = str(token_metadata['cluster_ttl_hours'])
+        params['tokenIssuedAt'] = str(token_metadata['iat'])
+        params['tokenExpiresAt'] = str(token_metadata['exp'])
+        params['tokenIssuer'] = token_metadata['iss']
+
+    # Add JWT token (opaque to client - used only for server auth)
     if token:
         params['token'] = token
 
@@ -989,23 +1066,26 @@ def handle_device_poll(event):
             teams, team_roles = get_user_teams(access_token, username)
             print(f"User {username} belongs to teams: {teams}, team_roles: {team_roles}")
 
-        # Compute org-level roles and allowed clusters
+        # Compute org-level roles and accessible/deployable clusters
         org_roles = compute_org_roles(membership['is_org_member'], membership['is_org_owner'])
-        allowed_clusters = compute_allowed_clusters(username, teams, membership['is_org_member'])
-        print(f"User {username} org_roles: {org_roles}, allowed_clusters: {allowed_clusters}")
+        accessible_clusters = compute_accessible_clusters(username, teams, membership['is_org_member'])
+        deployable_clusters = compute_deployable_clusters(
+            username, teams, membership['is_org_member'], membership['is_org_owner']
+        )
+        print(f"User {username} org_roles: {org_roles}, accessible_clusters: {accessible_clusters}, deployable_clusters: {deployable_clusters}")
 
-        # Create signed JWT token for all users (used for rate limiting)
+        # Compute token metadata (max_nodes, cluster_ttl, timestamps)
+        token_metadata = compute_token_metadata(membership['is_org_member'], membership['is_org_owner'])
+
+        # Create minimal signed JWT token (only server-essential fields)
         auth_token = create_auth_token(
             username=username,
-            is_org_member=membership['is_org_member'],
-            is_org_owner=membership['is_org_owner'],
-            teams=teams,
-            team_roles=team_roles,
-            org_roles=org_roles,
-            allowed_clusters=allowed_clusters
+            accessible_clusters=accessible_clusters,
+            deployable_clusters=deployable_clusters,
+            token_metadata=token_metadata
         )
 
-        # Build response with team roles in <team>-roles format
+        # Build response with user info and token metadata (JWT is opaque to client)
         response_data = {
             'status': 'success',
             'username': username,
@@ -1014,9 +1094,16 @@ def handle_device_poll(event):
             'teams': teams,
             'team_roles': team_roles,
             'org_roles': org_roles,
-            'allowed_clusters': allowed_clusters,
+            'accessible_clusters': accessible_clusters,
+            'deployable_clusters': deployable_clusters,
             'token': auth_token,
-            'organization': GITHUB_ORG
+            'organization': GITHUB_ORG,
+            # Token metadata for client UX display
+            'max_nodes': token_metadata['max_nodes'],
+            'cluster_ttl_hours': token_metadata['cluster_ttl_hours'],
+            'token_issued_at': token_metadata['iat'],
+            'token_expires_at': token_metadata['exp'],
+            'token_issuer': token_metadata['iss']
         }
 
         return json_response(200, response_data)

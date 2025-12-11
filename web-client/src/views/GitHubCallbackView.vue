@@ -31,7 +31,7 @@ function processCallback() {
     teams: route.query.teams as string | undefined,
     teamRoles: route.query.teamRoles as string | undefined,
     orgRoles: route.query.orgRoles as string | undefined,
-    allowedClusters: route.query.allowedClusters as string | undefined,
+    accessibleClusters: route.query.accessibleClusters as string | undefined,
     token: route.query.token as string | undefined,
     error: route.query.error as string | undefined
   }

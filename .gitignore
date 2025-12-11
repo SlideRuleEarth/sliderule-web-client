@@ -1,5 +1,10 @@
 # compiled output
 **/dist
+
+# Python
+**/__pycache__/
+**/*.pyc
+**/*.pyo
 **/global-s3-assets
 **/regional-s3-assets
 **/open-source
