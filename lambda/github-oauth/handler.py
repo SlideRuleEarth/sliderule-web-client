@@ -23,6 +23,9 @@ Returns a signed JWT containing:
 The JWT can be validated by the SlideRule server using the shared signing secret.
 """
 
+import base64
+import hashlib
+import hmac
 import json
 import os
 import secrets
@@ -42,6 +45,12 @@ JWT_SIGNING_KEY_ARN = os.environ.get('JWT_SIGNING_KEY_ARN')
 # JWT configuration
 JWT_ALGORITHM = 'HS256'
 JWT_EXPIRATION_HOURS = int(os.environ.get('JWT_EXPIRATION_HOURS', '12'))
+
+# HTTP request timeout (seconds) - prevents Lambda from hanging on stalled connections
+HTTP_TIMEOUT_SECONDS = 15
+
+# OAuth state expiration (seconds) - state tokens older than this are rejected
+STATE_EXPIRATION_SECONDS = 600  # 10 minutes
 
 # GitHub OAuth endpoints
 GITHUB_AUTHORIZE_URL = 'https://github.com/login/oauth/authorize'
@@ -88,11 +97,109 @@ def get_jwt_signing_key():
     return _secrets_cache['jwt_signing_key']
 
 
+def create_signed_state(redirect_uri=None):
+    """
+    Create an HMAC-signed OAuth state parameter for CSRF protection.
+
+    The state includes:
+    - A random nonce for uniqueness
+    - A timestamp for expiration checking
+    - Optional redirect URI
+    - HMAC signature to prevent tampering
+
+    Format: {nonce}:{timestamp}:{redirect_uri_b64}:{signature}
+
+    Args:
+        redirect_uri: Optional frontend redirect URI to include in state
+
+    Returns:
+        A signed state string
+    """
+    signing_key = get_jwt_signing_key()
+    nonce = secrets.token_urlsafe(16)
+    timestamp = str(int(datetime.now(timezone.utc).timestamp()))
+
+    # Base64 encode redirect_uri to avoid delimiter issues
+    redirect_uri_b64 = ''
+    if redirect_uri:
+        redirect_uri_b64 = base64.urlsafe_b64encode(redirect_uri.encode()).decode()
+
+    # Create message to sign (nonce:timestamp:redirect_uri_b64)
+    message = f"{nonce}:{timestamp}:{redirect_uri_b64}"
+
+    # Create HMAC signature
+    signature = hmac.new(
+        signing_key.encode(),
+        message.encode(),
+        hashlib.sha256
+    ).hexdigest()
+
+    return f"{message}:{signature}"
+
+
+def verify_signed_state(state):
+    """
+    Verify an HMAC-signed OAuth state parameter.
+
+    Checks:
+    - HMAC signature is valid (prevents tampering)
+    - Timestamp is within STATE_EXPIRATION_SECONDS (prevents replay)
+
+    Args:
+        state: The state string from the OAuth callback
+
+    Returns:
+        Tuple of (is_valid: bool, redirect_uri: str | None, error: str | None)
+    """
+    if not state:
+        return False, None, "Missing state parameter"
+
+    try:
+        parts = state.split(':')
+        if len(parts) != 4:
+            return False, None, "Invalid state format"
+
+        nonce, timestamp_str, redirect_uri_b64, provided_signature = parts
+
+        # Verify HMAC signature
+        signing_key = get_jwt_signing_key()
+        message = f"{nonce}:{timestamp_str}:{redirect_uri_b64}"
+        expected_signature = hmac.new(
+            signing_key.encode(),
+            message.encode(),
+            hashlib.sha256
+        ).hexdigest()
+
+        if not hmac.compare_digest(provided_signature, expected_signature):
+            return False, None, "Invalid state signature"
+
+        # Check timestamp expiration
+        timestamp = int(timestamp_str)
+        now = int(datetime.now(timezone.utc).timestamp())
+        if now - timestamp > STATE_EXPIRATION_SECONDS:
+            return False, None, "State has expired"
+
+        # Decode redirect URI if present
+        redirect_uri = None
+        if redirect_uri_b64:
+            redirect_uri = base64.urlsafe_b64decode(redirect_uri_b64.encode()).decode()
+
+        return True, redirect_uri, None
+
+    except (ValueError, TypeError, base64.binascii.Error) as e:
+        print(f"Error verifying state: {e}")
+        return False, None, "Invalid state format"
+
+
 def is_valid_redirect_uri(uri):
     """
-    Validate that a redirect URI points to an allowed domain.
+    Validate that a redirect URI points to an allowed domain with a safe scheme.
     Prevents open redirect attacks where an attacker could redirect
     the JWT token to a malicious site.
+
+    Security checks:
+    - Scheme must be https (or http only for localhost/127.0.0.1)
+    - Host must be in ALLOWED_REDIRECT_HOSTS or match FRONTEND_URL
 
     Args:
         uri: The redirect URI to validate
@@ -106,8 +213,22 @@ def is_valid_redirect_uri(uri):
     try:
         parsed = urllib.parse.urlparse(uri)
         host = parsed.hostname
+        scheme = parsed.scheme.lower() if parsed.scheme else ''
 
-        if not host:
+        if not host or not scheme:
+            print("Rejected redirect with missing host or scheme")
+            return False
+
+        is_localhost = host in ('localhost', '127.0.0.1')
+
+        # Validate scheme: only https allowed, except http for localhost
+        if scheme not in ('https', 'http'):
+            print(f"Rejected redirect with invalid scheme: {scheme}")
+            return False
+
+        # http is only allowed for localhost development
+        if scheme == 'http' and not is_localhost:
+            print(f"Rejected http redirect to non-localhost host: {host}")
             return False
 
         # Check against allowed hosts
@@ -156,22 +277,26 @@ def handle_login(event):
     """
     Initiate GitHub OAuth flow.
     Redirects user to GitHub authorization page.
+
+    Creates an HMAC-signed state parameter that includes:
+    - Random nonce for uniqueness
+    - Timestamp for expiration
+    - Optional redirect URI
+    - Cryptographic signature for CSRF protection
     """
     # Get query parameters
     query_params = event.get('queryStringParameters') or {}
-    state = query_params.get('state', secrets.token_urlsafe(32))
     redirect_uri = query_params.get('redirect_uri')
 
     # Build the callback URL (this Lambda's callback endpoint)
-    # Get the host from the request
     headers = event.get('headers', {})
     host = headers.get('host', '')
     protocol = 'https'
     callback_url = f"{protocol}://{host}/auth/github/callback"
 
-    # Store the frontend redirect URI in state if provided
-    if redirect_uri:
-        state = f"{state}|{redirect_uri}"
+    # Create HMAC-signed state for CSRF protection
+    # The state includes the redirect_uri securely encoded
+    state = create_signed_state(redirect_uri)
 
     # Build GitHub authorization URL
     params = {
@@ -197,6 +322,8 @@ def handle_callback(event):
     """
     Handle GitHub OAuth callback.
     Exchange code for token, check org membership, get teams, create JWT, redirect to frontend.
+
+    Security: Validates HMAC-signed state parameter to prevent CSRF attacks.
     """
     query_params = event.get('queryStringParameters') or {}
     code = query_params.get('code')
@@ -204,12 +331,23 @@ def handle_callback(event):
     error = query_params.get('error')
     error_description = query_params.get('error_description')
 
+    # Verify state parameter FIRST (CSRF protection)
+    # This must happen before any other processing
+    is_valid, redirect_uri, state_error = verify_signed_state(state)
+    if not is_valid:
+        print(f"Security: Invalid OAuth state - {state_error}")
+        # Return error to default frontend since we can't trust the redirect_uri
+        return redirect_to_frontend_with_error(
+            redirect_uri=None,
+            error_message=f"Security error: {state_error}"
+        )
+
     # Handle OAuth errors from GitHub
     if error:
-        return redirect_to_frontend_with_error(state, error_description or error)
+        return redirect_to_frontend_with_error(redirect_uri, error_description or error)
 
     if not code:
-        return redirect_to_frontend_with_error(state, 'No authorization code received')
+        return redirect_to_frontend_with_error(redirect_uri, 'No authorization code received')
 
     try:
         # Exchange code for access token
@@ -220,7 +358,7 @@ def handle_callback(event):
         username = user_info.get('login')
 
         if not username:
-            return redirect_to_frontend_with_error(state, 'Could not get GitHub username')
+            return redirect_to_frontend_with_error(redirect_uri, 'Could not get GitHub username')
 
         # Check organization membership
         membership = check_org_membership(access_token, username)
@@ -250,7 +388,7 @@ def handle_callback(event):
 
         # Redirect to frontend with results
         return redirect_to_frontend_with_result(
-            state=state,
+            redirect_uri=redirect_uri,
             username=username,
             is_org_member=membership['is_org_member'],
             is_org_owner=membership['is_org_owner'],
@@ -263,7 +401,7 @@ def handle_callback(event):
 
     except Exception as e:
         print(f"Error during OAuth callback: {str(e)}")
-        return redirect_to_frontend_with_error(state, str(e))
+        return redirect_to_frontend_with_error(redirect_uri, str(e))
 
 
 def exchange_code_for_token(code, event):
@@ -285,7 +423,8 @@ def exchange_code_for_token(code, event):
             'client_secret': client_secret,
             'code': code,
             'redirect_uri': callback_url
-        }
+        },
+        timeout=HTTP_TIMEOUT_SECONDS
     )
 
     if response.status_code != 200:
@@ -310,7 +449,8 @@ def get_github_user(access_token):
         headers={
             'Authorization': f'Bearer {access_token}',
             'Accept': 'application/vnd.github.v3+json'
-        }
+        },
+        timeout=HTTP_TIMEOUT_SECONDS
     )
 
     if response.status_code != 200:
@@ -322,7 +462,13 @@ def get_github_user(access_token):
 def check_org_membership(access_token, username):
     """
     Check if user is a member of the SlideRuleEarth organization.
+
     Returns dict with is_org_member and is_org_owner flags.
+
+    Raises:
+        Exception: If GitHub API returns an unexpected error (5xx, 429, etc.)
+                   This prevents silently degrading users to non-member status
+                   during GitHub outages.
     """
     # Try to get the user's membership in the org
     response = requests.get(
@@ -330,7 +476,8 @@ def check_org_membership(access_token, username):
         headers={
             'Authorization': f'Bearer {access_token}',
             'Accept': 'application/vnd.github.v3+json'
-        }
+        },
+        timeout=HTTP_TIMEOUT_SECONDS
     )
 
     if response.status_code == 200:
@@ -347,22 +494,30 @@ def check_org_membership(access_token, username):
             'is_org_owner': is_org_owner
         }
     elif response.status_code == 404:
-        # User is not a member of the organization
+        # User is not a member of the organization - this is expected for non-members
         return {
             'is_org_member': False,
             'is_org_owner': False
         }
+    elif response.status_code == 429:
+        # Rate limit exceeded - don't silently degrade, surface the error
+        raise Exception("GitHub API rate limit exceeded. Please try again later.")
+    elif response.status_code >= 500:
+        # GitHub API error - don't silently degrade, surface the error
+        raise Exception(f"GitHub API is unavailable (status {response.status_code}). Please try again later.")
     else:
+        # Other unexpected errors - fail explicitly rather than silently degrading
         print(f"Unexpected response checking org membership: {response.status_code} {response.text}")
-        return {
-            'is_org_member': False,
-            'is_org_owner': False
-        }
+        raise Exception(f"Failed to verify organization membership: GitHub returned status {response.status_code}")
 
 
 def get_user_teams(access_token, username):
     """
     Get all teams the user belongs to in the SlideRuleEarth organization.
+
+    Uses the /user/teams endpoint which works for all authenticated users,
+    unlike /orgs/{org}/teams which requires admin permissions.
+
     Returns a tuple of (teams, team_roles) where:
     - teams: list of team slugs
     - team_roles: dict mapping team slug to role ('member' or 'maintainer')
@@ -370,8 +525,9 @@ def get_user_teams(access_token, username):
     teams = []
     team_roles = {}
 
-    # GitHub API returns paginated results, so we need to handle pagination
-    url = f"{GITHUB_API_URL}/orgs/{GITHUB_ORG}/teams"
+    # Use /user/teams which lists teams for the authenticated user
+    # This works for all users, unlike /orgs/{org}/teams which requires admin
+    url = f"{GITHUB_API_URL}/user/teams"
     page = 1
     per_page = 100
 
@@ -385,28 +541,33 @@ def get_user_teams(access_token, username):
             params={
                 'page': page,
                 'per_page': per_page
-            }
+            },
+            timeout=HTTP_TIMEOUT_SECONDS
         )
 
         if response.status_code != 200:
-            print(f"Failed to get org teams: {response.status_code} {response.text}")
+            print(f"Failed to get user teams: {response.status_code} {response.text}")
             break
 
-        org_teams = response.json()
-        if not org_teams:
+        user_teams = response.json()
+        if not user_teams:
             break
 
-        # Check membership in each team and get role
-        for team in org_teams:
-            team_slug = team.get('slug')
-            if team_slug:
-                membership = get_user_team_membership(access_token, team_slug, username)
-                if membership:
-                    teams.append(team_slug)
-                    team_roles[team_slug] = membership.get('role', 'member')
+        # Filter teams by organization and get role for each
+        for team in user_teams:
+            org = team.get('organization', {})
+            if org.get('login') == GITHUB_ORG:
+                team_slug = team.get('slug')
+                if team_slug:
+                    # /user/teams doesn't include the user's role in the team
+                    # Need to call the team membership API to get role
+                    membership = get_user_team_membership(access_token, team_slug, username)
+                    if membership:
+                        teams.append(team_slug)
+                        team_roles[team_slug] = membership.get('role', 'member')
 
         # Check if there are more pages
-        if len(org_teams) < per_page:
+        if len(user_teams) < per_page:
             break
         page += 1
 
@@ -423,7 +584,8 @@ def get_user_team_membership(access_token, team_slug, username):
         headers={
             'Authorization': f'Bearer {access_token}',
             'Accept': 'application/vnd.github.v3+json'
-        }
+        },
+        timeout=HTTP_TIMEOUT_SECONDS
     )
 
     if response.status_code == 200:
@@ -542,32 +704,35 @@ def create_auth_token(username, is_org_member, is_org_owner, teams, team_roles, 
     return token
 
 
-def redirect_to_frontend_with_result(state, username, is_org_member, is_org_owner, teams=None, team_roles=None, org_roles=None, allowed_clusters=None, token=None):
-    """Redirect to frontend with successful authentication result."""
-    # Parse original state to extract frontend redirect URI if present
-    original_state = state
-    frontend_redirect = None
+def redirect_to_frontend_with_result(redirect_uri, username, is_org_member, is_org_owner, teams=None, team_roles=None, org_roles=None, allowed_clusters=None, token=None):
+    """
+    Redirect to frontend with successful authentication result.
 
-    if '|' in state:
-        parts = state.split('|', 1)
-        original_state = parts[0]
-        frontend_redirect = parts[1] if len(parts) > 1 else None
-
+    Args:
+        redirect_uri: The validated redirect URI from the signed state, or None to use default
+        username: GitHub username
+        is_org_member: Whether user is an org member
+        is_org_owner: Whether user is an org owner
+        teams: List of team slugs
+        team_roles: Dict of team slug to role
+        org_roles: List of org-level roles
+        allowed_clusters: List of allowed cluster names
+        token: JWT token
+    """
     # Validate redirect URI to prevent open redirect attacks
-    # Only use frontend_redirect if it points to an allowed domain
-    if frontend_redirect and not is_valid_redirect_uri(frontend_redirect):
-        print(f"Security: Rejected invalid redirect URI: {frontend_redirect}")
-        frontend_redirect = None
+    # Only use redirect_uri if it points to an allowed domain
+    if redirect_uri and not is_valid_redirect_uri(redirect_uri):
+        print(f"Security: Rejected invalid redirect URI: {redirect_uri}")
+        redirect_uri = None
 
     # Build redirect URL (fall back to configured FRONTEND_URL if invalid)
-    base_url = frontend_redirect or FRONTEND_URL
+    base_url = redirect_uri or FRONTEND_URL
 
     # Ensure we redirect to the callback path on the frontend
     if not base_url.endswith('/auth/github/callback'):
         base_url = base_url.rstrip('/') + '/auth/github/callback'
 
     params = {
-        'state': original_state,
         'username': username,
         'isOrgMember': 'true' if is_org_member else 'false',
         'isOrgOwner': 'true' if is_org_owner else 'false'
@@ -605,28 +770,25 @@ def redirect_to_frontend_with_result(state, username, is_org_member, is_org_owne
     }
 
 
-def redirect_to_frontend_with_error(state, error_message):
-    """Redirect to frontend with error."""
-    original_state = state
-    frontend_redirect = None
+def redirect_to_frontend_with_error(redirect_uri, error_message):
+    """
+    Redirect to frontend with error.
 
-    if '|' in state:
-        parts = state.split('|', 1)
-        original_state = parts[0]
-        frontend_redirect = parts[1] if len(parts) > 1 else None
-
+    Args:
+        redirect_uri: The validated redirect URI from the signed state, or None to use default
+        error_message: Error message to display
+    """
     # Validate redirect URI to prevent open redirect attacks
-    if frontend_redirect and not is_valid_redirect_uri(frontend_redirect):
-        print(f"Security: Rejected invalid redirect URI in error flow: {frontend_redirect}")
-        frontend_redirect = None
+    if redirect_uri and not is_valid_redirect_uri(redirect_uri):
+        print(f"Security: Rejected invalid redirect URI in error flow: {redirect_uri}")
+        redirect_uri = None
 
-    base_url = frontend_redirect or FRONTEND_URL
+    base_url = redirect_uri or FRONTEND_URL
 
     if not base_url.endswith('/auth/github/callback'):
         base_url = base_url.rstrip('/') + '/auth/github/callback'
 
     params = {
-        'state': original_state,
         'error': error_message
     }
 
@@ -678,7 +840,8 @@ def handle_device_code_request(event):
             data={
                 'client_id': GITHUB_CLIENT_ID,
                 'scope': 'read:org'
-            }
+            },
+            timeout=HTTP_TIMEOUT_SECONDS
         )
 
         if response.status_code != 200:
@@ -762,7 +925,8 @@ def handle_device_poll(event):
                 'client_secret': client_secret,
                 'device_code': device_code,
                 'grant_type': 'urn:ietf:params:oauth:grant-type:device_code'
-            }
+            },
+            timeout=HTTP_TIMEOUT_SECONDS
         )
 
         data = response.json()
