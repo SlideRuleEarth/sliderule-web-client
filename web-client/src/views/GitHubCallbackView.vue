@@ -32,8 +32,16 @@ function processCallback() {
     teamRoles: route.query.teamRoles as string | undefined,
     orgRoles: route.query.orgRoles as string | undefined,
     accessibleClusters: route.query.accessibleClusters as string | undefined,
+    deployableClusters: route.query.deployableClusters as string | undefined,
     token: route.query.token as string | undefined,
-    error: route.query.error as string | undefined
+    error: route.query.error as string | undefined,
+    // Token metadata
+    org: route.query.org as string | undefined,
+    maxNodes: route.query.maxNodes as string | undefined,
+    clusterTtlHours: route.query.clusterTtlHours as string | undefined,
+    tokenIssuedAt: route.query.tokenIssuedAt as string | undefined,
+    tokenExpiresAt: route.query.tokenExpiresAt as string | undefined,
+    tokenIssuer: route.query.tokenIssuer as string | undefined
   }
 
   // Security: Immediately clear sensitive params from URL to prevent token exposure

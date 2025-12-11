@@ -39,18 +39,28 @@ import urllib.parse
 from datetime import datetime, timedelta, timezone
 import boto3
 import requests
-import jwt
+# Note: PyJWT is available for verification if needed, but we use KMS directly for signing
 
 # Configuration from environment variables
 GITHUB_CLIENT_ID = os.environ.get('GITHUB_CLIENT_ID')
 GITHUB_ORG = os.environ.get('GITHUB_ORG', 'SlideRuleEarth')
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://testsliderule.org')
 CLIENT_SECRET_NAME = os.environ.get('CLIENT_SECRET_NAME')
+# KMS key ARN for JWT signing (RS256 asymmetric)
 JWT_SIGNING_KEY_ARN = os.environ.get('JWT_SIGNING_KEY_ARN')
+# Secrets Manager ARN for HMAC key (OAuth state signing)
+HMAC_SIGNING_KEY_ARN = os.environ.get('HMAC_SIGNING_KEY_ARN')
 
 # JWT configuration
-JWT_ALGORITHM = 'HS256'
+# RS256 (asymmetric) is preferred over HS256 (symmetric) because:
+# - Private key never leaves KMS (more secure)
+# - Public key can be freely distributed for verification
+# - Better for distributed systems where multiple services verify tokens
+JWT_ALGORITHM = 'RS256'
 JWT_EXPIRATION_HOURS = int(os.environ.get('JWT_EXPIRATION_HOURS', '12'))
+
+# KMS client for JWT signing (initialized lazily)
+_kms_client = None
 
 # HTTP request timeout (seconds) - prevents Lambda from hanging on stalled connections
 HTTP_TIMEOUT_SECONDS = 15
@@ -94,13 +104,85 @@ def get_github_client_secret():
     return _secrets_cache['client_secret']
 
 
-def get_jwt_signing_key():
-    """Retrieve JWT signing key from AWS Secrets Manager."""
-    if 'jwt_signing_key' not in _secrets_cache:
+def get_hmac_signing_key():
+    """
+    Retrieve HMAC signing key from AWS Secrets Manager.
+    Used for HMAC operations (OAuth state signing for CSRF protection).
+    JWT signing uses KMS directly via sign_with_kms().
+    """
+    if 'hmac_signing_key' not in _secrets_cache:
+        if not HMAC_SIGNING_KEY_ARN:
+            raise ValueError("HMAC_SIGNING_KEY_ARN environment variable not set")
+        _secrets_cache['hmac_signing_key'] = _get_secret(HMAC_SIGNING_KEY_ARN)
+    return _secrets_cache['hmac_signing_key']
+
+
+def get_kms_client():
+    """Get or create KMS client (cached for Lambda container reuse)."""
+    global _kms_client
+    if _kms_client is None:
+        _kms_client = boto3.client('kms')
+    return _kms_client
+
+
+def sign_with_kms(message_bytes):
+    """
+    Sign a message using AWS KMS asymmetric key.
+
+    Uses RSASSA_PKCS1_V1_5_SHA_256 algorithm which corresponds to RS256 in JWT.
+    The private key never leaves KMS - signing happens server-side.
+
+    Args:
+        message_bytes: The message to sign (bytes)
+
+    Returns:
+        The signature as bytes
+    """
+    if not JWT_SIGNING_KEY_ARN:
+        raise ValueError("JWT_SIGNING_KEY_ARN environment variable not set")
+
+    kms = get_kms_client()
+    response = kms.sign(
+        KeyId=JWT_SIGNING_KEY_ARN,
+        Message=message_bytes,
+        MessageType='RAW',
+        SigningAlgorithm='RSASSA_PKCS1_V1_5_SHA_256'
+    )
+    return response['Signature']
+
+
+def get_kms_public_key():
+    """
+    Retrieve the public key from KMS for JWT verification.
+
+    This can be distributed freely to any service that needs to verify JWTs.
+    The public key is cached for Lambda container reuse.
+
+    Returns:
+        PEM-encoded public key string
+    """
+    if 'kms_public_key' not in _secrets_cache:
         if not JWT_SIGNING_KEY_ARN:
             raise ValueError("JWT_SIGNING_KEY_ARN environment variable not set")
-        _secrets_cache['jwt_signing_key'] = _get_secret(JWT_SIGNING_KEY_ARN)
-    return _secrets_cache['jwt_signing_key']
+
+        kms = get_kms_client()
+        response = kms.get_public_key(KeyId=JWT_SIGNING_KEY_ARN)
+
+        # Convert DER to PEM format
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.backends import default_backend
+
+        public_key = serialization.load_der_public_key(
+            response['PublicKey'],
+            backend=default_backend()
+        )
+        pem_key = public_key.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        )
+        _secrets_cache['kms_public_key'] = pem_key.decode('utf-8')
+
+    return _secrets_cache['kms_public_key']
 
 
 def create_signed_state(redirect_uri=None):
@@ -121,7 +203,7 @@ def create_signed_state(redirect_uri=None):
     Returns:
         A signed state string
     """
-    signing_key = get_jwt_signing_key()
+    signing_key = get_hmac_signing_key()
     nonce = secrets.token_urlsafe(16)
     timestamp = str(int(datetime.now(timezone.utc).timestamp()))
 
@@ -168,7 +250,7 @@ def verify_signed_state(state):
         nonce, timestamp_str, redirect_uri_b64, provided_signature = parts
 
         # Verify HMAC signature
-        signing_key = get_jwt_signing_key()
+        signing_key = get_hmac_signing_key()
         message = f"{nonce}:{timestamp_str}:{redirect_uri_b64}"
         expected_signature = hmac.new(
             signing_key.encode(),
@@ -272,6 +354,11 @@ def lambda_handler(event, context):
         return handle_device_code_request(event)
     elif path == '/auth/github/device/poll':
         return handle_device_poll(event)
+    # Public key endpoint for JWT verification
+    elif path == '/auth/github/jwks' or path == '/.well-known/jwks.json':
+        return handle_jwks(event)
+    elif path == '/auth/github/public-key':
+        return handle_public_key(event)
     else:
         return {
             'statusCode': 404,
@@ -731,6 +818,11 @@ def create_auth_token(username, accessible_clusters, deployable_clusters, token_
     Create a minimal signed JWT containing only server-essential fields.
     This token is validated server-side only; clients should treat it as opaque.
 
+    Uses RS256 (RSA + SHA-256) with AWS KMS for signing:
+    - Private key never leaves KMS (hardware security module)
+    - Public key can be freely distributed for verification
+    - More secure than HS256 for distributed systems
+
     Token includes only:
     - sub/username: GitHub username (subject)
     - accessible_clusters: list of cluster names the user can access
@@ -744,8 +836,6 @@ def create_auth_token(username, accessible_clusters, deployable_clusters, token_
     All other user info (is_org_member, teams, roles, etc.) is returned
     separately to the client for UX purposes.
     """
-    signing_key = get_jwt_signing_key()
-
     # Build minimal payload with only server-essential fields
     payload = {
         'sub': username,  # Subject (GitHub username)
@@ -759,7 +849,28 @@ def create_auth_token(username, accessible_clusters, deployable_clusters, token_
         'iss': token_metadata['iss']
     }
 
-    token = jwt.encode(payload, signing_key, algorithm=JWT_ALGORITHM)
+    # Build JWT header
+    header = {
+        'alg': JWT_ALGORITHM,
+        'typ': 'JWT'
+    }
+
+    # Encode header and payload (base64url without padding)
+    def base64url_encode(data):
+        return base64.urlsafe_b64encode(data).rstrip(b'=').decode('ascii')
+
+    header_b64 = base64url_encode(json.dumps(header, separators=(',', ':')).encode('utf-8'))
+    payload_b64 = base64url_encode(json.dumps(payload, separators=(',', ':')).encode('utf-8'))
+
+    # Create signing input
+    signing_input = f"{header_b64}.{payload_b64}"
+
+    # Sign with KMS (RS256 = RSASSA-PKCS1-v1_5 using SHA-256)
+    signature = sign_with_kms(signing_input.encode('utf-8'))
+    signature_b64 = base64url_encode(signature)
+
+    # Assemble final JWT
+    token = f"{signing_input}.{signature_b64}"
     return token
 
 
@@ -1113,5 +1224,108 @@ def handle_device_poll(event):
         return json_response(500, {
             'status': 'error',
             'error': 'internal_error',
+            'error_description': str(e)
+        })
+
+
+# =============================================================================
+# Public Key / JWKS endpoints (for JWT verification)
+# =============================================================================
+
+def handle_public_key(event):
+    """
+    Return the public key in PEM format for JWT verification.
+
+    GET /auth/github/public-key
+
+    This endpoint allows any service to retrieve the public key needed
+    to verify JWTs signed by this Lambda. The private key never leaves KMS.
+    """
+    try:
+        public_key_pem = get_kms_public_key()
+        return {
+            'statusCode': 200,
+            'headers': {
+                'Content-Type': 'application/x-pem-file',
+                'Access-Control-Allow-Origin': '*',
+                'Cache-Control': 'public, max-age=86400'  # Cache for 24 hours
+            },
+            'body': public_key_pem
+        }
+    except Exception as e:
+        print(f"Error retrieving public key: {str(e)}")
+        return json_response(500, {
+            'error': 'public_key_error',
+            'error_description': str(e)
+        })
+
+
+def handle_jwks(event):
+    """
+    Return the public key in JWKS (JSON Web Key Set) format.
+
+    GET /auth/github/jwks or /.well-known/jwks.json
+
+    JWKS is the standard format for distributing public keys for JWT verification.
+    This format is compatible with most JWT libraries and OIDC implementations.
+    """
+    try:
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.backends import default_backend
+
+        if not JWT_SIGNING_KEY_ARN:
+            raise ValueError("JWT_SIGNING_KEY_ARN environment variable not set")
+
+        kms = get_kms_client()
+        response = kms.get_public_key(KeyId=JWT_SIGNING_KEY_ARN)
+
+        # Load the public key
+        public_key = serialization.load_der_public_key(
+            response['PublicKey'],
+            backend=default_backend()
+        )
+
+        # Extract RSA public key components
+        public_numbers = public_key.public_numbers()
+
+        # Convert to base64url encoding (no padding)
+        def int_to_base64url(n, length=None):
+            """Convert integer to base64url-encoded bytes."""
+            if length is None:
+                length = (n.bit_length() + 7) // 8
+            n_bytes = n.to_bytes(length, byteorder='big')
+            return base64.urlsafe_b64encode(n_bytes).rstrip(b'=').decode('ascii')
+
+        # Build JWKS response
+        # Key ID is derived from the KMS key ARN
+        key_id = JWT_SIGNING_KEY_ARN.split('/')[-1] if '/' in JWT_SIGNING_KEY_ARN else JWT_SIGNING_KEY_ARN
+
+        jwks = {
+            'keys': [
+                {
+                    'kty': 'RSA',
+                    'alg': 'RS256',
+                    'use': 'sig',
+                    'kid': key_id,
+                    'n': int_to_base64url(public_numbers.n),
+                    'e': int_to_base64url(public_numbers.e)
+                }
+            ]
+        }
+
+        return {
+            'statusCode': 200,
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Cache-Control': 'public, max-age=86400'  # Cache for 24 hours
+            },
+            'body': json.dumps(jwks)
+        }
+
+    except Exception as e:
+        print(f"Error generating JWKS: {str(e)}")
+        return json_response(500, {
+            'error': 'jwks_error',
             'error_description': str(e)
         })

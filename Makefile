@@ -18,7 +18,7 @@ BANNER_TEXT ?=
 # GitHub OAuth Configuration (for organization membership verification)
 # These are public Client IDs (not secrets) - safe to commit
 VITE_GITHUB_CLIENT_ID_TEST ?= Ov23liTqpZCtvFofQEFE
-VITE_GITHUB_OAUTH_API_URL_TEST ?= https://hn251osfa1.execute-api.us-west-2.amazonaws.com
+VITE_GITHUB_OAUTH_API_URL_TEST ?= https://ftr9mkl568.execute-api.us-west-2.amazonaws.com
 VITE_GITHUB_CLIENT_ID_PROD ?=
 VITE_GITHUB_OAUTH_API_URL_PROD ?=
 
@@ -286,10 +286,16 @@ deploy-github-oauth-test: upload-github-oauth-lambda ## Deploy GitHub OAuth stac
 		--query 'Stacks[0].Outputs[?OutputKey==`ApiGatewayUrl`].OutputValue' \
 		--output text
 	@echo ""
-	@echo "JWT Signing Key Secret (for your server):"
+	@echo "JWT Signing Key (KMS - RS256):"
 	@aws cloudformation describe-stacks \
 		--stack-name sliderule-github-oauth-test \
-		--query 'Stacks[0].Outputs[?OutputKey==`JWTSigningKeySecretName`].OutputValue' \
+		--query 'Stacks[0].Outputs[?OutputKey==`JWTSigningKeyArn`].OutputValue' \
+		--output text
+	@echo ""
+	@echo "JWKS Endpoint (for JWT verification):"
+	@aws cloudformation describe-stacks \
+		--stack-name sliderule-github-oauth-test \
+		--query 'Stacks[0].Outputs[?OutputKey==`JwksEndpoint`].OutputValue' \
 		--output text
 
 deploy-github-oauth-prod: upload-github-oauth-lambda ## Deploy GitHub OAuth stack to prod environment
@@ -313,10 +319,16 @@ deploy-github-oauth-prod: upload-github-oauth-lambda ## Deploy GitHub OAuth stac
 		--query 'Stacks[0].Outputs[?OutputKey==`ApiGatewayUrl`].OutputValue' \
 		--output text
 	@echo ""
-	@echo "JWT Signing Key Secret (for your server):"
+	@echo "JWT Signing Key (KMS - RS256):"
 	@aws cloudformation describe-stacks \
 		--stack-name sliderule-github-oauth-prod \
-		--query 'Stacks[0].Outputs[?OutputKey==`JWTSigningKeySecretName`].OutputValue' \
+		--query 'Stacks[0].Outputs[?OutputKey==`JWTSigningKeyArn`].OutputValue' \
+		--output text
+	@echo ""
+	@echo "JWKS Endpoint (for JWT verification):"
+	@aws cloudformation describe-stacks \
+		--stack-name sliderule-github-oauth-prod \
+		--query 'Stacks[0].Outputs[?OutputKey==`JwksEndpoint`].OutputValue' \
 		--output text
 
 update-github-oauth-lambda-test: upload-github-oauth-lambda ## Update Lambda code only (test) - faster than full deploy
@@ -381,6 +393,47 @@ github-oauth-test-url: ## Get the API Gateway URL for the test GitHub OAuth stac
 	@aws cloudformation describe-stacks \
 		--stack-name sliderule-github-oauth-test \
 		--query 'Stacks[0].Outputs[?OutputKey==`ApiGatewayUrl`].OutputValue' \
+		--output text
+
+github-oauth-test-jwks: ## Get the JWKS from the test environment (for JWT verification)
+	@API_URL=$$(aws cloudformation describe-stacks \
+		--stack-name sliderule-github-oauth-test \
+		--query 'Stacks[0].Outputs[?OutputKey==`ApiGatewayUrl`].OutputValue' \
+		--output text); \
+	curl -s "$$API_URL/auth/github/jwks" | python3 -m json.tool
+
+github-oauth-test-public-key: ## Get the public key (PEM) from the test environment
+	@API_URL=$$(aws cloudformation describe-stacks \
+		--stack-name sliderule-github-oauth-test \
+		--query 'Stacks[0].Outputs[?OutputKey==`ApiGatewayUrl`].OutputValue' \
+		--output text); \
+	curl -s "$$API_URL/auth/github/public-key"
+
+github-oauth-info-test: ## Show all GitHub OAuth test stack info
+	@echo "=== GitHub OAuth Test Stack Info ==="
+	@echo ""
+	@echo "API Gateway URL:"
+	@aws cloudformation describe-stacks \
+		--stack-name sliderule-github-oauth-test \
+		--query 'Stacks[0].Outputs[?OutputKey==`ApiGatewayUrl`].OutputValue' \
+		--output text
+	@echo ""
+	@echo "JWT Signing Key (KMS ARN):"
+	@aws cloudformation describe-stacks \
+		--stack-name sliderule-github-oauth-test \
+		--query 'Stacks[0].Outputs[?OutputKey==`JWTSigningKeyArn`].OutputValue' \
+		--output text
+	@echo ""
+	@echo "JWKS Endpoint:"
+	@aws cloudformation describe-stacks \
+		--stack-name sliderule-github-oauth-test \
+		--query 'Stacks[0].Outputs[?OutputKey==`JwksEndpoint`].OutputValue' \
+		--output text
+	@echo ""
+	@echo "Public Key Endpoint:"
+	@aws cloudformation describe-stacks \
+		--stack-name sliderule-github-oauth-test \
+		--query 'Stacks[0].Outputs[?OutputKey==`PublicKeyEndpoint`].OutputValue' \
 		--output text
 
 
