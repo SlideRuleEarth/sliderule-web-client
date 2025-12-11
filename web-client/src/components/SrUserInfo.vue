@@ -16,6 +16,13 @@ const orgRoles = computed(() => githubAuthStore.orgRoles)
 const accessibleClusters = computed(() => githubAuthStore.accessibleClusters)
 const deployableClusters = computed(() => githubAuthStore.deployableClusters)
 
+// Token metadata from store state (provided separately by server for UX)
+const maxNodes = computed(() => githubAuthStore.maxNodes)
+const clusterTtlHours = computed(() => githubAuthStore.clusterTtlHours)
+const tokenIssuedAt = computed(() => githubAuthStore.tokenIssuedAtDate)
+const tokenExpiresAt = computed(() => githubAuthStore.tokenExpiresAt)
+const tokenIssuer = computed(() => githubAuthStore.tokenIssuer)
+
 // Show user info when user is authenticated
 const isAuthenticated = computed(() => githubAuthStore.authStatus === 'authenticated')
 </script>
@@ -79,6 +86,32 @@ const isAuthenticated = computed(() => githubAuthStore.authStatus === 'authentic
               <span v-if="deployableClusters.length === 0" class="sr-no-value">None</span>
               <span v-else>{{ deployableClusters.join(', ') }}</span>
             </td>
+          </tr>
+          <tr>
+            <td class="sr-user-label">Max Nodes Deployable:</td>
+            <td class="sr-user-value">{{ maxNodes ?? 'N/A' }}</td>
+          </tr>
+          <tr>
+            <td class="sr-user-label">Deployed Cluster's TTL:</td>
+            <td class="sr-user-value">
+              {{ clusterTtlHours != null ? `${clusterTtlHours} hours` : 'N/A' }}
+            </td>
+          </tr>
+          <tr>
+            <td class="sr-user-label">Token Issued:</td>
+            <td class="sr-user-value">
+              {{ tokenIssuedAt ? tokenIssuedAt.toLocaleString() : 'N/A' }}
+            </td>
+          </tr>
+          <tr>
+            <td class="sr-user-label">Token Expires:</td>
+            <td class="sr-user-value">
+              {{ tokenExpiresAt ? tokenExpiresAt.toLocaleString() : 'N/A' }}
+            </td>
+          </tr>
+          <tr>
+            <td class="sr-user-label">Token Issuer:</td>
+            <td class="sr-user-value">{{ tokenIssuer ?? 'N/A' }}</td>
           </tr>
         </tbody>
       </table>

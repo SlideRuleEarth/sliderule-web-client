@@ -6,7 +6,7 @@ import Message from 'primevue/message'
 import SrSysConfig from '@/components/SrSysConfig.vue'
 import SrClusterInfo from '@/components/SrClusterInfo.vue'
 import SrUserInfo from '@/components/SrUserInfo.vue'
-import SrTokenDetails from '@/components/SrTokenDetails.vue'
+import SrTokenUtil from '@/components/SrTokenUtil.vue'
 import SrDeployConfig from '@/components/SrDeployConfig.vue'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 
@@ -78,8 +78,8 @@ const statusMessage = computed(() => {
             <SrUserInfo />
           </div>
 
-          <div v-if="isAuthenticated" class="sr-system-section">
-            <SrTokenDetails />
+          <div v-if="canAccessMemberFeatures" class="sr-system-section">
+            <SrTokenUtil />
           </div>
 
           <div v-if="canAccessMemberFeatures" class="sr-system-section">
