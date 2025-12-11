@@ -13,6 +13,12 @@ const canAccess = computed(() => githubAuthStore.canAccessMemberFeatures)
 // Current user's token
 const currentToken = computed(() => githubAuthStore.token)
 
+// Decoded claims from current token
+const currentTokenClaims = computed(() => {
+  if (!currentToken.value) return null
+  return decodeJwt(currentToken.value)
+})
+
 // Input for pasting JWT
 const pastedToken = ref('')
 
@@ -136,6 +142,20 @@ function formatClaimValue(key: string, value: unknown): string {
             size="small"
             @click="copyCurrentToken"
           />
+          <!-- Decoded Current Token Claims -->
+          <div v-if="currentTokenClaims" class="sr-claims-display">
+            <h5 class="sr-claims-title">Token Claims:</h5>
+            <table class="sr-claims-table">
+              <tbody>
+                <tr v-for="(value, key) in currentTokenClaims" :key="key">
+                  <td class="sr-claim-key">{{ key }}</td>
+                  <td class="sr-claim-value">
+                    <pre>{{ formatClaimValue(String(key), value) }}</pre>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
         <p v-else class="sr-no-token">No token available</p>
       </div>
@@ -147,9 +167,8 @@ function formatClaimValue(key: string, value: unknown): string {
         <Textarea
           v-model="pastedToken"
           placeholder="Paste JWT token here..."
-          rows="3"
+          rows="2"
           class="sr-token-input"
-          autoResize
         />
         <div class="sr-button-row">
           <Button label="Decode" icon="pi pi-search" size="small" @click="handleDecode" />
@@ -243,6 +262,9 @@ function formatClaimValue(key: string, value: unknown): string {
   width: 100%;
   font-family: monospace;
   font-size: 0.75rem;
+  max-height: 4rem;
+  overflow-y: auto;
+  resize: none;
 }
 
 .sr-button-row {
