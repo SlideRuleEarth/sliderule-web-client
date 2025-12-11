@@ -14,16 +14,14 @@ const githubAuthStore = useGitHubAuthStore()
 const sysConfigStore = useSysConfigStore()
 const jwtStore = useJwtStore()
 
-// Compute cluster options: sliderule first, then username, then teams (with -cluster suffix)
+// Cluster options from auth (includes 'sliderule' public cluster)
 const clusterOptions = computed(() => {
-  const options: string[] = ['sliderule']
-  if (githubAuthStore.username) {
-    options.push(`${githubAuthStore.username}-cluster`)
+  // If authenticated, use allowedClusters (which includes 'sliderule')
+  if (githubAuthStore.allowedClusters?.length > 0) {
+    return githubAuthStore.allowedClusters
   }
-  if (githubAuthStore.teams && githubAuthStore.teams.length > 0) {
-    options.push(...githubAuthStore.teams.map((team) => `${team}-cluster`))
-  }
-  return options
+  // Fallback for non-authenticated users
+  return ['sliderule']
 })
 
 // Available domain options

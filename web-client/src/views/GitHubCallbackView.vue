@@ -26,9 +26,12 @@ function processCallback() {
   const params = {
     state: route.query.state as string | undefined,
     username: route.query.username as string | undefined,
-    isMember: route.query.isMember as string | undefined,
-    isOwner: route.query.isOwner as string | undefined,
+    isOrgMember: route.query.isOrgMember as string | undefined,
+    isOrgOwner: route.query.isOrgOwner as string | undefined,
     teams: route.query.teams as string | undefined,
+    teamRoles: route.query.teamRoles as string | undefined,
+    orgRoles: route.query.orgRoles as string | undefined,
+    allowedClusters: route.query.allowedClusters as string | undefined,
     token: route.query.token as string | undefined,
     error: route.query.error as string | undefined
   }

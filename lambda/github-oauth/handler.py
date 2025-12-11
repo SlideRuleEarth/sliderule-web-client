@@ -10,9 +10,12 @@ Supports two flows:
 
 Returns a signed JWT containing:
 - username: GitHub username
-- is_member: boolean for org membership
-- is_owner: boolean for org admin role
+- is_org_member: boolean for org membership
+- is_org_owner: boolean for org admin role
 - teams: list of team slugs the user belongs to
+- org_roles: list of org-level roles (['owner', 'member'] for owners, ['member'] for members)
+- <team>-roles: for each team, a key like 'frontend-team-roles' with value ['member'] or ['maintainer']
+- allowed_clusters: list of cluster names the user can access (org members get username-cluster + team names)
 - max_nodes: maximum compute nodes (15 for owners, 7 for members)
 - cluster_ttl_hours: max cluster runtime in hours (12 for owners, 8 for members)
 - exp: token expiration timestamp (default 12 hours, configurable via JWT_EXPIRATION_HOURS)
@@ -224,25 +227,37 @@ def handle_callback(event):
 
         # Get user's teams in the organization (only if they're a member)
         teams = []
-        if membership['is_member']:
-            teams = get_user_teams(access_token, username)
-            print(f"User {username} belongs to teams: {teams}")
+        team_roles = {}
+        if membership['is_org_member']:
+            teams, team_roles = get_user_teams(access_token, username)
+            print(f"User {username} belongs to teams: {teams}, team_roles: {team_roles}")
+
+        # Compute org-level roles and allowed clusters
+        org_roles = compute_org_roles(membership['is_org_member'], membership['is_org_owner'])
+        allowed_clusters = compute_allowed_clusters(username, teams, membership['is_org_member'])
+        print(f"User {username} org_roles: {org_roles}, allowed_clusters: {allowed_clusters}")
 
         # Create signed JWT token for all users (used for rate limiting)
         auth_token = create_auth_token(
             username=username,
-            is_member=membership['is_member'],
-            is_owner=membership['is_owner'],
-            teams=teams
+            is_org_member=membership['is_org_member'],
+            is_org_owner=membership['is_org_owner'],
+            teams=teams,
+            team_roles=team_roles,
+            org_roles=org_roles,
+            allowed_clusters=allowed_clusters
         )
 
         # Redirect to frontend with results
         return redirect_to_frontend_with_result(
             state=state,
             username=username,
-            is_member=membership['is_member'],
-            is_owner=membership['is_owner'],
+            is_org_member=membership['is_org_member'],
+            is_org_owner=membership['is_org_owner'],
             teams=teams,
+            team_roles=team_roles,
+            org_roles=org_roles,
+            allowed_clusters=allowed_clusters,
             token=auth_token
         )
 
@@ -307,7 +322,7 @@ def get_github_user(access_token):
 def check_org_membership(access_token, username):
     """
     Check if user is a member of the SlideRuleEarth organization.
-    Returns dict with is_member and is_owner flags.
+    Returns dict with is_org_member and is_org_owner flags.
     """
     # Try to get the user's membership in the org
     response = requests.get(
@@ -324,33 +339,36 @@ def check_org_membership(access_token, username):
         role = data.get('role', '')
 
         # User must have 'active' state to be considered a member
-        is_member = state == 'active'
-        is_owner = is_member and role == 'admin'
+        is_org_member = state == 'active'
+        is_org_owner = is_org_member and role == 'admin'
 
         return {
-            'is_member': is_member,
-            'is_owner': is_owner
+            'is_org_member': is_org_member,
+            'is_org_owner': is_org_owner
         }
     elif response.status_code == 404:
         # User is not a member of the organization
         return {
-            'is_member': False,
-            'is_owner': False
+            'is_org_member': False,
+            'is_org_owner': False
         }
     else:
         print(f"Unexpected response checking org membership: {response.status_code} {response.text}")
         return {
-            'is_member': False,
-            'is_owner': False
+            'is_org_member': False,
+            'is_org_owner': False
         }
 
 
 def get_user_teams(access_token, username):
     """
     Get all teams the user belongs to in the SlideRuleEarth organization.
-    Returns a list of team slugs.
+    Returns a tuple of (teams, team_roles) where:
+    - teams: list of team slugs
+    - team_roles: dict mapping team slug to role ('member' or 'maintainer')
     """
     teams = []
+    team_roles = {}
 
     # GitHub API returns paginated results, so we need to handle pagination
     url = f"{GITHUB_API_URL}/orgs/{GITHUB_ORG}/teams"
@@ -378,22 +396,28 @@ def get_user_teams(access_token, username):
         if not org_teams:
             break
 
-        # Check membership in each team
+        # Check membership in each team and get role
         for team in org_teams:
             team_slug = team.get('slug')
-            if team_slug and is_user_in_team(access_token, team_slug, username):
-                teams.append(team_slug)
+            if team_slug:
+                membership = get_user_team_membership(access_token, team_slug, username)
+                if membership:
+                    teams.append(team_slug)
+                    team_roles[team_slug] = membership.get('role', 'member')
 
         # Check if there are more pages
         if len(org_teams) < per_page:
             break
         page += 1
 
-    return teams
+    return teams, team_roles
 
 
-def is_user_in_team(access_token, team_slug, username):
-    """Check if a user is a member of a specific team."""
+def get_user_team_membership(access_token, team_slug, username):
+    """
+    Get a user's membership details in a specific team.
+    Returns None if not a member, or a dict with role info if member.
+    """
     response = requests.get(
         f"{GITHUB_API_URL}/orgs/{GITHUB_ORG}/teams/{team_slug}/memberships/{username}",
         headers={
@@ -405,12 +429,64 @@ def is_user_in_team(access_token, team_slug, username):
     if response.status_code == 200:
         data = response.json()
         # User must have 'active' state
-        return data.get('state') == 'active'
+        if data.get('state') == 'active':
+            # role can be 'member' or 'maintainer'
+            return {
+                'role': data.get('role', 'member')
+            }
 
-    return False
+    return None
 
 
-def create_auth_token(username, is_member, is_owner, teams):
+def is_user_in_team(access_token, team_slug, username):
+    """Check if a user is a member of a specific team."""
+    membership = get_user_team_membership(access_token, team_slug, username)
+    return membership is not None
+
+
+def compute_org_roles(is_org_member, is_org_owner):
+    """
+    Compute org-level roles based on membership status.
+    Returns a list of role strings.
+    """
+    roles = []
+    if is_org_owner:
+        roles = ['owner', 'member']
+    elif is_org_member:
+        roles = ['member']
+    return roles
+
+
+def format_team_roles(team_roles):
+    """
+    Format team roles into the <team>-roles structure.
+    Input: {'frontend-team': 'maintainer', 'data-team': 'member'}
+    Output: {'frontend-team-roles': ['maintainer'], 'data-team-roles': ['member']}
+    """
+    formatted = {}
+    for team, role in team_roles.items():
+        formatted[f"{team}-roles"] = [role]
+    return formatted
+
+
+def compute_allowed_clusters(username, teams, is_org_member):
+    """
+    Compute allowed clusters for a user.
+    - 'sliderule' public cluster is always included first
+    - Org members get a personal cluster with -cluster suffix (username-cluster)
+    - Teams are used directly as cluster names (no suffix)
+
+    Returns a list of cluster names the user can access.
+    """
+    allowed_clusters = ['sliderule']  # Public cluster always available
+    if is_org_member and username:
+        allowed_clusters.append(f"{username}-cluster")
+    if teams:
+        allowed_clusters.extend(teams)
+    return allowed_clusters
+
+
+def create_auth_token(username, is_org_member, is_org_owner, teams, team_roles, org_roles, allowed_clusters):
     """
     Create a signed JWT containing the user's authentication info.
     This token can be validated by the SlideRule server.
@@ -427,10 +503,10 @@ def create_auth_token(username, is_member, is_owner, teams):
     now = datetime.now(timezone.utc)
 
     # Determine max_nodes and cluster TTL based on role
-    if is_owner:
+    if is_org_owner:
         max_nodes = 15
         cluster_ttl_hours = 12
-    elif is_member:
+    elif is_org_member:
         max_nodes = 7
         cluster_ttl_hours = 8
     else:
@@ -441,12 +517,15 @@ def create_auth_token(username, is_member, is_owner, teams):
     # Token expiration based on JWT_EXPIRATION_HOURS config
     expiration = now + timedelta(hours=JWT_EXPIRATION_HOURS)
 
+    # Build base payload
     payload = {
         'sub': username,  # Subject (GitHub username)
         'username': username,
-        'is_member': is_member,
-        'is_owner': is_owner,
+        'is_org_member': is_org_member,
+        'is_org_owner': is_org_owner,
         'teams': teams,
+        'org_roles': org_roles,
+        'allowed_clusters': allowed_clusters,
         'org': GITHUB_ORG,
         'max_nodes': max_nodes,
         'cluster_ttl_hours': cluster_ttl_hours,  # Max cluster runtime
@@ -455,11 +534,15 @@ def create_auth_token(username, is_member, is_owner, teams):
         'iss': 'sliderule-github-oauth'  # Issuer
     }
 
+    # Add team-level roles as <team>-roles keys
+    formatted_team_roles = format_team_roles(team_roles)
+    payload.update(formatted_team_roles)
+
     token = jwt.encode(payload, signing_key, algorithm=JWT_ALGORITHM)
     return token
 
 
-def redirect_to_frontend_with_result(state, username, is_member, is_owner, teams=None, token=None):
+def redirect_to_frontend_with_result(state, username, is_org_member, is_org_owner, teams=None, team_roles=None, org_roles=None, allowed_clusters=None, token=None):
     """Redirect to frontend with successful authentication result."""
     # Parse original state to extract frontend redirect URI if present
     original_state = state
@@ -486,13 +569,25 @@ def redirect_to_frontend_with_result(state, username, is_member, is_owner, teams
     params = {
         'state': original_state,
         'username': username,
-        'isMember': 'true' if is_member else 'false',
-        'isOwner': 'true' if is_owner else 'false'
+        'isOrgMember': 'true' if is_org_member else 'false',
+        'isOrgOwner': 'true' if is_org_owner else 'false'
     }
 
     # Add teams as comma-separated list
     if teams:
         params['teams'] = ','.join(teams)
+
+    # Add org-level roles as comma-separated list
+    if org_roles:
+        params['orgRoles'] = ','.join(org_roles)
+
+    # Add team-level roles as JSON (more complex structure)
+    if team_roles:
+        params['teamRoles'] = json.dumps(team_roles)
+
+    # Add allowed clusters as comma-separated list
+    if allowed_clusters:
+        params['allowedClusters'] = ','.join(allowed_clusters)
 
     # Add JWT token
     if token:
@@ -725,27 +820,42 @@ def handle_device_poll(event):
 
         # Get user's teams in the organization (only if they're a member)
         teams = []
-        if membership['is_member']:
-            teams = get_user_teams(access_token, username)
-            print(f"User {username} belongs to teams: {teams}")
+        team_roles = {}
+        if membership['is_org_member']:
+            teams, team_roles = get_user_teams(access_token, username)
+            print(f"User {username} belongs to teams: {teams}, team_roles: {team_roles}")
+
+        # Compute org-level roles and allowed clusters
+        org_roles = compute_org_roles(membership['is_org_member'], membership['is_org_owner'])
+        allowed_clusters = compute_allowed_clusters(username, teams, membership['is_org_member'])
+        print(f"User {username} org_roles: {org_roles}, allowed_clusters: {allowed_clusters}")
 
         # Create signed JWT token for all users (used for rate limiting)
         auth_token = create_auth_token(
             username=username,
-            is_member=membership['is_member'],
-            is_owner=membership['is_owner'],
-            teams=teams
+            is_org_member=membership['is_org_member'],
+            is_org_owner=membership['is_org_owner'],
+            teams=teams,
+            team_roles=team_roles,
+            org_roles=org_roles,
+            allowed_clusters=allowed_clusters
         )
 
-        return json_response(200, {
+        # Build response with team roles in <team>-roles format
+        response_data = {
             'status': 'success',
             'username': username,
-            'is_member': membership['is_member'],
-            'is_owner': membership['is_owner'],
+            'is_org_member': membership['is_org_member'],
+            'is_org_owner': membership['is_org_owner'],
             'teams': teams,
+            'team_roles': team_roles,
+            'org_roles': org_roles,
+            'allowed_clusters': allowed_clusters,
             'token': auth_token,
             'organization': GITHUB_ORG
-        })
+        }
+
+        return json_response(200, response_data)
 
     except Exception as e:
         print(f"Error in device poll: {str(e)}")

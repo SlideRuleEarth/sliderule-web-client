@@ -10,17 +10,8 @@ const githubAuthStore = useGitHubAuthStore()
 const domain = ref('slideruleearth.io')
 const clusterName = ref('')
 
-// Compute deploy cluster options: username, then teams (with -cluster suffix)
-const clusterOptions = computed(() => {
-  const options: string[] = []
-  if (githubAuthStore.username) {
-    options.push(`${githubAuthStore.username}-cluster`)
-  }
-  if (githubAuthStore.teams && githubAuthStore.teams.length > 0) {
-    options.push(...githubAuthStore.teams.map((team) => `${team}-cluster`))
-  }
-  return options
-})
+// Use allowedClusters directly from the store
+const clusterOptions = computed(() => githubAuthStore.allowedClusters || [])
 
 // Set default cluster name when options become available
 watch(

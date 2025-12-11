@@ -8,6 +8,9 @@ const githubAuthStore = useGitHubAuthStore()
 const decodedToken = computed(() => githubAuthStore.decodedToken)
 const tokenExpiresAt = computed(() => githubAuthStore.tokenExpiresAt)
 const teams = computed(() => githubAuthStore.teams)
+const teamRoles = computed(() => githubAuthStore.teamRoles)
+const orgRoles = computed(() => githubAuthStore.orgRoles)
+const allowedClusters = computed(() => githubAuthStore.allowedClusters)
 </script>
 
 <template>
@@ -24,18 +27,43 @@ const teams = computed(() => githubAuthStore.teams)
             <td class="sr-token-value">{{ decodedToken.org }}</td>
           </tr>
           <tr>
-            <td class="sr-token-label">Member:</td>
-            <td class="sr-token-value">{{ decodedToken.is_member ? 'Yes' : 'No' }}</td>
+            <td class="sr-token-label">Org Member:</td>
+            <td class="sr-token-value">{{ decodedToken.is_org_member ? 'Yes' : 'No' }}</td>
           </tr>
           <tr>
-            <td class="sr-token-label">Owner:</td>
-            <td class="sr-token-value">{{ decodedToken.is_owner ? 'Yes' : 'No' }}</td>
+            <td class="sr-token-label">Org Owner:</td>
+            <td class="sr-token-value">{{ decodedToken.is_org_owner ? 'Yes' : 'No' }}</td>
           </tr>
           <tr>
             <td class="sr-token-label">Teams:</td>
             <td class="sr-token-value">
-              <span v-if="teams.length === 0" class="sr-no-teams">None</span>
+              <span v-if="teams.length === 0" class="sr-no-value">None</span>
               <span v-else>{{ teams.join(', ') }}</span>
+            </td>
+          </tr>
+          <tr>
+            <td class="sr-token-label">Org Roles:</td>
+            <td class="sr-token-value">
+              <span v-if="orgRoles.length === 0" class="sr-no-value">None</span>
+              <span v-else>{{ orgRoles.join(', ') }}</span>
+            </td>
+          </tr>
+          <tr>
+            <td class="sr-token-label">Team Roles:</td>
+            <td class="sr-token-value">
+              <span v-if="Object.keys(teamRoles).length === 0" class="sr-no-value">None</span>
+              <div v-else class="sr-team-roles">
+                <div v-for="(role, team) in teamRoles" :key="team" class="sr-team-role">
+                  {{ team }}: {{ role }}
+                </div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td class="sr-token-label">Allowed Clusters:</td>
+            <td class="sr-token-value">
+              <span v-if="allowedClusters.length === 0" class="sr-no-value">None</span>
+              <span v-else>{{ allowedClusters.join(', ') }}</span>
             </td>
           </tr>
           <tr>
@@ -106,8 +134,18 @@ const teams = computed(() => githubAuthStore.teams)
   word-break: break-word;
 }
 
-.sr-no-teams {
+.sr-no-value {
   color: var(--text-color-secondary);
   font-style: italic;
+}
+
+.sr-team-roles {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.sr-team-role {
+  font-size: 0.75rem;
 }
 </style>

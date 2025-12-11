@@ -12,10 +12,13 @@ const AUTH_VALIDITY_MS = TOKEN_EXPIRATION_HOURS * 60 * 60 * 1000
 export const useGitHubAuthStore = defineStore('githubAuth', {
   state: () => ({
     authStatus: 'unknown' as AuthStatus,
-    isMember: false,
-    isOwner: false,
+    isOrgMember: false,
+    isOrgOwner: false,
     username: null as string | null,
     teams: [] as string[],
+    teamRoles: {} as Record<string, string>,
+    orgRoles: [] as string[],
+    allowedClusters: [] as string[],
     token: null as string | null,
     lastError: null as string | null,
     authTimestamp: null as number | null,
@@ -26,13 +29,34 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
     // Use sessionStorage - persists within tab until closed
     storage: sessionStorage,
     // Persist membership info, token, and timestamp (justAuthenticated intentionally not persisted)
-    pick: ['isMember', 'isOwner', 'username', 'teams', 'token', 'authTimestamp', 'authStatus']
+    pick: [
+      'isOrgMember',
+      'isOrgOwner',
+      'username',
+      'teams',
+      'teamRoles',
+      'orgRoles',
+      'allowedClusters',
+      'token',
+      'authTimestamp',
+      'authStatus'
+    ]
   },
   getters: {
     /**
      * Check if user is a SlideRuleEarth organization member
      */
-    isSlideRuleOrgMember: (state) => state.isMember || state.isOwner,
+    isSlideRuleOrgMember: (state) => state.isOrgMember || state.isOrgOwner,
+
+    /**
+     * Alias for isOrgMember (backward compatibility)
+     */
+    isMember: (state) => state.isOrgMember,
+
+    /**
+     * Alias for isOrgOwner (backward compatibility)
+     */
+    isOwner: (state) => state.isOrgOwner,
 
     /**
      * Check if current auth is still valid (within validity window)
@@ -67,6 +91,11 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
      * Check if user belongs to a specific team
      */
     isInTeam: (state) => (teamSlug: string) => state.teams.includes(teamSlug),
+
+    /**
+     * Check if user is allowed to access a specific cluster
+     */
+    isAllowedCluster: (state) => (cluster: string) => state.allowedClusters.includes(cluster),
 
     /**
      * Get decoded JWT payload (for display purposes)
@@ -162,9 +191,12 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
     handleCallback(params: {
       state?: string
       username?: string
-      isMember?: string
-      isOwner?: string
+      isOrgMember?: string
+      isOrgOwner?: string
       teams?: string
+      teamRoles?: string
+      orgRoles?: string
+      allowedClusters?: string
       token?: string
       error?: string
     }): boolean {
@@ -187,9 +219,14 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
 
       // Update state with results
       this.username = params.username || null
-      this.isMember = params.isMember === 'true'
-      this.isOwner = params.isOwner === 'true'
+      this.isOrgMember = params.isOrgMember === 'true'
+      this.isOrgOwner = params.isOrgOwner === 'true'
       this.teams = params.teams ? params.teams.split(',').filter((t) => t) : []
+      this.teamRoles = params.teamRoles ? JSON.parse(params.teamRoles) : {}
+      this.orgRoles = params.orgRoles ? params.orgRoles.split(',').filter((r) => r) : []
+      this.allowedClusters = params.allowedClusters
+        ? params.allowedClusters.split(',').filter((c) => c)
+        : []
       this.token = params.token || null
       this.authTimestamp = Date.now()
       this.authStatus = 'authenticated'
@@ -198,9 +235,12 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
 
       logger.info('GitHub auth successful', {
         username: this.username,
-        isMember: this.isMember,
-        isOwner: this.isOwner,
+        isOrgMember: this.isOrgMember,
+        isOrgOwner: this.isOrgOwner,
         teams: this.teams,
+        teamRoles: this.teamRoles,
+        orgRoles: this.orgRoles,
+        allowedClusters: this.allowedClusters,
         hasToken: !!this.token
       })
 
@@ -212,10 +252,13 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
      */
     logout() {
       this.authStatus = 'not_authenticated'
-      this.isMember = false
-      this.isOwner = false
+      this.isOrgMember = false
+      this.isOrgOwner = false
       this.username = null
       this.teams = []
+      this.teamRoles = {}
+      this.orgRoles = []
+      this.allowedClusters = []
       this.token = null
       this.authTimestamp = null
       this.lastError = null
@@ -250,7 +293,7 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
         if (this.hasValidAuth) {
           logger.debug('Restored valid GitHub auth from storage', {
             username: this.username,
-            isMember: this.isMember
+            isOrgMember: this.isOrgMember
           })
         } else {
           logger.debug('Stored GitHub auth expired, clearing')
