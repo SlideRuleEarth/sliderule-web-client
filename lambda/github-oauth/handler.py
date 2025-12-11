@@ -58,6 +58,8 @@ HMAC_SIGNING_KEY_ARN = os.environ.get('HMAC_SIGNING_KEY_ARN')
 # - Better for distributed systems where multiple services verify tokens
 JWT_ALGORITHM = 'RS256'
 JWT_EXPIRATION_HOURS = int(os.environ.get('JWT_EXPIRATION_HOURS', '12'))
+# JWT audience claim - services validating the token should check this
+JWT_AUDIENCE = os.environ.get('JWT_AUDIENCE', 'sliderule')
 
 # KMS client for JWT signing (initialized lazily)
 _kms_client = None
@@ -474,12 +476,19 @@ def handle_callback(event):
         # Compute token metadata (max_nodes, cluster_ttl, timestamps)
         token_metadata = compute_token_metadata(membership['is_org_member'], membership['is_org_owner'])
 
+        # Get API host for issuer URL (enables JWKS discovery at {iss}/.well-known/jwks.json)
+        headers = event.get('headers', {})
+        api_host = headers.get('host', '')
+
         # Create minimal signed JWT token (only server-essential fields)
         auth_token = create_auth_token(
             username=username,
             accessible_clusters=accessible_clusters,
             deployable_clusters=deployable_clusters,
-            token_metadata=token_metadata
+            token_metadata=token_metadata,
+            is_org_member=membership['is_org_member'],
+            is_org_owner=membership['is_org_owner'],
+            api_host=api_host
         )
 
         # Redirect to frontend with results (user info + token metadata returned separately)
@@ -813,7 +822,8 @@ def compute_token_metadata(is_org_member, is_org_owner):
     }
 
 
-def create_auth_token(username, accessible_clusters, deployable_clusters, token_metadata):
+def create_auth_token(username, accessible_clusters, deployable_clusters, token_metadata,
+                      is_org_member, is_org_owner, api_host=None):
     """
     Create a minimal signed JWT containing only server-essential fields.
     This token is validated server-side only; clients should treat it as opaque.
@@ -823,30 +833,53 @@ def create_auth_token(username, accessible_clusters, deployable_clusters, token_
     - Public key can be freely distributed for verification
     - More secure than HS256 for distributed systems
 
-    Token includes only:
+    Token includes:
     - sub/username: GitHub username (subject)
+    - aud: audience claim for token validation
+    - iss: issuer URL (API Gateway endpoint for JWKS discovery)
+    - org: GitHub organization name
+    - org_member: boolean indicating org membership
+    - org_owner: boolean indicating org owner status
     - accessible_clusters: list of cluster names the user can access
     - deployable_clusters: list of cluster names the user can deploy/provision
     - max_nodes: maximum compute nodes
     - cluster_ttl_hours: max cluster runtime in hours
     - iat: issued at timestamp
     - exp: expiration timestamp
-    - iss: issuer
 
-    All other user info (is_org_member, teams, roles, etc.) is returned
+    All other user info (teams, roles, etc.) is returned
     separately to the client for UX purposes.
+
+    Args:
+        username: GitHub username
+        accessible_clusters: List of cluster names user can access
+        deployable_clusters: List of cluster names user can deploy
+        token_metadata: Dict with max_nodes, cluster_ttl_hours, iat, exp
+        is_org_member: Boolean indicating if user is org member
+        is_org_owner: Boolean indicating if user is org owner
+        api_host: Optional API Gateway host for issuer URL
     """
-    # Build minimal payload with only server-essential fields
+    # Build issuer URL from API host (for JWKS discovery at {iss}/.well-known/jwks.json)
+    if api_host:
+        issuer = f"https://{api_host}"
+    else:
+        issuer = token_metadata['iss']
+
+    # Build payload with server-essential fields + API Gateway compatible claims
     payload = {
         'sub': username,  # Subject (GitHub username)
         'username': username,
+        'aud': JWT_AUDIENCE,  # Audience claim for API Gateway JWT authorizer
+        'iss': issuer,  # Issuer URL for JWKS discovery
+        'org': GITHUB_ORG,  # Organization name
+        'org_member': is_org_member,  # For authorization decisions
+        'org_owner': is_org_owner,  # For elevated permission checks
         'accessible_clusters': accessible_clusters,
         'deployable_clusters': deployable_clusters,
         'max_nodes': token_metadata['max_nodes'],
         'cluster_ttl_hours': token_metadata['cluster_ttl_hours'],
         'iat': token_metadata['iat'],
         'exp': token_metadata['exp'],
-        'iss': token_metadata['iss']
     }
 
     # Build JWT header
@@ -1188,12 +1221,19 @@ def handle_device_poll(event):
         # Compute token metadata (max_nodes, cluster_ttl, timestamps)
         token_metadata = compute_token_metadata(membership['is_org_member'], membership['is_org_owner'])
 
+        # Get API host for issuer URL (enables JWKS discovery at {iss}/.well-known/jwks.json)
+        headers = event.get('headers', {})
+        api_host = headers.get('host', '')
+
         # Create minimal signed JWT token (only server-essential fields)
         auth_token = create_auth_token(
             username=username,
             accessible_clusters=accessible_clusters,
             deployable_clusters=deployable_clusters,
-            token_metadata=token_metadata
+            token_metadata=token_metadata,
+            is_org_member=membership['is_org_member'],
+            is_org_owner=membership['is_org_owner'],
+            api_host=api_host
         )
 
         # Build response with user info and token metadata (JWT is opaque to client)

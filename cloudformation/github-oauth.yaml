@@ -29,6 +29,11 @@ Parameters:
     Default: github-oauth.zip
     Description: S3 key for the Lambda deployment package
 
+  JwtAudience:
+    Type: String
+    Default: sliderule
+    Description: JWT audience claim - services validating the token should check this value
+
 Resources:
   # Note: GitHub Client Secret must be created manually in Secrets Manager before deploying:
   #   aws secretsmanager create-secret --name sliderule/github-oauth-client-secret-test --secret-string "YOUR_SECRET"
@@ -152,6 +157,8 @@ Resources:
           HMAC_SIGNING_KEY_ARN: !Ref HMACSigningKeySecret
           # KMS key for JWT signing (RS256 - asymmetric)
           JWT_SIGNING_KEY_ARN: !GetAtt JWTSigningKey.Arn
+          # JWT audience claim for API Gateway JWT authorizer validation
+          JWT_AUDIENCE: !Ref JwtAudience
       Tags:
         - Key: Environment
           Value: !Ref Environment

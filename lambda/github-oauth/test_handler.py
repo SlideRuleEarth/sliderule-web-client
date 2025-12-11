@@ -39,7 +39,7 @@ import handler
 class TestSignedState(unittest.TestCase):
     """Tests for HMAC-signed OAuth state (CSRF protection)."""
 
-    @patch('handler.get_jwt_signing_key')
+    @patch('handler.get_hmac_signing_key')
     def test_create_signed_state_without_redirect(self, mock_key):
         """State without redirect_uri should have empty b64 component."""
         mock_key.return_value = 'test-signing-key'
@@ -54,7 +54,7 @@ class TestSignedState(unittest.TestCase):
         self.assertEqual(redirect_b64, '')  # No redirect URI
         self.assertTrue(len(signature) == 64)  # SHA256 hex
 
-    @patch('handler.get_jwt_signing_key')
+    @patch('handler.get_hmac_signing_key')
     def test_create_signed_state_with_redirect(self, mock_key):
         """State with redirect_uri should encode it in base64."""
         mock_key.return_value = 'test-signing-key'
@@ -68,7 +68,7 @@ class TestSignedState(unittest.TestCase):
         decoded = base64.urlsafe_b64decode(redirect_b64.encode()).decode()
         self.assertEqual(decoded, redirect)
 
-    @patch('handler.get_jwt_signing_key')
+    @patch('handler.get_hmac_signing_key')
     def test_verify_valid_state(self, mock_key):
         """Valid state should verify successfully."""
         mock_key.return_value = 'test-signing-key'
@@ -81,7 +81,7 @@ class TestSignedState(unittest.TestCase):
         self.assertEqual(extracted_redirect, redirect)
         self.assertIsNone(error)
 
-    @patch('handler.get_jwt_signing_key')
+    @patch('handler.get_hmac_signing_key')
     def test_verify_tampered_state(self, mock_key):
         """Tampered state should fail verification."""
         mock_key.return_value = 'test-signing-key'
@@ -98,7 +98,7 @@ class TestSignedState(unittest.TestCase):
         self.assertIsNone(redirect)
         self.assertEqual(error, "Invalid state signature")
 
-    @patch('handler.get_jwt_signing_key')
+    @patch('handler.get_hmac_signing_key')
     def test_verify_expired_state(self, mock_key):
         """Expired state should fail verification."""
         mock_key.return_value = 'test-signing-key'
@@ -378,7 +378,7 @@ class TestHttpTimeouts(unittest.TestCase):
 class TestHandleCallback(unittest.TestCase):
     """Tests for OAuth callback handler with state validation."""
 
-    @patch('handler.get_jwt_signing_key')
+    @patch('handler.get_hmac_signing_key')
     def test_callback_rejects_invalid_state(self, mock_key):
         """Callback should reject requests with invalid state."""
         mock_key.return_value = 'test-signing-key'
@@ -396,7 +396,7 @@ class TestHandleCallback(unittest.TestCase):
         # URL-encoded: "Security error" becomes "Security+error"
         self.assertIn('Security+error', result['headers']['Location'])
 
-    @patch('handler.get_jwt_signing_key')
+    @patch('handler.get_hmac_signing_key')
     def test_callback_rejects_tampered_state(self, mock_key):
         """Callback should reject requests with tampered state."""
         mock_key.return_value = 'test-signing-key'
@@ -420,7 +420,7 @@ class TestHandleCallback(unittest.TestCase):
         # URL-encoded: "Security error" becomes "Security+error"
         self.assertIn('Security+error', result['headers']['Location'])
 
-    @patch('handler.get_jwt_signing_key')
+    @patch('handler.get_hmac_signing_key')
     def test_callback_rejects_missing_state(self, mock_key):
         """Callback should reject requests with missing state."""
         mock_key.return_value = 'test-signing-key'
