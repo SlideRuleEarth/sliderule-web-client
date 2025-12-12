@@ -4,7 +4,6 @@ import SingleColumnLayout from '@/layouts/SingleColumnLayout.vue'
 import Card from 'primevue/card'
 import Message from 'primevue/message'
 import SrSysConfig from '@/components/SrSysConfig.vue'
-import SrClusterInfo from '@/components/SrClusterInfo.vue'
 import SrUserInfo from '@/components/SrUserInfo.vue'
 import SrTokenUtil from '@/components/SrTokenUtil.vue'
 import SrDeployConfig from '@/components/SrDeployConfig.vue'
@@ -68,10 +67,6 @@ const statusMessage = computed(() => {
           <div class="sr-system-section">
             <h4>Current Domain & Cluster</h4>
             <SrSysConfig :disabled="!isAuthenticated" />
-          </div>
-
-          <div class="sr-system-section">
-            <SrClusterInfo />
           </div>
 
           <div v-if="isAuthenticated" class="sr-system-section">

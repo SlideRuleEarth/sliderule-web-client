@@ -17,7 +17,7 @@ import {
   getGeoMetadataFromFile
 } from '@/utils/SrDuckDbUtils'
 import { findSrViewKey } from '@/composables/SrViews'
-import { useJwtStore } from '@/stores/SrJWTStore'
+import { useLegacyJwtStore } from '@/stores/SrLegacyJwtStore'
 import router from '@/router/index.js'
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore'
 import { useChartStore } from '@/stores/chartStore'
@@ -376,7 +376,7 @@ async function runFetchToFileWorker(srReqRec: SrRequestRecord): Promise<void> {
       }
       // Ensure token is fresh before starting long-running worker job
       // Refreshes proactively if token expires within 9 minutes
-      const accessToken = (await useJwtStore().ensureFreshToken()) ?? ''
+      const accessToken = (await useLegacyJwtStore().ensureFreshToken()) ?? ''
 
       const cmd = {
         type: 'run',

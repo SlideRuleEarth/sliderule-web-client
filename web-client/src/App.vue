@@ -16,7 +16,7 @@ import { useRecTreeStore } from '@/stores/recTreeStore'
 import { useRoute } from 'vue-router'
 import SrClearCache from '@/components/SrClearCache.vue'
 import { useSysConfigStore } from '@/stores/sysConfigStore'
-import { useJwtStore } from '@/stores/SrJWTStore'
+import { useLegacyJwtStore } from '@/stores/SrLegacyJwtStore'
 import { useAuthDialogStore } from '@/stores/authDialogStore'
 import { useGoogleApiKeyStore } from '@/stores/googleApiKeyStore'
 import SrJsonDisplayDialog from '@/components/SrJsonDisplayDialog.vue'
@@ -39,7 +39,7 @@ const toast = useToast()
 const deviceStore = useDeviceStore()
 const tourStore = useTourStore()
 const sysConfigStore = useSysConfigStore()
-const jwtStore = useJwtStore()
+const legacyJwtStore = useLegacyJwtStore()
 const authDialogStore = useAuthDialogStore()
 const googleApiKeyStore = useGoogleApiKeyStore()
 const route = useRoute()
@@ -75,7 +75,7 @@ const checkPrivateClusterAuth = () => {
   }
 
   // Check if user has valid credentials for this private cluster
-  const jwt = jwtStore.getCredentials()
+  const jwt = legacyJwtStore.getCredentials()
   if (!jwt) {
     toast.add({
       severity: 'warn',
@@ -145,7 +145,7 @@ async function handleGlobalLogin(): Promise<void> {
         refreshToken: result.refresh,
         expiration: result.expiration
       }
-      jwtStore.setJwt(sysConfigStore.getDomain(), sysConfigStore.getOrganization(), jwt)
+      legacyJwtStore.setJwt(sysConfigStore.getDomain(), sysConfigStore.getOrganization(), jwt)
       await fetchOrgInfo()
       toast.add({
         severity: 'success',
@@ -180,7 +180,7 @@ async function handleGlobalLogin(): Promise<void> {
 }
 
 async function resetToPublicCluster() {
-  jwtStore.clearAllJwts()
+  legacyJwtStore.clearAllJwts()
   sysConfigStore.$reset()
   loginUsername.value = ''
   loginPassword.value = ''

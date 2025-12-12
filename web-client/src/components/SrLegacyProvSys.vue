@@ -27,7 +27,7 @@
       @click="resetToDefaults"
     />
     <div>
-      <SrClusterInfo />
+      <SrLegacyClusterInfo />
     </div>
     <Button
       label="Request Nodes"
@@ -86,17 +86,17 @@ import SrTextInput from '@/components/SrTextInput.vue'
 import SrSliderInput from '@/components/SrSliderInput.vue'
 import { useToast } from 'primevue/usetoast'
 import { useSrToastStore } from '@/stores/srToastStore'
-import { useJwtStore } from '@/stores/SrJWTStore'
+import { useLegacyJwtStore } from '@/stores/SrLegacyJwtStore'
 import { useAuthDialogStore } from '@/stores/authDialogStore'
-import SrClusterInfo from './SrClusterInfo.vue'
+import SrLegacyClusterInfo from './SrLegacyClusterInfo.vue'
 import { createLogger } from '@/utils/logger'
 import { authenticatedFetch } from '@/utils/fetchUtils'
 
-const logger = createLogger('SrSysConfig')
+const logger = createLogger('SrLegacyProvSys')
 const toast = useToast()
 const srToastStore = useSrToastStore()
 const sysConfigStore = useSysConfigStore()
-const jwtStore = useJwtStore()
+const legacyJwtStore = useLegacyJwtStore()
 const authDialogStore = useAuthDialogStore()
 const showDesiredNodesDialog = ref(false)
 const desiredNodes = ref(1)
@@ -111,7 +111,7 @@ const ttl = ref(720)
 // }
 
 const computedOrgIsPublic = computed(() => {
-  return jwtStore.getIsPublic(sysConfigStore.getDomain(), sysConfigStore.getOrganization())
+  return legacyJwtStore.getIsPublic(sysConfigStore.getDomain(), sysConfigStore.getOrganization())
 })
 
 // The "sliderule" organization is the public cluster that doesn't require login
@@ -120,22 +120,22 @@ const isPublicCluster = computed(() => {
 })
 
 const computedLoggedIn = computed(() => {
-  return jwtStore.getCredentials() !== null
+  return legacyJwtStore.getCredentials() !== null
 })
 
 const maxNodes = computed(() => sysConfigStore.getMaxNodes())
 
 function domainChanged(_newDomain: string) {
-  jwtStore.removeJwt(sysConfigStore.getDomain(), sysConfigStore.getOrganization())
+  legacyJwtStore.removeJwt(sysConfigStore.getDomain(), sysConfigStore.getOrganization())
   //console.log('Domain changed:', newDomain);
 }
 
 function orgChanged() {
   const newOrg = sysConfigStore.getOrganization()
-  jwtStore.removeJwt(sysConfigStore.getDomain(), newOrg)
+  legacyJwtStore.removeJwt(sysConfigStore.getDomain(), newOrg)
   // Check if new organization requires login
   if (newOrg !== 'sliderule') {
-    const jwt = jwtStore.getJwt(sysConfigStore.getDomain(), newOrg)
+    const jwt = legacyJwtStore.getJwt(sysConfigStore.getDomain(), newOrg)
     if (!jwt) {
       toast.add({
         severity: 'warn',
@@ -150,7 +150,7 @@ function orgChanged() {
 
 async function desiredOrgNumNodes() {
   // Check if logged in first
-  if (!jwtStore.getCredentials()) {
+  if (!legacyJwtStore.getCredentials()) {
     logger.error('Login expired or not logged in')
     toast.add({
       severity: 'info',
@@ -222,7 +222,7 @@ function updateDesiredNodes() {
 }
 
 async function resetToDefaults() {
-  jwtStore.clearAllJwts()
+  legacyJwtStore.clearAllJwts()
   sysConfigStore.$reset()
   // Fetch public cluster server version
   await sysConfigStore.fetchServerVersionInfo()

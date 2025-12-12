@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { useSysConfigStore } from '@/stores/sysConfigStore'
 import { createLogger } from '@/utils/logger'
 
-const logger = createLogger('SrJWTStore')
+const logger = createLogger('SrLegacyJwtStore')
 
 interface SrJWT {
   accessToken: string
@@ -23,7 +23,7 @@ const MIN_REFRESH_INTERVAL_MS = 30 * 1000
 // Maximum consecutive refresh attempts before forcing re-login
 const MAX_REFRESH_ATTEMPTS = 3
 
-export const useJwtStore = defineStore('jwtStore', {
+export const useLegacyJwtStore = defineStore('legacyJwtStore', {
   state: (): JwtStoreState => ({
     isPublicMap: {},
     jwtMap: {},

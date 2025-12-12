@@ -4,11 +4,11 @@ import Button from 'primevue/button'
 import Message from 'primevue/message'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 import { useSysConfigStore } from '@/stores/sysConfigStore'
-import { useJwtStore } from '@/stores/SrJWTStore'
+import { useLegacyJwtStore } from '@/stores/SrLegacyJwtStore'
 
 const githubAuthStore = useGitHubAuthStore()
 const sysConfigStore = useSysConfigStore()
-const jwtStore = useJwtStore()
+const legacyJwtStore = useLegacyJwtStore()
 
 const authStatus = computed(() => githubAuthStore.authStatus)
 const username = computed(() => githubAuthStore.username)
@@ -61,7 +61,7 @@ function handleLogin() {
 async function handleLogout() {
   githubAuthStore.logout()
   // Reset to public cluster
-  jwtStore.clearAllJwts()
+  legacyJwtStore.clearAllJwts()
   sysConfigStore.$reset()
   sysConfigStore.setDomain('slideruleearth.io')
   sysConfigStore.setOrganization('sliderule')

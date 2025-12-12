@@ -1,6 +1,6 @@
 import { db } from '@/db/SlideRuleDb'
 import { useSysConfigStore } from '@/stores/sysConfigStore'
-import { useJwtStore } from '@/stores/SrJWTStore'
+import { useLegacyJwtStore } from '@/stores/SrLegacyJwtStore'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 import { Buffer } from 'buffer/'
 import { createLogger } from '@/utils/logger'
@@ -23,7 +23,7 @@ export async function authenticatedFetch(
 ): Promise<Response> {
   // Get stores lazily to avoid circular dependency issues
   const sysConfigStore = useSysConfigStore()
-  const jwtStore = useJwtStore()
+  const legacyJwtStore = useLegacyJwtStore()
   const githubAuthStore = useGitHubAuthStore()
 
   const domain = sysConfigStore.getDomain()
@@ -32,7 +32,7 @@ export async function authenticatedFetch(
   // Check for new GitHub OAuth JWT first
   const githubToken = githubAuthStore.authToken
   // Fall back to legacy JWT if GitHub token not available
-  const legacyJwt = jwtStore.getJwt(domain, org)
+  const legacyJwt = legacyJwtStore.getJwt(domain, org)
 
   if (githubToken) {
     // Use new GitHub OAuth JWT
@@ -59,12 +59,12 @@ export async function authenticatedFetch(
   if (response.status === 401 && !isRetry && !githubToken && legacyJwt) {
     logger.debug('Received 401 with legacy JWT, attempting token refresh', { url })
 
-    const refreshed = await jwtStore.refreshAccessToken(domain, org)
+    const refreshed = await legacyJwtStore.refreshAccessToken(domain, org)
 
     if (refreshed) {
       logger.debug('Token refreshed, retrying request', { url })
       // Get the new token and update headers
-      const newJwt = jwtStore.getJwt(domain, org)
+      const newJwt = legacyJwtStore.getJwt(domain, org)
       if (newJwt) {
         options.headers = {
           ...options.headers,
@@ -107,7 +107,7 @@ export async function getArrowFetchUrlAndOptions(
 ): Promise<{ url: string; options: RequestInit }> {
   // Get stores lazily to avoid circular dependency issues
   const sysConfigStore = useSysConfigStore()
-  const jwtStore = useJwtStore()
+  const legacyJwtStore = useLegacyJwtStore()
 
   let api = await db.getFunc(reqid)
   if (api === 'atl03x-surface' || api === 'atl03x-phoreal') {
@@ -154,7 +154,10 @@ export async function getArrowFetchUrlAndOptions(
     logger.debug('getArrowFetchUrlAndOptions using GitHub OAuth JWT', { url })
   } else {
     // Fall back to legacy JWT if present
-    const srJWT = jwtStore.getJwt(sysConfigStore.getDomain(), sysConfigStore.getOrganization())
+    const srJWT = legacyJwtStore.getJwt(
+      sysConfigStore.getDomain(),
+      sysConfigStore.getOrganization()
+    )
     if (srJWT) {
       options.headers = {
         ...options.headers,

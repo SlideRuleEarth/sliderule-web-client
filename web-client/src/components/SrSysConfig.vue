@@ -4,7 +4,8 @@ import Select from 'primevue/select'
 import Button from 'primevue/button'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 import { useSysConfigStore } from '@/stores/sysConfigStore'
-import { useJwtStore } from '@/stores/SrJWTStore'
+import { useLegacyJwtStore } from '@/stores/SrLegacyJwtStore'
+import SrClusterInfo from '@/components/SrClusterInfo.vue'
 
 const props = defineProps<{
   disabled?: boolean
@@ -12,7 +13,7 @@ const props = defineProps<{
 
 const githubAuthStore = useGitHubAuthStore()
 const sysConfigStore = useSysConfigStore()
-const jwtStore = useJwtStore()
+const legacyJwtStore = useLegacyJwtStore()
 
 // Cluster options from auth (includes 'sliderule' public cluster)
 const clusterOptions = computed(() => {
@@ -34,7 +35,7 @@ const isPublicCluster = computed(
 
 // Reset to public cluster
 async function resetToPublicCluster() {
-  jwtStore.clearAllJwts()
+  legacyJwtStore.clearAllJwts()
   sysConfigStore.$reset()
   // Set defaults: slideruleearth.io and sliderule
   sysConfigStore.setDomain('slideruleearth.io')
@@ -66,6 +67,7 @@ async function resetToPublicCluster() {
         class="sr-sysconfig-select"
       />
     </div>
+    <SrClusterInfo />
     <div v-if="!props.disabled" class="sr-sysconfig-button-row">
       <Button
         label="Reset to Public Cluster"

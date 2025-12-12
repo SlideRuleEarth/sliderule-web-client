@@ -8,7 +8,7 @@ import { useSrToastStore } from '@/stores/srToastStore'
 import { authenticatedFetch } from '@/utils/fetchUtils'
 import SrSliderInput from '@/components/SrSliderInput.vue'
 import { useSysConfigStore } from '@/stores/sysConfigStore'
-import { useJwtStore } from '@/stores/SrJWTStore'
+import { useLegacyJwtStore } from '@/stores/SrLegacyJwtStore'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 import { useRoute, useRouter } from 'vue-router'
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue'
@@ -19,7 +19,7 @@ const logger = createLogger('SrAppBar')
 const build_env = import.meta.env.VITE_BUILD_ENV
 const banner_text = import.meta.env.VITE_BANNER_TEXT
 const sysConfigStore = useSysConfigStore()
-const jwtStore = useJwtStore()
+const legacyJwtStore = useLegacyJwtStore()
 const githubAuthStore = useGitHubAuthStore()
 const route = useRoute()
 const router = useRouter()
@@ -47,7 +47,7 @@ function handleGitHubLogin() {
 
 async function handleGitHubLogout() {
   githubAuthStore.logout()
-  jwtStore.clearAllJwts()
+  legacyJwtStore.clearAllJwts()
   sysConfigStore.$reset()
   sysConfigStore.setDomain('slideruleearth.io')
   sysConfigStore.setOrganization('sliderule')
@@ -317,16 +317,16 @@ const orgBadgeLabel = computed(() => {
 })
 
 const orgBadgeSeverity = computed(() => {
-  const jwt = jwtStore.getCredentials()
+  const jwt = legacyJwtStore.getCredentials()
   return jwt ? 'info' : 'warn'
 })
 
 const computedLoggedIn = computed(() => {
-  return jwtStore.getCredentials() !== null
+  return legacyJwtStore.getCredentials() !== null
 })
 
 const computedOrgIsPublic = computed(() => {
-  return jwtStore.getIsPublic(sysConfigStore.getDomain(), sysConfigStore.getOrganization())
+  return legacyJwtStore.getIsPublic(sysConfigStore.getDomain(), sysConfigStore.getOrganization())
 })
 
 const maxNodes = computed(() => sysConfigStore.getMaxNodes())
@@ -403,7 +403,7 @@ async function handleLogout() {
   // Log out from GitHub if authenticated
   githubAuthStore.logout()
   // Reset to public cluster
-  jwtStore.clearAllJwts()
+  legacyJwtStore.clearAllJwts()
   sysConfigStore.$reset()
   sysConfigStore.setDomain('slideruleearth.io')
   sysConfigStore.setOrganization('sliderule')
@@ -418,7 +418,7 @@ async function handleLogout() {
 }
 
 async function resetToPublicCluster() {
-  jwtStore.clearAllJwts()
+  legacyJwtStore.clearAllJwts()
   sysConfigStore.$reset()
   await sysConfigStore.fetchServerVersionInfo()
   await sysConfigStore.fetchCurrentNodes()
@@ -431,7 +431,7 @@ async function resetToPublicCluster() {
 }
 
 async function getOrgNumNodes() {
-  if (!jwtStore.getCredentials()) {
+  if (!legacyJwtStore.getCredentials()) {
     logger.error('Login expired or not logged in')
     toast.add({
       severity: 'info',
@@ -461,7 +461,7 @@ async function getOrgNumNodes() {
     sysConfigStore.setCurrentNodes(result.current_nodes)
     sysConfigStore.setMaxNodes(result.max_nodes)
     sysConfigStore.setVersion(result.version)
-    jwtStore.setIsPublic(
+    legacyJwtStore.setIsPublic(
       sysConfigStore.getDomain(),
       sysConfigStore.getOrganization(),
       result.is_public
@@ -486,7 +486,7 @@ async function getOrgNumNodes() {
 }
 
 async function submitDesiredNodes() {
-  if (!jwtStore.getCredentials()) {
+  if (!legacyJwtStore.getCredentials()) {
     logger.error('Login expired or not logged in')
     toast.add({
       severity: 'info',
@@ -633,7 +633,7 @@ onMounted(async () => {
   if (isPrivateCluster) {
     // For private clusters, only fetch if we have credentials
     // Otherwise, the login dialog will be shown and fetchOrgInfo will be called after login
-    const jwt = jwtStore.getCredentials()
+    const jwt = legacyJwtStore.getCredentials()
     if (jwt) {
       // Use the authenticated PS endpoint for private clusters
       const psHost = `https://ps.${sysConfigStore.getDomain()}`
