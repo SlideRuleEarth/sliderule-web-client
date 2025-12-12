@@ -138,8 +138,10 @@ function formatClaimValue(key: string, value: unknown): string {
           <Button
             :label="copySuccess ? 'Copied!' : 'Copy Token'"
             :icon="copySuccess ? 'pi pi-check' : 'pi pi-copy'"
-            :severity="copySuccess ? 'success' : 'secondary'"
-            size="small"
+            :severity="copySuccess ? 'success' : undefined"
+            class="sr-glow-button"
+            variant="text"
+            rounded
             @click="copyCurrentToken"
           />
           <!-- Decoded Current Token Claims -->
@@ -171,12 +173,20 @@ function formatClaimValue(key: string, value: unknown): string {
           class="sr-token-input"
         />
         <div class="sr-button-row">
-          <Button label="Decode" icon="pi pi-search" size="small" @click="handleDecode" />
+          <Button
+            label="Decode"
+            icon="pi pi-search"
+            class="sr-glow-button"
+            variant="text"
+            rounded
+            @click="handleDecode"
+          />
           <Button
             label="Clear"
             icon="pi pi-times"
-            severity="secondary"
-            size="small"
+            class="sr-glow-button"
+            variant="text"
+            rounded
             @click="handleClear"
           />
         </div>
