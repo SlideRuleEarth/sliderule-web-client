@@ -382,8 +382,8 @@ async function runFetchToFileWorker(srReqRec: SrRequestRecord): Promise<void> {
         type: 'run',
         req_id: srReqRec.req_id,
         sysConfig: {
-          domain: sysConfigStore.getDomain(),
-          organization: sysConfigStore.getOrganization(),
+          domain: sysConfigStore.domain,
+          organization: sysConfigStore.organization,
           jwt: accessToken
         },
         func: srReqRec.func,

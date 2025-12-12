@@ -26,8 +26,8 @@ export async function authenticatedFetch(
   const legacyJwtStore = useLegacyJwtStore()
   const githubAuthStore = useGitHubAuthStore()
 
-  const domain = sysConfigStore.getDomain()
-  const org = sysConfigStore.getOrganization()
+  const domain = sysConfigStore.domain
+  const org = sysConfigStore.organization
 
   // Check for new GitHub OAuth JWT first
   const githubToken = githubAuthStore.authToken
@@ -118,9 +118,8 @@ export async function getArrowFetchUrlAndOptions(
     parm = forceGeoParquet(parm)
   }
   const host =
-    (sysConfigStore.getOrganization() &&
-      sysConfigStore.getOrganization() + '.' + sysConfigStore.getDomain()) ||
-    sysConfigStore.getDomain()
+    (sysConfigStore.organization && sysConfigStore.organization + '.' + sysConfigStore.domain) ||
+    sysConfigStore.domain
   const api_path = `arrow/${api}`
   const url = 'https://' + host + '/' + api_path
   //console.log('getArrowFetchUrlAndOptions source url:', url);
@@ -154,10 +153,7 @@ export async function getArrowFetchUrlAndOptions(
     logger.debug('getArrowFetchUrlAndOptions using GitHub OAuth JWT', { url })
   } else {
     // Fall back to legacy JWT if present
-    const srJWT = legacyJwtStore.getJwt(
-      sysConfigStore.getDomain(),
-      sysConfigStore.getOrganization()
-    )
+    const srJWT = legacyJwtStore.getJwt(sysConfigStore.domain, sysConfigStore.organization)
     if (srJWT) {
       options.headers = {
         ...options.headers,

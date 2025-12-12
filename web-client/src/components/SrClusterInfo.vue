@@ -2,7 +2,7 @@
   <div class="sr-cluster-info">
     <div class="sr-cluster-field">
       <label>Type:</label>
-      <span>{{ computedGetType }}</span>
+      <span>TBD</span>
     </div>
     <div class="sr-cluster-field">
       <label>Current Nodes:</label>
@@ -18,20 +18,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useSysConfigStore } from '@/stores/sysConfigStore'
-import { useLegacyJwtStore } from '@/stores/SrLegacyJwtStore'
 
 // Use the store
 const sysConfigStore = useSysConfigStore()
-const legacyJwtStore = useLegacyJwtStore()
 
-// Computed properties to access state
-const computedGetType = computed(() => {
-  return legacyJwtStore.getIsPublic(sysConfigStore.getDomain(), sysConfigStore.getOrganization())
-    ? 'Public'
-    : 'Private'
-})
-const currentNodes = computed(() => sysConfigStore.getCurrentNodes())
-const version = computed(() => sysConfigStore.getVersion())
+const currentNodes = computed(() => sysConfigStore.current_nodes)
+const version = computed(() => sysConfigStore.version)
 </script>
 
 <style scoped>

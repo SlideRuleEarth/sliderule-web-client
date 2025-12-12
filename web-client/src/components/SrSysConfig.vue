@@ -25,8 +25,13 @@ const clusterOptions = computed(() => {
   return ['sliderule']
 })
 
-// Available domain options
-const domainOptions = ['testsliderule.org', 'slideruleearth.io']
+// Available domain options - testsliderule.org only for org owners
+const domainOptions = computed(() => {
+  if (githubAuthStore.isOwner) {
+    return ['testsliderule.org', 'slideruleearth.io']
+  }
+  return ['slideruleearth.io']
+})
 
 // Disable reset button if already on public cluster
 const isPublicCluster = computed(
@@ -38,8 +43,8 @@ async function resetToPublicCluster() {
   legacyJwtStore.clearAllJwts()
   sysConfigStore.$reset()
   // Set defaults: slideruleearth.io and sliderule
-  sysConfigStore.setDomain('slideruleearth.io')
-  sysConfigStore.setOrganization('sliderule')
+  sysConfigStore.domain = 'slideruleearth.io'
+  sysConfigStore.organization = 'sliderule'
   await sysConfigStore.fetchServerVersionInfo()
   await sysConfigStore.fetchCurrentNodes()
 }

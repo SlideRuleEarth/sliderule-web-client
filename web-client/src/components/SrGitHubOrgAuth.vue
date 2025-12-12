@@ -63,8 +63,8 @@ async function handleLogout() {
   // Reset to public cluster
   legacyJwtStore.clearAllJwts()
   sysConfigStore.$reset()
-  sysConfigStore.setDomain('slideruleearth.io')
-  sysConfigStore.setOrganization('sliderule')
+  sysConfigStore.domain = 'slideruleearth.io'
+  sysConfigStore.organization = 'sliderule'
   await sysConfigStore.fetchServerVersionInfo()
   await sysConfigStore.fetchCurrentNodes()
 }

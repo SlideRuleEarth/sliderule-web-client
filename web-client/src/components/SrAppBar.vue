@@ -49,8 +49,8 @@ async function handleGitHubLogout() {
   githubAuthStore.logout()
   legacyJwtStore.clearAllJwts()
   sysConfigStore.$reset()
-  sysConfigStore.setDomain('slideruleearth.io')
-  sysConfigStore.setOrganization('sliderule')
+  sysConfigStore.domain = 'slideruleearth.io'
+  sysConfigStore.organization = 'sliderule'
   await sysConfigStore.fetchServerVersionInfo()
   await sysConfigStore.fetchCurrentNodes()
   toast.add({
@@ -211,8 +211,8 @@ const emit = defineEmits([
 ])
 
 const nodeBadgeSeverity = computed(() => {
-  const canGetVersion = sysConfigStore.getCanConnectVersion()
-  const canGetNodes = sysConfigStore.getCanConnectNodes()
+  const canGetVersion = sysConfigStore.canConnectVersion
+  const canGetNodes = sysConfigStore.canConnectNodes
 
   //console.log('nodeBadgeSeverity canGetNodes:', canGetNodes, 'canGetVersion:', canGetVersion, 'current_nodes:', sysConfigStore.current_nodes);
   if (sysConfigStore.current_nodes <= 0) return 'warning' // no nodes available
@@ -308,12 +308,12 @@ const computedServerVersionLabel = computed(() => {
 })
 
 const showOrgBadge = computed(() => {
-  const org = sysConfigStore.getOrganization()
+  const org = sysConfigStore.organization
   return org && org !== 'sliderule'
 })
 
 const orgBadgeLabel = computed(() => {
-  return sysConfigStore.getOrganization()
+  return sysConfigStore.organization
 })
 
 const orgBadgeSeverity = computed(() => {
@@ -326,14 +326,14 @@ const computedLoggedIn = computed(() => {
 })
 
 const computedOrgIsPublic = computed(() => {
-  return legacyJwtStore.getIsPublic(sysConfigStore.getDomain(), sysConfigStore.getOrganization())
+  return legacyJwtStore.getIsPublic(sysConfigStore.domain, sysConfigStore.organization)
 })
 
-const maxNodes = computed(() => sysConfigStore.getMaxNodes())
+const maxNodes = computed(() => sysConfigStore.max_nodes)
 
-const minNodes = computed(() => sysConfigStore.getMinNodes())
-const currentNodes = computed(() => sysConfigStore.getCurrentNodes())
-const clusterVersion = computed(() => sysConfigStore.getVersion())
+const minNodes = computed(() => sysConfigStore.min_nodes)
+const currentNodes = computed(() => sysConfigStore.current_nodes)
+const clusterVersion = computed(() => sysConfigStore.version)
 
 const computedClusterType = computed(() => {
   if (!computedLoggedIn.value) {
@@ -405,8 +405,8 @@ async function handleLogout() {
   // Reset to public cluster
   legacyJwtStore.clearAllJwts()
   sysConfigStore.$reset()
-  sysConfigStore.setDomain('slideruleearth.io')
-  sysConfigStore.setOrganization('sliderule')
+  sysConfigStore.domain = 'slideruleearth.io'
+  sysConfigStore.organization = 'sliderule'
   await sysConfigStore.fetchServerVersionInfo()
   await sysConfigStore.fetchCurrentNodes()
   toast.add({
@@ -442,9 +442,9 @@ async function getOrgNumNodes() {
     return
   }
 
-  const psHost = `https://ps.${sysConfigStore.getDomain()}`
+  const psHost = `https://ps.${sysConfigStore.domain}`
   const response = await authenticatedFetch(
-    `${psHost}/api/org_num_nodes/${sysConfigStore.getOrganization()}/`,
+    `${psHost}/api/org_num_nodes/${sysConfigStore.organization}/`,
     {
       method: 'GET',
       headers: {
@@ -457,15 +457,11 @@ async function getOrgNumNodes() {
   if (response.ok) {
     const result = await response.json()
     logger.debug('getOrgNumNodes result', { result })
-    sysConfigStore.setMinNodes(result.min_nodes)
-    sysConfigStore.setCurrentNodes(result.current_nodes)
-    sysConfigStore.setMaxNodes(result.max_nodes)
-    sysConfigStore.setVersion(result.version)
-    legacyJwtStore.setIsPublic(
-      sysConfigStore.getDomain(),
-      sysConfigStore.getOrganization(),
-      result.is_public
-    )
+    sysConfigStore.min_nodes = result.min_nodes
+    sysConfigStore.current_nodes = result.current_nodes
+    sysConfigStore.max_nodes = result.max_nodes
+    sysConfigStore.version = result.version
+    legacyJwtStore.setIsPublic(sysConfigStore.domain, sysConfigStore.organization, result.is_public)
   } else if (response.status === 401) {
     logger.error('Authentication failed - please log in again')
     toast.add({
@@ -497,12 +493,12 @@ async function submitDesiredNodes() {
     return
   }
 
-  const psHost = `https://ps.${sysConfigStore.getDomain()}`
-  sysConfigStore.setDesiredNodes(desiredNodes.value)
-  sysConfigStore.setTimeToLive(ttl.value)
+  const psHost = `https://ps.${sysConfigStore.domain}`
+  sysConfigStore.desired_nodes = desiredNodes.value
+  sysConfigStore.time_to_live = ttl.value
 
   const response = await authenticatedFetch(
-    `${psHost}/api/desired_org_num_nodes_ttl/${sysConfigStore.getOrganization()}/${desiredNodes.value}/${ttl.value}/`,
+    `${psHost}/api/desired_org_num_nodes_ttl/${sysConfigStore.organization}/${desiredNodes.value}/${ttl.value}/`,
     {
       method: 'POST',
       headers: {
@@ -627,7 +623,7 @@ function dumpRouteInfo() {
 
 onMounted(async () => {
   setDarkMode()
-  const org = sysConfigStore.getOrganization()
+  const org = sysConfigStore.organization
   const isPrivateCluster = org && org !== 'sliderule'
 
   if (isPrivateCluster) {
@@ -636,7 +632,7 @@ onMounted(async () => {
     const jwt = legacyJwtStore.getCredentials()
     if (jwt) {
       // Use the authenticated PS endpoint for private clusters
-      const psHost = `https://ps.${sysConfigStore.getDomain()}`
+      const psHost = `https://ps.${sysConfigStore.domain}`
       try {
         const response = await fetch(`${psHost}/api/org_num_nodes/${org}/`, {
           method: 'GET',
@@ -648,10 +644,10 @@ onMounted(async () => {
         })
         if (response.ok) {
           const result = await response.json()
-          sysConfigStore.setMinNodes(result.min_nodes)
-          sysConfigStore.setCurrentNodes(result.current_nodes)
-          sysConfigStore.setMaxNodes(result.max_nodes)
-          sysConfigStore.setVersion(result.version)
+          sysConfigStore.min_nodes = result.min_nodes
+          sysConfigStore.current_nodes = result.current_nodes
+          sysConfigStore.max_nodes = result.max_nodes
+          sysConfigStore.version = result.version
         }
       } catch (error) {
         logger.error('Failed to fetch org info', { error })
@@ -687,7 +683,7 @@ const showServerTooltip = (event: MouseEvent) => {
       if (isHovering.value) {
         tooltipRef.value.showTooltip(
           event,
-          `Server Version: ${sysConfigStore.getVersion()}<br>Nodes: ${nodesStr}<br>Click to see server details`
+          `Server Version: ${sysConfigStore.version}<br>Nodes: ${nodesStr}<br>Click to see server details`
         )
       }
     } catch (error) {
@@ -697,7 +693,7 @@ const showServerTooltip = (event: MouseEvent) => {
       if (isHovering.value) {
         tooltipRef.value.showTooltip(
           event,
-          `Server Version: ${sysConfigStore.getVersion()}<br>Nodes: unknown<br>Click to see server details`
+          `Server Version: ${sysConfigStore.version}<br>Nodes: unknown<br>Click to see server details`
         )
       }
     }

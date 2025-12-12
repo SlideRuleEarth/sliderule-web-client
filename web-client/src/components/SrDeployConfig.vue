@@ -1,17 +1,19 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { computed, watch } from 'vue'
 import Fieldset from 'primevue/fieldset'
 import Select from 'primevue/select'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
+import { useDeployConfigStore } from '@/stores/deployConfigStore'
+import { storeToRefs } from 'pinia'
 
 const githubAuthStore = useGitHubAuthStore()
+const deployConfigStore = useDeployConfigStore()
 
-// Local refs for deployment configuration
-const domain = ref('slideruleearth.io')
-const clusterName = ref('')
+// Use storeToRefs for reactive two-way binding
+const { domain, clusterName } = storeToRefs(deployConfigStore)
 
 // Use accessibleClusters directly from the store
-const clusterOptions = computed(() => githubAuthStore.accessibleClusters || [])
+const clusterOptions = computed(() => githubAuthStore.deployableClusters || [])
 
 // Set default cluster name when options become available
 watch(

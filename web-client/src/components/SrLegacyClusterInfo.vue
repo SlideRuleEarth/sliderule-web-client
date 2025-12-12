@@ -60,15 +60,15 @@ const computedGetType = computed(() => {
   if (!computedLoggedIn.value) {
     return 'Unknown'
   } else {
-    return legacyJwtStore.getIsPublic(sysConfigStore.getDomain(), sysConfigStore.getOrganization())
+    return legacyJwtStore.getIsPublic(sysConfigStore.domain, sysConfigStore.organization)
       ? 'Public'
       : 'Private'
   }
 })
-const minNodes = computed(() => sysConfigStore.getMinNodes())
-const currentNodes = computed(() => sysConfigStore.getCurrentNodes())
-const maxNodes = computed(() => sysConfigStore.getMaxNodes())
-const version = computed(() => sysConfigStore.getVersion())
+const minNodes = computed(() => sysConfigStore.min_nodes)
+const currentNodes = computed(() => sysConfigStore.current_nodes)
+const maxNodes = computed(() => sysConfigStore.max_nodes)
+const version = computed(() => sysConfigStore.version)
 
 async function getOrgNumNodes() {
   // Check if logged in first
@@ -83,10 +83,10 @@ async function getOrgNumNodes() {
     return
   }
 
-  const psHost = `https://ps.${sysConfigStore.getDomain()}`
+  const psHost = `https://ps.${sysConfigStore.domain}`
   // Use authenticatedFetch - it handles JWT header and 401 retry automatically
   const response = await authenticatedFetch(
-    `${psHost}/api/org_num_nodes/${sysConfigStore.getOrganization()}/`,
+    `${psHost}/api/org_num_nodes/${sysConfigStore.organization}/`,
     {
       method: 'GET',
       headers: {
@@ -99,15 +99,11 @@ async function getOrgNumNodes() {
   if (response.ok) {
     const result = await response.json()
     logger.debug('getOrgNumNodes result', { result })
-    sysConfigStore.setMinNodes(result.min_nodes)
-    sysConfigStore.setCurrentNodes(result.current_nodes)
-    sysConfigStore.setMaxNodes(result.max_nodes)
-    sysConfigStore.setVersion(result.version)
-    legacyJwtStore.setIsPublic(
-      sysConfigStore.getDomain(),
-      sysConfigStore.getOrganization(),
-      result.is_public
-    )
+    sysConfigStore.min_nodes = result.min_nodes
+    sysConfigStore.current_nodes = result.current_nodes
+    sysConfigStore.max_nodes = result.max_nodes
+    sysConfigStore.version = result.version
+    legacyJwtStore.setIsPublic(sysConfigStore.domain, sysConfigStore.organization, result.is_public)
     toast.add({
       severity: 'info',
       summary: 'Num Nodes Retrieved',

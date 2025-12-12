@@ -66,8 +66,8 @@ const checkUnsupported = () => {
 }
 
 const checkPrivateClusterAuth = () => {
-  const domain = sysConfigStore.getDomain()
-  const org = sysConfigStore.getOrganization()
+  const domain = sysConfigStore.domain
+  const org = sysConfigStore.organization
 
   // Skip check for public cluster
   if (org === 'sliderule') {
@@ -89,10 +89,10 @@ const checkPrivateClusterAuth = () => {
 }
 
 async function fetchOrgInfo(): Promise<void> {
-  const psHost = `https://ps.${sysConfigStore.getDomain()}`
+  const psHost = `https://ps.${sysConfigStore.domain}`
   try {
     const response = await authenticatedFetch(
-      `${psHost}/api/org_num_nodes/${sysConfigStore.getOrganization()}/`,
+      `${psHost}/api/org_num_nodes/${sysConfigStore.organization}/`,
       {
         method: 'GET',
         headers: {
@@ -105,10 +105,10 @@ async function fetchOrgInfo(): Promise<void> {
     if (response.ok) {
       const result = await response.json()
       logger.debug('fetchOrgInfo result', { result })
-      sysConfigStore.setMinNodes(result.min_nodes)
-      sysConfigStore.setCurrentNodes(result.current_nodes)
-      sysConfigStore.setMaxNodes(result.max_nodes)
-      sysConfigStore.setVersion(result.version)
+      sysConfigStore.min_nodes = result.min_nodes
+      sysConfigStore.current_nodes = result.current_nodes
+      sysConfigStore.max_nodes = result.max_nodes
+      sysConfigStore.version = result.version
     } else {
       logger.error('Failed to fetch org info', { status: response.status })
     }
@@ -120,8 +120,8 @@ async function fetchOrgInfo(): Promise<void> {
 }
 
 async function handleGlobalLogin(): Promise<void> {
-  const orgName = sysConfigStore.getOrganization()
-  const psHost = `https://ps.${sysConfigStore.getDomain()}`
+  const orgName = sysConfigStore.organization
+  const psHost = `https://ps.${sysConfigStore.domain}`
   logger.debug('handleGlobalLogin', { username: loginUsername.value, orgName })
 
   const body = JSON.stringify({
@@ -145,7 +145,7 @@ async function handleGlobalLogin(): Promise<void> {
         refreshToken: result.refresh,
         expiration: result.expiration
       }
-      legacyJwtStore.setJwt(sysConfigStore.getDomain(), sysConfigStore.getOrganization(), jwt)
+      legacyJwtStore.setJwt(sysConfigStore.domain, sysConfigStore.organization, jwt)
       await fetchOrgInfo()
       toast.add({
         severity: 'success',
@@ -834,7 +834,7 @@ async function handleLongTourButtonClick() {
     >
       <form class="sr-global-login-form" @submit.prevent="handleGlobalLogin">
         <p class="sr-login-org-info">
-          Logging in to: <strong>{{ sysConfigStore.getOrganization() }}</strong>
+          Logging in to: <strong>{{ sysConfigStore.organization }}</strong>
         </p>
         <div class="sr-login-field">
           <label for="global-username">Username</label>

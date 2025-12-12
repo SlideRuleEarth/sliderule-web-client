@@ -69,16 +69,16 @@ const statusMessage = computed(() => {
             <SrSysConfig :disabled="!isAuthenticated" />
           </div>
 
+          <div v-if="canAccessMemberFeatures" class="sr-system-section">
+            <SrDeployConfig />
+          </div>
+
           <div v-if="isAuthenticated" class="sr-system-section">
             <SrUserInfo />
           </div>
 
           <div v-if="canAccessMemberFeatures" class="sr-system-section">
             <SrTokenUtil />
-          </div>
-
-          <div v-if="canAccessMemberFeatures" class="sr-system-section">
-            <SrDeployConfig />
           </div>
         </template>
       </Card>

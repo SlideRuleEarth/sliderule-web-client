@@ -111,31 +111,31 @@ const ttl = ref(720)
 // }
 
 const computedOrgIsPublic = computed(() => {
-  return legacyJwtStore.getIsPublic(sysConfigStore.getDomain(), sysConfigStore.getOrganization())
+  return legacyJwtStore.getIsPublic(sysConfigStore.domain, sysConfigStore.organization)
 })
 
 // The "sliderule" organization is the public cluster that doesn't require login
 const isPublicCluster = computed(() => {
-  return sysConfigStore.getOrganization() === 'sliderule'
+  return sysConfigStore.organization === 'sliderule'
 })
 
 const computedLoggedIn = computed(() => {
   return legacyJwtStore.getCredentials() !== null
 })
 
-const maxNodes = computed(() => sysConfigStore.getMaxNodes())
+const maxNodes = computed(() => sysConfigStore.max_nodes)
 
 function domainChanged(_newDomain: string) {
-  legacyJwtStore.removeJwt(sysConfigStore.getDomain(), sysConfigStore.getOrganization())
+  legacyJwtStore.removeJwt(sysConfigStore.domain, sysConfigStore.organization)
   //console.log('Domain changed:', newDomain);
 }
 
 function orgChanged() {
-  const newOrg = sysConfigStore.getOrganization()
-  legacyJwtStore.removeJwt(sysConfigStore.getDomain(), newOrg)
+  const newOrg = sysConfigStore.organization
+  legacyJwtStore.removeJwt(sysConfigStore.domain, newOrg)
   // Check if new organization requires login
   if (newOrg !== 'sliderule') {
-    const jwt = legacyJwtStore.getJwt(sysConfigStore.getDomain(), newOrg)
+    const jwt = legacyJwtStore.getJwt(sysConfigStore.domain, newOrg)
     if (!jwt) {
       toast.add({
         severity: 'warn',
@@ -161,10 +161,10 @@ async function desiredOrgNumNodes() {
     return
   }
 
-  const psHost = `https://ps.${sysConfigStore.getDomain()}`
+  const psHost = `https://ps.${sysConfigStore.domain}`
   // Use authenticatedFetch - it handles JWT header and 401 retry automatically
   const response = await authenticatedFetch(
-    `${psHost}/api/desired_org_num_nodes_ttl/${sysConfigStore.getOrganization()}/${sysConfigStore.getDesiredNodes()}/${sysConfigStore.getTimeToLive()}/`,
+    `${psHost}/api/desired_org_num_nodes_ttl/${sysConfigStore.organization}/${sysConfigStore.desired_nodes}/${sysConfigStore.time_to_live}/`,
     {
       method: 'POST',
       headers: {
@@ -216,8 +216,8 @@ function updateDesiredNodes() {
   logger.debug('updateDesiredNodes', { desiredNodes: desiredNodes.value, ttl: ttl.value })
   showDesiredNodesDialog.value = false // Close the dialog
   // Add your logic to update desired nodes here
-  sysConfigStore.setDesiredNodes(desiredNodes.value)
-  sysConfigStore.setTimeToLive(ttl.value)
+  sysConfigStore.desired_nodes = desiredNodes.value
+  sysConfigStore.time_to_live = ttl.value
   void desiredOrgNumNodes()
 }
 
