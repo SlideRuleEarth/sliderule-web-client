@@ -21,6 +21,13 @@ export const useSysConfigStore = defineStore(
     const canConnectVersion = ref<CanConnectStatus>('unknown')
     const canConnectNodes = ref<CanConnectStatus>('unknown')
 
+    function resetStatus() {
+      version.value = 'v?.?.?'
+      current_nodes.value = -1
+      canConnectVersion.value = 'unknown'
+      canConnectNodes.value = 'unknown'
+    }
+
     async function fetchServerVersionInfo(): Promise<string> {
       const result = await fetchVersionUtil(organization.value, domain.value)
       canConnectVersion.value = result.success ? 'yes' : 'no'
@@ -50,6 +57,7 @@ export const useSysConfigStore = defineStore(
       version,
       canConnectVersion,
       canConnectNodes,
+      resetStatus,
       fetchServerVersionInfo,
       fetchCurrentNodes
     }

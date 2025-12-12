@@ -93,8 +93,9 @@ const isDomainDisabled = computed(() => !githubAuthStore.isOwner)
         <Button
           label="Refresh Status"
           icon="pi pi-refresh"
-          size="small"
-          severity="secondary"
+          class="sr-glow-button"
+          variant="text"
+          rounded
           :disabled="!clusterName"
           @click="refreshStatus"
         />

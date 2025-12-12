@@ -65,7 +65,6 @@ const statusMessage = computed(() => {
           </Message>
 
           <div class="sr-system-section">
-            <h4>Current Domain & Cluster</h4>
             <SrSysConfig :disabled="!isAuthenticated" />
           </div>
 
