@@ -18,7 +18,7 @@ BANNER_TEXT ?=
 # GitHub OAuth Configuration (for organization membership verification)
 # These are public Client IDs (not secrets) - safe to commit
 VITE_GITHUB_CLIENT_ID_TEST ?= Ov23liTqpZCtvFofQEFE
-VITE_GITHUB_OAUTH_API_URL_TEST ?= https://ftr9mkl568.execute-api.us-west-2.amazonaws.com
+VITE_GITHUB_OAUTH_API_URL_TEST ?= https://jvwvnlai64.execute-api.us-west-2.amazonaws.com
 VITE_GITHUB_CLIENT_ID_PROD ?=
 VITE_GITHUB_OAUTH_API_URL_PROD ?=
 
