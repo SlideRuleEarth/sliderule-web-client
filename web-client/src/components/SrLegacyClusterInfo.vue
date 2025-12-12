@@ -60,7 +60,7 @@ const computedGetType = computed(() => {
   if (!computedLoggedIn.value) {
     return 'Unknown'
   } else {
-    return legacyJwtStore.getIsPublic(sysConfigStore.domain, sysConfigStore.organization)
+    return legacyJwtStore.getIsPublic(sysConfigStore.domain, sysConfigStore.cluster)
       ? 'Public'
       : 'Private'
   }
@@ -86,7 +86,7 @@ async function getOrgNumNodes() {
   const psHost = `https://ps.${sysConfigStore.domain}`
   // Use authenticatedFetch - it handles JWT header and 401 retry automatically
   const response = await authenticatedFetch(
-    `${psHost}/api/org_num_nodes/${sysConfigStore.organization}/`,
+    `${psHost}/api/org_num_nodes/${sysConfigStore.cluster}/`,
     {
       method: 'GET',
       headers: {
@@ -103,7 +103,7 @@ async function getOrgNumNodes() {
     sysConfigStore.current_nodes = result.current_nodes
     sysConfigStore.max_nodes = result.max_nodes
     sysConfigStore.version = result.version
-    legacyJwtStore.setIsPublic(sysConfigStore.domain, sysConfigStore.organization, result.is_public)
+    legacyJwtStore.setIsPublic(sysConfigStore.domain, sysConfigStore.cluster, result.is_public)
     toast.add({
       severity: 'info',
       summary: 'Num Nodes Retrieved',

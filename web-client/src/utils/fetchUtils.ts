@@ -23,10 +23,10 @@ export interface CurrentNodesResult {
  * Returns version data that can be used by any store.
  */
 export async function fetchServerVersionInfo(
-  organization: string,
+  cluster: string,
   domain: string
 ): Promise<ServerVersionResult> {
-  const url = `https://${organization}.${domain}/source/version`
+  const url = `https://${cluster}.${domain}/source/version`
   try {
     const response = await fetch(url)
     if (!response.ok) throw new Error(`HTTP error: ${response.status}`)
@@ -58,10 +58,10 @@ export async function fetchServerVersionInfo(
  * Returns node count that can be used by any store.
  */
 export async function fetchCurrentNodes(
-  organization: string,
+  cluster: string,
   domain: string
 ): Promise<CurrentNodesResult> {
-  const url = `https://${organization}.${domain}/discovery/status`
+  const url = `https://${cluster}.${domain}/discovery/status`
   try {
     const response = await fetch(url, {
       method: 'POST',
@@ -112,7 +112,7 @@ export async function authenticatedFetch(
   const githubAuthStore = useGitHubAuthStore()
 
   const domain = sysConfigStore.domain
-  const org = sysConfigStore.organization
+  const org = sysConfigStore.cluster
 
   // Check for new GitHub OAuth JWT first
   const githubToken = githubAuthStore.authToken
@@ -203,7 +203,7 @@ export async function getArrowFetchUrlAndOptions(
     parm = forceGeoParquet(parm)
   }
   const host =
-    (sysConfigStore.organization && sysConfigStore.organization + '.' + sysConfigStore.domain) ||
+    (sysConfigStore.cluster && sysConfigStore.cluster + '.' + sysConfigStore.domain) ||
     sysConfigStore.domain
   const api_path = `arrow/${api}`
   const url = 'https://' + host + '/' + api_path
@@ -238,7 +238,7 @@ export async function getArrowFetchUrlAndOptions(
     logger.debug('getArrowFetchUrlAndOptions using GitHub OAuth JWT', { url })
   } else {
     // Fall back to legacy JWT if present
-    const srJWT = legacyJwtStore.getJwt(sysConfigStore.domain, sysConfigStore.organization)
+    const srJWT = legacyJwtStore.getJwt(sysConfigStore.domain, sysConfigStore.cluster)
     if (srJWT) {
       options.headers = {
         ...options.headers,

@@ -6,7 +6,7 @@ const build_env = import.meta.env.VITE_BUILD_ENV
 
 export type SysConfig = {
   domain: string
-  organization: string
+  cluster: string
   jwt: string
 }
 //
@@ -14,7 +14,7 @@ export type SysConfig = {
 //
 const globalSysConfig = {
   domain: 'slideruleearth.io',
-  organization: 'sliderule',
+  cluster: 'sliderule',
   jwt: ''
 }
 
@@ -576,9 +576,9 @@ async function fetchAndProcessResult(
 //   Object.assign(globalSysConfig, config)
 //   //console.log('globalSysConfig:', globalSysConfig);
 // };
-export function init(domain: string, organization: string, jwt: string): void {
+export function init(domain: string, cluster: string, jwt: string): void {
   globalSysConfig.domain = domain
-  globalSysConfig.organization = organization
+  globalSysConfig.cluster = cluster
   globalSysConfig.jwt = jwt
   //console.log('globalSysConfig:', globalSysConfig);
 }
@@ -598,7 +598,7 @@ export async function source(
   //console.log('source parm: ', parm);
   //console.log('globalSysConfig at source call:', JSON.stringify(globalSysConfig));
   const host =
-    (globalSysConfig.organization && globalSysConfig.organization + '.' + globalSysConfig.domain) ||
+    (globalSysConfig.cluster && globalSysConfig.cluster + '.' + globalSysConfig.domain) ||
     globalSysConfig.domain
   const api_path = 'source/' + api
   const url = 'https://' + host + '/' + api_path
@@ -680,12 +680,12 @@ export async function source(
 //   };
 export async function get_version(): Promise<{
   client: { version: string }
-  organization: string
+  cluster: string
   [key: string]: any // Additional dynamic properties
 }> {
   const result = await source('version')
   // result['client'] = { version: client_version };
-  result['organization'] = globalSysConfig.organization
+  result['cluster'] = globalSysConfig.cluster
   return result
 }
 

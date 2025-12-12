@@ -67,7 +67,7 @@ const checkUnsupported = () => {
 
 const checkPrivateClusterAuth = () => {
   const domain = sysConfigStore.domain
-  const org = sysConfigStore.organization
+  const org = sysConfigStore.cluster
 
   // Skip check for public cluster
   if (org === 'sliderule') {
@@ -92,7 +92,7 @@ async function fetchOrgInfo(): Promise<void> {
   const psHost = `https://ps.${sysConfigStore.domain}`
   try {
     const response = await authenticatedFetch(
-      `${psHost}/api/org_num_nodes/${sysConfigStore.organization}/`,
+      `${psHost}/api/org_num_nodes/${sysConfigStore.cluster}/`,
       {
         method: 'GET',
         headers: {
@@ -120,7 +120,7 @@ async function fetchOrgInfo(): Promise<void> {
 }
 
 async function handleGlobalLogin(): Promise<void> {
-  const orgName = sysConfigStore.organization
+  const orgName = sysConfigStore.cluster
   const psHost = `https://ps.${sysConfigStore.domain}`
   logger.debug('handleGlobalLogin', { username: loginUsername.value, orgName })
 
@@ -145,7 +145,7 @@ async function handleGlobalLogin(): Promise<void> {
         refreshToken: result.refresh,
         expiration: result.expiration
       }
-      legacyJwtStore.setJwt(sysConfigStore.domain, sysConfigStore.organization, jwt)
+      legacyJwtStore.setJwt(sysConfigStore.domain, sysConfigStore.cluster, jwt)
       await fetchOrgInfo()
       toast.add({
         severity: 'success',
@@ -834,7 +834,7 @@ async function handleLongTourButtonClick() {
     >
       <form class="sr-global-login-form" @submit.prevent="handleGlobalLogin">
         <p class="sr-login-org-info">
-          Logging in to: <strong>{{ sysConfigStore.organization }}</strong>
+          Logging in to: <strong>{{ sysConfigStore.cluster }}</strong>
         </p>
         <div class="sr-login-field">
           <label for="global-username">Username</label>

@@ -132,7 +132,7 @@ onmessage = async (event) => {
     }
     if (cmd.sysConfig) {
       logger.debug('Initializing with sysConfig', { sysConfig: cmd.sysConfig })
-      init(cmd.sysConfig.domain, cmd.sysConfig.organization, cmd.sysConfig.jwt)
+      init(cmd.sysConfig.domain, cmd.sysConfig.cluster, cmd.sysConfig.jwt)
     } else {
       logger.error('cmd.sysConfig was not provided')
       void errorMsg(reqID, {

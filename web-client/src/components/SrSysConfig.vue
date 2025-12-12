@@ -15,7 +15,7 @@ const githubAuthStore = useGitHubAuthStore()
 const sysConfigStore = useSysConfigStore()
 const legacyJwtStore = useLegacyJwtStore()
 
-const { domain, organization, version, current_nodes, canConnectVersion, canConnectNodes } =
+const { domain, cluster, version, current_nodes, canConnectVersion, canConnectNodes } =
   storeToRefs(sysConfigStore)
 
 async function refreshStatus() {
@@ -24,7 +24,7 @@ async function refreshStatus() {
 }
 
 // Refresh status when domain or cluster changes
-watch([domain, organization], () => {
+watch([domain, cluster], () => {
   void refreshStatus()
 })
 
@@ -53,7 +53,7 @@ const domainOptions = computed(() => {
 
 // Disable reset button if already on public cluster
 const isPublicCluster = computed(
-  () => organization.value === 'sliderule' && domain.value === 'slideruleearth.io'
+  () => cluster.value === 'sliderule' && domain.value === 'slideruleearth.io'
 )
 
 // Reset to public cluster
@@ -62,7 +62,7 @@ async function resetToPublicCluster() {
   sysConfigStore.$reset()
   // Set defaults: slideruleearth.io and sliderule
   domain.value = 'slideruleearth.io'
-  organization.value = 'sliderule'
+  cluster.value = 'sliderule'
   // Note: watch will trigger refreshStatus automatically
 }
 </script>
@@ -84,7 +84,7 @@ async function resetToPublicCluster() {
       <label for="sysconfig-cluster" class="sr-sysconfig-label">Cluster</label>
       <Select
         id="sysconfig-cluster"
-        v-model="organization"
+        v-model="cluster"
         :options="clusterOptions"
         :disabled="props.disabled"
         class="sr-sysconfig-select"

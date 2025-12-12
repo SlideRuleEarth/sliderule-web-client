@@ -50,7 +50,7 @@ async function handleGitHubLogout() {
   legacyJwtStore.clearAllJwts()
   sysConfigStore.$reset()
   sysConfigStore.domain = 'slideruleearth.io'
-  sysConfigStore.organization = 'sliderule'
+  sysConfigStore.cluster = 'sliderule'
   await sysConfigStore.fetchServerVersionInfo()
   await sysConfigStore.fetchCurrentNodes()
   toast.add({
@@ -308,12 +308,12 @@ const computedServerVersionLabel = computed(() => {
 })
 
 const showOrgBadge = computed(() => {
-  const org = sysConfigStore.organization
+  const org = sysConfigStore.cluster
   return org && org !== 'sliderule'
 })
 
 const orgBadgeLabel = computed(() => {
-  return sysConfigStore.organization
+  return sysConfigStore.cluster
 })
 
 const orgBadgeSeverity = computed(() => {
@@ -326,7 +326,7 @@ const computedLoggedIn = computed(() => {
 })
 
 const computedOrgIsPublic = computed(() => {
-  return legacyJwtStore.getIsPublic(sysConfigStore.domain, sysConfigStore.organization)
+  return legacyJwtStore.getIsPublic(sysConfigStore.domain, sysConfigStore.cluster)
 })
 
 const maxNodes = computed(() => sysConfigStore.max_nodes)
@@ -406,7 +406,7 @@ async function handleLogout() {
   legacyJwtStore.clearAllJwts()
   sysConfigStore.$reset()
   sysConfigStore.domain = 'slideruleearth.io'
-  sysConfigStore.organization = 'sliderule'
+  sysConfigStore.cluster = 'sliderule'
   await sysConfigStore.fetchServerVersionInfo()
   await sysConfigStore.fetchCurrentNodes()
   toast.add({
@@ -444,7 +444,7 @@ async function getOrgNumNodes() {
 
   const psHost = `https://ps.${sysConfigStore.domain}`
   const response = await authenticatedFetch(
-    `${psHost}/api/org_num_nodes/${sysConfigStore.organization}/`,
+    `${psHost}/api/org_num_nodes/${sysConfigStore.cluster}/`,
     {
       method: 'GET',
       headers: {
@@ -461,7 +461,7 @@ async function getOrgNumNodes() {
     sysConfigStore.current_nodes = result.current_nodes
     sysConfigStore.max_nodes = result.max_nodes
     sysConfigStore.version = result.version
-    legacyJwtStore.setIsPublic(sysConfigStore.domain, sysConfigStore.organization, result.is_public)
+    legacyJwtStore.setIsPublic(sysConfigStore.domain, sysConfigStore.cluster, result.is_public)
   } else if (response.status === 401) {
     logger.error('Authentication failed - please log in again')
     toast.add({
@@ -498,7 +498,7 @@ async function submitDesiredNodes() {
   sysConfigStore.time_to_live = ttl.value
 
   const response = await authenticatedFetch(
-    `${psHost}/api/desired_org_num_nodes_ttl/${sysConfigStore.organization}/${desiredNodes.value}/${ttl.value}/`,
+    `${psHost}/api/desired_org_num_nodes_ttl/${sysConfigStore.cluster}/${desiredNodes.value}/${ttl.value}/`,
     {
       method: 'POST',
       headers: {
@@ -623,7 +623,7 @@ function dumpRouteInfo() {
 
 onMounted(async () => {
   setDarkMode()
-  const org = sysConfigStore.organization
+  const org = sysConfigStore.cluster
   const isPrivateCluster = org && org !== 'sliderule'
 
   if (isPrivateCluster) {

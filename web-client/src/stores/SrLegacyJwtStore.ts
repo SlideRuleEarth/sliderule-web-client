@@ -73,14 +73,14 @@ export const useLegacyJwtStore = defineStore('legacyJwtStore', {
       const sysConfigStore = useSysConfigStore()
       let jwt: SrJWT | null = null
       try {
-        jwt = this.getJwt(sysConfigStore.domain, sysConfigStore.organization)
+        jwt = this.getJwt(sysConfigStore.domain, sysConfigStore.cluster)
         if (jwt) {
           const nowInUnixTime = Math.floor(Date.now() / 1000)
           const expTime = new Date(jwt.expiration).getTime() / 1000
           logger.debug('Checking JWT expiration', { nowInUnixTime, expTime })
           if (expTime < nowInUnixTime) {
             logger.debug('JWT expired')
-            this.removeJwt(sysConfigStore.domain, sysConfigStore.organization)
+            this.removeJwt(sysConfigStore.domain, sysConfigStore.cluster)
             jwt = null
           } else {
             logger.debug('No authentication needed: JWT is valid')
@@ -221,7 +221,7 @@ export const useLegacyJwtStore = defineStore('legacyJwtStore', {
     async ensureFreshToken(): Promise<string | null> {
       const sysConfigStore = useSysConfigStore()
       const domain = sysConfigStore.domain
-      const org = sysConfigStore.organization
+      const org = sysConfigStore.cluster
       const jwt = this.getJwt(domain, org)
 
       if (!jwt) {

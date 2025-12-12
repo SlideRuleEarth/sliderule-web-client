@@ -11,7 +11,7 @@ export const useSysConfigStore = defineStore(
   'sysConfig',
   () => {
     const domain = ref('slideruleearth.io')
-    const organization = ref('sliderule')
+    const cluster = ref('sliderule')
     const desired_nodes = ref(1)
     const time_to_live = ref(720) // minutes
     const min_nodes = ref(0)
@@ -29,7 +29,7 @@ export const useSysConfigStore = defineStore(
     }
 
     async function fetchServerVersionInfo(): Promise<string> {
-      const result = await fetchVersionUtil(organization.value, domain.value)
+      const result = await fetchVersionUtil(cluster.value, domain.value)
       canConnectVersion.value = result.success ? 'yes' : 'no'
       if (result.success) {
         version.value = result.version
@@ -38,7 +38,7 @@ export const useSysConfigStore = defineStore(
     }
 
     async function fetchCurrentNodes(): Promise<string> {
-      const result = await fetchNodesUtil(organization.value, domain.value)
+      const result = await fetchNodesUtil(cluster.value, domain.value)
       canConnectNodes.value = result.success ? 'yes' : 'no'
       if (result.success) {
         current_nodes.value = result.nodes
@@ -48,7 +48,7 @@ export const useSysConfigStore = defineStore(
 
     return {
       domain,
-      organization,
+      cluster,
       desired_nodes,
       time_to_live,
       min_nodes,
@@ -65,7 +65,7 @@ export const useSysConfigStore = defineStore(
   {
     persist: {
       storage: localStorage,
-      pick: ['domain', 'organization', 'desired_nodes', 'time_to_live']
+      pick: ['domain', 'cluster', 'desired_nodes', 'time_to_live']
     }
   }
 )

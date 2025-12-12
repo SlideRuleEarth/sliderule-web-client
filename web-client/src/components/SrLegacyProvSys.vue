@@ -6,10 +6,10 @@
       @update:model-value="domainChanged"
     />
     <div class="sr-org-input-row">
-      <label for="organization-input" class="sr-org-label">Organization</label>
+      <label for="cluster-input" class="sr-org-label">Cluster</label>
       <InputText
-        id="organization-input"
-        v-model="sysConfigStore.organization"
+        id="cluster-input"
+        v-model="sysConfigStore.cluster"
         class="sr-org-input"
         @keyup.enter="orgChanged"
       />
@@ -111,12 +111,12 @@ const ttl = ref(720)
 // }
 
 const computedOrgIsPublic = computed(() => {
-  return legacyJwtStore.getIsPublic(sysConfigStore.domain, sysConfigStore.organization)
+  return legacyJwtStore.getIsPublic(sysConfigStore.domain, sysConfigStore.cluster)
 })
 
-// The "sliderule" organization is the public cluster that doesn't require login
+// The "sliderule" cluster is the public cluster that doesn't require login
 const isPublicCluster = computed(() => {
-  return sysConfigStore.organization === 'sliderule'
+  return sysConfigStore.cluster === 'sliderule'
 })
 
 const computedLoggedIn = computed(() => {
@@ -126,14 +126,14 @@ const computedLoggedIn = computed(() => {
 const maxNodes = computed(() => sysConfigStore.max_nodes)
 
 function domainChanged(_newDomain: string) {
-  legacyJwtStore.removeJwt(sysConfigStore.domain, sysConfigStore.organization)
+  legacyJwtStore.removeJwt(sysConfigStore.domain, sysConfigStore.cluster)
   //console.log('Domain changed:', newDomain);
 }
 
 function orgChanged() {
-  const newOrg = sysConfigStore.organization
+  const newOrg = sysConfigStore.cluster
   legacyJwtStore.removeJwt(sysConfigStore.domain, newOrg)
-  // Check if new organization requires login
+  // Check if new cluster requires login
   if (newOrg !== 'sliderule') {
     const jwt = legacyJwtStore.getJwt(sysConfigStore.domain, newOrg)
     if (!jwt) {
@@ -164,7 +164,7 @@ async function desiredOrgNumNodes() {
   const psHost = `https://ps.${sysConfigStore.domain}`
   // Use authenticatedFetch - it handles JWT header and 401 retry automatically
   const response = await authenticatedFetch(
-    `${psHost}/api/desired_org_num_nodes_ttl/${sysConfigStore.organization}/${sysConfigStore.desired_nodes}/${sysConfigStore.time_to_live}/`,
+    `${psHost}/api/desired_org_num_nodes_ttl/${sysConfigStore.cluster}/${sysConfigStore.desired_nodes}/${sysConfigStore.time_to_live}/`,
     {
       method: 'POST',
       headers: {
