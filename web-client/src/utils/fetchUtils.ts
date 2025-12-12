@@ -7,6 +7,91 @@ import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('FetchUtils')
 
+export interface ServerVersionResult {
+  success: boolean
+  version: string
+  data: any
+}
+
+export interface CurrentNodesResult {
+  success: boolean
+  nodes: number
+}
+
+/**
+ * Fetch server version info from the SlideRule API.
+ * Returns version data that can be used by any store.
+ */
+export async function fetchServerVersionInfo(
+  organization: string,
+  domain: string
+): Promise<ServerVersionResult> {
+  const url = `https://${organization}.${domain}/source/version`
+  try {
+    const response = await fetch(url)
+    if (!response.ok) throw new Error(`HTTP error: ${response.status}`)
+
+    const data = await response.json()
+    if (data === null || typeof data?.server.version !== 'string') {
+      logger.error('Invalid response format from server version', { data })
+      throw new Error('Invalid response format')
+    }
+    return {
+      success: true,
+      version: data.server.version,
+      data
+    }
+  } catch (error) {
+    logger.error('Error fetching server version', {
+      error: error instanceof Error ? error.message : String(error)
+    })
+    return {
+      success: false,
+      version: 'Unknown',
+      data: null
+    }
+  }
+}
+
+/**
+ * Fetch current nodes count from the SlideRule discovery API.
+ * Returns node count that can be used by any store.
+ */
+export async function fetchCurrentNodes(
+  organization: string,
+  domain: string
+): Promise<CurrentNodesResult> {
+  const url = `https://${organization}.${domain}/discovery/status`
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ service: 'sliderule' })
+    })
+
+    if (!response.ok) throw new Error(`HTTP error: ${response.status}`)
+
+    const data = await response.json()
+    if (typeof data?.nodes === 'number') {
+      return {
+        success: true,
+        nodes: data.nodes
+      }
+    } else {
+      logger.error('Invalid response format from current nodes', { data })
+      throw new Error('Invalid response format')
+    }
+  } catch (error) {
+    logger.error('Error fetching current nodes', {
+      error: error instanceof Error ? error.message : String(error)
+    })
+    return {
+      success: false,
+      nodes: -1
+    }
+  }
+}
+
 /**
  * Authenticated fetch wrapper with automatic 401 retry.
  * Authentication priority:

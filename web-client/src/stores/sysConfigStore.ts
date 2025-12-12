@@ -1,8 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { createLogger } from '@/utils/logger'
-
-const logger = createLogger('SysConfigStore')
+import {
+  fetchServerVersionInfo as fetchVersionUtil,
+  fetchCurrentNodes as fetchNodesUtil
+} from '@/utils/fetchUtils'
 
 type CanConnectStatus = 'unknown' | 'yes' | 'no'
 
@@ -21,55 +22,21 @@ export const useSysConfigStore = defineStore(
     const canConnectNodes = ref<CanConnectStatus>('unknown')
 
     async function fetchServerVersionInfo(): Promise<string> {
-      const url = `https://${organization.value}.${domain.value}/source/version`
-      try {
-        const response = await fetch(url)
-        if (!response.ok) throw new Error(`HTTP error: ${response.status}`)
-
-        const data = await response.json()
-        if (data === null || typeof data?.server.version !== 'string') {
-          logger.error('Invalid response format from server version', { data })
-          throw new Error('Invalid response format')
-        }
-        canConnectVersion.value = 'yes'
-        version.value = data.server.version
-        return data
-      } catch (error) {
-        logger.error('Error fetching server version', {
-          error: error instanceof Error ? error.message : String(error)
-        })
-        canConnectVersion.value = 'no'
-        return 'Unknown'
+      const result = await fetchVersionUtil(organization.value, domain.value)
+      canConnectVersion.value = result.success ? 'yes' : 'no'
+      if (result.success) {
+        version.value = result.version
       }
+      return result.success ? result.data : 'Unknown'
     }
 
     async function fetchCurrentNodes(): Promise<string> {
-      const url = `https://${organization.value}.${domain.value}/discovery/status`
-      try {
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ service: 'sliderule' })
-        })
-
-        if (!response.ok) throw new Error(`HTTP error: ${response.status}`)
-
-        const data = await response.json()
-        if (typeof data?.nodes === 'number') {
-          current_nodes.value = data.nodes
-        } else {
-          logger.error('Invalid response format from current nodes', { data })
-          throw new Error('Invalid response format')
-        }
-        canConnectNodes.value = 'yes'
-        return current_nodes.value >= 0 ? current_nodes.value.toString() : 'Unknown'
-      } catch (error) {
-        logger.error('Error fetching current nodes', {
-          error: error instanceof Error ? error.message : String(error)
-        })
-        canConnectNodes.value = 'no'
-        return 'Unknown'
+      const result = await fetchNodesUtil(organization.value, domain.value)
+      canConnectNodes.value = result.success ? 'yes' : 'no'
+      if (result.success) {
+        current_nodes.value = result.nodes
       }
+      return result.success && result.nodes >= 0 ? result.nodes.toString() : 'Unknown'
     }
 
     return {
