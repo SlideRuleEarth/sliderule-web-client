@@ -39,7 +39,11 @@ const clearCacheAndReload = async () => {
 
 <template>
   <div class="cache-reload">
-    <button :disabled="isClearing" @click="clearCacheAndReload">
+    <button
+      :disabled="isClearing"
+      title="Reloads the application code only (does not delete your data)"
+      @click="clearCacheAndReload"
+    >
       {{ isClearing ? 'Clearing...' : 'Empty Cache & Hard Reload' }}
     </button>
     <p v-if="message">{{ message }}</p>

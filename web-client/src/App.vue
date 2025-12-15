@@ -30,6 +30,8 @@ import { useTourStore } from '@/stores/tourStore.js'
 import { useViewportHeight } from '@/composables/useViewportHeight'
 import { useSlideruleDefaults } from '@/stores/defaultsStore'
 import { createLogger } from '@/utils/logger'
+import { usePrivacyConsentStore } from '@/stores/privacyConsentStore'
+import SrConsentBanner from '@/components/SrConsentBanner.vue'
 
 const logger = createLogger('App')
 
@@ -42,6 +44,7 @@ const sysConfigStore = useSysConfigStore()
 const legacyJwtStore = useLegacyJwtStore()
 const authDialogStore = useAuthDialogStore()
 const googleApiKeyStore = useGoogleApiKeyStore()
+const privacyConsentStore = usePrivacyConsentStore()
 const route = useRoute()
 
 // Global login dialog state
@@ -348,6 +351,7 @@ onMounted(async () => {
   checkUnsupported()
   checkPrivateClusterAuth()
   tourStore.checkSeen()
+  privacyConsentStore.initializeOnStartup()
   await nextTick()
 
   if (!tourStore.hasSeenIntro) {
@@ -694,6 +698,7 @@ async function handleLongTourButtonClick() {
     <div class="sliderule-content">
       <RouterView />
     </div>
+    <SrConsentBanner />
 
     <!-- Dialog for displaying version information -->
     <Dialog

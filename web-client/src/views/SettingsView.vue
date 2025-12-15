@@ -11,6 +11,7 @@ import SrStorageUsage from '@/components/SrStorageUsage.vue'
 import SrAdvOptPanel from '@/components/SrAdvOptPanel.vue'
 import SrDefaults from '@/components/SrDefaults.vue'
 import SrGoogleApiKeyInput from '@/components/SrGoogleApiKeyInput.vue'
+import SrPrivacySettings from '@/components/SrPrivacySettings.vue'
 import Card from 'primevue/card'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 
@@ -68,6 +69,13 @@ const showLegacyProvisioning = computed(() => !githubAuthStore.canAccessMemberFe
                 <AccordionHeader>Legacy Provisioning</AccordionHeader>
                 <AccordionContent>
                   <SrLegacyProvSys />
+                </AccordionContent>
+              </AccordionPanel>
+
+              <AccordionPanel value="5">
+                <AccordionHeader>Privacy & Data</AccordionHeader>
+                <AccordionContent>
+                  <SrPrivacySettings />
                 </AccordionContent>
               </AccordionPanel>
             </Accordion>
