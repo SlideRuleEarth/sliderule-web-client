@@ -35,9 +35,9 @@ onMounted(() => {
 
 // Cluster options from auth (includes 'sliderule' public cluster)
 const clusterOptions = computed(() => {
-  // If authenticated, use accessibleClusters (which includes 'sliderule')
-  if (githubAuthStore.accessibleClusters?.length > 0) {
-    return githubAuthStore.accessibleClusters
+  // If authenticated, use knownClusters (which includes 'sliderule')
+  if (githubAuthStore.knownClusters?.length > 0) {
+    return githubAuthStore.knownClusters
   }
   // Fallback for non-authenticated users
   return ['sliderule']
@@ -85,6 +85,7 @@ async function resetToPublicCluster() {
       <Select
         id="sysconfig-cluster"
         v-model="cluster"
+        :editable="true"
         :options="clusterOptions"
         :disabled="props.disabled"
         class="sr-sysconfig-select"

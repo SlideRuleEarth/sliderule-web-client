@@ -24,7 +24,7 @@ async function refreshStatus() {
   }
 }
 
-// Use accessibleClusters directly from the store
+// Use deployableClusters directly from the store
 const clusterOptions = computed(() => githubAuthStore.deployableClusters || [])
 
 // Set default cluster name when options become available

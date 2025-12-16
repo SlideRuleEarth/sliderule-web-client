@@ -44,7 +44,7 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
       'teams',
       'teamRoles',
       'orgRoles',
-      'accessibleClusters',
+      'knownClusters',
       'deployableClusters',
       'token',
       'authTimestamp',
@@ -159,15 +159,6 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
      */
     initiateLogin() {
       const state = this.generateState()
-      const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID
-      const apiUrl = import.meta.env.VITE_GITHUB_OAUTH_API_URL
-
-      if (!clientId || !apiUrl) {
-        logger.error('GitHub OAuth not configured', { clientId: !!clientId, apiUrl: !!apiUrl })
-        this.lastError = 'GitHub OAuth is not configured'
-        this.authStatus = 'error'
-        return
-      }
 
       this.authStatus = 'authenticating'
 

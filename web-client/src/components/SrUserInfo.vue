@@ -62,7 +62,7 @@ const isAuthenticated = computed(() => githubAuthStore.authStatus === 'authentic
             </td>
           </tr>
           <tr>
-            <td class="sr-user-label">Accessible Clusters:</td>
+            <td class="sr-user-label">Known Clusters:</td>
             <td class="sr-user-value">
               <span v-if="knownClusters.length === 0" class="sr-no-value">None</span>
               <span v-else>{{ knownClusters.join(', ') }}</span>
