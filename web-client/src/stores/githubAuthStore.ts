@@ -18,7 +18,7 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
     teams: [] as string[],
     teamRoles: {} as Record<string, string>,
     orgRoles: [] as string[],
-    accessibleClusters: [] as string[],
+    knownClusters: [] as string[],
     deployableClusters: [] as string[],
     token: null as string | null,
     lastError: null as string | null,
@@ -26,7 +26,7 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
     // Token metadata (returned separately from server, not decoded from JWT)
     org: null as string | null,
     maxNodes: null as number | null,
-    clusterTtlHours: null as number | null,
+    maxTTL: null as number | null,
     tokenIssuedAt: null as number | null, // Unix timestamp
     tokenExpiresAtTimestamp: null as number | null, // Unix timestamp
     tokenIssuer: null as string | null,
@@ -108,9 +108,9 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
     isInTeam: (state) => (teamSlug: string) => state.teams.includes(teamSlug),
 
     /**
-     * Check if user can access a specific cluster
+     * Check if this is a known cluster and should be shown in the UI
      */
-    isAccessibleCluster: (state) => (cluster: string) => state.accessibleClusters.includes(cluster),
+    isKnownCluster: (state) => (cluster: string) => state.knownClusters.includes(cluster),
 
     /**
      * Get formatted expiration time from stored token metadata
@@ -176,7 +176,13 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
       logger.debug('Stored return path', { path: window.location.pathname })
 
       // Build the login URL - the Lambda will handle the redirect to GitHub
-      const loginUrl = new URL(`${apiUrl}/auth/github/login`)
+      // Use the current hostname to determine the domain (e.g., testsliderule.org, slideruleearth.io)
+      const hostname = window.location.hostname
+      // Extract base domain from hostname (e.g., "client.testsliderule.org" -> "testsliderule.org")
+      const domainParts = hostname.split('.')
+      const domain = domainParts.length > 2 ? domainParts.slice(-2).join('.') : hostname
+
+      const loginUrl = new URL(`https://login.${domain}/auth/github/login`)
       loginUrl.searchParams.set('state', state)
       // Pass the frontend callback URL so Lambda knows where to redirect back
       loginUrl.searchParams.set('redirect_uri', window.location.origin)
@@ -201,14 +207,14 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
       teams?: string
       teamRoles?: string
       orgRoles?: string
-      accessibleClusters?: string
+      knownClusters?: string
       deployableClusters?: string
       token?: string
       error?: string
       // Token metadata (returned separately, not decoded from JWT)
       org?: string
       maxNodes?: string
-      clusterTtlHours?: string
+      maxTTL?: string
       tokenIssuedAt?: string
       tokenExpiresAt?: string
       tokenIssuer?: string
@@ -237,8 +243,8 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
       this.teams = params.teams ? params.teams.split(',').filter((t) => t) : []
       this.teamRoles = params.teamRoles ? JSON.parse(params.teamRoles) : {}
       this.orgRoles = params.orgRoles ? params.orgRoles.split(',').filter((r) => r) : []
-      this.accessibleClusters = params.accessibleClusters
-        ? params.accessibleClusters.split(',').filter((c) => c)
+      this.knownClusters = params.knownClusters
+        ? params.knownClusters.split(',').filter((c) => c)
         : []
       this.deployableClusters = params.deployableClusters
         ? params.deployableClusters.split(',').filter((c) => c)
@@ -252,7 +258,7 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
       // Store token metadata (provided separately by server for UX)
       this.org = params.org || null
       this.maxNodes = params.maxNodes ? parseInt(params.maxNodes, 10) : null
-      this.clusterTtlHours = params.clusterTtlHours ? parseInt(params.clusterTtlHours, 10) : null
+      this.maxTTL = params.maxTTL ? parseInt(params.maxTTL, 10) : null
       this.tokenIssuedAt = params.tokenIssuedAt ? parseInt(params.tokenIssuedAt, 10) : null
       this.tokenExpiresAtTimestamp = params.tokenExpiresAt
         ? parseInt(params.tokenExpiresAt, 10)
@@ -266,11 +272,11 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
         teams: this.teams,
         teamRoles: this.teamRoles,
         orgRoles: this.orgRoles,
-        accessibleClusters: this.accessibleClusters,
+        knownClusters: this.knownClusters,
         deployableClusters: this.deployableClusters,
         hasToken: !!this.token,
         maxNodes: this.maxNodes,
-        clusterTtlHours: this.clusterTtlHours
+        maxTTL: this.maxTTL
       })
 
       return true
@@ -287,7 +293,7 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
       this.teams = []
       this.teamRoles = {}
       this.orgRoles = []
-      this.accessibleClusters = []
+      this.knownClusters = []
       this.deployableClusters = []
       this.token = null
       this.authTimestamp = null
@@ -296,7 +302,7 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
       // Clear token metadata
       this.org = null
       this.maxNodes = null
-      this.clusterTtlHours = null
+      this.maxTTL = null
       this.tokenIssuedAt = null
       this.tokenExpiresAtTimestamp = null
       this.tokenIssuer = null

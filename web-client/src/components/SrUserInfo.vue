@@ -11,14 +11,13 @@ const org = computed(() => githubAuthStore.org)
 const isOrgMember = computed(() => githubAuthStore.isOrgMember)
 const isOrgOwner = computed(() => githubAuthStore.isOrgOwner)
 const teams = computed(() => githubAuthStore.teams)
-const teamRoles = computed(() => githubAuthStore.teamRoles)
 const orgRoles = computed(() => githubAuthStore.orgRoles)
-const accessibleClusters = computed(() => githubAuthStore.accessibleClusters)
+const knownClusters = computed(() => githubAuthStore.knownClusters)
 const deployableClusters = computed(() => githubAuthStore.deployableClusters)
 
 // Token metadata from store state (provided separately by server for UX)
 const maxNodes = computed(() => githubAuthStore.maxNodes)
-const clusterTtlHours = computed(() => githubAuthStore.clusterTtlHours)
+const maxTTL = computed(() => githubAuthStore.maxTTL)
 const tokenIssuedAt = computed(() => githubAuthStore.tokenIssuedAtDate)
 const tokenExpiresAt = computed(() => githubAuthStore.tokenExpiresAt)
 const tokenIssuer = computed(() => githubAuthStore.tokenIssuer)
@@ -63,21 +62,10 @@ const isAuthenticated = computed(() => githubAuthStore.authStatus === 'authentic
             </td>
           </tr>
           <tr>
-            <td class="sr-user-label">Team Roles:</td>
-            <td class="sr-user-value">
-              <span v-if="Object.keys(teamRoles).length === 0" class="sr-no-value">None</span>
-              <div v-else class="sr-team-roles">
-                <div v-for="(role, team) in teamRoles" :key="team" class="sr-team-role">
-                  {{ team }}: {{ role }}
-                </div>
-              </div>
-            </td>
-          </tr>
-          <tr>
             <td class="sr-user-label">Accessible Clusters:</td>
             <td class="sr-user-value">
-              <span v-if="accessibleClusters.length === 0" class="sr-no-value">None</span>
-              <span v-else>{{ accessibleClusters.join(', ') }}</span>
+              <span v-if="knownClusters.length === 0" class="sr-no-value">None</span>
+              <span v-else>{{ knownClusters.join(', ') }}</span>
             </td>
           </tr>
           <tr>
@@ -94,7 +82,7 @@ const isAuthenticated = computed(() => githubAuthStore.authStatus === 'authentic
           <tr>
             <td class="sr-user-label">Deployed Cluster's TTL:</td>
             <td class="sr-user-value">
-              {{ clusterTtlHours != null ? `${clusterTtlHours} hours` : 'N/A' }}
+              {{ maxTTL != null ? `${maxTTL} minutes` : 'N/A' }}
             </td>
           </tr>
           <tr>
