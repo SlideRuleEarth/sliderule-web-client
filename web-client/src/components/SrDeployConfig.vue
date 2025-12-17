@@ -6,6 +6,7 @@ import InputText from 'primevue/inputtext'
 import Button from 'primevue/button'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 import { useDeployConfigStore } from '@/stores/deployConfigStore'
+import { useClusterReachability } from '@/composables/useClusterReachability'
 import { storeToRefs } from 'pinia'
 
 const githubAuthStore = useGitHubAuthStore()
@@ -14,6 +15,19 @@ const deployConfigStore = useDeployConfigStore()
 // Use storeToRefs for reactive two-way binding
 const { domain, clusterName, desiredVersion, currentNodes, canConnectNodes } =
   storeToRefs(deployConfigStore)
+
+// Use deployableClusters directly from the store (exclude "*" wildcard from dropdown)
+const clusterList = computed(() =>
+  (githubAuthStore.deployableClusters || []).filter((c) => c !== '*')
+)
+
+// Check if deployableClusters contains wildcard "*" to enable editable mode
+const allowCustomCluster = computed(
+  () => githubAuthStore.deployableClusters?.includes('*') ?? false
+)
+
+// Use composable for cluster reachability
+const { refreshClusterReachability } = useClusterReachability(clusterList, domain)
 
 async function refreshStatus() {
   deployConfigStore.resetStatus()
@@ -24,9 +38,6 @@ async function refreshStatus() {
     ])
   }
 }
-
-// Use deployableClusters directly from the store
-const clusterList = computed(() => githubAuthStore.deployableClusters || [])
 
 // Transform cluster options to include disabled state and status label
 const clusterOptionsWithStatus = computed(() => {
@@ -40,9 +51,12 @@ const clusterOptionsWithStatus = computed(() => {
   })
 })
 
-// Refresh stack status for all clusters when dropdown opens
+// Refresh stack status and reachability for all clusters when dropdown opens
 async function refreshClusterStatus() {
-  await deployConfigStore.refreshAllClusterStatus(clusterList.value)
+  await Promise.all([
+    deployConfigStore.refreshAllClusterStatus(clusterList.value),
+    refreshClusterReachability()
+  ])
 }
 
 // Set default cluster name when options become available
@@ -91,6 +105,7 @@ const isDomainDisabled = computed(() => !githubAuthStore.isOwner)
         <Select
           id="deploy-cluster"
           v-model="clusterName"
+          :editable="allowCustomCluster"
           :options="clusterOptionsWithStatus"
           optionLabel="label"
           optionValue="value"
