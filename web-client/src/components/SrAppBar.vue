@@ -13,6 +13,7 @@ import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 import { useRoute, useRouter } from 'vue-router'
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue'
 import SrUserUtilsDialog from '@/components/SrUserUtilsDialog.vue'
+import SrTokenUtilsDialog from '@/components/SrTokenUtilsDialog.vue'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('SrAppBar')
@@ -32,6 +33,7 @@ const srToastStore = useSrToastStore()
 const orgMenu = ref<InstanceType<typeof Menu> | null>(null)
 const showClusterDialog = ref(false)
 const showUserUtilsDialog = ref(false)
+const showTokenUtilsDialog = ref(false)
 const desiredNodes = ref(1)
 const ttl = ref(720)
 
@@ -190,13 +192,20 @@ const userMenuItems = computed(() => {
     }
   ]
 
-  // Add User Utils menu item for org members only
+  // Add User Info and Token Utils menu items for org members only
   if (githubIsMember.value || githubIsOwner.value) {
     items.push({
-      label: 'User Utils',
-      icon: 'pi pi-user-edit',
+      label: 'User Info',
+      icon: 'pi pi-user',
       command: () => {
         showUserUtilsDialog.value = true
+      }
+    })
+    items.push({
+      label: 'Token Utils',
+      icon: 'pi pi-key',
+      command: () => {
+        showTokenUtilsDialog.value = true
       }
     })
   }
@@ -956,6 +965,7 @@ function hideTooltip() {
   </Dialog>
 
   <SrUserUtilsDialog v-model:visible="showUserUtilsDialog" />
+  <SrTokenUtilsDialog v-model:visible="showTokenUtilsDialog" />
 </template>
 
 <style scoped>

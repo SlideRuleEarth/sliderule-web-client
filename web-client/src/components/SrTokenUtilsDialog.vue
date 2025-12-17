@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Dialog from 'primevue/dialog'
 import Button from 'primevue/button'
-import SrUserInfo from '@/components/SrUserInfo.vue'
+import SrTokenUtil from '@/components/SrTokenUtil.vue'
 
 defineProps<{
   visible: boolean
@@ -20,14 +20,14 @@ function closeDialog() {
   <Dialog
     :visible="visible"
     @update:visible="emit('update:visible', $event)"
-    header="User Info"
+    header="Token Utilities"
     :closable="true"
     modal
-    class="sr-user-utils-dialog"
+    class="sr-token-utils-dialog"
     :style="{ width: '35rem' }"
   >
-    <div class="sr-user-utils-content">
-      <SrUserInfo />
+    <div class="sr-token-utils-content">
+      <SrTokenUtil />
     </div>
 
     <template #footer>
@@ -39,7 +39,7 @@ function closeDialog() {
 </template>
 
 <style scoped>
-.sr-user-utils-content {
+.sr-token-utils-content {
   display: flex;
   flex-direction: column;
 }

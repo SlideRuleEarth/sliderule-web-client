@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed, ref } from 'vue'
 import Fieldset from 'primevue/fieldset'
-import Textarea from 'primevue/textarea'
 import Button from 'primevue/button'
+import Textarea from 'primevue/textarea'
+import Badge from 'primevue/badge'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 
 const githubAuthStore = useGitHubAuthStore()
@@ -19,34 +20,26 @@ const currentTokenClaims = computed(() => {
   return decodeJwt(currentToken.value)
 })
 
-// Input for pasting JWT
-const pastedToken = ref('')
-
-// Decoded claims from pasted JWT
-const decodedClaims = ref<Record<string, unknown> | null>(null)
-const decodeError = ref<string | null>(null)
-
 // Copy status
 const copySuccess = ref(false)
 
+// JWT Decoder state
+const pastedToken = ref('')
+const decodedClaims = ref<Record<string, unknown> | null>(null)
+const decodeError = ref<string | null>(null)
+
 /**
  * Decode a JWT token's payload (middle segment)
- * JWTs are base64url encoded, so we need to handle that
  */
 function decodeJwt(token: string): Record<string, unknown> | null {
   try {
     const parts = token.trim().split('.')
     if (parts.length !== 3) {
-      throw new Error('Invalid JWT format: expected 3 parts separated by dots')
+      return null
     }
 
-    // Decode the payload (second part)
     const payload = parts[1]
-
-    // Base64url to base64 conversion
     let base64 = payload.replace(/-/g, '+').replace(/_/g, '/')
-
-    // Add padding if necessary
     const padding = base64.length % 4
     if (padding) {
       base64 += '='.repeat(4 - padding)
@@ -60,7 +53,7 @@ function decodeJwt(token: string): Record<string, unknown> | null {
 }
 
 /**
- * Handle pasting and decoding a JWT
+ * Handle decoding a pasted JWT
  */
 function handleDecode() {
   decodeError.value = null
@@ -109,7 +102,6 @@ async function copyCurrentToken() {
  * Format timestamp claims for display
  */
 function formatClaimValue(key: string, value: unknown): string {
-  // Common JWT timestamp claims
   const timestampClaims = ['iat', 'exp', 'nbf', 'auth_time']
 
   if (timestampClaims.includes(key) && typeof value === 'number') {
@@ -126,136 +118,115 @@ function formatClaimValue(key: string, value: unknown): string {
 </script>
 
 <template>
-  <Fieldset v-if="canAccess" legend="Token Utility" toggleable :collapsed="true">
-    <div class="sr-token-util">
-      <!-- Current User's Token Section -->
-      <div class="sr-section">
-        <h4 class="sr-section-title">Your Current Token</h4>
-        <div v-if="currentToken" class="sr-current-token">
-          <div class="sr-token-display">
-            <code class="sr-token-text">{{ currentToken.substring(0, 50) }}...</code>
-          </div>
-          <Button
-            :label="copySuccess ? 'Copied!' : 'Copy Token'"
-            :icon="copySuccess ? 'pi pi-check' : 'pi pi-copy'"
-            :severity="copySuccess ? 'success' : undefined"
-            class="sr-glow-button"
-            variant="text"
-            rounded
-            @click="copyCurrentToken"
-          />
-          <!-- Decoded Current Token Claims -->
-          <div v-if="currentTokenClaims" class="sr-claims-display">
-            <h5 class="sr-claims-title">Token Claims:</h5>
-            <table class="sr-claims-table">
-              <tbody>
-                <tr v-for="(value, key) in currentTokenClaims" :key="key">
-                  <td class="sr-claim-key">{{ key }}</td>
-                  <td class="sr-claim-value">
-                    <pre>{{ formatClaimValue(String(key), value) }}</pre>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-        <p v-else class="sr-no-token">No token available</p>
+  <Fieldset v-if="canAccess" legend="Your Current Token Claims" toggleable :collapsed="true">
+    <div v-if="currentToken" class="sr-current-token">
+      <div v-if="currentTokenClaims" class="sr-claims-display">
+        <table class="sr-claims-table">
+          <tbody>
+            <tr v-for="(value, key) in currentTokenClaims" :key="key">
+              <td class="sr-claim-key">{{ key }}</td>
+              <td class="sr-claim-value">
+                <pre>{{ formatClaimValue(String(key), value) }}</pre>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
+    </div>
+    <p v-else class="sr-no-token">No token available</p>
+  </Fieldset>
 
-      <!-- JWT Decoder Section -->
-      <div class="sr-section">
-        <h4 class="sr-section-title">JWT Decoder</h4>
-        <p class="sr-section-desc">Paste any JWT to view its claims:</p>
-        <Textarea
-          v-model="pastedToken"
-          placeholder="Paste JWT token here..."
-          rows="2"
-          class="sr-token-input"
-        />
-        <div class="sr-button-row">
-          <Button
-            label="Decode"
-            icon="pi pi-search"
-            class="sr-glow-button"
-            variant="text"
-            rounded
-            @click="handleDecode"
-          />
-          <Button
-            label="Clear"
-            icon="pi pi-times"
-            class="sr-glow-button"
-            variant="text"
-            rounded
-            @click="handleClear"
-          />
-        </div>
+  <div class="sr-token-container" v-if="currentToken">
+    <Badge value="your current token" severity="info" class="sr-token-badge" />
+    <div class="sr-token-row">
+      <code class="sr-token-text">{{ currentToken.substring(0, 50) }}...</code>
+      <Button
+        :label="copySuccess ? 'Copied!' : 'Copy'"
+        :icon="copySuccess ? 'pi pi-check' : 'pi pi-copy'"
+        :severity="copySuccess ? 'success' : undefined"
+        size="small"
+        variant="text"
+        @click="copyCurrentToken"
+      />
+    </div>
+  </div>
 
-        <!-- Error Display -->
-        <div v-if="decodeError" class="sr-decode-error">
-          {{ decodeError }}
-        </div>
+  <Fieldset
+    v-if="canAccess"
+    legend="JWT Decoder"
+    toggleable
+    :collapsed="true"
+    class="sr-decoder-fieldset"
+  >
+    <p class="sr-decoder-desc">Paste any JWT to view its claims:</p>
+    <Textarea
+      v-model="pastedToken"
+      placeholder="Paste JWT token here..."
+      rows="2"
+      class="sr-token-input"
+    />
+    <div class="sr-button-row">
+      <Button
+        label="Decode"
+        icon="pi pi-search"
+        size="small"
+        variant="text"
+        @click="handleDecode"
+      />
+      <Button label="Clear" icon="pi pi-times" size="small" variant="text" @click="handleClear" />
+    </div>
 
-        <!-- Decoded Claims Display -->
-        <div v-if="decodedClaims" class="sr-claims-display">
-          <h5 class="sr-claims-title">Decoded Claims:</h5>
-          <table class="sr-claims-table">
-            <tbody>
-              <tr v-for="(value, key) in decodedClaims" :key="key">
-                <td class="sr-claim-key">{{ key }}</td>
-                <td class="sr-claim-value">
-                  <pre>{{ formatClaimValue(String(key), value) }}</pre>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+    <div v-if="decodeError" class="sr-decode-error">
+      {{ decodeError }}
+    </div>
+
+    <div v-if="decodedClaims" class="sr-claims-display">
+      <table class="sr-claims-table">
+        <tbody>
+          <tr v-for="(value, key) in decodedClaims" :key="key">
+            <td class="sr-claim-key">{{ key }}</td>
+            <td class="sr-claim-value">
+              <pre>{{ formatClaimValue(String(key), value) }}</pre>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </Fieldset>
 </template>
 
 <style scoped>
-.sr-token-util {
-  padding: 0.5rem 0;
-}
-
-.sr-section {
-  margin-bottom: 1.5rem;
-}
-
-.sr-section:last-child {
-  margin-bottom: 0;
-}
-
-.sr-section-title {
-  margin: 0 0 0.5rem 0;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--text-color);
-}
-
-.sr-section-desc {
-  margin: 0 0 0.5rem 0;
-  font-size: 0.8125rem;
-  color: var(--text-color-secondary);
-}
-
 .sr-current-token {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-.sr-token-display {
+.sr-token-container {
+  position: relative;
+  margin-top: 1rem;
+}
+
+.sr-token-badge {
+  position: absolute;
+  top: -0.6rem;
+  left: 0.5rem;
+  font-size: 0.65rem !important;
+  text-transform: lowercase;
+}
+
+.sr-token-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   background: var(--surface-ground);
   border: 1px solid var(--surface-border);
   border-radius: var(--p-border-radius);
-  padding: 0.5rem;
-  overflow: hidden;
+  padding: 0.25rem 0.5rem;
 }
 
 .sr-token-text {
+  flex: 1;
   font-size: 0.75rem;
   word-break: break-all;
   color: var(--text-color-secondary);
@@ -268,44 +239,11 @@ function formatClaimValue(key: string, value: unknown): string {
   margin: 0;
 }
 
-.sr-token-input {
-  width: 100%;
-  font-family: monospace;
-  font-size: 0.75rem;
-  max-height: 4rem;
-  overflow-y: auto;
-  resize: none;
-}
-
-.sr-button-row {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-}
-
-.sr-decode-error {
-  margin-top: 0.5rem;
-  padding: 0.5rem;
-  background: var(--red-50);
-  border: 1px solid var(--red-200);
-  border-radius: var(--p-border-radius);
-  color: var(--red-700);
-  font-size: 0.8125rem;
-}
-
 .sr-claims-display {
-  margin-top: 1rem;
   background: var(--surface-ground);
   border: 1px solid var(--surface-border);
   border-radius: var(--p-border-radius);
-  padding: 0.75rem;
-}
-
-.sr-claims-title {
-  margin: 0 0 0.5rem 0;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--text-color);
+  padding: 0.5rem;
 }
 
 .sr-claims-table {
@@ -323,7 +261,7 @@ function formatClaimValue(key: string, value: unknown): string {
 }
 
 .sr-claims-table td {
-  padding: 0.375rem 0.5rem;
+  padding: 0.25rem 0.5rem;
   vertical-align: top;
 }
 
@@ -345,5 +283,37 @@ function formatClaimValue(key: string, value: unknown): string {
   font-size: 0.75rem;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.sr-decoder-fieldset {
+  margin-top: 1rem;
+}
+
+.sr-decoder-desc {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.8125rem;
+  color: var(--text-color-secondary);
+}
+
+.sr-token-input {
+  width: 100%;
+  font-family: monospace;
+  font-size: 0.75rem;
+}
+
+.sr-button-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.sr-decode-error {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: var(--red-50);
+  border: 1px solid var(--red-200);
+  border-radius: var(--p-border-radius);
+  color: var(--red-700);
+  font-size: 0.8125rem;
 }
 </style>
