@@ -53,20 +53,20 @@ const statusMessage = computed(() => {
 <template>
   <SingleColumnLayout>
     <template v-slot:sr-single-col>
-      <Card class="sr-system-card">
+      <Card class="sr-server-card">
         <template #title>
-          <div class="sr-system-title">System</div>
+          <div class="sr-server-title">Server</div>
         </template>
         <template #content>
-          <Message :severity="statusSeverity" :closable="false" class="sr-system-status">
+          <Message :severity="statusSeverity" :closable="false" class="sr-server-status">
             {{ statusMessage }}
           </Message>
 
-          <div class="sr-system-section">
+          <div class="sr-server-section">
             <SrSysConfig :disabled="!isAuthenticated" />
           </div>
 
-          <div v-if="canAccessMemberFeatures" class="sr-system-section">
+          <div v-if="canAccessMemberFeatures" class="sr-server-section">
             <SrDeployConfig />
           </div>
         </template>
@@ -76,7 +76,7 @@ const statusMessage = computed(() => {
 </template>
 
 <style scoped>
-.sr-system-card {
+.sr-server-card {
   display: block;
   justify-content: center;
   align-items: center;
@@ -88,7 +88,7 @@ const statusMessage = computed(() => {
   box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.08);
 }
 
-.sr-system-title {
+.sr-server-title {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -99,21 +99,21 @@ const statusMessage = computed(() => {
   margin-bottom: 1rem;
 }
 
-.sr-system-status {
+.sr-server-status {
   margin: 0 0 1rem 0;
 }
 
-.sr-system-section {
+.sr-server-section {
   margin-bottom: 1rem;
   padding-bottom: 1rem;
   border-bottom: 1px solid var(--p-surface-border);
 }
 
-.sr-system-section:last-of-type {
+.sr-server-section:last-of-type {
   border-bottom: none;
 }
 
-.sr-system-section h4 {
+.sr-server-section h4 {
   margin: 0 0 0.5rem 0;
   font-size: 0.9rem;
   font-weight: 600;

@@ -185,7 +185,7 @@ const userMenuItems = computed(() => {
       label: 'Server',
       icon: 'pi pi-server',
       command: () => {
-        navigateToSystem()
+        navigateToServer()
       }
     }
   ]
@@ -216,9 +216,9 @@ const toggleUserMenu = (event: Event) => {
   userMenu.value?.toggle(event)
 }
 
-// Navigate to System view
-function navigateToSystem() {
-  void router.push('/system')
+// Navigate to Server view
+function navigateToServer() {
+  void router.push('/server')
 }
 
 const emit = defineEmits([
