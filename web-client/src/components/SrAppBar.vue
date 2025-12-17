@@ -12,6 +12,7 @@ import { useLegacyJwtStore } from '@/stores/SrLegacyJwtStore'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 import { useRoute, useRouter } from 'vue-router'
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue'
+import SrUserUtilsDialog from '@/components/SrUserUtilsDialog.vue'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('SrAppBar')
@@ -30,6 +31,7 @@ const srToastStore = useSrToastStore()
 // Org menu and cluster dialog state
 const orgMenu = ref<InstanceType<typeof Menu> | null>(null)
 const showClusterDialog = ref(false)
+const showUserUtilsDialog = ref(false)
 const desiredNodes = ref(1)
 const ttl = ref(720)
 
@@ -177,15 +179,38 @@ const toggleAboutMenu = (event: Event) => {
 
 // User menu for logged-in users
 const userMenu = ref<InstanceType<typeof Menu> | null>(null)
-const userMenuItems = [
-  {
+const userMenuItems = computed(() => {
+  const items = [
+    {
+      label: 'Server',
+      icon: 'pi pi-server',
+      command: () => {
+        navigateToSystem()
+      }
+    }
+  ]
+
+  // Add User Utils menu item for org members only
+  if (githubIsMember.value || githubIsOwner.value) {
+    items.push({
+      label: 'User Utils',
+      icon: 'pi pi-user-edit',
+      command: () => {
+        showUserUtilsDialog.value = true
+      }
+    })
+  }
+
+  items.push({
     label: 'Log Out',
     icon: 'pi pi-sign-out',
     command: () => {
       void handleGitHubLogout()
     }
-  }
-]
+  })
+
+  return items
+})
 
 const toggleUserMenu = (event: Event) => {
   userMenu.value?.toggle(event)
@@ -571,11 +596,6 @@ const mobileMenuItems = computed(() => {
       command: handleSettingsButtonClick
     },
     {
-      label: 'System',
-      icon: 'pi pi-server',
-      command: navigateToSystem
-    },
-    {
       label: 'About',
       icon: 'pi pi-info-circle',
       items: aboutMenuItems
@@ -587,7 +607,7 @@ const mobileMenuItems = computed(() => {
     items.push({
       label: githubUsername.value || 'Account',
       icon: 'pi pi-user',
-      items: userMenuItems
+      items: userMenuItems.value
     })
   } else {
     items.push({
@@ -829,14 +849,6 @@ function hideTooltip() {
       >
       </Button>
       <Button
-        icon="pi pi-server"
-        id="sr-system-button"
-        label="System"
-        class="p-button-rounded p-button-text desktop-only"
-        @click="navigateToSystem"
-      >
-      </Button>
-      <Button
         icon="pi pi-info-circle"
         id="sr-about-button"
         label="About"
@@ -942,6 +954,8 @@ function hideTooltip() {
       />
     </div>
   </Dialog>
+
+  <SrUserUtilsDialog v-model:visible="showUserUtilsDialog" />
 </template>
 
 <style scoped>

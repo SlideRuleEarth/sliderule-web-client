@@ -27,7 +27,7 @@ const isAuthenticated = computed(() => githubAuthStore.authStatus === 'authentic
 </script>
 
 <template>
-  <Fieldset v-if="isAuthenticated" legend="User Info" toggleable :collapsed="true">
+  <Fieldset v-if="isAuthenticated" legend="User Info" toggleable :collapsed="false">
     <div class="sr-user-info">
       <table class="sr-user-table">
         <tbody>

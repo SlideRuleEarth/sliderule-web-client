@@ -4,8 +4,6 @@ import SingleColumnLayout from '@/layouts/SingleColumnLayout.vue'
 import Card from 'primevue/card'
 import Message from 'primevue/message'
 import SrSysConfig from '@/components/SrSysConfig.vue'
-import SrUserInfo from '@/components/SrUserInfo.vue'
-import SrTokenUtil from '@/components/SrTokenUtil.vue'
 import SrDeployConfig from '@/components/SrDeployConfig.vue'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 
@@ -70,14 +68,6 @@ const statusMessage = computed(() => {
 
           <div v-if="canAccessMemberFeatures" class="sr-system-section">
             <SrDeployConfig />
-          </div>
-
-          <div v-if="isAuthenticated" class="sr-system-section">
-            <SrUserInfo />
-          </div>
-
-          <div v-if="canAccessMemberFeatures" class="sr-system-section">
-            <SrTokenUtil />
           </div>
         </template>
       </Card>
