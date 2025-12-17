@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed, watch, onMounted } from 'vue'
+import { computed, watch, onMounted, ref } from 'vue'
 import Select from 'primevue/select'
 import Button from 'primevue/button'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 import { useSysConfigStore } from '@/stores/sysConfigStore'
 import { useLegacyJwtStore } from '@/stores/SrLegacyJwtStore'
+import { fetchServerVersionInfo as fetchVersionUtil } from '@/utils/fetchUtils'
 import { storeToRefs } from 'pinia'
 
 const props = defineProps<{
@@ -41,6 +42,34 @@ const clusterOptions = computed(() => {
   }
   // Fallback for non-authenticated users
   return ['sliderule']
+})
+
+// Track cluster reachability for disabling unreachable clusters in dropdown
+const clusterReachability = ref<Record<string, boolean>>({})
+
+async function checkClusterReachability(clusterName: string): Promise<boolean> {
+  const result = await fetchVersionUtil(clusterName, domain.value)
+  return result.success
+}
+
+async function refreshClusterReachability() {
+  const clusters = clusterOptions.value
+  const results: Record<string, boolean> = {}
+  await Promise.all(
+    clusters.map(async (c) => {
+      results[c] = await checkClusterReachability(c)
+    })
+  )
+  clusterReachability.value = results
+}
+
+// Transform options to include disabled state for unreachable clusters
+const clusterOptionsWithState = computed(() => {
+  return clusterOptions.value.map((c) => ({
+    label: c,
+    value: c,
+    disabled: clusterReachability.value[c] === false
+  }))
 })
 
 // Available domain options - testsliderule.org only for org owners
@@ -86,9 +115,13 @@ async function resetToPublicCluster() {
         id="sysconfig-cluster"
         v-model="cluster"
         :editable="true"
-        :options="clusterOptions"
+        :options="clusterOptionsWithState"
+        optionLabel="label"
+        optionValue="value"
+        optionDisabled="disabled"
         :disabled="props.disabled"
         class="sr-sysconfig-select"
+        @show="refreshClusterReachability"
       />
     </div>
     <div class="sr-sysconfig-field">

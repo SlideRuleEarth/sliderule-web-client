@@ -19,6 +19,25 @@ export interface CurrentNodesResult {
 }
 
 /**
+ * CloudFormation stack status values.
+ * Used to determine if a cluster can be selected for deployment.
+ */
+export type StackStatus =
+  | 'NOT_FOUND' // Stack doesn't exist - can deploy
+  | 'CREATE_IN_PROGRESS' // Starting - disable
+  | 'CREATE_COMPLETE' // Up - disable
+  | 'UPDATE_IN_PROGRESS' // Updating - disable
+  | 'DELETE_IN_PROGRESS' // Deleting - disable
+  | 'DELETE_COMPLETE' // Deleted - can deploy
+  | 'FAILED' // Failed state - can deploy (retry)
+  | 'UNKNOWN' // Error fetching - allow with warning
+
+export interface StackStatusResult {
+  success: boolean
+  status: StackStatus
+}
+
+/**
  * Fetch server version info from the SlideRule API.
  * Returns version data that can be used by any store.
  */
@@ -42,7 +61,7 @@ export async function fetchServerVersionInfo(
       data
     }
   } catch (error) {
-    logger.error('Error fetching server version', {
+    logger.info('Error fetching server version', {
       error: error instanceof Error ? error.message : String(error)
     })
     return {
@@ -82,7 +101,7 @@ export async function fetchCurrentNodes(
       throw new Error('Invalid response format')
     }
   } catch (error) {
-    logger.error('Error fetching current nodes', {
+    logger.info('Error fetching current nodes', {
       error: error instanceof Error ? error.message : String(error)
     })
     return {
@@ -90,6 +109,40 @@ export async function fetchCurrentNodes(
       nodes: -1
     }
   }
+}
+
+/**
+ * Fetch CloudFormation stack status for a cluster.
+ * Used to determine if a cluster can be selected for deployment.
+ *
+ * TODO: Wire to actual endpoint when available.
+ * Expected endpoint: GET https://deploy.{domain}/stack/{cluster}/status
+ *
+ * @param cluster - The cluster name
+ * @param domain - The domain (e.g., 'slideruleearth.io')
+ * @returns Stack status result
+ */
+export async function fetchStackStatus(
+  cluster: string,
+  domain: string
+): Promise<StackStatusResult> {
+  // TODO: Wire to actual endpoint when available
+  // Expected: GET https://deploy.{domain}/stack/{cluster}/status
+  //
+  // const url = `https://deploy.${domain}/stack/${cluster}/status`
+  // try {
+  //   const response = await fetch(url)
+  //   if (!response.ok) throw new Error(`HTTP error: ${response.status}`)
+  //   const data = await response.json()
+  //   return { success: true, status: data.status }
+  // } catch (error) {
+  //   logger.info('Error fetching stack status', { cluster, domain, error })
+  //   return { success: false, status: 'UNKNOWN' }
+  // }
+
+  // For now, return UNKNOWN to allow all selections until the endpoint is available
+  logger.debug('fetchStackStatus placeholder called', { cluster, domain })
+  return { success: false, status: 'UNKNOWN' }
 }
 
 /**

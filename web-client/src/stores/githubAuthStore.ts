@@ -168,12 +168,12 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
 
       // Build the login URL - the Lambda will handle the redirect to GitHub
       // Use the current hostname to determine the domain (e.g., testsliderule.org, slideruleearth.io)
-      const hostname = window.location.hostname
+      // const hostname = window.location.hostname
       // Extract base domain from hostname (e.g., "client.testsliderule.org" -> "testsliderule.org")
-      const domainParts = hostname.split('.')
-      const domain = domainParts.length > 2 ? domainParts.slice(-2).join('.') : hostname
+      // const domainParts = hostname.split('.')
+      // const domain = domainParts.length > 2 ? domainParts.slice(-2).join('.') : hostname
 
-      const loginUrl = new URL(`https://login.${domain}/auth/github/login`)
+      const loginUrl = new URL(`https://login.slideruleearth.io/auth/github/login`)
       loginUrl.searchParams.set('state', state)
       // Pass the frontend callback URL so Lambda knows where to redirect back
       loginUrl.searchParams.set('redirect_uri', window.location.origin)

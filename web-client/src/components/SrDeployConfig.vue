@@ -2,6 +2,7 @@
 import { computed, watch, onMounted } from 'vue'
 import Fieldset from 'primevue/fieldset'
 import Select from 'primevue/select'
+import InputText from 'primevue/inputtext'
 import Button from 'primevue/button'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 import { useDeployConfigStore } from '@/stores/deployConfigStore'
@@ -11,7 +12,7 @@ const githubAuthStore = useGitHubAuthStore()
 const deployConfigStore = useDeployConfigStore()
 
 // Use storeToRefs for reactive two-way binding
-const { domain, clusterName, version, currentNodes, canConnectVersion, canConnectNodes } =
+const { domain, clusterName, desiredVersion, currentNodes, canConnectNodes } =
   storeToRefs(deployConfigStore)
 
 async function refreshStatus() {
@@ -25,11 +26,28 @@ async function refreshStatus() {
 }
 
 // Use deployableClusters directly from the store
-const clusterOptions = computed(() => githubAuthStore.deployableClusters || [])
+const clusterList = computed(() => githubAuthStore.deployableClusters || [])
+
+// Transform cluster options to include disabled state and status label
+const clusterOptionsWithStatus = computed(() => {
+  return clusterList.value.map((c) => {
+    const statusLabel = deployConfigStore.getStackStatusLabel(c)
+    return {
+      label: statusLabel ? `${c} (${statusLabel})` : c,
+      value: c,
+      disabled: deployConfigStore.isClusterDisabled(c)
+    }
+  })
+})
+
+// Refresh stack status for all clusters when dropdown opens
+async function refreshClusterStatus() {
+  await deployConfigStore.refreshAllClusterStatus(clusterList.value)
+}
 
 // Set default cluster name when options become available
 watch(
-  clusterOptions,
+  clusterList,
   (options) => {
     if (!clusterName.value && options.length > 0) {
       clusterName.value = options[0]
@@ -73,15 +91,22 @@ const isDomainDisabled = computed(() => !githubAuthStore.isOwner)
         <Select
           id="deploy-cluster"
           v-model="clusterName"
-          :options="clusterOptions"
+          :options="clusterOptionsWithStatus"
+          optionLabel="label"
+          optionValue="value"
+          optionDisabled="disabled"
           class="sr-deploy-select"
+          @show="refreshClusterStatus"
         />
       </div>
       <div class="sr-deploy-field">
-        <label class="sr-deploy-label">Version</label>
-        <span :class="['sr-deploy-value', `sr-status-${canConnectVersion}`]">
-          {{ version || 'v?.?.?' }}
-        </span>
+        <label for="deploy-version" class="sr-deploy-label">Version</label>
+        <InputText
+          id="deploy-version"
+          v-model="desiredVersion"
+          placeholder="latest"
+          class="sr-deploy-input"
+        />
       </div>
       <div class="sr-deploy-field">
         <label class="sr-deploy-label">Current Nodes</label>
@@ -125,6 +150,10 @@ const isDomainDisabled = computed(() => !githubAuthStore.isOwner)
 }
 
 .sr-deploy-select {
+  width: 15em;
+}
+
+.sr-deploy-input {
   width: 15em;
 }
 
