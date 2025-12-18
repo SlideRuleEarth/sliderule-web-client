@@ -6,11 +6,6 @@ import type { TreeNode } from 'primevue/treenode'
 import Button from 'primevue/button'
 import { useToast } from 'primevue/usetoast'
 import router from '@/router/index.js'
-import Tabs from 'primevue/tabs'
-import TabList from 'primevue/tablist'
-import Tab from 'primevue/tab'
-import TabPanels from 'primevue/tabpanels'
-import TabPanel from 'primevue/tabpanel'
 import Dialog from 'primevue/dialog'
 
 import { useRequestsStore } from '@/stores/requestsStore'
@@ -27,6 +22,7 @@ import SrJsonDisplayDialog from './SrJsonDisplayDialog.vue'
 import SrImportParquetFile from './SrImportParquetFile.vue'
 import ToggleButton from 'primevue/togglebutton'
 import SrExportDialog from '@/components/SrExportDialog.vue'
+import SrParmsFormatTabs from '@/components/SrParmsFormatTabs.vue'
 import { updateElevationMap } from '@/utils/SrMapUtils'
 import { createLogger } from '@/utils/logger'
 
@@ -45,11 +41,10 @@ const currentSvrParms = ref('')
 
 // -- Dialog state for combined parameters view with tabs
 const showCombinedParmsDialog = ref(false)
-const currentReqParms = ref('')
-const currentRcvdReqParms = ref('')
-const hasReqParms = ref(false)
-const hasRcvdParms = ref(false)
-const defaultTab = ref('0')
+const currentRcvdParmsObj = ref<object | null>(null)
+const currentSentParmsObj = ref<object | null>(null)
+const currentFunc = ref('')
+const currentReqId = ref<number | null>(null)
 
 // -- Dialog state for "geo_metadata"
 const showGeoMetadataDialog = ref(false)
@@ -98,83 +93,14 @@ function openGeoMetadataDialog(metadata: string | object) {
   showGeoMetadataDialog.value = true
 }
 
-// Open the Combined Parameters dialog with tabs
-function openCombinedParmsDialog(reqParms: any, rcvdParms: any) {
-  // Check if parameters have actual content (not null, not empty string, not empty object)
-  const hasReqContent =
-    reqParms &&
-    (typeof reqParms === 'string' ? reqParms.trim() !== '' : Object.keys(reqParms).length > 0)
-  const hasRcvdContent =
-    rcvdParms &&
-    (typeof rcvdParms === 'string' ? rcvdParms.trim() !== '' : Object.keys(rcvdParms).length > 0)
-
-  hasReqParms.value = hasReqContent
-  hasRcvdParms.value = hasRcvdContent
-
-  if (hasReqParms.value) {
-    // Extract inner data (remove 'parms' wrapper if present) for consistency with Request View
-    const innerReqParms =
-      reqParms?.parms && typeof reqParms.parms === 'object' ? reqParms.parms : reqParms
-    currentReqParms.value =
-      typeof innerReqParms === 'object' ? JSON.stringify(innerReqParms, null, 2) : innerReqParms
-  }
-
-  if (hasRcvdParms.value) {
-    currentRcvdReqParms.value =
-      typeof rcvdParms === 'object' ? JSON.stringify(rcvdParms, null, 2) : rcvdParms
-  }
-
-  // Set default tab to the one with content, prefer "Sent to Server" if both have content
-  defaultTab.value = hasReqContent ? '0' : '1'
-
+// Open the Combined Parameters dialog
+function openCombinedParmsDialog(rcvdParms: any, sentParms: any, func: string, reqId: number) {
+  // Store rcvdParms for SrParmsFormatTabs (it handles parms wrapper stripping internally)
+  currentRcvdParmsObj.value = rcvdParms
+  currentSentParmsObj.value = sentParms
+  currentFunc.value = func || ''
+  currentReqId.value = reqId
   showCombinedParmsDialog.value = true
-}
-
-// Copy to clipboard functions
-const copyReqParmsToClipboard = async () => {
-  try {
-    await navigator.clipboard.writeText(currentReqParms.value)
-    logger.debug('Request parameters copied to clipboard')
-    toast.add({
-      severity: 'success',
-      summary: 'Copied',
-      detail: 'Request parameters copied to clipboard',
-      life: srToastStore.getLife()
-    })
-  } catch (err) {
-    logger.error('Failed to copy request parameters', {
-      error: err instanceof Error ? err.message : String(err)
-    })
-    toast.add({
-      severity: 'error',
-      summary: 'Copy Failed',
-      detail: 'Failed to copy to clipboard',
-      life: srToastStore.getLife()
-    })
-  }
-}
-
-const copyRcvdParmsToClipboard = async () => {
-  try {
-    await navigator.clipboard.writeText(currentRcvdReqParms.value)
-    logger.debug('Received parameters copied to clipboard')
-    toast.add({
-      severity: 'success',
-      summary: 'Copied',
-      detail: 'Received parameters copied to clipboard',
-      life: srToastStore.getLife()
-    })
-  } catch (err) {
-    logger.error('Failed to copy received parameters', {
-      error: err instanceof Error ? err.message : String(err)
-    })
-    toast.add({
-      severity: 'error',
-      summary: 'Copy Failed',
-      detail: 'Failed to copy to clipboard',
-      life: srToastStore.getLife()
-    })
-  }
 }
 
 const analyze = async (id: number) => {
@@ -421,7 +347,12 @@ onUnmounted(() => {
           label="Parms"
           class="sr-glow-button"
           @click="
-            openCombinedParmsDialog(slotProps.node.data.parameters, slotProps.node.data.rcvd_parms)
+            openCombinedParmsDialog(
+              slotProps.node.data.rcvd_parms,
+              slotProps.node.data.parameters,
+              slotProps.node.data.func,
+              slotProps.node.data.reqId
+            )
           "
           @mouseover="
             tooltipRef?.showTooltip($event, 'View request parameters (sent and received)')
@@ -660,66 +591,20 @@ onUnmounted(() => {
     </Column>
   </TreeTable>
 
-  <!-- Combined Request Parameters Dialog with Tabs -->
+  <!-- Combined Request Parameters Dialog -->
   <Dialog
     v-model:visible="showCombinedParmsDialog"
-    header="Request Parameters"
-    :style="{ width: '60vw' }"
+    :header="`Record ${currentReqId} Request Parameters`"
+    :style="{ width: '80vw' }"
     :modal="true"
     :dismissableMask="true"
   >
-    <Tabs v-if="hasReqParms || hasRcvdParms" :value="defaultTab">
-      <TabList>
-        <Tab
-          v-if="hasReqParms"
-          value="0"
-          :pt="{
-            root: {
-              title: 'Parameters sent to the server in the original request'
-            }
-          }"
-        >
-          Sent to Server
-        </Tab>
-        <Tab
-          v-if="hasRcvdParms"
-          value="1"
-          :pt="{
-            root: {
-              title: 'Parameters used by the server, returned in its response'
-            }
-          }"
-        >
-          Used by Server
-        </Tab>
-      </TabList>
-      <TabPanels>
-        <TabPanel v-if="hasReqParms" value="0">
-          <div class="tab-content">
-            <Button
-              label="Copy to clipboard"
-              size="small"
-              icon="pi pi-copy"
-              @click="copyReqParmsToClipboard"
-              class="copy-btn"
-            />
-            <pre class="json-content">{{ currentReqParms }}</pre>
-          </div>
-        </TabPanel>
-        <TabPanel v-if="hasRcvdParms" value="1">
-          <div class="tab-content">
-            <Button
-              label="Copy to clipboard"
-              size="small"
-              icon="pi pi-copy"
-              @click="copyRcvdParmsToClipboard"
-              class="copy-btn"
-            />
-            <pre class="json-content">{{ currentRcvdReqParms }}</pre>
-          </div>
-        </TabPanel>
-      </TabPanels>
-    </Tabs>
+    <SrParmsFormatTabs
+      v-if="currentRcvdParmsObj"
+      :rcvdParms="currentRcvdParmsObj"
+      :sentParms="currentSentParmsObj"
+      :endpoint="currentFunc"
+    />
     <div v-else style="padding: 1rem; text-align: center; color: #999">No parameters available</div>
   </Dialog>
   <!-- Server Parameters Dialog -->

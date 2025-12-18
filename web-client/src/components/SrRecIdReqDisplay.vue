@@ -14,7 +14,7 @@
     <SrCustomTooltip ref="tooltipRef" id="recIdDisplayTooltip" />
     <SrReqParmsDisplayDlg
       v-model:visible="showParmsDialog"
-      :json-data="reqParms"
+      :rcvd-parms="reqParms"
       :title="`endpoint = ${curAPI}`"
       :endpoint="curAPI"
       width="80vw"
