@@ -211,6 +211,7 @@ export interface AtlReqParams {
   cmr?: { polygon?: SrRegion; version?: string }
   output?: OutputFormat
   atl08_class?: string[]
+  max_resources?: number
   [key: string]: any // Other dynamic keys
 }
 
