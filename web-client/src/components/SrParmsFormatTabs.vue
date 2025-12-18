@@ -26,11 +26,24 @@ hljs.registerLanguage('json', json)
 hljs.registerLanguage('python', python)
 hljs.registerLanguage('lua', lua)
 
-const props = defineProps<{
-  rcvdParms: object | string | null
-  sentParms?: object | string | null
-  endpoint?: string
-}>()
+const props = withDefaults(
+  defineProps<{
+    rcvdParms: object | string | null
+    sentParms?: object | string | null
+    endpoint?: string
+    mode?: 'received' | 'sending'
+  }>(),
+  {
+    mode: 'received'
+  }
+)
+
+// Tooltip text based on mode
+const tooltipPrefix = computed(() =>
+  props.mode === 'sending'
+    ? 'Request parameters that will be sent to server formatted in'
+    : 'Request parameters used by the server to create this record formatted in'
+)
 
 const activeTab = ref('0')
 
@@ -377,9 +390,9 @@ watch(parsedData, () => {
 <template>
   <Tabs v-model:value="activeTab">
     <TabList>
-      <Tab value="0" title="Request parameters used by the server formatted in JSON">JSON</Tab>
-      <Tab value="1" title="Request parameters used by the server formatted in Python">Python</Tab>
-      <Tab value="2" title="Request parameters used by the server formatted in Lua">Lua</Tab>
+      <Tab value="0" :title="`${tooltipPrefix} JSON`">JSON</Tab>
+      <Tab value="1" :title="`${tooltipPrefix} Python`">Python</Tab>
+      <Tab value="2" :title="`${tooltipPrefix} Lua`">Lua</Tab>
       <Tab value="3" title="Request parameters used in a python code example">Python Code</Tab>
       <Tab v-if="hasDiff" value="4" title="The exact parameters sent by this web client">Sent</Tab>
       <Tab
@@ -406,7 +419,7 @@ watch(parsedData, () => {
         <div class="tab-content">
           <div class="button-row">
             <Button
-              label="Copy"
+              label="Copy Python"
               size="small"
               icon="pi pi-copy"
               @click="copyPythonSnippetToClipboard"

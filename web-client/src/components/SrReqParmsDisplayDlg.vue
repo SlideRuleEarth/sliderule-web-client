@@ -2,12 +2,18 @@
 import Dialog from 'primevue/dialog'
 import SrParmsFormatTabs from './SrParmsFormatTabs.vue'
 
-const props = defineProps<{
-  rcvdParms: object | string | null
-  width?: string
-  title?: string
-  endpoint?: string
-}>()
+const props = withDefaults(
+  defineProps<{
+    rcvdParms: object | string | null
+    width?: string
+    title?: string
+    endpoint?: string
+    mode?: 'received' | 'sending'
+  }>(),
+  {
+    mode: 'received'
+  }
+)
 
 const modelValue = defineModel<boolean>({ default: false })
 </script>
@@ -25,7 +31,7 @@ const modelValue = defineModel<boolean>({ default: false })
       </div>
     </template>
 
-    <SrParmsFormatTabs :rcvdParms="props.rcvdParms" :endpoint="props.endpoint" />
+    <SrParmsFormatTabs :rcvdParms="props.rcvdParms" :endpoint="props.endpoint" :mode="props.mode" />
   </Dialog>
 </template>
 

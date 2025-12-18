@@ -18,6 +18,7 @@
       :title="`endpoint = ${curAPI}`"
       :endpoint="curAPI"
       width="80vw"
+      mode="sending"
     />
   </div>
 </template>
