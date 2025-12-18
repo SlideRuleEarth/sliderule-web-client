@@ -210,9 +210,9 @@ watch([modelValue, parsedData], () => {
     <Tabs v-model:value="activeTab">
       <TabList>
         <Tab value="0">JSON</Tab>
-        <Tab value="1">Python Snippet</Tab>
+        <Tab value="1">Python</Tab>
         <Tab value="2">Lua</Tab>
-        <Tab value="3">Python Example</Tab>
+        <Tab value="3">Python Code</Tab>
       </TabList>
 
       <TabPanels>
@@ -231,12 +231,12 @@ watch([modelValue, parsedData], () => {
           </div>
         </TabPanel>
 
-        <!-- Python Snippet Tab -->
+        <!-- Python Tab -->
         <TabPanel value="1">
           <div class="tab-content">
             <div class="button-row">
               <Button
-                label="Copy Snippet"
+                label="Copy"
                 size="small"
                 icon="pi pi-copy"
                 @click="copyPythonSnippetToClipboard"
