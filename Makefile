@@ -75,17 +75,13 @@ verify-s3-assets-testsliderule:
 
 
 live-update-testsliderule: ## Update the web client at testsliderule.org with new build
-	make live-update S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org DOMAIN=testsliderule.org \
-		VITE_GITHUB_CLIENT_ID=$(VITE_GITHUB_CLIENT_ID_TEST) \
-		VITE_GITHUB_OAUTH_API_URL=$(VITE_GITHUB_OAUTH_API_URL_TEST)
+	make live-update S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org DOMAIN=testsliderule.org 
 
 # live-update-demo-dot-slideruleearth: ## Update the web client at demo.slideruleearth.io with new build
 # 	make live-update S3_BUCKET=slideruleearth-demo-dot DOMAIN_APEX=slideruleearth.io DOMAIN=demo.slideruleearth.io
 
 live-update-client-dot-slideruleearth: ## Update the web client at client.slideruleearth.io with new build
-	make live-update S3_BUCKET=slideruleearth-webclient-dot DOMAIN_APEX=slideruleearth.io DOMAIN=client.slideruleearth.io \
-		VITE_GITHUB_CLIENT_ID=$(VITE_GITHUB_CLIENT_ID_PROD) \
-		VITE_GITHUB_OAUTH_API_URL=$(VITE_GITHUB_OAUTH_API_URL_PROD)
+	make live-update S3_BUCKET=slideruleearth-webclient-dot DOMAIN_APEX=slideruleearth.io DOMAIN=client.slideruleearth.io 
 
 convert-icons: ## Convert Maki SVG icons in src/assets/maki-svg to PNGs in public/icons
 	@echo "🔄 Converting Maki SVG icons to PNGs..."
@@ -96,15 +92,11 @@ build: convert-icons ## Build the web client and update the dist folder
 	export VITE_APP_BUILD_DATE=$$(date +"%Y-%m-%d %T"); \
 	export VITE_APP_VERSION=$$(git describe --tags --abbrev=0); \
 	export VITE_BANNER_TEXT='$(BANNER_TEXT)'; \
-	export VITE_GITHUB_CLIENT_ID='$(VITE_GITHUB_CLIENT_ID)'; \
-	export VITE_GITHUB_OAUTH_API_URL='$(VITE_GITHUB_OAUTH_API_URL)'; \
 	cd web-client && \
 	echo "VITE_APP_BUILD_DATE=$$VITE_APP_BUILD_DATE" && \
 	echo "VITE_APP_VERSION=$$VITE_APP_VERSION" && \
 	echo "VITE_BUILD_ENV=$$VITE_BUILD_ENV" && \
 	echo "VITE_BANNER_TEXT=$$VITE_BANNER_TEXT" && \
-	echo "VITE_GITHUB_CLIENT_ID=$$VITE_GITHUB_CLIENT_ID" && \
-	echo "VITE_GITHUB_OAUTH_API_URL=$$VITE_GITHUB_OAUTH_API_URL" && \
 	npm run build
 
 run: ## Run the web client locally for development
@@ -132,17 +124,13 @@ destroy: # Destroy the web client
 
 deploy-client-to-testsliderule: ## Deploy the web client to the testsliderule.org cloudfront and update the s3 bucket
 	make deploy DOMAIN=testsliderule.org S3_BUCKET=testsliderule-webclient && \
-	make live-update DOMAIN=testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org \
-		VITE_GITHUB_CLIENT_ID=$(VITE_GITHUB_CLIENT_ID_TEST) \
-		VITE_GITHUB_OAUTH_API_URL=$(VITE_GITHUB_OAUTH_API_URL_TEST)
+	make live-update DOMAIN=testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org 
 
 destroy-client-testsliderule: ## Destroy the web client from the testsliderule.org cloudfront and remove the S3 bucket
 	make destroy DOMAIN=testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org
 
 release-live-update-to-testsliderule: src-tag-and-push ## Release the web client to the live environment NEEDS VERSION
-	make live-update DOMAIN=testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org \
-		VITE_GITHUB_CLIENT_ID=$(VITE_GITHUB_CLIENT_ID_TEST) \
-		VITE_GITHUB_OAUTH_API_URL=$(VITE_GITHUB_OAUTH_API_URL_TEST)
+	make live-update DOMAIN=testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org 
 
 # deploy-client-to-demo-dot-slideruleearth: ## Deploy the web client to the demo.slideruleearth.io cloudfront and update the s3 bucket
 # 	make deploy DOMAIN=demo.slideruleearth.io S3_BUCKET=slideruleearth-demo-dot DOMAIN_APEX=slideruleearth.io && \

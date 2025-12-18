@@ -611,20 +611,22 @@ const mobileMenuItems = computed(() => {
     }
   ]
 
-  // Add user menu when authenticated, or login button when not
+  // Add user menu when authenticated
   if (isGitHubAuthenticated.value) {
     items.push({
       label: githubUsername.value || 'Account',
       icon: 'pi pi-user',
       items: userMenuItems.value
     })
-  } else {
-    items.push({
-      label: 'Login',
-      icon: 'pi pi-github',
-      command: handleGitHubLogin
-    })
   }
+  // Login button hidden until GitHub OAuth feature is complete - uncomment to re-enable:
+  // else {
+  //   items.push({
+  //     label: 'Login',
+  //     icon: 'pi pi-github',
+  //     command: handleGitHubLogin
+  //   })
+  // }
 
   return items
 })
@@ -866,8 +868,9 @@ function hideTooltip() {
       >
       </Button>
       <Menu :model="aboutMenuItems" popup ref="aboutMenu" />
+      <!-- Login button hidden until GitHub OAuth feature is complete - change v-if to "!isGitHubAuthenticated" to re-enable -->
       <Button
-        v-if="!isGitHubAuthenticated"
+        v-if="false"
         icon="pi pi-github"
         id="sr-login-button"
         label="Login"
