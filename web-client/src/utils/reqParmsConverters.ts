@@ -64,24 +64,30 @@ export function jsonToPythonDict(data: unknown, indent: number = 0): string {
 }
 
 /**
- * Maps API endpoints to SlideRule Python client functions
+ * Maps web client endpoints to SlideRule run() API names (for non-GEDI endpoints)
  */
-const apiToFunctionMap: Record<string, { module: string; func: string }> = {
-  atl06: { module: 'icesat2', func: 'atl06p' },
-  atl06p: { module: 'icesat2', func: 'atl06p' },
-  atl06sp: { module: 'icesat2', func: 'atl06sp' },
-  atl03x: { module: 'icesat2', func: 'atl03sp' },
-  'atl03x-surface': { module: 'icesat2', func: 'atl03sp' },
-  'atl03x-phoreal': { module: 'icesat2', func: 'atl03sp' },
-  atl03sp: { module: 'icesat2', func: 'atl03sp' },
-  atl03vp: { module: 'icesat2', func: 'atl03vp' },
-  atl08: { module: 'icesat2', func: 'atl08p' },
-  atl08p: { module: 'icesat2', func: 'atl08p' },
-  atl24x: { module: 'icesat2', func: 'atl24x' },
-  atl13x: { module: 'icesat2', func: 'atl13sp' },
-  gedi01bp: { module: 'gedi', func: 'gedi01bp' },
-  gedi02ap: { module: 'gedi', func: 'gedi02ap' },
-  gedi04ap: { module: 'gedi', func: 'gedi04ap' }
+const endpointToRunName: Record<string, string> = {
+  atl06: 'atl06',
+  atl06p: 'atl06',
+  atl06sp: 'atl06',
+  atl03x: 'atl03x',
+  'atl03x-surface': 'atl03x',
+  'atl03x-phoreal': 'atl03x',
+  atl03sp: 'atl03x',
+  atl03vp: 'atl03x',
+  atl08: 'atl08',
+  atl08p: 'atl08',
+  atl24x: 'atl24x',
+  atl13x: 'atl13x'
+}
+
+/**
+ * Maps GEDI endpoints to their gedi module function names
+ */
+const gediEndpointToFunc: Record<string, string> = {
+  gedi01bp: 'gedi01bp',
+  gedi02ap: 'gedi02ap',
+  gedi04ap: 'gedi04ap'
 }
 
 /**
@@ -107,23 +113,25 @@ function getOutputFormat(jsonData: unknown): string | null {
  */
 export function generatePythonClientCode(jsonData: unknown, endpoint: string): string {
   const normalizedEndpoint = endpoint.toLowerCase().trim()
-  const mapping = apiToFunctionMap[normalizedEndpoint] || {
-    module: 'icesat2',
-    func: normalizedEndpoint
-  }
-
   const parmsDict = jsonToPythonDict(jsonData, 0)
 
-  // Determine which modules to import
-  const modules = new Set<string>(['sliderule'])
-  modules.add(mapping.module)
-
-  const importModules = Array.from(modules).join(', ')
+  // Check if this is a GEDI endpoint
+  const gediFunc = gediEndpointToFunc[normalizedEndpoint]
+  const isGedi = !!gediFunc
 
   // Check if output format is specified (returns file path instead of GeoDataFrame)
   const outputFormat = getOutputFormat(jsonData)
   const hasFileOutput =
     outputFormat === 'parquet' || outputFormat === 'geoparquet' || outputFormat === 'csv'
+
+  // Determine import and execute statements based on endpoint type
+  const importStatement = isGedi
+    ? 'from sliderule import sliderule, gedi'
+    : 'from sliderule import sliderule'
+
+  const executeStatement = isGedi
+    ? `gedi.${gediFunc}(parms)`
+    : `sliderule.run("${endpointToRunName[normalizedEndpoint] || normalizedEndpoint}", parms)`
 
   if (hasFileOutput) {
     // When output format is specified, the API returns a file path
@@ -137,17 +145,17 @@ SlideRule request generated from web client
 Endpoint: ${endpoint}
 """
 
-from sliderule import ${importModules}
+${importStatement}
 ${geopandasImport}
 
-# Initialize SlideRule connection
+# Initialize SlideRule client
 sliderule.init("slideruleearth.io")
 
 # Request parameters
 parms = ${parmsDict}
 
 # Execute request (returns file path when output format is specified)
-output_file = ${mapping.module}.${mapping.func}(parms)
+output_file = ${executeStatement}
 print(f"Data saved to: {output_file}")
 
 # Read the output file into a GeoDataFrame
@@ -165,16 +173,16 @@ SlideRule request generated from web client
 Endpoint: ${endpoint}
 """
 
-from sliderule import ${importModules}
+${importStatement}
 
-# Initialize SlideRule connection
+# Initialize SlideRule client
 sliderule.init("slideruleearth.io")
 
 # Request parameters
 parms = ${parmsDict}
 
 # Execute request
-gdf = ${mapping.module}.${mapping.func}(parms)
+gdf = ${executeStatement}
 
 # Display results
 print(f"Retrieved {len(gdf)} records")
