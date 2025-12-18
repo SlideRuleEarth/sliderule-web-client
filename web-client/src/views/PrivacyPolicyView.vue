@@ -129,9 +129,9 @@ import AccordionContent from 'primevue/accordioncontent'
                   </ul>
 
                   <p class="sr-privacy-note">
-                    <strong>Note:</strong> You can clear all stored data at any time from the
-                    Settings page using "Clear All My Data" - this includes IndexedDB and cached
-                    files.
+                    <strong>Note:</strong> You can clear authentication and preferences using "Clear
+                    All My Data" (science data is preserved), or clear request records and parquet
+                    files using "Clear Science Data" from Settings → Privacy & Data.
                   </p>
                 </div>
               </AccordionContent>
