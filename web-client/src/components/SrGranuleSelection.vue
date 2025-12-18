@@ -48,6 +48,14 @@ const ccvCycle = () => {
 const ccvRegion = () => {
   return reqParamsStore.getUseRegion() !== undefined ? reqParamsStore.getUseRegion() : false
 }
+const defaultMaxResources = () => {
+  return reqParamsStore.maxResourcesValue !== undefined ? reqParamsStore.maxResourcesValue : 300
+}
+const ccvMaxResources = () => {
+  return reqParamsStore.getUseMaxResources() !== undefined
+    ? reqParamsStore.getUseMaxResources()
+    : false
+}
 
 onMounted(() => {
   //console.log('Mounted SrGranuleSelection');
@@ -144,6 +152,22 @@ const GtsSelection = (gts: SrListNumberItem[]) => {
       :max="14"
       :decimalPlaces="0"
       tooltipText="atl03 granule region (zero means all), See section 2.5 pages 14-17 of the 'Algorithm Theoretical Basis Document'"
+      tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/icesat2.html#photon-input-parameters"
+    />
+    <SrSwitchedSliderInput
+      :insensitive="!reqParamsStore.enableGranuleSelection"
+      v-model="reqParamsStore.maxResourcesValue"
+      :getCheckboxValue="reqParamsStore.getUseMaxResources"
+      :setCheckboxValue="reqParamsStore.setUseMaxResources"
+      :getValue="reqParamsStore.getMaxResources"
+      :setValue="reqParamsStore.setMaxResources"
+      :defaultValue="defaultMaxResources()"
+      :currentCheckboxValue="ccvMaxResources()"
+      label="Max Resources"
+      :min="0"
+      :max="1000"
+      :decimalPlaces="0"
+      tooltipText="Maximum number of resources (e.g. granules, tiles, etc.) that can be processed by a single request."
       tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/icesat2.html#photon-input-parameters"
     />
     <Fieldset

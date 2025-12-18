@@ -99,6 +99,8 @@ export interface SrReqParamsState {
   YAPCVersion: number
   resources: string[]
   useChecksum: boolean
+  useMaxResources: boolean
+  maxResourcesValue: number
   enableAtl24Classification: boolean
   defaultsFetched: boolean
   useDatum: boolean

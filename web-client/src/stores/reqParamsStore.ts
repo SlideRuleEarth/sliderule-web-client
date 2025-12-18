@@ -135,6 +135,8 @@ export function getDefaultReqParamsState(): SrReqParamsState {
     YAPCVersion: 0 as number,
     resources: [] as string[],
     useChecksum: false,
+    useMaxResources: false,
+    maxResourcesValue: 300,
     enableAtl24Classification: false,
     defaultsFetched: false,
     useDatum: false,
@@ -648,6 +650,9 @@ const createReqParamsStore = (id: string) =>
         if (this.useServerTimeout) {
           req.timeout = this.serverTimeoutValue
         }
+        if (this.useMaxResources) {
+          req.max_resources = this.maxResourcesValue
+        }
         if (this.useReqTimeout) {
           req['rqst-timeout'] = this.reqTimeoutValue
         }
@@ -818,6 +823,18 @@ const createReqParamsStore = (id: string) =>
       },
       getUseChecksum(): boolean {
         return this.useChecksum
+      },
+      setUseMaxResources(useMaxResources: boolean) {
+        this.useMaxResources = useMaxResources
+      },
+      getUseMaxResources(): boolean {
+        return this.useMaxResources
+      },
+      setMaxResources(maxResourcesValue: number) {
+        this.maxResourcesValue = maxResourcesValue
+      },
+      getMaxResources(): number {
+        return this.maxResourcesValue
       },
       getPassInvalid(): boolean {
         return this.passInvalid
