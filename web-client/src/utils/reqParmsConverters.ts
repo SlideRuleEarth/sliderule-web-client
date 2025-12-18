@@ -64,7 +64,7 @@ export function jsonToPythonDict(data: unknown, indent: number = 0): string {
 }
 
 /**
- * Maps web client endpoints to SlideRule run() API names
+ * Maps web client endpoints to SlideRule run() API names (for non-GEDI endpoints)
  */
 const endpointToRunName: Record<string, string> = {
   atl06: 'atl06',
@@ -78,10 +78,16 @@ const endpointToRunName: Record<string, string> = {
   atl08: 'atl08',
   atl08p: 'atl08',
   atl24x: 'atl24x',
-  atl13x: 'atl13x',
-  gedi01bp: 'gedi01b',
-  gedi02ap: 'gedi02a',
-  gedi04ap: 'gedi04a'
+  atl13x: 'atl13x'
+}
+
+/**
+ * Maps GEDI endpoints to their gedi module function names
+ */
+const gediEndpointToFunc: Record<string, string> = {
+  gedi01bp: 'gedi01bp',
+  gedi02ap: 'gedi02ap',
+  gedi04ap: 'gedi04ap'
 }
 
 /**
@@ -107,14 +113,25 @@ function getOutputFormat(jsonData: unknown): string | null {
  */
 export function generatePythonClientCode(jsonData: unknown, endpoint: string): string {
   const normalizedEndpoint = endpoint.toLowerCase().trim()
-  const runName = endpointToRunName[normalizedEndpoint] || normalizedEndpoint
-
   const parmsDict = jsonToPythonDict(jsonData, 0)
+
+  // Check if this is a GEDI endpoint
+  const gediFunc = gediEndpointToFunc[normalizedEndpoint]
+  const isGedi = !!gediFunc
 
   // Check if output format is specified (returns file path instead of GeoDataFrame)
   const outputFormat = getOutputFormat(jsonData)
   const hasFileOutput =
     outputFormat === 'parquet' || outputFormat === 'geoparquet' || outputFormat === 'csv'
+
+  // Determine import and execute statements based on endpoint type
+  const importStatement = isGedi
+    ? 'from sliderule import sliderule, gedi'
+    : 'from sliderule import sliderule'
+
+  const executeStatement = isGedi
+    ? `gedi.${gediFunc}(parms)`
+    : `sliderule.run("${endpointToRunName[normalizedEndpoint] || normalizedEndpoint}", parms)`
 
   if (hasFileOutput) {
     // When output format is specified, the API returns a file path
@@ -128,7 +145,7 @@ SlideRule request generated from web client
 Endpoint: ${endpoint}
 """
 
-from sliderule import sliderule
+${importStatement}
 ${geopandasImport}
 
 # Initialize SlideRule client
@@ -138,7 +155,7 @@ sliderule.init("slideruleearth.io")
 parms = ${parmsDict}
 
 # Execute request (returns file path when output format is specified)
-output_file = sliderule.run("${runName}", parms)
+output_file = ${executeStatement}
 print(f"Data saved to: {output_file}")
 
 # Read the output file into a GeoDataFrame
@@ -156,7 +173,7 @@ SlideRule request generated from web client
 Endpoint: ${endpoint}
 """
 
-from sliderule import sliderule
+${importStatement}
 
 # Initialize SlideRule client
 sliderule.init("slideruleearth.io")
@@ -165,7 +182,7 @@ sliderule.init("slideruleearth.io")
 parms = ${parmsDict}
 
 # Execute request
-gdf = sliderule.run("${runName}", parms)
+gdf = ${executeStatement}
 
 # Display results
 print(f"Retrieved {len(gdf)} records")
