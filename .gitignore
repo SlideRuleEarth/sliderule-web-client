@@ -28,6 +28,7 @@ witch.zip
 **/e2e/*.map
 
 # misc
+*.parquet
 **/npm-debug.log
 **/testem.log
 **/.env*

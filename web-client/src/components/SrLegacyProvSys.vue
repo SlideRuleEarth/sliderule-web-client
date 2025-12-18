@@ -223,10 +223,7 @@ function updateDesiredNodes() {
 
 async function resetToDefaults() {
   legacyJwtStore.clearAllJwts()
-  sysConfigStore.$reset()
-  // Fetch public cluster server version
-  await sysConfigStore.fetchServerVersionInfo()
-  await sysConfigStore.fetchCurrentNodes()
+  await sysConfigStore.resetToPublicCluster()
   toast.add({
     severity: 'info',
     summary: 'Reset Complete',
