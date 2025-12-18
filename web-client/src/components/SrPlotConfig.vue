@@ -149,7 +149,7 @@ async function enableLocationFinder(): Promise<void> {
       reason: 'they exist as separate columns in file'
     })
     chartStore.setYDataOptions(reqIdStr, [...currentYData, ...newFields])
-    await refreshScatterPlot('enabled Link to Elevation Plot')
+    await refreshScatterPlot('enabled Link to Plot')
   } else if ([latField, lonField].some((field) => !availableColumns.includes(field))) {
     logger.debug('enableLocationFinder: Skipping lat/lon', {
       reason: "they don't exist as separate columns (likely geoparquet with geometry column)"
@@ -159,7 +159,7 @@ async function enableLocationFinder(): Promise<void> {
   if (await requestsStore.needAdvice()) {
     toast.add({
       severity: 'info',
-      summary: 'Link to Elevation Plot',
+      summary: 'Link to Plot',
       detail: 'Click on a plot point to see where on the map it is.',
       life: 3000
     })

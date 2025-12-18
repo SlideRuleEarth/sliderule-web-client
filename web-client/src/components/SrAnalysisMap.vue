@@ -1020,7 +1020,7 @@ function handleSaveTooltip() {
           size="small"
         />
         <label v-show="hasLinkToElevationPlot" for="enable-location-finder" class="sr-check-label"
-          >Link to Elevation Plot
+          >Link to Plot
         </label>
       </div>
       <div>

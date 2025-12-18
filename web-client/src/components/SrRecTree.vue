@@ -112,8 +112,11 @@ function openCombinedParmsDialog(reqParms: any, rcvdParms: any) {
   hasRcvdParms.value = hasRcvdContent
 
   if (hasReqParms.value) {
+    // Extract inner data (remove 'parms' wrapper if present) for consistency with Request View
+    const innerReqParms =
+      reqParms?.parms && typeof reqParms.parms === 'object' ? reqParms.parms : reqParms
     currentReqParms.value =
-      typeof reqParms === 'object' ? JSON.stringify(reqParms, null, 2) : reqParms
+      typeof innerReqParms === 'object' ? JSON.stringify(innerReqParms, null, 2) : innerReqParms
   }
 
   if (hasRcvdParms.value) {
