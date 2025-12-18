@@ -14,7 +14,7 @@
     <SrCustomTooltip ref="tooltipRef" id="recIdDisplayTooltip" />
     <SrReqParmsDisplayDlg
       v-model:visible="showParmsDialog"
-      :json-data="reqParms"
+      :rcvd-parms="reqParms"
       :title="`endpoint = ${curAPI}`"
       :endpoint="curAPI"
       width="80vw"
@@ -23,7 +23,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import Button from 'primevue/button'
 import { db } from '@/db/SlideRuleDb'
 import SrReqParmsDisplayDlg from './SrReqParmsDisplayDlg.vue'
@@ -55,15 +55,31 @@ const reqParms = ref<string>('')
 const curAPI = ref<string>('')
 const tooltipRef = ref()
 
-onMounted(async () => {
-  if (props.reqId) {
-    curAPI.value = await db.getFunc(props.reqId)
-    const p = await db.getReqParams(props.reqId)
+async function loadReqParams(reqId: number) {
+  if (reqId) {
+    curAPI.value = await db.getFunc(reqId)
+    // Get the full request record to access rcvd_parms
+    const request = await db.table('requests').get(reqId)
+    // Use rcvd_parms (what server used) if available, fall back to parameters (what was sent)
+    const p = request?.rcvd_parms || request?.parameters || {}
     reqParms.value = JSON.stringify(p, null, 2)
   } else {
-    logger.debug('onMounted: no reqId')
+    logger.debug('loadReqParams: no reqId')
+    reqParms.value = ''
+    curAPI.value = ''
   }
+}
+
+onMounted(() => {
+  void loadReqParams(props.reqId)
 })
+
+watch(
+  () => props.reqId,
+  (newReqId) => {
+    void loadReqParams(newReqId)
+  }
+)
 // Open the Parms dialog
 function openParmsDialog(params: string | object) {
   if (typeof params === 'object') {
