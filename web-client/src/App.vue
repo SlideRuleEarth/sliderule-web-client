@@ -16,7 +16,7 @@ import { useRecTreeStore } from '@/stores/recTreeStore'
 import { useRoute } from 'vue-router'
 import SrClearCache from '@/components/SrClearCache.vue'
 import { useSysConfigStore } from '@/stores/sysConfigStore'
-import { useJwtStore } from '@/stores/SrJWTStore'
+import { useLegacyJwtStore } from '@/stores/SrLegacyJwtStore'
 import { useAuthDialogStore } from '@/stores/authDialogStore'
 import { useGoogleApiKeyStore } from '@/stores/googleApiKeyStore'
 import SrJsonDisplayDialog from '@/components/SrJsonDisplayDialog.vue'
@@ -30,6 +30,8 @@ import { useTourStore } from '@/stores/tourStore.js'
 import { useViewportHeight } from '@/composables/useViewportHeight'
 import { useSlideruleDefaults } from '@/stores/defaultsStore'
 import { createLogger } from '@/utils/logger'
+import { usePrivacyConsentStore } from '@/stores/privacyConsentStore'
+import SrConsentBanner from '@/components/SrConsentBanner.vue'
 
 const logger = createLogger('App')
 
@@ -39,9 +41,10 @@ const toast = useToast()
 const deviceStore = useDeviceStore()
 const tourStore = useTourStore()
 const sysConfigStore = useSysConfigStore()
-const jwtStore = useJwtStore()
+const legacyJwtStore = useLegacyJwtStore()
 const authDialogStore = useAuthDialogStore()
 const googleApiKeyStore = useGoogleApiKeyStore()
+const privacyConsentStore = usePrivacyConsentStore()
 const route = useRoute()
 
 // Global login dialog state
@@ -66,8 +69,8 @@ const checkUnsupported = () => {
 }
 
 const checkPrivateClusterAuth = () => {
-  const domain = sysConfigStore.getDomain()
-  const org = sysConfigStore.getOrganization()
+  const domain = sysConfigStore.domain
+  const org = sysConfigStore.cluster
 
   // Skip check for public cluster
   if (org === 'sliderule') {
@@ -75,7 +78,7 @@ const checkPrivateClusterAuth = () => {
   }
 
   // Check if user has valid credentials for this private cluster
-  const jwt = jwtStore.getCredentials()
+  const jwt = legacyJwtStore.getCredentials()
   if (!jwt) {
     toast.add({
       severity: 'warn',
@@ -89,10 +92,10 @@ const checkPrivateClusterAuth = () => {
 }
 
 async function fetchOrgInfo(): Promise<void> {
-  const psHost = `https://ps.${sysConfigStore.getDomain()}`
+  const psHost = `https://ps.${sysConfigStore.domain}`
   try {
     const response = await authenticatedFetch(
-      `${psHost}/api/org_num_nodes/${sysConfigStore.getOrganization()}/`,
+      `${psHost}/api/org_num_nodes/${sysConfigStore.cluster}/`,
       {
         method: 'GET',
         headers: {
@@ -105,10 +108,10 @@ async function fetchOrgInfo(): Promise<void> {
     if (response.ok) {
       const result = await response.json()
       logger.debug('fetchOrgInfo result', { result })
-      sysConfigStore.setMinNodes(result.min_nodes)
-      sysConfigStore.setCurrentNodes(result.current_nodes)
-      sysConfigStore.setMaxNodes(result.max_nodes)
-      sysConfigStore.setVersion(result.version)
+      sysConfigStore.min_nodes = result.min_nodes
+      sysConfigStore.current_nodes = result.current_nodes
+      sysConfigStore.max_nodes = result.max_nodes
+      sysConfigStore.version = result.version
     } else {
       logger.error('Failed to fetch org info', { status: response.status })
     }
@@ -120,8 +123,8 @@ async function fetchOrgInfo(): Promise<void> {
 }
 
 async function handleGlobalLogin(): Promise<void> {
-  const orgName = sysConfigStore.getOrganization()
-  const psHost = `https://ps.${sysConfigStore.getDomain()}`
+  const orgName = sysConfigStore.cluster
+  const psHost = `https://ps.${sysConfigStore.domain}`
   logger.debug('handleGlobalLogin', { username: loginUsername.value, orgName })
 
   const body = JSON.stringify({
@@ -145,7 +148,7 @@ async function handleGlobalLogin(): Promise<void> {
         refreshToken: result.refresh,
         expiration: result.expiration
       }
-      jwtStore.setJwt(sysConfigStore.getDomain(), sysConfigStore.getOrganization(), jwt)
+      legacyJwtStore.setJwt(sysConfigStore.domain, sysConfigStore.cluster, jwt)
       await fetchOrgInfo()
       toast.add({
         severity: 'success',
@@ -180,7 +183,7 @@ async function handleGlobalLogin(): Promise<void> {
 }
 
 async function resetToPublicCluster() {
-  jwtStore.clearAllJwts()
+  legacyJwtStore.clearAllJwts()
   sysConfigStore.$reset()
   loginUsername.value = ''
   loginPassword.value = ''
@@ -348,6 +351,7 @@ onMounted(async () => {
   checkUnsupported()
   checkPrivateClusterAuth()
   tourStore.checkSeen()
+  privacyConsentStore.initializeOnStartup()
   await nextTick()
 
   if (!tourStore.hasSeenIntro) {
@@ -694,6 +698,7 @@ async function handleLongTourButtonClick() {
     <div class="sliderule-content">
       <RouterView />
     </div>
+    <SrConsentBanner />
 
     <!-- Dialog for displaying version information -->
     <Dialog
@@ -834,7 +839,7 @@ async function handleLongTourButtonClick() {
     >
       <form class="sr-global-login-form" @submit.prevent="handleGlobalLogin">
         <p class="sr-login-org-info">
-          Logging in to: <strong>{{ sysConfigStore.getOrganization() }}</strong>
+          Logging in to: <strong>{{ sysConfigStore.cluster }}</strong>
         </p>
         <div class="sr-login-field">
           <label for="global-username">Username</label>

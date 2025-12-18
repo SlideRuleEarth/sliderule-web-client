@@ -1,302 +1,199 @@
-<template>
-  <div class="sr-sys-config-container">
-    <SrTextInput
-      v-model="sysConfigStore.domain"
-      label="Domain"
-      @update:model-value="domainChanged"
-    />
-    <div class="sr-org-input-row">
-      <label for="organization-input" class="sr-org-label">Organization</label>
-      <InputText
-        id="organization-input"
-        v-model="sysConfigStore.organization"
-        class="sr-org-input"
-        @keyup.enter="orgChanged"
-      />
-    </div>
-    <Button
-      label="Login"
-      icon="pi pi-sign-in"
-      :disabled="computedLoggedIn || isPublicCluster"
-      @click="authDialogStore.show()"
-    />
-    <Button
-      label="Reset to Public Cluster"
-      icon="pi pi-refresh"
-      severity="secondary"
-      @click="resetToDefaults"
-    />
-    <div>
-      <SrClusterInfo />
-    </div>
-    <Button
-      label="Request Nodes"
-      icon="pi pi-cog"
-      :disabled="!(!computedOrgIsPublic && computedLoggedIn)"
-      @click="showDesiredNodesDialog = true"
-    />
-  </div>
-  <Dialog
-    class="sr-desired-nodes-dialog"
-    v-model:visible="showDesiredNodesDialog"
-    header="Request Nodes"
-    :closable="true"
-    modal
-  >
-    <div>
-      <p>Enter the desired number of nodes and time to live:</p>
-      <div class="sr-p-field">
-        <label for="desired-nodes">Desired Nodes</label>
-        <SrSliderInput
-          v-model="desiredNodes"
-          label="Desired Nodes"
-          :min="1"
-          :max="maxNodes"
-          :defaultValue="1"
-          :decimalPlaces="0"
-        />
-        <SrSliderInput
-          v-model="ttl"
-          label="Time to Live (minutes)"
-          :min="15"
-          :max="720"
-          :defaultValue="720"
-          :decimalPlaces="0"
-        />
-      </div>
-      <div class="sr-dialog-buttons">
-        <Button
-          label="Cancel"
-          severity="secondary"
-          @click="showDesiredNodesDialog = false"
-        ></Button>
-        <Button label="Submit" @click="updateDesiredNodes"></Button>
-      </div>
-    </div>
-  </Dialog>
-</template>
-
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { useSysConfigStore } from '@/stores/sysConfigStore'
-import Dialog from 'primevue/dialog'
+import { computed, watch, onMounted } from 'vue'
+import Select from 'primevue/select'
 import Button from 'primevue/button'
-import InputText from 'primevue/inputtext'
-import SrTextInput from '@/components/SrTextInput.vue'
-import SrSliderInput from '@/components/SrSliderInput.vue'
-import { useToast } from 'primevue/usetoast'
-import { useSrToastStore } from '@/stores/srToastStore'
-import { useJwtStore } from '@/stores/SrJWTStore'
-import { useAuthDialogStore } from '@/stores/authDialogStore'
-import SrClusterInfo from './SrClusterInfo.vue'
-import { createLogger } from '@/utils/logger'
-import { authenticatedFetch } from '@/utils/fetchUtils'
+import { useGitHubAuthStore } from '@/stores/githubAuthStore'
+import { useSysConfigStore } from '@/stores/sysConfigStore'
+import { useLegacyJwtStore } from '@/stores/SrLegacyJwtStore'
+import { useClusterReachability } from '@/composables/useClusterReachability'
+import { storeToRefs } from 'pinia'
 
-const logger = createLogger('SrSysConfig')
-const toast = useToast()
-const srToastStore = useSrToastStore()
+const props = defineProps<{
+  disabled?: boolean
+}>()
+
+const githubAuthStore = useGitHubAuthStore()
 const sysConfigStore = useSysConfigStore()
-const jwtStore = useJwtStore()
-const authDialogStore = useAuthDialogStore()
-const showDesiredNodesDialog = ref(false)
-const desiredNodes = ref(1)
-const ttl = ref(720)
+const legacyJwtStore = useLegacyJwtStore()
 
-// interface _orgnumNodesRsp {
-//   status: string
-//   min_nodes: number
-//   current_nodes: number
-//   max_nodes: number
-//   version: string
-// }
+const { domain, cluster, version, current_nodes, canConnectVersion, canConnectNodes } =
+  storeToRefs(sysConfigStore)
 
-const computedOrgIsPublic = computed(() => {
-  return jwtStore.getIsPublic(sysConfigStore.getDomain(), sysConfigStore.getOrganization())
+async function refreshStatus() {
+  sysConfigStore.resetStatus()
+  await Promise.all([sysConfigStore.fetchServerVersionInfo(), sysConfigStore.fetchCurrentNodes()])
+}
+
+// Refresh status when domain or cluster changes
+watch([domain, cluster], () => {
+  void refreshStatus()
 })
 
-// The "sliderule" organization is the public cluster that doesn't require login
-const isPublicCluster = computed(() => {
-  return sysConfigStore.getOrganization() === 'sliderule'
-})
-
-const computedLoggedIn = computed(() => {
-  return jwtStore.getCredentials() !== null
-})
-
-const maxNodes = computed(() => sysConfigStore.getMaxNodes())
-
-function domainChanged(_newDomain: string) {
-  jwtStore.removeJwt(sysConfigStore.getDomain(), sysConfigStore.getOrganization())
-  //console.log('Domain changed:', newDomain);
-}
-
-function orgChanged() {
-  const newOrg = sysConfigStore.getOrganization()
-  jwtStore.removeJwt(sysConfigStore.getDomain(), newOrg)
-  // Check if new organization requires login
-  if (newOrg !== 'sliderule') {
-    const jwt = jwtStore.getJwt(sysConfigStore.getDomain(), newOrg)
-    if (!jwt) {
-      toast.add({
-        severity: 'warn',
-        summary: 'Authentication Required',
-        detail: `Private cluster "${newOrg}" requires login.`,
-        life: srToastStore.getLife()
-      })
-      authDialogStore.show()
-    }
-  }
-}
-
-async function desiredOrgNumNodes() {
-  // Check if logged in first
-  if (!jwtStore.getCredentials()) {
-    logger.error('Login expired or not logged in')
-    toast.add({
-      severity: 'info',
-      summary: 'Need to Login',
-      detail: 'Please log in again',
-      life: srToastStore.getLife()
-    })
-    return
-  }
-
-  const psHost = `https://ps.${sysConfigStore.getDomain()}`
-  // Use authenticatedFetch - it handles JWT header and 401 retry automatically
-  const response = await authenticatedFetch(
-    `${psHost}/api/desired_org_num_nodes_ttl/${sysConfigStore.getOrganization()}/${sysConfigStore.getDesiredNodes()}/${sysConfigStore.getTimeToLive()}/`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json'
-      }
-    }
-  )
-
-  if (response.ok) {
-    const result = await response.json()
-    if (result.status === 'QUEUED') {
-      toast.add({
-        severity: 'info',
-        summary: 'Desired Nodes Request Queued',
-        detail: result.msg,
-        life: srToastStore.getLife()
-      })
-    } else {
-      logger.error('Failed to get Desired Nodes', { statusText: response.statusText })
-      toast.add({
-        severity: 'error',
-        summary: 'Failed to Retrieve Desired Nodes',
-        detail: `Error: ${result.msg}`,
-        life: srToastStore.getLife()
-      })
-    }
-  } else if (response.status === 401) {
-    // 401 after retry means refresh token also expired
-    logger.error('Authentication failed - please log in again')
-    toast.add({
-      severity: 'info',
-      summary: 'Session Expired',
-      detail: 'Please log in again',
-      life: srToastStore.getLife()
-    })
-  } else {
-    logger.error('Failed to get Num Nodes', { statusText: response.statusText })
-    toast.add({
-      severity: 'error',
-      summary: 'Failed to Retrieve Nodes',
-      detail: `Error: ${response.statusText}`,
-      life: srToastStore.getLife()
-    })
-  }
-}
-
-function updateDesiredNodes() {
-  logger.debug('updateDesiredNodes', { desiredNodes: desiredNodes.value, ttl: ttl.value })
-  showDesiredNodesDialog.value = false // Close the dialog
-  // Add your logic to update desired nodes here
-  sysConfigStore.setDesiredNodes(desiredNodes.value)
-  sysConfigStore.setTimeToLive(ttl.value)
-  void desiredOrgNumNodes()
-}
-
-async function resetToDefaults() {
-  jwtStore.clearAllJwts()
-  sysConfigStore.$reset()
-  // Fetch public cluster server version
-  await sysConfigStore.fetchServerVersionInfo()
-  await sysConfigStore.fetchCurrentNodes()
-  toast.add({
-    severity: 'info',
-    summary: 'Reset Complete',
-    detail: 'Configuration and authentication have been reset to defaults',
-    life: srToastStore.getLife()
-  })
-}
-
+// Fetch status on mount
 onMounted(() => {
-  logger.debug('onMounted')
+  void refreshStatus()
 })
+
+// Cluster options from auth (includes 'sliderule' public cluster)
+const clusterOptions = computed(() => {
+  // If authenticated, use knownClusters (which includes 'sliderule')
+  if (githubAuthStore.knownClusters?.length > 0) {
+    return githubAuthStore.knownClusters
+  }
+  // Fallback for non-authenticated users
+  return ['sliderule']
+})
+
+// Use composable for cluster reachability
+const { refreshClusterReachability, clusterOptionsWithState } = useClusterReachability(
+  clusterOptions,
+  domain
+)
+
+// Available domain options - testsliderule.org only for org owners
+const domainOptions = computed(() => {
+  if (githubAuthStore.isOwner) {
+    return ['testsliderule.org', 'slideruleearth.io']
+  }
+  return ['slideruleearth.io']
+})
+
+// Disable reset button if already on public cluster
+const isPublicCluster = computed(
+  () => cluster.value === 'sliderule' && domain.value === 'slideruleearth.io'
+)
+
+// Reset to public cluster
+function resetToPublicCluster() {
+  legacyJwtStore.clearAllJwts()
+  sysConfigStore.$reset()
+  // Set defaults: slideruleearth.io and sliderule
+  domain.value = 'slideruleearth.io'
+  cluster.value = 'sliderule'
+  // Note: watch will trigger refreshStatus automatically
+}
 </script>
 
-<style scoped>
-.sr-sys-config-container {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
+<template>
+  <div class="sr-sysconfig">
+    <h4 class="sr-sysconfig-header">Current Domain & Cluster</h4>
+    <div class="sr-sysconfig-field">
+      <label for="sysconfig-domain" class="sr-sysconfig-label">Domain</label>
+      <Select
+        id="sysconfig-domain"
+        v-model="domain"
+        :options="domainOptions"
+        :disabled="props.disabled"
+        class="sr-sysconfig-select"
+      />
+    </div>
+    <div class="sr-sysconfig-field">
+      <label for="sysconfig-cluster" class="sr-sysconfig-label">Cluster</label>
+      <Select
+        id="sysconfig-cluster"
+        v-model="cluster"
+        :editable="true"
+        :options="clusterOptionsWithState"
+        optionLabel="label"
+        optionValue="value"
+        optionDisabled="disabled"
+        :disabled="props.disabled"
+        class="sr-sysconfig-select"
+        @show="refreshClusterReachability"
+      />
+    </div>
+    <div class="sr-sysconfig-field">
+      <label class="sr-sysconfig-label">Version</label>
+      <span :class="['sr-sysconfig-value', `sr-status-${canConnectVersion}`]">
+        {{ version || 'v?.?.?' }}
+      </span>
+    </div>
+    <div class="sr-sysconfig-field">
+      <label class="sr-sysconfig-label">Current Nodes</label>
+      <span :class="['sr-sysconfig-value', `sr-status-${canConnectNodes}`]">
+        {{ current_nodes >= 0 ? current_nodes : '-' }}
+      </span>
+    </div>
+    <div class="sr-sysconfig-button-row">
+      <Button
+        v-if="!props.disabled"
+        label="Reset to Public Cluster"
+        icon="pi pi-undo"
+        class="sr-glow-button"
+        variant="text"
+        rounded
+        :disabled="isPublicCluster"
+        @click="resetToPublicCluster"
+      />
+      <Button
+        label="Refresh Status"
+        icon="pi pi-refresh"
+        class="sr-glow-button sr-refresh-btn"
+        variant="text"
+        rounded
+        @click="refreshStatus"
+      />
+    </div>
+  </div>
+</template>
 
-.sr-org-name {
-  font-size: medium;
-  border: 1px solid rgb(65, 73, 85);
-  padding: 0.25rem;
-  border-radius: var(--p-border-radius);
-}
-.sr-user-pass-dialog {
+<style scoped>
+.sr-sysconfig {
   display: flex;
+  flex-direction: column;
   gap: 0.75rem;
-  padding-bottom: 1.25rem;
-  flex-direction: column;
-  justify-content: center;
-  align-items: self-start;
-  width: 100%;
-}
-.sr-p-field {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
   padding: 0.5rem 0;
 }
-.sr-p-button {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-}
-.sr-dialog-buttons {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-  margin-top: 1rem;
+
+.sr-sysconfig-header {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--p-primary-color);
 }
 
-.sr-org-input-row {
+.sr-sysconfig-field {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.125rem;
 }
 
-.sr-org-label {
+.sr-sysconfig-label {
   font-size: small;
   white-space: nowrap;
   margin-right: 0.5rem;
 }
 
-.sr-org-input {
+.sr-sysconfig-select {
   width: 15em;
+}
+
+.sr-sysconfig-value {
+  font-size: small;
+  min-width: 15em;
   text-align: right;
-  padding: 0.25rem;
+}
+
+.sr-status-yes {
+  color: var(--p-green-500);
+}
+
+.sr-status-no {
+  color: var(--p-red-500);
+}
+
+.sr-status-unknown {
+  color: var(--p-text-muted-color);
+}
+
+.sr-sysconfig-button-row {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+}
+
+.sr-refresh-btn {
+  margin-left: auto;
 }
 </style>

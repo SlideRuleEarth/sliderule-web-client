@@ -1,16 +1,158 @@
 import { db } from '@/db/SlideRuleDb'
 import { useSysConfigStore } from '@/stores/sysConfigStore'
-import { useJwtStore } from '@/stores/SrJWTStore'
+import { useLegacyJwtStore } from '@/stores/SrLegacyJwtStore'
+import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 import { Buffer } from 'buffer/'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('FetchUtils')
 
+export interface ServerVersionResult {
+  success: boolean
+  version: string
+  data: any
+}
+
+export interface CurrentNodesResult {
+  success: boolean
+  nodes: number
+}
+
+/**
+ * CloudFormation stack status values.
+ * Used to determine if a cluster can be selected for deployment.
+ */
+export type StackStatus =
+  | 'NOT_FOUND' // Stack doesn't exist - can deploy
+  | 'CREATE_IN_PROGRESS' // Starting - disable
+  | 'CREATE_COMPLETE' // Up - disable
+  | 'UPDATE_IN_PROGRESS' // Updating - disable
+  | 'DELETE_IN_PROGRESS' // Deleting - disable
+  | 'DELETE_COMPLETE' // Deleted - can deploy
+  | 'FAILED' // Failed state - can deploy (retry)
+  | 'UNKNOWN' // Error fetching - allow with warning
+
+export interface StackStatusResult {
+  success: boolean
+  status: StackStatus
+}
+
+/**
+ * Fetch server version info from the SlideRule API.
+ * Returns version data that can be used by any store.
+ */
+export async function fetchServerVersionInfo(
+  cluster: string,
+  domain: string
+): Promise<ServerVersionResult> {
+  const url = `https://${cluster}.${domain}/source/version`
+  try {
+    const response = await fetch(url)
+    if (!response.ok) throw new Error(`HTTP error: ${response.status}`)
+
+    const data = await response.json()
+    if (data === null || typeof data?.server.version !== 'string') {
+      logger.error('Invalid response format from server version', { data })
+      throw new Error('Invalid response format')
+    }
+    return {
+      success: true,
+      version: data.server.version,
+      data
+    }
+  } catch (error) {
+    logger.info('Error fetching server version', {
+      error: error instanceof Error ? error.message : String(error)
+    })
+    return {
+      success: false,
+      version: 'Unknown',
+      data: null
+    }
+  }
+}
+
+/**
+ * Fetch current nodes count from the SlideRule discovery API.
+ * Returns node count that can be used by any store.
+ */
+export async function fetchCurrentNodes(
+  cluster: string,
+  domain: string
+): Promise<CurrentNodesResult> {
+  const url = `https://${cluster}.${domain}/discovery/status`
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ service: 'sliderule' })
+    })
+
+    if (!response.ok) throw new Error(`HTTP error: ${response.status}`)
+
+    const data = await response.json()
+    if (typeof data?.nodes === 'number') {
+      return {
+        success: true,
+        nodes: data.nodes
+      }
+    } else {
+      logger.error('Invalid response format from current nodes', { data })
+      throw new Error('Invalid response format')
+    }
+  } catch (error) {
+    logger.info('Error fetching current nodes', {
+      error: error instanceof Error ? error.message : String(error)
+    })
+    return {
+      success: false,
+      nodes: -1
+    }
+  }
+}
+
+/**
+ * Fetch CloudFormation stack status for a cluster.
+ * Used to determine if a cluster can be selected for deployment.
+ *
+ * TODO: Wire to actual endpoint when available.
+ * Expected endpoint: GET https://deploy.{domain}/stack/{cluster}/status
+ *
+ * @param cluster - The cluster name
+ * @param domain - The domain (e.g., 'slideruleearth.io')
+ * @returns Stack status result
+ */
+export async function fetchStackStatus(
+  cluster: string,
+  domain: string
+): Promise<StackStatusResult> {
+  // TODO: Wire to actual endpoint when available
+  // Expected: GET https://deploy.{domain}/stack/{cluster}/status
+  //
+  // const url = `https://deploy.${domain}/stack/${cluster}/status`
+  // try {
+  //   const response = await fetch(url)
+  //   if (!response.ok) throw new Error(`HTTP error: ${response.status}`)
+  //   const data = await response.json()
+  //   return { success: true, status: data.status }
+  // } catch (error) {
+  //   logger.info('Error fetching stack status', { cluster, domain, error })
+  //   return { success: false, status: 'UNKNOWN' }
+  // }
+
+  // For now, return UNKNOWN to allow all selections until the endpoint is available
+  logger.debug('fetchStackStatus placeholder called', { cluster, domain })
+  return { success: false, status: 'UNKNOWN' }
+}
+
 /**
  * Authenticated fetch wrapper with automatic 401 retry.
- * - Adds JWT Authorization header if available
- * - On 401, attempts to refresh the token and retry once
- * - Returns the Response object for further processing
+ * Authentication priority:
+ * 1. New GitHub OAuth JWT (if available and valid)
+ * 2. Legacy JWT (if available)
+ * 3. No auth header
+ *
+ * On 401 with legacy JWT, attempts to refresh the token and retry once.
  */
 export async function authenticatedFetch(
   url: string,
@@ -19,34 +161,48 @@ export async function authenticatedFetch(
 ): Promise<Response> {
   // Get stores lazily to avoid circular dependency issues
   const sysConfigStore = useSysConfigStore()
-  const jwtStore = useJwtStore()
+  const legacyJwtStore = useLegacyJwtStore()
+  const githubAuthStore = useGitHubAuthStore()
 
-  const domain = sysConfigStore.getDomain()
-  const org = sysConfigStore.getOrganization()
+  const domain = sysConfigStore.domain
+  const org = sysConfigStore.cluster
 
-  // Add Authorization header if JWT is available
-  const jwt = jwtStore.getJwt(domain, org)
-  if (jwt) {
+  // Check for new GitHub OAuth JWT first
+  const githubToken = githubAuthStore.authToken
+  // Fall back to legacy JWT if GitHub token not available
+  const legacyJwt = legacyJwtStore.getJwt(domain, org)
+
+  if (githubToken) {
+    // Use new GitHub OAuth JWT
     options.headers = {
       ...options.headers,
-      Authorization: `Bearer ${jwt.accessToken}`
+      Authorization: `Bearer ${githubToken}`
     }
+    logger.debug('authenticatedFetch using GitHub OAuth JWT', { url, isRetry })
+  } else if (legacyJwt) {
+    // Fall back to legacy JWT
+    options.headers = {
+      ...options.headers,
+      Authorization: `Bearer ${legacyJwt.accessToken}`
+    }
+    logger.debug('authenticatedFetch using legacy JWT', { url, isRetry })
+  } else {
+    logger.debug('authenticatedFetch without auth', { url, isRetry })
   }
-
-  logger.debug('authenticatedFetch', { url, isRetry, hasJwt: !!jwt })
 
   const response = await fetch(url, options)
 
-  // Handle 401 Unauthorized - attempt refresh and retry once
-  if (response.status === 401 && !isRetry && jwt) {
-    logger.debug('Received 401, attempting token refresh', { url })
+  // Handle 401 Unauthorized - attempt refresh and retry once (only for legacy JWT)
+  // GitHub OAuth JWT doesn't support refresh - user must re-authenticate
+  if (response.status === 401 && !isRetry && !githubToken && legacyJwt) {
+    logger.debug('Received 401 with legacy JWT, attempting token refresh', { url })
 
-    const refreshed = await jwtStore.refreshAccessToken(domain, org)
+    const refreshed = await legacyJwtStore.refreshAccessToken(domain, org)
 
     if (refreshed) {
       logger.debug('Token refreshed, retrying request', { url })
       // Get the new token and update headers
-      const newJwt = jwtStore.getJwt(domain, org)
+      const newJwt = legacyJwtStore.getJwt(domain, org)
       if (newJwt) {
         options.headers = {
           ...options.headers,
@@ -89,7 +245,7 @@ export async function getArrowFetchUrlAndOptions(
 ): Promise<{ url: string; options: RequestInit }> {
   // Get stores lazily to avoid circular dependency issues
   const sysConfigStore = useSysConfigStore()
-  const jwtStore = useJwtStore()
+  const legacyJwtStore = useLegacyJwtStore()
 
   let api = await db.getFunc(reqid)
   if (api === 'atl03x-surface' || api === 'atl03x-phoreal') {
@@ -100,9 +256,8 @@ export async function getArrowFetchUrlAndOptions(
     parm = forceGeoParquet(parm)
   }
   const host =
-    (sysConfigStore.getOrganization() &&
-      sysConfigStore.getOrganization() + '.' + sysConfigStore.getDomain()) ||
-    sysConfigStore.getDomain()
+    (sysConfigStore.cluster && sysConfigStore.cluster + '.' + sysConfigStore.domain) ||
+    sysConfigStore.domain
   const api_path = `arrow/${api}`
   const url = 'https://' + host + '/' + api_path
   //console.log('getArrowFetchUrlAndOptions source url:', url);
@@ -122,14 +277,32 @@ export async function getArrowFetchUrlAndOptions(
     }
     options.body = body
   }
-  // add JWT for Authorization header if present
-  let srJWT = jwtStore.getJwt(sysConfigStore.getDomain(), sysConfigStore.getOrganization())
-  if (srJWT) {
+
+  // Add Authorization header - priority: GitHub OAuth JWT > Legacy JWT > None
+  const githubAuthStore = useGitHubAuthStore()
+  const githubToken = githubAuthStore.authToken
+
+  if (githubToken) {
+    // Use new GitHub OAuth JWT
     options.headers = {
       ...options.headers,
-      Authorization: `Bearer ${srJWT.accessToken}`
+      Authorization: `Bearer ${githubToken}`
+    }
+    logger.debug('getArrowFetchUrlAndOptions using GitHub OAuth JWT', { url })
+  } else {
+    // Fall back to legacy JWT if present
+    const srJWT = legacyJwtStore.getJwt(sysConfigStore.domain, sysConfigStore.cluster)
+    if (srJWT) {
+      options.headers = {
+        ...options.headers,
+        Authorization: `Bearer ${srJWT.accessToken}`
+      }
+      logger.debug('getArrowFetchUrlAndOptions using legacy JWT', { url })
+    } else {
+      logger.debug('getArrowFetchUrlAndOptions without auth', { url })
     }
   }
+
   logger.debug('fetch request', { url, options })
   return { url, options }
 }

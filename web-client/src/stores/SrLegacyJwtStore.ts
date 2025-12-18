@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { useSysConfigStore } from '@/stores/sysConfigStore'
 import { createLogger } from '@/utils/logger'
 
-const logger = createLogger('SrJWTStore')
+const logger = createLogger('SrLegacyJwtStore')
 
 interface SrJWT {
   accessToken: string
@@ -23,7 +23,7 @@ const MIN_REFRESH_INTERVAL_MS = 30 * 1000
 // Maximum consecutive refresh attempts before forcing re-login
 const MAX_REFRESH_ATTEMPTS = 3
 
-export const useJwtStore = defineStore('jwtStore', {
+export const useLegacyJwtStore = defineStore('legacyJwtStore', {
   state: (): JwtStoreState => ({
     isPublicMap: {},
     jwtMap: {},
@@ -73,14 +73,14 @@ export const useJwtStore = defineStore('jwtStore', {
       const sysConfigStore = useSysConfigStore()
       let jwt: SrJWT | null = null
       try {
-        jwt = this.getJwt(sysConfigStore.getDomain(), sysConfigStore.getOrganization())
+        jwt = this.getJwt(sysConfigStore.domain, sysConfigStore.cluster)
         if (jwt) {
           const nowInUnixTime = Math.floor(Date.now() / 1000)
           const expTime = new Date(jwt.expiration).getTime() / 1000
           logger.debug('Checking JWT expiration', { nowInUnixTime, expTime })
           if (expTime < nowInUnixTime) {
             logger.debug('JWT expired')
-            this.removeJwt(sysConfigStore.getDomain(), sysConfigStore.getOrganization())
+            this.removeJwt(sysConfigStore.domain, sysConfigStore.cluster)
             jwt = null
           } else {
             logger.debug('No authentication needed: JWT is valid')
@@ -220,8 +220,8 @@ export const useJwtStore = defineStore('jwtStore', {
      */
     async ensureFreshToken(): Promise<string | null> {
       const sysConfigStore = useSysConfigStore()
-      const domain = sysConfigStore.getDomain()
-      const org = sysConfigStore.getOrganization()
+      const domain = sysConfigStore.domain
+      const org = sysConfigStore.cluster
       const jwt = this.getJwt(domain, org)
 
       if (!jwt) {

@@ -8,10 +8,12 @@ import { useSrToastStore } from '@/stores/srToastStore'
 import { authenticatedFetch } from '@/utils/fetchUtils'
 import SrSliderInput from '@/components/SrSliderInput.vue'
 import { useSysConfigStore } from '@/stores/sysConfigStore'
-import { useJwtStore } from '@/stores/SrJWTStore'
-import { useRoute } from 'vue-router'
-import { useDeviceStore } from '@/stores/deviceStore'
+import { useLegacyJwtStore } from '@/stores/SrLegacyJwtStore'
+import { useGitHubAuthStore } from '@/stores/githubAuthStore'
+import { useRoute, useRouter } from 'vue-router'
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue'
+import SrUserUtilsDialog from '@/components/SrUserUtilsDialog.vue'
+import SrTokenUtilsDialog from '@/components/SrTokenUtilsDialog.vue'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('SrAppBar')
@@ -19,9 +21,10 @@ const logger = createLogger('SrAppBar')
 const build_env = import.meta.env.VITE_BUILD_ENV
 const banner_text = import.meta.env.VITE_BANNER_TEXT
 const sysConfigStore = useSysConfigStore()
-const jwtStore = useJwtStore()
-const deviceStore = useDeviceStore()
+const legacyJwtStore = useLegacyJwtStore()
+const githubAuthStore = useGitHubAuthStore()
 const route = useRoute()
+const router = useRouter()
 const tooltipRef = ref()
 const toast = useToast()
 const srToastStore = useSrToastStore()
@@ -29,10 +32,39 @@ const srToastStore = useSrToastStore()
 // Org menu and cluster dialog state
 const orgMenu = ref<InstanceType<typeof Menu> | null>(null)
 const showClusterDialog = ref(false)
+const showUserUtilsDialog = ref(false)
+const showTokenUtilsDialog = ref(false)
 const desiredNodes = ref(1)
 const ttl = ref(720)
 
-const docsMenu = ref<InstanceType<typeof Menu> | null>(null)
+// GitHub auth computed properties
+const isGitHubAuthenticated = computed(() => {
+  return githubAuthStore.authStatus === 'authenticated' && githubAuthStore.hasValidAuth
+})
+const isGitHubAuthenticating = computed(() => githubAuthStore.authStatus === 'authenticating')
+const githubUsername = computed(() => githubAuthStore.username)
+const githubIsMember = computed(() => githubAuthStore.isMember)
+const githubIsOwner = computed(() => githubAuthStore.isOwner)
+function handleGitHubLogin() {
+  githubAuthStore.initiateLogin()
+}
+
+async function handleGitHubLogout() {
+  githubAuthStore.logout()
+  legacyJwtStore.clearAllJwts()
+  sysConfigStore.$reset()
+  sysConfigStore.domain = 'slideruleearth.io'
+  sysConfigStore.cluster = 'sliderule'
+  await sysConfigStore.fetchServerVersionInfo()
+  await sysConfigStore.fetchCurrentNodes()
+  toast.add({
+    severity: 'info',
+    summary: 'Logged Out',
+    detail: 'You have been logged out successfully',
+    life: srToastStore.getLife()
+  })
+}
+
 const displayTour = computed(() => {
   return route.name === 'home' || route.name === 'request'
 })
@@ -59,47 +91,6 @@ const tourMenuItems = [
 const toggleTourMenu = (event: Event) => {
   tourMenu.value?.toggle(event)
 }
-
-const docMenuItems = [
-  {
-    label: 'Documentation',
-    icon: 'pi pi-book',
-    items: [
-      {
-        label: 'About SlideRule',
-        icon: 'pi pi-info-circle',
-        command: () => {
-          window.open('https://slideruleearth.io')
-        }
-      },
-      {
-        label: 'SlideRule Python Client Doumentation',
-        icon: 'pi pi-book',
-        command: () => {
-          window.open('https://slideruleearth.io/web/rtd/')
-        }
-      },
-      {
-        label: 'ATLAS/ICESat-2 Photon Data User Guide',
-        icon: 'pi pi-book',
-        command: () => {
-          window.open(
-            'https://nsidc.org/sites/default/files/documents/user-guide/atl03-v006-userguide.pdf'
-          )
-        }
-      },
-      {
-        label: 'Algorithm Theoretical Basis Document Atl03',
-        icon: 'pi pi-book',
-        command: () => {
-          window.open(
-            'https://nsidc.org/sites/default/files/documents/technical-reference/icesat2_atl03_atbd_v006.pdf'
-          )
-        }
-      }
-    ]
-  }
-]
 
 const aboutMenu = ref<InstanceType<typeof Menu> | null>(null)
 const aboutMenuItems = [
@@ -132,6 +123,43 @@ const aboutMenuItems = [
     }
   },
   {
+    separator: true
+  },
+  {
+    label: 'Documentation',
+    icon: 'pi pi-book',
+    items: [
+      {
+        label: 'SlideRule Python Client Documentation',
+        icon: 'pi pi-book',
+        command: () => {
+          window.open('https://slideruleearth.io/web/rtd/')
+        }
+      },
+      {
+        label: 'ATLAS/ICESat-2 Photon Data User Guide',
+        icon: 'pi pi-book',
+        command: () => {
+          window.open(
+            'https://nsidc.org/sites/default/files/documents/user-guide/atl03-v006-userguide.pdf'
+          )
+        }
+      },
+      {
+        label: 'Algorithm Theoretical Basis Document Atl03',
+        icon: 'pi pi-book',
+        command: () => {
+          window.open(
+            'https://nsidc.org/sites/default/files/documents/technical-reference/icesat2_atl03_atbd_v006.pdf'
+          )
+        }
+      }
+    ]
+  },
+  {
+    separator: true
+  },
+  {
     label: 'Report an Issue',
     icon: 'pi pi-exclamation-circle',
     command: () => {
@@ -147,12 +175,59 @@ const aboutMenuItems = [
   }
 ]
 
-const toggleDocsMenu = (event: Event) => {
-  docsMenu.value?.toggle(event)
-}
-
 const toggleAboutMenu = (event: Event) => {
   aboutMenu.value?.toggle(event)
+}
+
+// User menu for logged-in users
+const userMenu = ref<InstanceType<typeof Menu> | null>(null)
+const userMenuItems = computed(() => {
+  const items = [
+    {
+      label: 'Server',
+      icon: 'pi pi-server',
+      command: () => {
+        navigateToServer()
+      }
+    }
+  ]
+
+  // Add User Info and Token Utils menu items for org members only
+  if (githubIsMember.value || githubIsOwner.value) {
+    items.push({
+      label: 'User Info',
+      icon: 'pi pi-user',
+      command: () => {
+        showUserUtilsDialog.value = true
+      }
+    })
+    items.push({
+      label: 'Token Utils',
+      icon: 'pi pi-key',
+      command: () => {
+        showTokenUtilsDialog.value = true
+      }
+    })
+  }
+
+  items.push({
+    label: 'Log Out',
+    icon: 'pi pi-sign-out',
+    command: () => {
+      void handleGitHubLogout()
+    }
+  })
+
+  return items
+})
+
+const toggleUserMenu = (event: Event) => {
+  userMenu.value?.toggle(event)
+}
+
+// Navigate to Server view
+function navigateToServer() {
+  void router.push('/server')
 }
 
 const emit = defineEmits([
@@ -170,8 +245,8 @@ const emit = defineEmits([
 ])
 
 const nodeBadgeSeverity = computed(() => {
-  const canGetVersion = sysConfigStore.getCanConnectVersion()
-  const canGetNodes = sysConfigStore.getCanConnectNodes()
+  const canGetVersion = sysConfigStore.canConnectVersion
+  const canGetNodes = sysConfigStore.canConnectNodes
 
   //console.log('nodeBadgeSeverity canGetNodes:', canGetNodes, 'canGetVersion:', canGetVersion, 'current_nodes:', sysConfigStore.current_nodes);
   if (sysConfigStore.current_nodes <= 0) return 'warning' // no nodes available
@@ -250,11 +325,7 @@ const formattedClientVersion = computed(() => {
 
 const testVersionWarning = computed(() => {
   //const tvw = isThisClean(build_env) ? '' : (deviceStore.isMobile? `TEST `:`WebClient Test Version`);
-  const tvw = isThisClean(build_env)
-    ? ''
-    : deviceStore.isMobile
-      ? `TEST ${deviceStore.screenWidth}`
-      : `WebClient Test Version`
+  const tvw = isThisClean(build_env) ? '' : `WebClient Test Version`
   return tvw
 })
 
@@ -271,32 +342,32 @@ const computedServerVersionLabel = computed(() => {
 })
 
 const showOrgBadge = computed(() => {
-  const org = sysConfigStore.getOrganization()
+  const org = sysConfigStore.cluster
   return org && org !== 'sliderule'
 })
 
 const orgBadgeLabel = computed(() => {
-  return sysConfigStore.getOrganization()
+  return sysConfigStore.cluster
 })
 
 const orgBadgeSeverity = computed(() => {
-  const jwt = jwtStore.getCredentials()
+  const jwt = legacyJwtStore.getCredentials()
   return jwt ? 'info' : 'warn'
 })
 
 const computedLoggedIn = computed(() => {
-  return jwtStore.getCredentials() !== null
+  return legacyJwtStore.getCredentials() !== null
 })
 
 const computedOrgIsPublic = computed(() => {
-  return jwtStore.getIsPublic(sysConfigStore.getDomain(), sysConfigStore.getOrganization())
+  return legacyJwtStore.getIsPublic(sysConfigStore.domain, sysConfigStore.cluster)
 })
 
-const maxNodes = computed(() => sysConfigStore.getMaxNodes())
+const maxNodes = computed(() => sysConfigStore.max_nodes)
 
-const minNodes = computed(() => sysConfigStore.getMinNodes())
-const currentNodes = computed(() => sysConfigStore.getCurrentNodes())
-const clusterVersion = computed(() => sysConfigStore.getVersion())
+const minNodes = computed(() => sysConfigStore.min_nodes)
+const currentNodes = computed(() => sysConfigStore.current_nodes)
+const clusterVersion = computed(() => sysConfigStore.version)
 
 const computedClusterType = computed(() => {
   if (!computedLoggedIn.value) {
@@ -306,40 +377,72 @@ const computedClusterType = computed(() => {
   }
 })
 
-const orgMenuItems = computed(() => [
-  {
-    label: 'Request Nodes',
-    icon: 'pi pi-server',
-    disabled: computedOrgIsPublic.value || !computedLoggedIn.value,
-    command: () => {
-      showClusterDialog.value = true
-    }
-  },
-  {
-    label: 'Logout',
+function handleDeploy() {
+  logger.info('Deploy selected')
+  // TODO: Add API call to perform deploy lambda
+}
+
+const orgMenuItems = computed(() => {
+  const hasGitHubToken = githubAuthStore.hasValidAuth
+
+  const items = []
+
+  if (hasGitHubToken) {
+    items.push({
+      label: 'Deploy',
+      icon: 'pi pi-cloud-upload',
+      command: () => {
+        handleDeploy()
+      }
+    })
+  } else {
+    items.push({
+      label: 'Request Nodes',
+      icon: 'pi pi-server',
+      disabled: computedOrgIsPublic.value || !computedLoggedIn.value,
+      command: () => {
+        showClusterDialog.value = true
+      }
+    })
+  }
+
+  items.push({
+    label: 'Log Out',
     icon: 'pi pi-sign-out',
     command: () => {
-      handleLogout()
+      void handleLogout()
     }
-  },
-  {
+  })
+
+  items.push({
     separator: true
-  },
-  {
+  })
+
+  items.push({
     label: 'Reset to Public Cluster',
     icon: 'pi pi-refresh',
     command: () => {
       void resetToPublicCluster()
     }
-  }
-])
+  })
+
+  return items
+})
 
 const toggleOrgMenu = (event: Event) => {
   orgMenu.value?.toggle(event)
 }
 
-function handleLogout() {
-  jwtStore.removeJwt(sysConfigStore.getDomain(), sysConfigStore.getOrganization())
+async function handleLogout() {
+  // Log out from GitHub if authenticated
+  githubAuthStore.logout()
+  // Reset to public cluster
+  legacyJwtStore.clearAllJwts()
+  sysConfigStore.$reset()
+  sysConfigStore.domain = 'slideruleearth.io'
+  sysConfigStore.cluster = 'sliderule'
+  await sysConfigStore.fetchServerVersionInfo()
+  await sysConfigStore.fetchCurrentNodes()
   toast.add({
     severity: 'info',
     summary: 'Logged Out',
@@ -349,7 +452,7 @@ function handleLogout() {
 }
 
 async function resetToPublicCluster() {
-  jwtStore.clearAllJwts()
+  legacyJwtStore.clearAllJwts()
   sysConfigStore.$reset()
   await sysConfigStore.fetchServerVersionInfo()
   await sysConfigStore.fetchCurrentNodes()
@@ -362,7 +465,7 @@ async function resetToPublicCluster() {
 }
 
 async function getOrgNumNodes() {
-  if (!jwtStore.getCredentials()) {
+  if (!legacyJwtStore.getCredentials()) {
     logger.error('Login expired or not logged in')
     toast.add({
       severity: 'info',
@@ -373,9 +476,9 @@ async function getOrgNumNodes() {
     return
   }
 
-  const psHost = `https://ps.${sysConfigStore.getDomain()}`
+  const psHost = `https://ps.${sysConfigStore.domain}`
   const response = await authenticatedFetch(
-    `${psHost}/api/org_num_nodes/${sysConfigStore.getOrganization()}/`,
+    `${psHost}/api/org_num_nodes/${sysConfigStore.cluster}/`,
     {
       method: 'GET',
       headers: {
@@ -388,15 +491,11 @@ async function getOrgNumNodes() {
   if (response.ok) {
     const result = await response.json()
     logger.debug('getOrgNumNodes result', { result })
-    sysConfigStore.setMinNodes(result.min_nodes)
-    sysConfigStore.setCurrentNodes(result.current_nodes)
-    sysConfigStore.setMaxNodes(result.max_nodes)
-    sysConfigStore.setVersion(result.version)
-    jwtStore.setIsPublic(
-      sysConfigStore.getDomain(),
-      sysConfigStore.getOrganization(),
-      result.is_public
-    )
+    sysConfigStore.min_nodes = result.min_nodes
+    sysConfigStore.current_nodes = result.current_nodes
+    sysConfigStore.max_nodes = result.max_nodes
+    sysConfigStore.version = result.version
+    legacyJwtStore.setIsPublic(sysConfigStore.domain, sysConfigStore.cluster, result.is_public)
   } else if (response.status === 401) {
     logger.error('Authentication failed - please log in again')
     toast.add({
@@ -417,7 +516,7 @@ async function getOrgNumNodes() {
 }
 
 async function submitDesiredNodes() {
-  if (!jwtStore.getCredentials()) {
+  if (!legacyJwtStore.getCredentials()) {
     logger.error('Login expired or not logged in')
     toast.add({
       severity: 'info',
@@ -428,12 +527,12 @@ async function submitDesiredNodes() {
     return
   }
 
-  const psHost = `https://ps.${sysConfigStore.getDomain()}`
-  sysConfigStore.setDesiredNodes(desiredNodes.value)
-  sysConfigStore.setTimeToLive(ttl.value)
+  const psHost = `https://ps.${sysConfigStore.domain}`
+  sysConfigStore.desired_nodes = desiredNodes.value
+  sysConfigStore.time_to_live = ttl.value
 
   const response = await authenticatedFetch(
-    `${psHost}/api/desired_org_num_nodes_ttl/${sysConfigStore.getOrganization()}/${desiredNodes.value}/${ttl.value}/`,
+    `${psHost}/api/desired_org_num_nodes_ttl/${sysConfigStore.cluster}/${desiredNodes.value}/${ttl.value}/`,
     {
       method: 'POST',
       headers: {
@@ -483,38 +582,54 @@ async function submitDesiredNodes() {
 
 const mobileMenu = ref<InstanceType<typeof Menu> | null>(null)
 
-const mobileMenuItems = [
-  {
-    label: 'Request',
-    icon: 'pi pi-sliders-h',
-    command: handleRequestButtonClick
-  },
-  {
-    label: 'RecordTree',
-    icon: 'pi pi-list',
-    command: handleRecTreeButtonClick
-  },
-  {
-    label: 'Analysis',
-    icon: 'pi pi-chart-line',
-    command: handleAnalysisButtonClick
-  },
-  {
-    label: 'Documentation',
-    icon: 'pi pi-book',
-    items: docMenuItems[0].items
-  },
-  {
-    label: 'Settings',
-    icon: 'pi pi-cog',
-    command: handleSettingsButtonClick
-  },
-  {
-    label: 'About',
-    icon: 'pi pi-info-circle',
-    command: aboutMenuItems[0].command
+const mobileMenuItems = computed(() => {
+  const items = [
+    {
+      label: 'Request',
+      icon: 'pi pi-sliders-h',
+      command: handleRequestButtonClick
+    },
+    {
+      label: 'RecordTree',
+      icon: 'pi pi-list',
+      command: handleRecTreeButtonClick
+    },
+    {
+      label: 'Analysis',
+      icon: 'pi pi-chart-line',
+      command: handleAnalysisButtonClick
+    },
+    {
+      label: 'Settings',
+      icon: 'pi pi-cog',
+      command: handleSettingsButtonClick
+    },
+    {
+      label: 'About',
+      icon: 'pi pi-info-circle',
+      items: aboutMenuItems
+    }
+  ]
+
+  // Add user menu when authenticated
+  if (isGitHubAuthenticated.value) {
+    items.push({
+      label: githubUsername.value || 'Account',
+      icon: 'pi pi-user',
+      items: userMenuItems.value
+    })
   }
-]
+  // Login button hidden until GitHub OAuth feature is complete - uncomment to re-enable:
+  // else {
+  //   items.push({
+  //     label: 'Login',
+  //     icon: 'pi pi-github',
+  //     command: handleGitHubLogin
+  //   })
+  // }
+
+  return items
+})
 
 const toggleMobileMenu = (event: Event) => {
   mobileMenu.value?.toggle(event)
@@ -539,16 +654,16 @@ function dumpRouteInfo() {
 
 onMounted(async () => {
   setDarkMode()
-  const org = sysConfigStore.getOrganization()
+  const org = sysConfigStore.cluster
   const isPrivateCluster = org && org !== 'sliderule'
 
   if (isPrivateCluster) {
     // For private clusters, only fetch if we have credentials
     // Otherwise, the login dialog will be shown and fetchOrgInfo will be called after login
-    const jwt = jwtStore.getCredentials()
+    const jwt = legacyJwtStore.getCredentials()
     if (jwt) {
       // Use the authenticated PS endpoint for private clusters
-      const psHost = `https://ps.${sysConfigStore.getDomain()}`
+      const psHost = `https://ps.${sysConfigStore.domain}`
       try {
         const response = await fetch(`${psHost}/api/org_num_nodes/${org}/`, {
           method: 'GET',
@@ -560,10 +675,10 @@ onMounted(async () => {
         })
         if (response.ok) {
           const result = await response.json()
-          sysConfigStore.setMinNodes(result.min_nodes)
-          sysConfigStore.setCurrentNodes(result.current_nodes)
-          sysConfigStore.setMaxNodes(result.max_nodes)
-          sysConfigStore.setVersion(result.version)
+          sysConfigStore.min_nodes = result.min_nodes
+          sysConfigStore.current_nodes = result.current_nodes
+          sysConfigStore.max_nodes = result.max_nodes
+          sysConfigStore.version = result.version
         }
       } catch (error) {
         logger.error('Failed to fetch org info', { error })
@@ -599,7 +714,7 @@ const showServerTooltip = (event: MouseEvent) => {
       if (isHovering.value) {
         tooltipRef.value.showTooltip(
           event,
-          `Server Version: ${sysConfigStore.getVersion()}<br>Nodes: ${nodesStr}<br>Click to see server details`
+          `Server Version: ${sysConfigStore.version}<br>Nodes: ${nodesStr}<br>Click to see server details`
         )
       }
     } catch (error) {
@@ -609,7 +724,7 @@ const showServerTooltip = (event: MouseEvent) => {
       if (isHovering.value) {
         tooltipRef.value.showTooltip(
           event,
-          `Server Version: ${sysConfigStore.getVersion()}<br>Nodes: unknown<br>Click to see server details`
+          `Server Version: ${sysConfigStore.version}<br>Nodes: unknown<br>Click to see server details`
         )
       }
     }
@@ -638,7 +753,10 @@ function hideTooltip() {
       </Button>
       <Menu :model="mobileMenuItems" popup ref="mobileMenu" />
       <img src="/IceSat-2_SlideRule_logo.png" alt="SlideRule logo" class="logo" />
-      <span class="sr-title">SlideRule</span>
+      <span class="sr-title-wrapper">
+        <span class="sr-title">SlideRule</span>
+        <span v-if="testVersionWarning" class="sr-title-badge">{{ testVersionWarning }}</span>
+      </span>
       <Button
         v-if="showOrgBadge"
         type="button"
@@ -673,8 +791,6 @@ function hideTooltip() {
         @click="handleClientVersionButtonClick"
       >
       </Button>
-
-      <span class="sr-tvw">{{ testVersionWarning }}</span>
     </div>
     <div class="middle-content">
       <Button
@@ -701,7 +817,7 @@ function hideTooltip() {
           icon="pi pi-megaphone"
           label="Feedback"
           id="sr-feedback-button"
-          class="p-button-rounded p-button-text desktop-only"
+          class="p-button-rounded p-button-text desktop-only tablet-icon-only"
           @click="openMailClient"
         ></Button>
       </div>
@@ -736,15 +852,6 @@ function hideTooltip() {
       >
       </Button>
       <Button
-        icon="pi pi-book"
-        id="sr-docs-button"
-        label="Docs"
-        class="p-button-rounded p-button-text desktop-only"
-        @click="toggleDocsMenu"
-      >
-      </Button>
-      <Menu :model="docMenuItems" popup ref="docsMenu" />
-      <Button
         icon="pi pi-cog"
         id="sr-settings-button"
         label="Settings"
@@ -756,11 +863,38 @@ function hideTooltip() {
         icon="pi pi-info-circle"
         id="sr-about-button"
         label="About"
-        class="p-button-rounded p-button-text desktop-only"
+        class="p-button-rounded p-button-text desktop-only tablet-icon-only"
         @click="toggleAboutMenu"
       >
       </Button>
       <Menu :model="aboutMenuItems" popup ref="aboutMenu" />
+      <!-- Login button hidden until GitHub OAuth feature is complete - change v-if to "!isGitHubAuthenticated" to re-enable -->
+      <Button
+        v-if="false"
+        icon="pi pi-github"
+        id="sr-login-button"
+        label="Login"
+        title="Login with GitHub to access member features"
+        class="p-button-rounded p-button-text desktop-only"
+        :loading="isGitHubAuthenticating"
+        :disabled="isGitHubAuthenticating"
+        @click="handleGitHubLogin"
+      >
+      </Button>
+      <Button
+        v-if="isGitHubAuthenticated"
+        id="sr-user-button"
+        :label="githubUsername || 'Account'"
+        class="p-button-rounded p-button-text desktop-only sr-user-button"
+        @click="toggleUserMenu"
+      >
+        <template #icon>
+          <i class="pi pi-user"></i>
+          <span v-if="githubIsOwner" class="sr-role-badge sr-role-owner">Owner</span>
+          <span v-else-if="githubIsMember" class="sr-role-badge sr-role-member">Member</span>
+        </template>
+      </Button>
+      <Menu :model="userMenuItems" popup ref="userMenu" />
     </div>
   </div>
 
@@ -832,6 +966,9 @@ function hideTooltip() {
       />
     </div>
   </Dialog>
+
+  <SrUserUtilsDialog v-model:visible="showUserUtilsDialog" />
+  <SrTokenUtilsDialog v-model:visible="showTokenUtilsDialog" />
 </template>
 
 <style scoped>
@@ -899,11 +1036,41 @@ function hideTooltip() {
   align-items: center;
 }
 
+.sr-title-wrapper {
+  position: relative;
+  display: inline-block;
+  margin-left: 0.5rem;
+}
+
 .sr-title {
   font-size: 1.5rem;
   font-weight: 600;
   color: var(--p-button-text-primary-color);
-  margin-left: 0.5rem;
+}
+
+.sr-title-badge {
+  position: absolute;
+  top: -0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.55rem;
+  color: red;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.sr-debug-width {
+  position: absolute;
+  bottom: -0.75rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.5rem;
+  color: orange;
+  white-space: nowrap;
+  font-weight: 500;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 0 0.25rem;
+  border-radius: 2px;
 }
 
 .sr-org-badge {
@@ -951,11 +1118,6 @@ function hideTooltip() {
   /* Full width on smaller screens */
   min-width: 21rem;
 }
-.sr-tvw {
-  font-size: smaller;
-  color: red;
-  margin-left: 0.5rem;
-}
 .sr-banner-text {
   font-size: smaller;
   color: red;
@@ -968,6 +1130,13 @@ function hideTooltip() {
   .responsive-input {
     width: 300px;
     /* Fixed width on larger screens */
+  }
+}
+
+/* Tablet: show icon-only for certain buttons */
+@media (min-width: 769px) and (max-width: 1200px) {
+  .tablet-icon-only :deep(.p-button-label) {
+    display: none;
   }
 }
 
@@ -1080,5 +1249,29 @@ function hideTooltip() {
 :deep(.p-button.sr-server-version.danger .p-badge) {
   white-space: nowrap;
   color: var(--p-red-300);
+}
+
+/* User button with role badge */
+.sr-user-button {
+  position: relative;
+}
+
+.sr-role-badge {
+  font-size: 0.55rem;
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+  margin-left: 0.25rem;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.sr-role-owner {
+  background-color: var(--p-green-500);
+  color: white;
+}
+
+.sr-role-member {
+  background-color: var(--p-green-500);
+  color: white;
 }
 </style>

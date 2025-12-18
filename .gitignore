@@ -1,5 +1,10 @@
 # compiled output
 **/dist
+
+# Python
+**/__pycache__/
+**/*.pyc
+**/*.pyo
 **/global-s3-assets
 **/regional-s3-assets
 **/open-source
@@ -25,7 +30,7 @@ witch.zip
 # misc
 **/npm-debug.log
 **/testem.log
-**/.env
+**/.env*
 # package-lock.json
 **/.vscode/settings.json
 **/setenv.sh
@@ -67,6 +72,9 @@ override.tf.json
 
 # Include tfplan files to ignore the plan output of command: terraform plan -out=tfplan
 # example: *tfplan*
+
+# Infracost cache
+.infracost/
 
 # Playwright
 node_modules/

@@ -29,9 +29,19 @@ const router = createRouter({
       component: () => import('@/views/AboutView.vue')
     },
     {
+      path: '/privacy',
+      name: 'privacy',
+      component: () => import('@/views/PrivacyPolicyView.vue')
+    },
+    {
       path: '/settings',
       name: 'settings',
       component: () => import('@/views/SettingsView.vue')
+    },
+    {
+      path: '/server',
+      name: 'server',
+      component: () => import('@/views/ServerView.vue')
     },
     {
       path: '/rectree',
@@ -54,6 +64,11 @@ const router = createRouter({
       name: 'analyze',
       component: () => import('@/views/AnalyzeView.vue'),
       props: true
+    },
+    {
+      path: '/auth/github/callback',
+      name: 'github-callback',
+      component: () => import('@/views/GitHubCallbackView.vue')
     },
     {
       path: '/:pathMatch(.*)*',

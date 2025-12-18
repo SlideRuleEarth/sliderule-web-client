@@ -75,13 +75,13 @@ verify-s3-assets-testsliderule:
 
 
 live-update-testsliderule: ## Update the web client at testsliderule.org with new build
-	make live-update S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org DOMAIN=testsliderule.org
+	make live-update S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org DOMAIN=testsliderule.org 
 
 # live-update-demo-dot-slideruleearth: ## Update the web client at demo.slideruleearth.io with new build
 # 	make live-update S3_BUCKET=slideruleearth-demo-dot DOMAIN_APEX=slideruleearth.io DOMAIN=demo.slideruleearth.io
 
 live-update-client-dot-slideruleearth: ## Update the web client at client.slideruleearth.io with new build
-	make live-update S3_BUCKET=slideruleearth-webclient-dot DOMAIN_APEX=slideruleearth.io DOMAIN=client.slideruleearth.io
+	make live-update S3_BUCKET=slideruleearth-webclient-dot DOMAIN_APEX=slideruleearth.io DOMAIN=client.slideruleearth.io 
 
 convert-icons: ## Convert Maki SVG icons in src/assets/maki-svg to PNGs in public/icons
 	@echo "🔄 Converting Maki SVG icons to PNGs..."
@@ -124,13 +124,13 @@ destroy: # Destroy the web client
 
 deploy-client-to-testsliderule: ## Deploy the web client to the testsliderule.org cloudfront and update the s3 bucket
 	make deploy DOMAIN=testsliderule.org S3_BUCKET=testsliderule-webclient && \
-	make live-update DOMAIN=testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org
+	make live-update DOMAIN=testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org 
 
 destroy-client-testsliderule: ## Destroy the web client from the testsliderule.org cloudfront and remove the S3 bucket
 	make destroy DOMAIN=testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org
 
 release-live-update-to-testsliderule: src-tag-and-push ## Release the web client to the live environment NEEDS VERSION
-	make live-update DOMAIN=testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org
+	make live-update DOMAIN=testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org 
 
 # deploy-client-to-demo-dot-slideruleearth: ## Deploy the web client to the demo.slideruleearth.io cloudfront and update the s3 bucket
 # 	make deploy DOMAIN=demo.slideruleearth.io S3_BUCKET=slideruleearth-demo-dot DOMAIN_APEX=slideruleearth.io && \
@@ -222,7 +222,8 @@ check-vars:
 	@echo "   DOMAIN_APEX     = $(DOMAIN_APEX)"
 	@echo "   S3_BUCKET       = $(S3_BUCKET)"
 	@echo "   DISTRIBUTION_ID = $(DISTRIBUTION_ID)"
-	
+
+
 help: ## That's me!
 	@printf "\033[37m%-30s\033[0m %s\n" "#-----------------------------------------------------------------------------------------"
 	@printf "\033[37m%-30s\033[0m %s\n" "# Makefile Help       "

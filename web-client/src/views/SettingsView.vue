@@ -1,16 +1,24 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import SingleColumnLayout from '@/layouts/SingleColumnLayout.vue'
 import Accordion from 'primevue/accordion'
 import AccordionPanel from 'primevue/accordionpanel'
 import AccordionHeader from 'primevue/accordionheader'
 import AccordionContent from 'primevue/accordioncontent'
 import SrClearCache from '@/components/SrClearCache.vue'
-import SrSysConfig from '@/components/SrSysConfig.vue'
+import SrLegacyProvSys from '@/components/SrLegacyProvSys.vue'
 import SrStorageUsage from '@/components/SrStorageUsage.vue'
 import SrAdvOptPanel from '@/components/SrAdvOptPanel.vue'
 import SrDefaults from '@/components/SrDefaults.vue'
 import SrGoogleApiKeyInput from '@/components/SrGoogleApiKeyInput.vue'
+import SrPrivacySettings from '@/components/SrPrivacySettings.vue'
 import Card from 'primevue/card'
+import { useGitHubAuthStore } from '@/stores/githubAuthStore'
+
+const githubAuthStore = useGitHubAuthStore()
+
+// Hide Legacy Provisioning when user has valid GitHub auth
+const showLegacyProvisioning = computed(() => !githubAuthStore.canAccessMemberFeatures)
 </script>
 
 <template>
@@ -29,20 +37,13 @@ import Card from 'primevue/card'
               collapseIcon="pi pi-minus"
             >
               <AccordionPanel value="0">
-                <AccordionHeader>System Configuration</AccordionHeader>
-                <AccordionContent>
-                  <SrSysConfig />
-                </AccordionContent>
-              </AccordionPanel>
-
-              <AccordionPanel value="1">
                 <AccordionHeader>Map Provider API Keys</AccordionHeader>
                 <AccordionContent>
                   <SrGoogleApiKeyInput />
                 </AccordionContent>
               </AccordionPanel>
 
-              <AccordionPanel value="2">
+              <AccordionPanel value="1">
                 <AccordionHeader>Storage Usage</AccordionHeader>
                 <AccordionContent>
                   <SrStorageUsage />
@@ -50,26 +51,33 @@ import Card from 'primevue/card'
                 </AccordionContent>
               </AccordionPanel>
 
-              <AccordionPanel value="3">
+              <AccordionPanel value="2">
                 <AccordionHeader>Advanced</AccordionHeader>
                 <AccordionContent>
                   <SrAdvOptPanel />
                 </AccordionContent>
               </AccordionPanel>
 
-              <AccordionPanel value="4">
+              <AccordionPanel value="3">
                 <AccordionHeader>Defaults</AccordionHeader>
                 <AccordionContent>
                   <SrDefaults />
                 </AccordionContent>
               </AccordionPanel>
 
-              <!-- <AccordionPanel value="5">
-                    <AccordionHeader>Color Defaults</AccordionHeader>
-                    <AccordionContent>
-                        <SrColorPalette />
-                    </AccordionContent>
-                </AccordionPanel> -->
+              <AccordionPanel v-if="showLegacyProvisioning" value="4">
+                <AccordionHeader>Legacy Provisioning</AccordionHeader>
+                <AccordionContent>
+                  <SrLegacyProvSys />
+                </AccordionContent>
+              </AccordionPanel>
+
+              <AccordionPanel value="5">
+                <AccordionHeader>Privacy & Data</AccordionHeader>
+                <AccordionContent>
+                  <SrPrivacySettings />
+                </AccordionContent>
+              </AccordionPanel>
             </Accordion>
           </div>
         </template>
@@ -120,7 +128,7 @@ import Card from 'primevue/card'
 /* Prevent content from making accordion wider */
 :deep(.p-accordion-content) {
   overflow: hidden; /* Prevents expanding width */
-  word-wrap: break-word; /* Ensures long words don’t break layout */
+  word-wrap: break-word; /* Ensures long words don't break layout */
   width: 100%;
 }
 
