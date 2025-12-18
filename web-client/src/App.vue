@@ -184,13 +184,10 @@ async function handleGlobalLogin(): Promise<void> {
 
 async function resetToPublicCluster() {
   legacyJwtStore.clearAllJwts()
-  sysConfigStore.$reset()
+  await sysConfigStore.resetToPublicCluster()
   loginUsername.value = ''
   loginPassword.value = ''
   authDialogStore.hide()
-  // Fetch public cluster server version
-  await sysConfigStore.fetchServerVersionInfo()
-  await sysConfigStore.fetchCurrentNodes()
   toast.add({
     severity: 'info',
     summary: 'Reset Complete',

@@ -60,13 +60,8 @@ function handleLogin() {
 
 async function handleLogout() {
   githubAuthStore.logout()
-  // Reset to public cluster
   legacyJwtStore.clearAllJwts()
-  sysConfigStore.$reset()
-  sysConfigStore.domain = 'slideruleearth.io'
-  sysConfigStore.cluster = 'sliderule'
-  await sysConfigStore.fetchServerVersionInfo()
-  await sysConfigStore.fetchCurrentNodes()
+  await sysConfigStore.resetToPublicCluster()
 }
 </script>
 

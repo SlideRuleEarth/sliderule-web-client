@@ -46,6 +46,17 @@ export const useSysConfigStore = defineStore(
       return result.success && result.nodes >= 0 ? result.nodes.toString() : 'Unknown'
     }
 
+    async function resetToPublicCluster(): Promise<void> {
+      // Set values directly (don't use $reset due to persistence plugin restoring old values)
+      domain.value = 'slideruleearth.io'
+      cluster.value = 'sliderule'
+      desired_nodes.value = 1
+      time_to_live.value = 720
+      resetStatus()
+      await fetchServerVersionInfo()
+      await fetchCurrentNodes()
+    }
+
     return {
       domain,
       cluster,
@@ -59,7 +70,8 @@ export const useSysConfigStore = defineStore(
       canConnectNodes,
       resetStatus,
       fetchServerVersionInfo,
-      fetchCurrentNodes
+      fetchCurrentNodes,
+      resetToPublicCluster
     }
   },
   {

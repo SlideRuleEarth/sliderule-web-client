@@ -49,22 +49,6 @@ function handleGitHubLogin() {
   githubAuthStore.initiateLogin()
 }
 
-async function handleGitHubLogout() {
-  githubAuthStore.logout()
-  legacyJwtStore.clearAllJwts()
-  sysConfigStore.$reset()
-  sysConfigStore.domain = 'slideruleearth.io'
-  sysConfigStore.cluster = 'sliderule'
-  await sysConfigStore.fetchServerVersionInfo()
-  await sysConfigStore.fetchCurrentNodes()
-  toast.add({
-    severity: 'info',
-    summary: 'Logged Out',
-    detail: 'You have been logged out successfully',
-    life: srToastStore.getLife()
-  })
-}
-
 const displayTour = computed(() => {
   return route.name === 'home' || route.name === 'request'
 })
@@ -214,7 +198,7 @@ const userMenuItems = computed(() => {
     label: 'Log Out',
     icon: 'pi pi-sign-out',
     command: () => {
-      void handleGitHubLogout()
+      void handleLogout()
     }
   })
 
@@ -436,13 +420,9 @@ const toggleOrgMenu = (event: Event) => {
 async function handleLogout() {
   // Log out from GitHub if authenticated
   githubAuthStore.logout()
-  // Reset to public cluster
+  // Clear legacy JWT and reset to public cluster
   legacyJwtStore.clearAllJwts()
-  sysConfigStore.$reset()
-  sysConfigStore.domain = 'slideruleearth.io'
-  sysConfigStore.cluster = 'sliderule'
-  await sysConfigStore.fetchServerVersionInfo()
-  await sysConfigStore.fetchCurrentNodes()
+  await sysConfigStore.resetToPublicCluster()
   toast.add({
     severity: 'info',
     summary: 'Logged Out',
@@ -452,10 +432,9 @@ async function handleLogout() {
 }
 
 async function resetToPublicCluster() {
+  // Reset to public cluster without logging out of GitHub
   legacyJwtStore.clearAllJwts()
-  sysConfigStore.$reset()
-  await sysConfigStore.fetchServerVersionInfo()
-  await sysConfigStore.fetchCurrentNodes()
+  await sysConfigStore.resetToPublicCluster()
   toast.add({
     severity: 'info',
     summary: 'Reset Complete',
