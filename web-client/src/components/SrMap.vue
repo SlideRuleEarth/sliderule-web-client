@@ -849,7 +849,7 @@ onMounted(async () => {
       if (!geoCoderStore.isInitialized()) {
         //console.log("Initializing geocoder");
         geoCoderStore.initGeoCoder({
-          provider: 'osm',
+          provider: 'photon',
           lang: 'en',
           placeholder: 'Search for ...',
           targetType: 'glass-button',
