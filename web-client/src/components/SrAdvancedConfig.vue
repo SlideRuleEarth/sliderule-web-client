@@ -117,6 +117,37 @@
         variant="text"
         rounded
       ></Button>
+      <br />
+      <label for="mobileWarningThreshold">Mobile Warning Threshold</label>
+      <div class="sr-mobile-warning-row">
+        <InputNumber
+          v-model="mobileWarningStore.threshold"
+          inputId="mobileWarningThreshold"
+          size="small"
+          :step="1"
+          :min="0"
+          :max="10"
+          showButtons
+          :decimalPlaces="0"
+        />
+        <Button
+          icon="pi pi-refresh"
+          class="sr-reset-btn"
+          @click="mobileWarningStore.resetThreshold()"
+          variant="text"
+          rounded
+          title="Reset threshold to default (2)"
+        ></Button>
+      </div>
+      <label>Mobile Warning Dismiss Count: {{ mobileWarningStore.dismissCount }}</label>
+      <Button
+        icon="pi pi-refresh"
+        label="Reset Counter"
+        class="sr-glow-button"
+        @click="mobileWarningStore.resetCounter()"
+        variant="text"
+        rounded
+      ></Button>
       <SrCheckbox
         v-model="debugStore.useMetersForMousePosition"
         label="Use Meters for mouse position"
@@ -139,9 +170,11 @@ import InputNumber from 'primevue/inputnumber'
 import { useGlobalChartStore } from '@/stores/globalChartStore'
 import SrPlotCfgEdit from '@/components/SrPlotCfgEdit.vue'
 import { useTourStore } from '@/stores/tourStore'
+import { useMobileWarningStore } from '@/stores/mobileWarningStore'
 import Button from 'primevue/button'
 
 const debugStore = useDebugStore()
+const mobileWarningStore = useMobileWarningStore()
 const srParquetCfgStore = useSrParquetCfgStore()
 const reqParamsStore = useReqParamsStore()
 const deckStore = useDeckStore()
@@ -194,5 +227,16 @@ const deckPointSize = computed({
   align-items: center;
   padding: 0rem;
   margin: 0rem;
+}
+
+.sr-mobile-warning-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sr-reset-btn {
+  padding: 0.25rem;
 }
 </style>
