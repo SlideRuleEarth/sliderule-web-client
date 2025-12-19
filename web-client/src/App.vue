@@ -32,6 +32,7 @@ import { useSlideruleDefaults } from '@/stores/defaultsStore'
 import { createLogger } from '@/utils/logger'
 import { usePrivacyConsentStore } from '@/stores/privacyConsentStore'
 import SrConsentBanner from '@/components/SrConsentBanner.vue'
+import SrMobileWarning from '@/components/SrMobileWarning.vue'
 
 const logger = createLogger('App')
 
@@ -696,6 +697,7 @@ async function handleLongTourButtonClick() {
       <RouterView />
     </div>
     <SrConsentBanner />
+    <SrMobileWarning />
 
     <!-- Dialog for displaying version information -->
     <Dialog
