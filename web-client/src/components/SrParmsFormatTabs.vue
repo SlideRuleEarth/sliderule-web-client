@@ -47,8 +47,8 @@ const tooltipPrefix = computed(() =>
 
 const activeTab = ref('0')
 
-// Parse rcvdParms to object (this is the primary data source - always present)
-const parsedData = computed(() => {
+// Parse rcvdParms to object (this is the primary data source when available)
+const parsedRcvdParms = computed(() => {
   try {
     if (
       !props.rcvdParms ||
@@ -93,6 +93,15 @@ const parsedSentParms = computed(() => {
     })
     return null
   }
+})
+
+// parsedData falls back to sentParms when rcvdParms is not available (e.g., on request error)
+const parsedData = computed(() => {
+  if (parsedRcvdParms.value) {
+    return parsedRcvdParms.value
+  }
+  // Fallback to sent params when received params are not available
+  return parsedSentParms.value
 })
 
 // Extract inner data (remove 'parms' wrapper if present) for JSON/Python Snippet/Lua tabs
@@ -347,12 +356,13 @@ function computeDiff(sent: any, received: any, path: string = ''): DiffEntry[] {
   return diffs
 }
 
+// Only show Sent/Diff tabs when we have BOTH received and sent params
 const hasDiff = computed(() => {
-  return parsedSentParms.value !== null && innerData.value !== null
+  return parsedSentParms.value !== null && parsedRcvdParms.value !== null
 })
 
 const diffEntries = computed((): DiffEntry[] => {
-  if (!parsedSentParms.value || !innerData.value) return []
+  if (!parsedSentParms.value || !parsedRcvdParms.value) return []
   return computeDiff(parsedSentParms.value, innerData.value)
 })
 
