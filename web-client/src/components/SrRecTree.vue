@@ -600,7 +600,7 @@ onUnmounted(() => {
     :dismissableMask="true"
   >
     <SrParmsFormatTabs
-      v-if="currentRcvdParmsObj"
+      v-if="currentRcvdParmsObj || currentSentParmsObj"
       :rcvdParms="currentRcvdParmsObj"
       :sentParms="currentSentParmsObj"
       :endpoint="currentFunc"
