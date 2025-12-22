@@ -299,6 +299,7 @@ defineExpose({ refresh })
   <div class="sr-server-status">
     <div class="sr-server-status-header">
       <div class="sr-cluster-selector-container">
+        <label class="sr-cluster-label">Cluster</label>
         <AutoComplete
           v-model="selectedCluster"
           :suggestions="filteredClusters"
@@ -419,7 +420,14 @@ defineExpose({ refresh })
 .sr-cluster-selector-container {
   flex: 1;
   display: flex;
-  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sr-cluster-label {
+  font-size: 0.85rem;
+  color: var(--p-text-muted-color);
+  white-space: nowrap;
 }
 
 .sr-cluster-autocomplete {

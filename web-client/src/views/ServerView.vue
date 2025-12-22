@@ -2,7 +2,6 @@
 import { computed } from 'vue'
 import SingleColumnLayout from '@/layouts/SingleColumnLayout.vue'
 import Card from 'primevue/card'
-import Message from 'primevue/message'
 import SrSysConfig from '@/components/SrSysConfig.vue'
 import SrDeployConfig from '@/components/SrDeployConfig.vue'
 import SrClusterStatus from '@/components/SrClusterStatus.vue'
@@ -14,41 +13,7 @@ const githubAuthStore = useGitHubAuthStore()
 const isAuthenticated = computed(() => {
   return githubAuthStore.authStatus === 'authenticated' && githubAuthStore.hasValidAuth
 })
-const isAuthenticating = computed(() => githubAuthStore.authStatus === 'authenticating')
-const username = computed(() => githubAuthStore.username)
-const isMember = computed(() => githubAuthStore.isMember)
-const isOwner = computed(() => githubAuthStore.isOwner)
-const lastError = computed(() => githubAuthStore.lastError)
 const canAccessMemberFeatures = computed(() => githubAuthStore.canAccessMemberFeatures)
-
-// Status severity for the message component
-const statusSeverity = computed(() => {
-  if (githubAuthStore.authStatus === 'error') return 'error'
-  if (!isAuthenticated.value) return 'secondary'
-  if (isOwner.value) return 'success'
-  if (isMember.value) return 'success'
-  return 'warn'
-})
-
-// Status message text
-const statusMessage = computed(() => {
-  if (githubAuthStore.authStatus === 'error') {
-    return lastError.value || 'Authentication failed'
-  }
-  if (isAuthenticating.value) {
-    return 'Authenticating with GitHub...'
-  }
-  if (!isAuthenticated.value) {
-    return 'Not logged in to GitHub'
-  }
-  if (isOwner.value) {
-    return `Logged in as ${username.value} - Organization Owner`
-  }
-  if (isMember.value) {
-    return `Logged in as ${username.value} - Organization Member`
-  }
-  return `Logged in as ${username.value} - Not a member of SlideRuleEarth`
-})
 </script>
 
 <template>
@@ -59,20 +24,16 @@ const statusMessage = computed(() => {
           <div class="sr-server-title">Server</div>
         </template>
         <template #content>
-          <Message :severity="statusSeverity" :closable="false" class="sr-server-status">
-            {{ statusMessage }}
-          </Message>
-
           <div class="sr-server-section">
             <SrSysConfig :disabled="!isAuthenticated" />
           </div>
 
           <div v-if="canAccessMemberFeatures" class="sr-server-section">
-            <SrClusterStatus />
+            <SrDeployConfig />
           </div>
 
           <div v-if="canAccessMemberFeatures" class="sr-server-section">
-            <SrDeployConfig />
+            <SrClusterStatus />
           </div>
         </template>
       </Card>

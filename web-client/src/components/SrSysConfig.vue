@@ -7,6 +7,7 @@ import { useSysConfigStore } from '@/stores/sysConfigStore'
 import { useLegacyJwtStore } from '@/stores/SrLegacyJwtStore'
 import { useClusterReachability } from '@/composables/useClusterReachability'
 import { storeToRefs } from 'pinia'
+import Message from 'primevue/message'
 
 const props = defineProps<{
   disabled?: boolean
@@ -19,6 +20,44 @@ const legacyJwtStore = useLegacyJwtStore()
 const { domain, subdomain, version, current_nodes, canConnectVersion, canConnectNodes } =
   storeToRefs(sysConfigStore)
 
+// Auth state computed properties
+const isAuthenticated = computed(() => {
+  return githubAuthStore.authStatus === 'authenticated' && githubAuthStore.hasValidAuth
+})
+const isAuthenticating = computed(() => githubAuthStore.authStatus === 'authenticating')
+const username = computed(() => githubAuthStore.username)
+const isMember = computed(() => githubAuthStore.isMember)
+const isOwner = computed(() => githubAuthStore.isOwner)
+const lastError = computed(() => githubAuthStore.lastError)
+
+// Status severity for the message component
+const statusSeverity = computed(() => {
+  if (githubAuthStore.authStatus === 'error') return 'error'
+  if (!isAuthenticated.value) return 'secondary'
+  if (isOwner.value) return 'success'
+  if (isMember.value) return 'success'
+  return 'warn'
+})
+
+// Status message text
+const statusMessage = computed(() => {
+  if (githubAuthStore.authStatus === 'error') {
+    return lastError.value || 'Authentication failed'
+  }
+  if (isAuthenticating.value) {
+    return 'Authenticating with GitHub...'
+  }
+  if (!isAuthenticated.value) {
+    return 'Not logged in to GitHub'
+  }
+  if (isOwner.value) {
+    return `Logged in as ${username.value} - Organization Owner`
+  }
+  if (isMember.value) {
+    return `Logged in as ${username.value} - Organization Member`
+  }
+  return `Logged in as ${username.value} - Not a member of SlideRuleEarth`
+})
 async function refreshStatus() {
   sysConfigStore.resetStatus()
   await Promise.all([sysConfigStore.fetchServerVersionInfo(), sysConfigStore.fetchCurrentNodes()])
@@ -137,6 +176,9 @@ function resetToPublicDomain() {
         @click="refreshStatus"
       />
     </div>
+    <Message :severity="statusSeverity" :closable="false" class="sr-server-status">
+      {{ statusMessage }}
+    </Message>
   </div>
 </template>
 
