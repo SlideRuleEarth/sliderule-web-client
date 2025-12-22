@@ -9,7 +9,7 @@
       <label for="cluster-input" class="sr-org-label">Cluster</label>
       <InputText
         id="cluster-input"
-        v-model="sysConfigStore.cluster"
+        v-model="sysConfigStore.subdomain"
         class="sr-org-input"
         @keyup.enter="orgChanged"
       />
@@ -111,12 +111,12 @@ const ttl = ref(720)
 // }
 
 const computedOrgIsPublic = computed(() => {
-  return legacyJwtStore.getIsPublic(sysConfigStore.domain, sysConfigStore.cluster)
+  return legacyJwtStore.getIsPublic(sysConfigStore.domain, sysConfigStore.subdomain)
 })
 
 // The "sliderule" cluster is the public cluster that doesn't require login
 const isPublicCluster = computed(() => {
-  return sysConfigStore.cluster === 'sliderule'
+  return sysConfigStore.subdomain === 'sliderule'
 })
 
 const computedLoggedIn = computed(() => {
@@ -126,12 +126,12 @@ const computedLoggedIn = computed(() => {
 const maxNodes = computed(() => sysConfigStore.max_nodes)
 
 function domainChanged(_newDomain: string) {
-  legacyJwtStore.removeJwt(sysConfigStore.domain, sysConfigStore.cluster)
+  legacyJwtStore.removeJwt(sysConfigStore.domain, sysConfigStore.subdomain)
   //console.log('Domain changed:', newDomain);
 }
 
 function orgChanged() {
-  const newOrg = sysConfigStore.cluster
+  const newOrg = sysConfigStore.subdomain
   legacyJwtStore.removeJwt(sysConfigStore.domain, newOrg)
   // Check if new cluster requires login
   if (newOrg !== 'sliderule') {
@@ -164,7 +164,7 @@ async function desiredOrgNumNodes() {
   const psHost = `https://ps.${sysConfigStore.domain}`
   // Use authenticatedFetch - it handles JWT header and 401 retry automatically
   const response = await authenticatedFetch(
-    `${psHost}/api/desired_org_num_nodes_ttl/${sysConfigStore.cluster}/${sysConfigStore.desired_nodes}/${sysConfigStore.time_to_live}/`,
+    `${psHost}/api/desired_org_num_nodes_ttl/${sysConfigStore.subdomain}/${sysConfigStore.desired_nodes}/${sysConfigStore.time_to_live}/`,
     {
       method: 'POST',
       headers: {
@@ -223,7 +223,7 @@ function updateDesiredNodes() {
 
 async function resetToDefaults() {
   legacyJwtStore.clearAllJwts()
-  await sysConfigStore.resetToPublicCluster()
+  await sysConfigStore.resetToPublicDomain()
   toast.add({
     severity: 'info',
     summary: 'Reset Complete',

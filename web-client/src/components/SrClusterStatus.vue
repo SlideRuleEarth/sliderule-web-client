@@ -1,0 +1,528 @@
+<script setup lang="ts">
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import Button from 'primevue/button'
+import Checkbox from 'primevue/checkbox'
+import ProgressSpinner from 'primevue/progressspinner'
+import AutoComplete from 'primevue/autocomplete'
+import { fetchClusterStatus, type ClusterStatusResponse } from '@/utils/fetchUtils'
+import { useSysConfigStore } from '@/stores/sysConfigStore'
+import { useGitHubAuthStore } from '@/stores/githubAuthStore'
+import { storeToRefs } from 'pinia'
+import { createLogger } from '@/utils/logger'
+
+const logger = createLogger('SrClusterStatus')
+
+const props = withDefaults(
+  defineProps<{
+    cluster?: string
+    autoRefresh?: boolean
+    refreshInterval?: number
+    progressRefreshInterval?: number
+  }>(),
+  {
+    autoRefresh: false,
+    refreshInterval: 30000,
+    progressRefreshInterval: 5000
+  }
+)
+
+// Human-readable status descriptions
+const STATUS_DESCRIPTIONS: Record<string, { label: string; description: string }> = {
+  CREATE_IN_PROGRESS: { label: 'Creating', description: 'Stack is being created...' },
+  CREATE_COMPLETE: { label: 'Running', description: 'Stack is up and running' },
+  CREATE_FAILED: { label: 'Create Failed', description: 'Stack creation failed' },
+  UPDATE_IN_PROGRESS: { label: 'Updating', description: 'Stack is being updated...' },
+  UPDATE_COMPLETE: { label: 'Running', description: 'Stack is up and running' },
+  UPDATE_COMPLETE_CLEANUP_IN_PROGRESS: {
+    label: 'Updating',
+    description: 'Cleaning up after update...'
+  },
+  UPDATE_FAILED: { label: 'Update Failed', description: 'Stack update failed' },
+  UPDATE_ROLLBACK_IN_PROGRESS: {
+    label: 'Rolling Back',
+    description: 'Update failed, rolling back...'
+  },
+  UPDATE_ROLLBACK_COMPLETE: {
+    label: 'Rolled Back',
+    description: 'Update rolled back successfully'
+  },
+  UPDATE_ROLLBACK_FAILED: { label: 'Rollback Failed', description: 'Update rollback failed' },
+  DELETE_IN_PROGRESS: { label: 'Deleting', description: 'Stack is being deleted...' },
+  DELETE_COMPLETE: { label: 'Deleted', description: 'Stack has been deleted' },
+  DELETE_FAILED: { label: 'Delete Failed', description: 'Stack deletion failed' },
+  ROLLBACK_IN_PROGRESS: { label: 'Rolling Back', description: 'Stack is rolling back...' },
+  ROLLBACK_COMPLETE: { label: 'Rolled Back', description: 'Stack rolled back' },
+  ROLLBACK_FAILED: { label: 'Rollback Failed', description: 'Stack rollback failed' }
+}
+
+const emit = defineEmits<{
+  (_e: 'status-updated', _data: ClusterStatusResponse | null): void
+  (_e: 'error', _message: string): void
+}>()
+
+const sysConfigStore = useSysConfigStore()
+const githubAuthStore = useGitHubAuthStore()
+const { subdomain, discoveredCluster } = storeToRefs(sysConfigStore)
+
+// Cluster selector state
+const selectedCluster = ref<string>('')
+const filteredClusters = ref<string[]>([])
+
+// Build list of available cluster suggestions
+const clusterSuggestions = computed(() => {
+  const suggestions: string[] = []
+
+  // Add discovered cluster from server if available
+  if (discoveredCluster.value && !suggestions.includes(discoveredCluster.value)) {
+    suggestions.push(discoveredCluster.value)
+  }
+
+  // Add known clusters from GitHub auth (includes 'sliderule' public cluster)
+  if (githubAuthStore.knownClusters?.length > 0) {
+    for (const cluster of githubAuthStore.knownClusters) {
+      if (!suggestions.includes(cluster)) {
+        suggestions.push(cluster)
+      }
+    }
+  }
+
+  // Add team-based clusters
+  if (githubAuthStore.teams?.length > 0) {
+    for (const team of githubAuthStore.teams) {
+      if (!suggestions.includes(team)) {
+        suggestions.push(team)
+      }
+    }
+  }
+
+  return suggestions.sort()
+})
+
+// Filter clusters for autocomplete
+function searchClusters(event: { query: string }) {
+  const query = event.query.toLowerCase()
+  if (!query) {
+    filteredClusters.value = [...clusterSuggestions.value]
+  } else {
+    filteredClusters.value = clusterSuggestions.value.filter((c) => c.toLowerCase().includes(query))
+  }
+}
+
+// Also sync with discovered cluster on initial load
+watch(discoveredCluster, (newVal) => {
+  if (newVal && !selectedCluster.value) {
+    selectedCluster.value = newVal
+  }
+})
+
+const loading = ref(false)
+const error = ref<string | null>(null)
+const statusData = ref<ClusterStatusResponse | null>(null)
+const autoRefreshEnabled = ref(props.autoRefresh)
+let refreshTimer: number | null = null
+
+const effectiveCluster = computed(
+  () =>
+    props.cluster ?? (subdomain.value !== 'sliderule' ? subdomain.value : discoveredCluster.value)
+)
+
+// Helper functions for extracting status info from data
+function getStackStatus(data: ClusterStatusResponse | null): string {
+  return data?.response?.StackStatus ?? 'Unknown'
+}
+
+function getStatusInfo(data: ClusterStatusResponse | null) {
+  const status = getStackStatus(data)
+  return STATUS_DESCRIPTIONS[status] ?? { label: status, description: '' }
+}
+
+function getStackStatusClass(data: ClusterStatusResponse | null): string {
+  const status = getStackStatus(data)
+  if (status.includes('COMPLETE') && !status.includes('DELETE')) return 'sr-status-success'
+  if (status.includes('IN_PROGRESS')) return 'sr-status-progress'
+  if (status.includes('FAILED') || status.includes('DELETE')) return 'sr-status-error'
+  return 'sr-status-unknown'
+}
+
+function clusterExists(data: ClusterStatusResponse | null): boolean {
+  return data?.status === true
+}
+
+function isClusterInProgress(data: ClusterStatusResponse | null): boolean {
+  return getStackStatus(data).includes('IN_PROGRESS')
+}
+
+function getCurrentNodes(data: ClusterStatusResponse | null): string | number {
+  return data?.current_nodes ?? '-'
+}
+
+function getNodeCapacity(data: ClusterStatusResponse | null): string {
+  return data?.node_capacity ?? '-'
+}
+
+function getVersion(data: ClusterStatusResponse | null): string {
+  return data?.version ?? 'Unknown'
+}
+
+function getIsPublic(data: ClusterStatusResponse | null): string {
+  const val = data?.is_public
+  if (val === 'True' || val === 'true') return 'Yes'
+  if (val === 'False' || val === 'false') return 'No'
+  return 'Unknown'
+}
+
+function getAutoShutdown(data: ClusterStatusResponse | null): string {
+  const val = data?.auto_shutdown
+  if (!val) return 'Not set'
+  try {
+    return new Date(val).toLocaleString()
+  } catch {
+    return val
+  }
+}
+
+function getCreationTime(data: ClusterStatusResponse | null): string {
+  const val = data?.response?.CreationTime
+  if (!val) return 'Unknown'
+  try {
+    return new Date(val).toLocaleString()
+  } catch {
+    return val
+  }
+}
+
+// Check if cluster is in progress (for adaptive polling)
+const isInProgress = computed(() => {
+  return isClusterInProgress(statusData.value)
+})
+
+// Compute effective refresh interval based on stack state
+const effectiveRefreshInterval = computed(() => {
+  return isInProgress.value ? props.progressRefreshInterval : props.refreshInterval
+})
+
+async function refresh() {
+  if (!effectiveCluster.value) {
+    error.value = 'No cluster specified'
+    return
+  }
+
+  loading.value = true
+  error.value = null
+
+  try {
+    // Fetch cluster status for the selected cluster
+    const result = await fetchClusterStatus(effectiveCluster.value)
+
+    if (result.success) {
+      statusData.value = result.data
+      emit('status-updated', result.data)
+      logger.debug('Cluster status fetched', { cluster: effectiveCluster.value, data: result.data })
+    } else {
+      error.value = result.error ?? 'Failed to fetch status'
+      emit('error', error.value)
+      logger.error('Failed to fetch cluster status', {
+        cluster: effectiveCluster.value,
+        error: result.error
+      })
+    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    error.value = msg
+    emit('error', msg)
+    logger.error('Exception fetching cluster status', {
+      cluster: effectiveCluster.value,
+      error: msg
+    })
+  } finally {
+    loading.value = false
+  }
+}
+
+function startAutoRefresh() {
+  stopAutoRefresh()
+  if (autoRefreshEnabled.value && effectiveRefreshInterval.value > 0) {
+    logger.debug('Starting auto-refresh', {
+      interval: effectiveRefreshInterval.value,
+      isInProgress: isInProgress.value
+    })
+    refreshTimer = window.setInterval(() => {
+      void refresh()
+    }, effectiveRefreshInterval.value)
+  }
+}
+
+function stopAutoRefresh() {
+  if (refreshTimer !== null) {
+    clearInterval(refreshTimer)
+    refreshTimer = null
+  }
+}
+
+watch(effectiveCluster, () => {
+  // Clear previous data when cluster changes
+  statusData.value = null
+  void refresh()
+})
+
+watch(autoRefreshEnabled, (enabled) => {
+  if (enabled) {
+    startAutoRefresh()
+  } else {
+    stopAutoRefresh()
+  }
+})
+
+// Restart auto-refresh when status changes between in-progress and stable
+// This enables adaptive polling (faster during transitions)
+watch(isInProgress, () => {
+  if (autoRefreshEnabled.value) {
+    startAutoRefresh()
+  }
+})
+
+onMounted(() => {
+  void refresh()
+  if (autoRefreshEnabled.value) {
+    startAutoRefresh()
+  }
+})
+
+onUnmounted(() => {
+  stopAutoRefresh()
+})
+
+defineExpose({ refresh })
+</script>
+
+<template>
+  <div class="sr-server-status">
+    <div class="sr-server-status-header">
+      <div class="sr-cluster-selector-container">
+        <AutoComplete
+          v-model="selectedCluster"
+          :suggestions="filteredClusters"
+          :dropdown="true"
+          :forceSelection="false"
+          placeholder="Enter cluster name"
+          class="sr-cluster-autocomplete"
+          @complete="searchClusters"
+        />
+      </div>
+      <div class="sr-server-status-controls">
+        <div class="sr-auto-refresh-control">
+          <Checkbox v-model="autoRefreshEnabled" inputId="autoRefresh" :binary="true" />
+          <label for="autoRefresh" class="sr-auto-refresh-label">Auto</label>
+        </div>
+        <Button
+          icon="pi pi-refresh"
+          class="sr-glow-button sr-refresh-btn"
+          variant="text"
+          rounded
+          size="small"
+          :loading="loading"
+          @click="refresh"
+        />
+      </div>
+    </div>
+
+    <div v-if="loading && !statusData" class="sr-server-status-loading">
+      <ProgressSpinner style="width: 2rem; height: 2rem" />
+      <span>Loading status...</span>
+    </div>
+
+    <div v-else-if="error && !statusData" class="sr-server-status-error">
+      <i class="pi pi-exclamation-triangle"></i>
+      <span>{{ error }}</span>
+    </div>
+
+    <!-- Single cluster display (for all clusters including public) -->
+    <template v-else>
+      <div class="sr-server-status-field">
+        <label class="sr-server-status-label">Exists</label>
+        <span
+          :class="[
+            'sr-server-status-value',
+            clusterExists(statusData) ? 'sr-status-success' : 'sr-status-error'
+          ]"
+        >
+          {{ clusterExists(statusData) ? 'Yes' : 'No' }}
+        </span>
+      </div>
+
+      <template v-if="clusterExists(statusData)">
+        <div class="sr-server-status-field">
+          <label class="sr-server-status-label">Stack Status</label>
+          <div class="sr-server-status-value-wrapper">
+            <ProgressSpinner
+              v-if="isClusterInProgress(statusData)"
+              style="width: 1rem; height: 1rem"
+              strokeWidth="4"
+            />
+            <span :class="['sr-server-status-value', getStackStatusClass(statusData)]">
+              {{ getStatusInfo(statusData).label }}
+            </span>
+          </div>
+        </div>
+
+        <div v-if="getStatusInfo(statusData).description" class="sr-server-status-description">
+          {{ getStatusInfo(statusData).description }}
+        </div>
+
+        <div class="sr-server-status-field">
+          <label class="sr-server-status-label">Version</label>
+          <span class="sr-server-status-value">{{ getVersion(statusData) }}</span>
+        </div>
+
+        <div class="sr-server-status-field">
+          <label class="sr-server-status-label">Nodes</label>
+          <span class="sr-server-status-value"
+            >{{ getCurrentNodes(statusData) }} / {{ getNodeCapacity(statusData) }}</span
+          >
+        </div>
+
+        <div class="sr-server-status-field">
+          <label class="sr-server-status-label">Public</label>
+          <span class="sr-server-status-value">{{ getIsPublic(statusData) }}</span>
+        </div>
+
+        <div class="sr-server-status-field">
+          <label class="sr-server-status-label">Auto Shutdown</label>
+          <span class="sr-server-status-value">{{ getAutoShutdown(statusData) }}</span>
+        </div>
+
+        <div class="sr-server-status-field">
+          <label class="sr-server-status-label">Created</label>
+          <span class="sr-server-status-value">{{ getCreationTime(statusData) }}</span>
+        </div>
+      </template>
+    </template>
+  </div>
+</template>
+
+<style scoped>
+.sr-server-status {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+}
+
+.sr-server-status-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  gap: 0.5rem;
+}
+
+.sr-cluster-selector-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.sr-cluster-autocomplete {
+  width: 100%;
+  max-width: 200px;
+}
+
+.sr-cluster-autocomplete :deep(.p-autocomplete-input) {
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.sr-server-status-title {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--p-primary-color);
+}
+
+.sr-server-status-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sr-auto-refresh-control {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.sr-auto-refresh-label {
+  font-size: 0.75rem;
+  color: var(--p-text-muted-color);
+  cursor: pointer;
+}
+
+.sr-refresh-btn {
+  padding: 0.25rem;
+}
+
+.sr-server-status-loading,
+.sr-server-status-error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  justify-content: center;
+}
+
+.sr-server-status-error {
+  color: var(--p-red-500);
+}
+
+.sr-server-status-field {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.25rem 0;
+}
+
+.sr-server-status-label {
+  font-size: 0.85rem;
+  color: var(--p-text-muted-color);
+  white-space: nowrap;
+  margin-right: 0.5rem;
+}
+
+.sr-server-status-value {
+  font-size: 0.85rem;
+  text-align: right;
+  word-break: break-word;
+}
+
+.sr-server-status-value-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.sr-server-status-description {
+  font-size: 0.8rem;
+  color: var(--p-text-muted-color);
+  text-align: center;
+  padding: 0.25rem 0;
+  font-style: italic;
+}
+
+.sr-status-success {
+  color: var(--p-green-500);
+}
+
+.sr-status-progress {
+  color: var(--p-yellow-500);
+}
+
+.sr-status-error {
+  color: var(--p-red-500);
+}
+
+.sr-status-unknown {
+  color: var(--p-text-muted-color);
+}
+</style>

@@ -38,6 +38,33 @@ export interface StackStatusResult {
 }
 
 /**
+ * Cluster status response from the provisioner API.
+ */
+export interface ClusterStatusResponse {
+  status: boolean
+  stack_name?: string
+  response?: {
+    StackId?: string
+    StackName?: string
+    StackStatus?: string
+    CreationTime?: string
+    Parameters?: Array<{ ParameterKey: string; ParameterValue: string }>
+    [key: string]: unknown
+  }
+  auto_shutdown?: string | null
+  current_nodes?: number
+  version?: string
+  is_public?: string
+  node_capacity?: string
+}
+
+export interface ClusterStatusResult {
+  success: boolean
+  data: ClusterStatusResponse | null
+  error?: string
+}
+
+/**
  * Fetch server version info from the SlideRule API.
  * Returns version data that can be used by any store.
  */
@@ -142,7 +169,65 @@ export async function fetchStackStatus(
 
   // For now, return UNKNOWN to allow all selections until the endpoint is available
   logger.debug('fetchStackStatus placeholder called', { cluster, domain })
-  return { success: false, status: 'UNKNOWN' }
+  return await Promise.resolve({ success: false, status: 'UNKNOWN' })
+}
+
+/**
+ * Fetch cluster status from the provisioner API.
+ * Returns comprehensive status including CloudFormation state, nodes, version, etc.
+ * Requires GitHub OAuth authentication.
+ *
+ * @param cluster - The cluster name
+ * @returns Cluster status result with full response data
+ */
+export async function fetchClusterStatus(cluster: string): Promise<ClusterStatusResult> {
+  const url = 'https://provisioner.slideruleearth.io/status'
+
+  // Get GitHub auth token - provisioner only accepts GitHub JWT
+  const githubAuthStore = useGitHubAuthStore()
+  const githubToken = githubAuthStore.authToken
+
+  if (!githubToken) {
+    logger.info('No GitHub token available for provisioner API', { cluster })
+    return {
+      success: false,
+      data: null,
+      error: 'GitHub authentication required'
+    }
+  }
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${githubToken}`
+      },
+      body: JSON.stringify({ cluster })
+    })
+
+    if (!response.ok) {
+      logger.error('Non-OK HTTP response fetching cluster status', {
+        cluster,
+        status: response.status
+      })
+      throw new Error(`HTTP error: ${response.status}`)
+    }
+
+    const data: ClusterStatusResponse = await response.json()
+    return {
+      success: true,
+      data
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    logger.info('Error fetching cluster status', { cluster, error: errorMessage })
+    return {
+      success: false,
+      data: null,
+      error: errorMessage
+    }
+  }
 }
 
 /**
@@ -165,7 +250,7 @@ export async function authenticatedFetch(
   const githubAuthStore = useGitHubAuthStore()
 
   const domain = sysConfigStore.domain
-  const org = sysConfigStore.cluster
+  const org = sysConfigStore.subdomain
 
   // Check for new GitHub OAuth JWT first
   const githubToken = githubAuthStore.authToken
@@ -256,7 +341,7 @@ export async function getArrowFetchUrlAndOptions(
     parm = forceGeoParquet(parm)
   }
   const host =
-    (sysConfigStore.cluster && sysConfigStore.cluster + '.' + sysConfigStore.domain) ||
+    (sysConfigStore.subdomain && sysConfigStore.subdomain + '.' + sysConfigStore.domain) ||
     sysConfigStore.domain
   const api_path = `arrow/${api}`
   const url = 'https://' + host + '/' + api_path
@@ -291,7 +376,7 @@ export async function getArrowFetchUrlAndOptions(
     logger.debug('getArrowFetchUrlAndOptions using GitHub OAuth JWT', { url })
   } else {
     // Fall back to legacy JWT if present
-    const srJWT = legacyJwtStore.getJwt(sysConfigStore.domain, sysConfigStore.cluster)
+    const srJWT = legacyJwtStore.getJwt(sysConfigStore.domain, sysConfigStore.subdomain)
     if (srJWT) {
       options.headers = {
         ...options.headers,

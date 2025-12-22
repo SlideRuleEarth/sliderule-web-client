@@ -61,7 +61,7 @@ function handleLogin() {
 async function handleLogout() {
   githubAuthStore.logout()
   legacyJwtStore.clearAllJwts()
-  await sysConfigStore.resetToPublicCluster()
+  await sysConfigStore.resetToPublicDomain()
 }
 </script>
 

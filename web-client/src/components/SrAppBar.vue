@@ -30,7 +30,7 @@ const toast = useToast()
 const srToastStore = useSrToastStore()
 
 // Org menu and cluster dialog state
-const orgMenu = ref<InstanceType<typeof Menu> | null>(null)
+const subDomainMenu = ref<InstanceType<typeof Menu> | null>(null)
 const showClusterDialog = ref(false)
 const showUserUtilsDialog = ref(false)
 const showTokenUtilsDialog = ref(false)
@@ -325,26 +325,26 @@ const computedServerVersionLabel = computed(() => {
   return sysConfigStore.version || 'v?.?.?'
 })
 
-const showOrgBadge = computed(() => {
-  const org = sysConfigStore.cluster
+const showSubDomainBadge = computed(() => {
+  const org = sysConfigStore.subdomain
   return org && org !== 'sliderule'
 })
 
-const orgBadgeLabel = computed(() => {
-  return sysConfigStore.cluster
+const subDomainBadgeLabel = computed(() => {
+  return sysConfigStore.subdomain
 })
 
-const orgBadgeSeverity = computed(() => {
+const subDomainBadgeSeverity = computed(() => {
   const jwt = legacyJwtStore.getCredentials()
   return jwt ? 'info' : 'warn'
 })
 
-const computedLoggedIn = computed(() => {
+const computedLegacyLoggedIn = computed(() => {
   return legacyJwtStore.getCredentials() !== null
 })
 
-const computedOrgIsPublic = computed(() => {
-  return legacyJwtStore.getIsPublic(sysConfigStore.domain, sysConfigStore.cluster)
+const computedLegacyOrgIsPublic = computed(() => {
+  return legacyJwtStore.getIsPublic(sysConfigStore.domain, sysConfigStore.subdomain)
 })
 
 const maxNodes = computed(() => sysConfigStore.max_nodes)
@@ -354,10 +354,10 @@ const currentNodes = computed(() => sysConfigStore.current_nodes)
 const clusterVersion = computed(() => sysConfigStore.version)
 
 const computedClusterType = computed(() => {
-  if (!computedLoggedIn.value) {
+  if (!computedLegacyLoggedIn.value) {
     return 'Unknown'
   } else {
-    return computedOrgIsPublic.value ? 'Public' : 'Private'
+    return computedLegacyOrgIsPublic.value ? 'Public' : 'Private'
   }
 })
 
@@ -366,7 +366,7 @@ function handleDeploy() {
   // TODO: Add API call to perform deploy lambda
 }
 
-const orgMenuItems = computed(() => {
+const subDomainMenuItems = computed(() => {
   const hasGitHubToken = githubAuthStore.hasValidAuth
 
   const items = []
@@ -383,7 +383,7 @@ const orgMenuItems = computed(() => {
     items.push({
       label: 'Request Nodes',
       icon: 'pi pi-server',
-      disabled: computedOrgIsPublic.value || !computedLoggedIn.value,
+      disabled: computedLegacyOrgIsPublic.value || !computedLegacyLoggedIn.value,
       command: () => {
         showClusterDialog.value = true
       }
@@ -406,15 +406,15 @@ const orgMenuItems = computed(() => {
     label: 'Reset to Public Cluster',
     icon: 'pi pi-refresh',
     command: () => {
-      void resetToPublicCluster()
+      void resetToPublicDomain()
     }
   })
 
   return items
 })
 
-const toggleOrgMenu = (event: Event) => {
-  orgMenu.value?.toggle(event)
+const toggleSubDomainMenu = (event: Event) => {
+  subDomainMenu.value?.toggle(event)
 }
 
 async function handleLogout() {
@@ -422,7 +422,7 @@ async function handleLogout() {
   githubAuthStore.logout()
   // Clear legacy JWT and reset to public cluster
   legacyJwtStore.clearAllJwts()
-  await sysConfigStore.resetToPublicCluster()
+  await sysConfigStore.resetToPublicDomain()
   toast.add({
     severity: 'info',
     summary: 'Logged Out',
@@ -431,10 +431,10 @@ async function handleLogout() {
   })
 }
 
-async function resetToPublicCluster() {
+async function resetToPublicDomain() {
   // Reset to public cluster without logging out of GitHub
   legacyJwtStore.clearAllJwts()
-  await sysConfigStore.resetToPublicCluster()
+  await sysConfigStore.resetToPublicDomain()
   toast.add({
     severity: 'info',
     summary: 'Reset Complete',
@@ -457,7 +457,7 @@ async function getOrgNumNodes() {
 
   const psHost = `https://ps.${sysConfigStore.domain}`
   const response = await authenticatedFetch(
-    `${psHost}/api/org_num_nodes/${sysConfigStore.cluster}/`,
+    `${psHost}/api/org_num_nodes/${sysConfigStore.subdomain}/`,
     {
       method: 'GET',
       headers: {
@@ -474,7 +474,7 @@ async function getOrgNumNodes() {
     sysConfigStore.current_nodes = result.current_nodes
     sysConfigStore.max_nodes = result.max_nodes
     sysConfigStore.version = result.version
-    legacyJwtStore.setIsPublic(sysConfigStore.domain, sysConfigStore.cluster, result.is_public)
+    legacyJwtStore.setIsPublic(sysConfigStore.domain, sysConfigStore.subdomain, result.is_public)
   } else if (response.status === 401) {
     logger.error('Authentication failed - please log in again')
     toast.add({
@@ -511,7 +511,7 @@ async function submitDesiredNodes() {
   sysConfigStore.time_to_live = ttl.value
 
   const response = await authenticatedFetch(
-    `${psHost}/api/desired_org_num_nodes_ttl/${sysConfigStore.cluster}/${desiredNodes.value}/${ttl.value}/`,
+    `${psHost}/api/desired_org_num_nodes_ttl/${sysConfigStore.subdomain}/${desiredNodes.value}/${ttl.value}/`,
     {
       method: 'POST',
       headers: {
@@ -597,15 +597,13 @@ const mobileMenuItems = computed(() => {
       icon: 'pi pi-user',
       items: userMenuItems.value
     })
+  } else {
+    items.push({
+      label: 'Login',
+      icon: 'pi pi-github',
+      command: handleGitHubLogin
+    })
   }
-  // Login button hidden until GitHub OAuth feature is complete - uncomment to re-enable:
-  // else {
-  //   items.push({
-  //     label: 'Login',
-  //     icon: 'pi pi-github',
-  //     command: handleGitHubLogin
-  //   })
-  // }
 
   return items
 })
@@ -633,10 +631,10 @@ function dumpRouteInfo() {
 
 onMounted(async () => {
   setDarkMode()
-  const org = sysConfigStore.cluster
-  const isPrivateCluster = org && org !== 'sliderule'
+  const isPrivateCluster = sysConfigStore.subdomain && sysConfigStore.subdomain !== 'sliderule'
 
   if (isPrivateCluster) {
+    const org = sysConfigStore.subdomain
     // For private clusters, only fetch if we have credentials
     // Otherwise, the login dialog will be shown and fetchOrgInfo will be called after login
     const jwt = legacyJwtStore.getCredentials()
@@ -737,15 +735,15 @@ function hideTooltip() {
         <span v-if="testVersionWarning" class="sr-title-badge">{{ testVersionWarning }}</span>
       </span>
       <Button
-        v-if="showOrgBadge"
+        v-if="showSubDomainBadge"
         type="button"
-        :label="orgBadgeLabel"
-        :severity="orgBadgeSeverity"
+        :label="subDomainBadgeLabel"
+        :severity="subDomainBadgeSeverity"
         class="sr-org-menu-button"
         size="small"
-        @click="toggleOrgMenu"
+        @click="toggleSubDomainMenu"
       />
-      <Menu :model="orgMenuItems" popup ref="orgMenu" />
+      <Menu :model="subDomainMenuItems" popup ref="subDomainMenu" />
       <div
         class="sr-show-server-version"
         @mouseover="showServerTooltip($event)"
@@ -847,9 +845,8 @@ function hideTooltip() {
       >
       </Button>
       <Menu :model="aboutMenuItems" popup ref="aboutMenu" />
-      <!-- Login button hidden until GitHub OAuth feature is complete - change v-if to "!isGitHubAuthenticated" to re-enable -->
       <Button
-        v-if="false"
+        v-if="!isGitHubAuthenticated"
         icon="pi pi-github"
         id="sr-login-button"
         label="Login"
@@ -908,7 +905,7 @@ function hideTooltip() {
       <div class="sr-refresh-btn">
         <Button
           icon="pi pi-refresh"
-          :disabled="!computedLoggedIn"
+          :disabled="!computedLegacyLoggedIn"
           size="small"
           @click="getOrgNumNodes"
         />
@@ -940,7 +937,7 @@ function hideTooltip() {
       <Button label="Cancel" severity="secondary" @click="showClusterDialog = false" />
       <Button
         label="Submit"
-        :disabled="computedOrgIsPublic || !computedLoggedIn"
+        :disabled="computedLegacyOrgIsPublic || !computedLegacyLoggedIn"
         @click="submitDesiredNodes"
       />
     </div>
