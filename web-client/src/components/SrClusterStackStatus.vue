@@ -6,9 +6,10 @@ import ProgressSpinner from 'primevue/progressspinner'
 import AutoComplete from 'primevue/autocomplete'
 import { fetchClusterStatus, type ClusterStatusResponse } from '@/utils/fetchUtils'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
+import { useSysConfigStore } from '@/stores/sysConfigStore'
 import { createLogger } from '@/utils/logger'
 
-const logger = createLogger('SrClusterStatus')
+const logger = createLogger('SrClusterStackStatus')
 
 const props = withDefaults(
   defineProps<{
@@ -58,6 +59,7 @@ const emit = defineEmits<{
 }>()
 
 const githubAuthStore = useGitHubAuthStore()
+const sysConfigStore = useSysConfigStore()
 
 // Cluster selector state
 const selectedCluster = ref<string>('')
@@ -66,6 +68,12 @@ const filteredClusters = ref<string[]>([])
 // Build list of available cluster suggestions
 const clusterSuggestions = computed(() => {
   const suggestions: string[] = []
+
+  // Add current cluster from sysConfigStore (the connected cluster)
+  if (sysConfigStore.cluster && sysConfigStore.cluster !== 'unknown') {
+    suggestions.push(sysConfigStore.cluster)
+  }
+
   // Add known clusters from GitHub auth (includes 'sliderule' public cluster)
   if (githubAuthStore.knownClusters?.length > 0) {
     for (const cluster of githubAuthStore.knownClusters) {

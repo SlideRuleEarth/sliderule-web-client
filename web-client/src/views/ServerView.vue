@@ -10,7 +10,7 @@ import TabPanel from 'primevue/tabpanel'
 import Message from 'primevue/message'
 import SrSysConfig from '@/components/SrSysConfig.vue'
 import SrDeployConfig from '@/components/SrDeployConfig.vue'
-import SrClusterStatus from '@/components/SrClusterStatus.vue'
+import SrClusterStackStatus from '@/components/SrClusterStackStatus.vue'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 
 const githubAuthStore = useGitHubAuthStore()
@@ -72,7 +72,7 @@ const statusMessage = computed(() => {
             <TabList>
               <Tab value="sysconfig">Current Connection</Tab>
               <Tab v-if="canAccessMemberFeatures" value="deployconfig">Deploy</Tab>
-              <Tab v-if="canAccessMemberFeatures" value="clusterstatus">Cluster Status</Tab>
+              <Tab v-if="canAccessMemberFeatures" value="clusterstatus">Stack Status</Tab>
             </TabList>
             <TabPanels>
               <TabPanel value="sysconfig">
@@ -82,7 +82,7 @@ const statusMessage = computed(() => {
                 <SrDeployConfig />
               </TabPanel>
               <TabPanel v-if="canAccessMemberFeatures" value="clusterstatus">
-                <SrClusterStatus />
+                <SrClusterStackStatus />
               </TabPanel>
             </TabPanels>
           </Tabs>
