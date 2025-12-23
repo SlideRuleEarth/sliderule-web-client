@@ -13,11 +13,13 @@ const logger = createLogger('SrClusterStackStatus')
 
 const props = withDefaults(
   defineProps<{
+    cluster?: string
     autoRefresh?: boolean
     refreshInterval?: number
     progressRefreshInterval?: number
   }>(),
   {
+    cluster: undefined,
     autoRefresh: false,
     refreshInterval: 30000,
     progressRefreshInterval: 5000
@@ -94,6 +96,11 @@ const clusterSuggestions = computed(() => {
 
   return suggestions.sort()
 })
+
+// Fixed cluster mode - when cluster prop is provided
+const isClusterFixed = computed(() => !!props.cluster)
+
+const effectiveCluster = computed(() => props.cluster ?? selectedCluster.value)
 
 // Filter clusters for autocomplete
 function searchClusters(event: { query: string }) {
@@ -188,12 +195,12 @@ const effectiveRefreshInterval = computed(() => {
 
 // Disable controls when no cluster is selected
 const controlsDisabled = computed(() => {
-  return !selectedCluster.value || selectedCluster.value.trim() === ''
+  return !effectiveCluster.value || effectiveCluster.value.trim() === ''
 })
 
 async function refresh() {
   // Skip if no cluster is selected
-  if (!selectedCluster.value || selectedCluster.value.trim() === '') {
+  if (!effectiveCluster.value || effectiveCluster.value.trim() === '') {
     return
   }
 
@@ -202,17 +209,17 @@ async function refresh() {
 
   try {
     // Fetch cluster status for the selected cluster
-    const result = await fetchClusterStatus(selectedCluster.value)
+    const result = await fetchClusterStatus(effectiveCluster.value)
 
     if (result.success) {
       statusData.value = result.data
       emit('status-updated', result.data)
-      logger.debug('Cluster status fetched', { cluster: selectedCluster.value, data: result.data })
+      logger.debug('Cluster status fetched', { cluster: effectiveCluster.value, data: result.data })
     } else {
       error.value = result.error ?? 'Failed to fetch status'
       emit('error', error.value)
       logger.error('Failed to fetch cluster status', {
-        cluster: selectedCluster.value,
+        cluster: effectiveCluster.value,
         error: result.error
       })
     }
@@ -221,7 +228,7 @@ async function refresh() {
     error.value = msg
     emit('error', msg)
     logger.error('Exception fetching cluster status', {
-      cluster: selectedCluster.value,
+      cluster: effectiveCluster.value,
       error: msg
     })
   } finally {
@@ -302,7 +309,11 @@ defineExpose({ refresh })
     <div class="sr-server-status-header">
       <div class="sr-cluster-selector-container">
         <label class="sr-cluster-label">Cluster</label>
+        <span v-if="isClusterFixed" class="sr-cluster-fixed">
+          {{ cluster }}
+        </span>
         <AutoComplete
+          v-else
           v-model="selectedCluster"
           :suggestions="filteredClusters"
           :dropdown="true"
@@ -454,6 +465,12 @@ defineExpose({ refresh })
   text-align: center;
   font-weight: 600;
   font-size: 0.9rem;
+}
+
+.sr-cluster-fixed {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--p-text-color);
 }
 
 .sr-server-status-title {

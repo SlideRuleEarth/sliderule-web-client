@@ -66,6 +66,21 @@ export interface ClusterStatusResult {
 }
 
 /**
+ * Deploy cluster response from the provisioner API.
+ */
+export interface DeployClusterResponse {
+  status: boolean
+  stack_name?: string
+  response?: Record<string, unknown>
+}
+
+export interface DeployClusterResult {
+  success: boolean
+  data: DeployClusterResponse | null
+  error?: string
+}
+
+/**
  * Fetch server version info from the SlideRule API.
  * Returns version data that can be used by any store.
  */
@@ -225,6 +240,63 @@ export async function fetchClusterStatus(cluster: string): Promise<ClusterStatus
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error)
     logger.info('Error fetching cluster status', { cluster, error: errorMessage })
+    return {
+      success: false,
+      data: null,
+      error: errorMessage
+    }
+  }
+}
+
+/**
+ * Deploy a cluster via the provisioner API.
+ * Requires GitHub OAuth authentication.
+ *
+ * @param clusterName - The cluster name to deploy
+ * @returns Deploy result with response data
+ */
+export async function deployCluster(clusterName: string): Promise<DeployClusterResult> {
+  const url = 'https://provisioner.slideruleearth.io/deploy'
+
+  // Get GitHub auth token - provisioner only accepts GitHub JWT
+  const githubAuthStore = useGitHubAuthStore()
+  const githubToken = githubAuthStore.authToken
+
+  if (!githubToken) {
+    logger.info('No GitHub token available for provisioner API', { cluster: clusterName })
+    return {
+      success: false,
+      data: null,
+      error: 'GitHub authentication required'
+    }
+  }
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${githubToken}`
+      },
+      body: JSON.stringify({ cluster: clusterName })
+    })
+
+    if (!response.ok) {
+      logger.error('Non-OK HTTP response deploying cluster', {
+        cluster: clusterName,
+        status: response.status
+      })
+      throw new Error(`HTTP error: ${response.status}`)
+    }
+
+    const data: DeployClusterResponse = await response.json()
+    return {
+      success: true,
+      data
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    logger.info('Error deploying cluster', { cluster: clusterName, error: errorMessage })
     return {
       success: false,
       data: null,

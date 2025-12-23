@@ -1,20 +1,19 @@
 <script setup lang="ts">
-import { computed, watch, onMounted } from 'vue'
-import Fieldset from 'primevue/fieldset'
+import { computed, watch, onMounted, ref } from 'vue'
 import Select from 'primevue/select'
 import InputText from 'primevue/inputtext'
 import Button from 'primevue/button'
+import SrClusterStackStatus from '@/components/SrClusterStackStatus.vue'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 import { useDeployConfigStore } from '@/stores/deployConfigStore'
-import { useClusterReachability } from '@/composables/useClusterReachability'
+import { deployCluster } from '@/utils/fetchUtils'
 import { storeToRefs } from 'pinia'
 
 const githubAuthStore = useGitHubAuthStore()
 const deployConfigStore = useDeployConfigStore()
 
 // Use storeToRefs for reactive two-way binding
-const { domain, clusterName, desiredVersion, currentNodes, canConnectNodes } =
-  storeToRefs(deployConfigStore)
+const { domain, clusterName, desiredVersion } = storeToRefs(deployConfigStore)
 
 // Use deployableClusters directly from the store (exclude "*" wildcard from dropdown)
 const clusterList = computed(() =>
@@ -26,16 +25,10 @@ const allowCustomCluster = computed(
   () => githubAuthStore.deployableClusters?.includes('*') ?? false
 )
 
-// Use composable for cluster reachability
-const { refreshClusterReachability } = useClusterReachability(clusterList, domain)
-
 async function refreshStatus() {
   deployConfigStore.resetStatus()
   if (clusterName.value) {
-    await Promise.all([
-      deployConfigStore.fetchServerVersionInfo(),
-      deployConfigStore.fetchCurrentNodes()
-    ])
+    await deployConfigStore.fetchServerVersionInfo()
   }
 }
 
@@ -50,14 +43,6 @@ const clusterOptionsWithStatus = computed(() => {
     }
   })
 })
-
-// Refresh stack status and reachability for all clusters when dropdown opens
-async function refreshClusterStatus() {
-  await Promise.all([
-    deployConfigStore.refreshAllClusterStatus(clusterList.value),
-    refreshClusterReachability()
-  ])
-}
 
 // Set default cluster name when options become available
 watch(
@@ -85,63 +70,88 @@ const domainOptions = ['testsliderule.org', 'slideruleearth.io']
 
 // Only owners can change domain
 const isDomainDisabled = computed(() => !githubAuthStore.isOwner)
+
+// Deploy state
+const deploying = ref(false)
+const deployedCluster = ref<string | null>(null)
+const deployError = ref<string | null>(null)
+
+async function handleDeploy() {
+  if (!clusterName.value) return
+
+  deploying.value = true
+  deployError.value = null
+  deployedCluster.value = null
+
+  try {
+    const result = await deployCluster(clusterName.value)
+    if (result.success && result.data?.status) {
+      deployedCluster.value = clusterName.value
+    } else {
+      deployError.value = result.error ?? 'Deploy failed'
+    }
+  } catch (e) {
+    deployError.value = e instanceof Error ? e.message : String(e)
+  } finally {
+    deploying.value = false
+  }
+}
 </script>
 
 <template>
-  <Fieldset legend="Deployment" toggleable :collapsed="false">
-    <div class="sr-deploy-config">
-      <div class="sr-deploy-field">
-        <label for="deploy-domain" class="sr-deploy-label">Domain</label>
-        <Select
-          id="deploy-domain"
-          v-model="domain"
-          :options="domainOptions"
-          :disabled="isDomainDisabled"
-          class="sr-deploy-select"
-        />
-      </div>
-      <div class="sr-deploy-field">
-        <label for="deploy-cluster" class="sr-deploy-label">Cluster</label>
-        <Select
-          id="deploy-cluster"
-          v-model="clusterName"
-          :editable="allowCustomCluster"
-          :options="clusterOptionsWithStatus"
-          optionLabel="label"
-          optionValue="value"
-          optionDisabled="disabled"
-          class="sr-deploy-select"
-          @show="refreshClusterStatus"
-        />
-      </div>
-      <div class="sr-deploy-field">
-        <label for="deploy-version" class="sr-deploy-label">Version</label>
-        <InputText
-          id="deploy-version"
-          v-model="desiredVersion"
-          placeholder="latest"
-          class="sr-deploy-input"
-        />
-      </div>
-      <div class="sr-deploy-field">
-        <label class="sr-deploy-label">Current Nodes</label>
-        <span :class="['sr-deploy-value', `sr-status-${canConnectNodes}`]">
-          {{ currentNodes >= 0 ? currentNodes : '-' }}
-        </span>
-      </div>
-      <div class="sr-deploy-actions">
-        <Button
-          label="Refresh Status"
-          icon="pi pi-refresh"
-          class="sr-glow-button"
-          variant="text"
-          rounded
-          :disabled="!clusterName"
-          @click="refreshStatus"
-        />
-      </div>
+  <div class="sr-deploy-config">
+    <div class="sr-deploy-field">
+      <label for="deploy-domain" class="sr-deploy-label">Domain</label>
+      <Select
+        id="deploy-domain"
+        v-model="domain"
+        :options="domainOptions"
+        :disabled="isDomainDisabled"
+        class="sr-deploy-select"
+      />
     </div>
-  </Fieldset>
+    <div class="sr-deploy-field">
+      <label for="deploy-cluster" class="sr-deploy-label">Cluster</label>
+      <Select
+        id="deploy-cluster"
+        v-model="clusterName"
+        :editable="allowCustomCluster"
+        :options="clusterOptionsWithStatus"
+        optionLabel="label"
+        optionValue="value"
+        optionDisabled="disabled"
+        class="sr-deploy-select"
+      />
+    </div>
+    <div class="sr-deploy-field">
+      <label for="deploy-version" class="sr-deploy-label">Version</label>
+      <InputText
+        id="deploy-version"
+        v-model="desiredVersion"
+        placeholder="latest"
+        class="sr-deploy-input"
+      />
+    </div>
+    <div class="sr-deploy-actions">
+      <Button
+        label="Deploy"
+        icon="pi pi-cloud-upload"
+        :loading="deploying"
+        :disabled="!clusterName"
+        @click="handleDeploy"
+      />
+    </div>
+    <div v-if="deployError" class="sr-deploy-error">
+      <i class="pi pi-exclamation-triangle"></i>
+      <span>{{ deployError }}</span>
+    </div>
+    <SrClusterStackStatus
+      v-if="deployedCluster"
+      :cluster="deployedCluster"
+      :autoRefresh="true"
+      :progressRefreshInterval="5000"
+    />
+  </div>
 </template>
 
 <style scoped>
@@ -172,27 +182,18 @@ const isDomainDisabled = computed(() => !githubAuthStore.isOwner)
   width: 15em;
 }
 
-.sr-deploy-value {
-  font-size: small;
-  min-width: 15em;
-  text-align: right;
-}
-
-.sr-status-yes {
-  color: var(--p-green-500);
-}
-
-.sr-status-no {
-  color: var(--p-red-500);
-}
-
-.sr-status-unknown {
-  color: var(--p-text-muted-color);
-}
-
 .sr-deploy-actions {
   display: flex;
   justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+
+.sr-deploy-error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--p-red-500);
+  font-size: 0.85rem;
   margin-top: 0.5rem;
 }
 </style>
