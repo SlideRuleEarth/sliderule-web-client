@@ -1,13 +1,12 @@
 <script setup lang="ts">
-import { computed, watch, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import AutoComplete from 'primevue/autocomplete'
 import Select from 'primevue/select'
 import Button from 'primevue/button'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 import { useSysConfigStore } from '@/stores/sysConfigStore'
 import { useLegacyJwtStore } from '@/stores/SrLegacyJwtStore'
-import { useClusterReachability } from '@/composables/useClusterReachability'
 import { storeToRefs } from 'pinia'
-import Message from 'primevue/message'
 
 const props = defineProps<{
   disabled?: boolean
@@ -17,56 +16,16 @@ const githubAuthStore = useGitHubAuthStore()
 const sysConfigStore = useSysConfigStore()
 const legacyJwtStore = useLegacyJwtStore()
 
-const { domain, subdomain, version, current_nodes, canConnectVersion, canConnectNodes } =
+const { domain, subdomain, version, cluster, current_nodes, canConnectVersion, canConnectNodes } =
   storeToRefs(sysConfigStore)
 
-// Auth state computed properties
-const isAuthenticated = computed(() => {
-  return githubAuthStore.authStatus === 'authenticated' && githubAuthStore.hasValidAuth
-})
-const isAuthenticating = computed(() => githubAuthStore.authStatus === 'authenticating')
-const username = computed(() => githubAuthStore.username)
-const isMember = computed(() => githubAuthStore.isMember)
-const isOwner = computed(() => githubAuthStore.isOwner)
-const lastError = computed(() => githubAuthStore.lastError)
+// Filtered suggestions for autocomplete
+const filteredSubdomains = ref<string[]>([])
 
-// Status severity for the message component
-const statusSeverity = computed(() => {
-  if (githubAuthStore.authStatus === 'error') return 'error'
-  if (!isAuthenticated.value) return 'secondary'
-  if (isOwner.value) return 'success'
-  if (isMember.value) return 'success'
-  return 'warn'
-})
-
-// Status message text
-const statusMessage = computed(() => {
-  if (githubAuthStore.authStatus === 'error') {
-    return lastError.value || 'Authentication failed'
-  }
-  if (isAuthenticating.value) {
-    return 'Authenticating with GitHub...'
-  }
-  if (!isAuthenticated.value) {
-    return 'Not logged in to GitHub'
-  }
-  if (isOwner.value) {
-    return `Logged in as ${username.value} - Organization Owner`
-  }
-  if (isMember.value) {
-    return `Logged in as ${username.value} - Organization Member`
-  }
-  return `Logged in as ${username.value} - Not a member of SlideRuleEarth`
-})
 async function refreshStatus() {
   sysConfigStore.resetStatus()
   await Promise.all([sysConfigStore.fetchServerVersionInfo(), sysConfigStore.fetchCurrentNodes()])
 }
-
-// Refresh status when domain or subdomain changes
-watch([domain, subdomain], () => {
-  void refreshStatus()
-})
 
 // Fetch status on mount
 onMounted(() => {
@@ -83,12 +42,6 @@ const subDomainOptions = computed(() => {
   return ['sliderule']
 })
 
-// Use composable for subdomain reachability
-const { refreshClusterReachability, clusterOptionsWithState } = useClusterReachability(
-  subDomainOptions,
-  domain
-)
-
 // Available domain options - testsliderule.org only for org owners
 const domainOptions = computed(() => {
   if (githubAuthStore.isOwner) {
@@ -96,6 +49,43 @@ const domainOptions = computed(() => {
   }
   return ['slideruleearth.io']
 })
+
+// Search/filter functions for autocomplete
+function searchSubdomains(event: { query: string }) {
+  const query = event.query.toLowerCase()
+  const options = subDomainOptions.value
+  if (!query) {
+    filteredSubdomains.value = [...options]
+  } else {
+    filteredSubdomains.value = options.filter((s) => s.toLowerCase().includes(query))
+  }
+}
+
+// Clear status display when user starts typing (clears stale red values)
+function onInputChange() {
+  sysConfigStore.resetStatus()
+}
+
+// Event handlers - only refresh on Enter, blur, or item select (not every keystroke)
+function onSubdomainKeydown(event: KeyboardEvent) {
+  if (event.key === 'Enter') {
+    void refreshStatus()
+  }
+}
+
+function onSubdomainBlur() {
+  void refreshStatus()
+}
+
+function onSubdomainItemSelect() {
+  sysConfigStore.resetStatus()
+  void refreshStatus()
+}
+
+function onDomainChange() {
+  sysConfigStore.resetStatus()
+  void refreshStatus()
+}
 
 // Disable reset button if already on public cluster
 const isPublicCluster = computed(
@@ -109,7 +99,7 @@ function resetToPublicDomain() {
   // Set defaults: slideruleearth.io and sliderule
   domain.value = 'slideruleearth.io'
   subdomain.value = 'sliderule'
-  // Note: watch will trigger refreshStatus automatically
+  void refreshStatus()
 }
 </script>
 
@@ -118,17 +108,20 @@ function resetToPublicDomain() {
     <div class="sr-sysconfig-domain-row">
       <label class="sr-sysconfig-connect-label">https://</label>
       <div class="sr-sysconfig-select-group">
-        <Select
+        <AutoComplete
           id="sysconfig-subdomain"
           v-model="subdomain"
-          :editable="true"
-          :options="clusterOptionsWithState"
-          optionLabel="label"
-          optionValue="value"
-          optionDisabled="disabled"
+          :suggestions="filteredSubdomains"
+          :dropdown="true"
+          :forceSelection="false"
+          placeholder="subdomain"
           :disabled="props.disabled"
           class="sr-sysconfig-subdomain"
-          @show="refreshClusterReachability"
+          @complete="searchSubdomains"
+          @input="onInputChange"
+          @keydown="onSubdomainKeydown"
+          @blur="onSubdomainBlur"
+          @item-select="onSubdomainItemSelect"
         />
         <span class="sr-sysconfig-hint">subdomain</span>
       </div>
@@ -138,11 +131,19 @@ function resetToPublicDomain() {
           id="sysconfig-domain"
           v-model="domain"
           :options="domainOptions"
+          placeholder="domain"
           :disabled="props.disabled"
           class="sr-sysconfig-domain"
+          @change="onDomainChange"
         />
         <span class="sr-sysconfig-hint">domain</span>
       </div>
+    </div>
+    <div class="sr-sysconfig-field">
+      <label class="sr-sysconfig-label">Cluster</label>
+      <span :class="['sr-sysconfig-value', `sr-status-${canConnectVersion}`]">
+        {{ cluster || 'unknown' }}
+      </span>
     </div>
     <div class="sr-sysconfig-field">
       <label class="sr-sysconfig-label">Version</label>
@@ -176,9 +177,6 @@ function resetToPublicDomain() {
         @click="refreshStatus"
       />
     </div>
-    <Message :severity="statusSeverity" :closable="false" class="sr-server-status">
-      {{ statusMessage }}
-    </Message>
   </div>
 </template>
 
@@ -198,10 +196,13 @@ function resetToPublicDomain() {
 }
 
 .sr-sysconfig-connect-label {
-  font-size: small;
+  font-family: var(--font-family);
+  font-size: 1rem;
   white-space: nowrap;
   margin-right: 0.5rem;
   color: var(--p-text-muted-color);
+  align-self: flex-start;
+  padding-top: 0.5rem;
 }
 
 .sr-sysconfig-select-group {
@@ -221,9 +222,12 @@ function resetToPublicDomain() {
 }
 
 .sr-sysconfig-dot {
-  font-size: 1.2rem;
+  font-family: var(--font-family);
+  font-size: 1rem;
   font-weight: bold;
   color: var(--p-text-muted-color);
+  align-self: flex-start;
+  padding-top: 0.5rem;
 }
 
 .sr-sysconfig-domain {

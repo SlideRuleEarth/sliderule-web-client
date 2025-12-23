@@ -10,6 +10,7 @@ const logger = createLogger('FetchUtils')
 export interface ServerVersionResult {
   success: boolean
   version: string
+  cluster: string
   data: any
 }
 
@@ -85,6 +86,7 @@ export async function fetchServerVersionInfo(
     return {
       success: true,
       version: data.server.version,
+      cluster: data.server.cluster,
       data
     }
   } catch (error) {
@@ -94,6 +96,7 @@ export async function fetchServerVersionInfo(
     return {
       success: false,
       version: 'Unknown',
+      cluster: 'Unknown',
       data: null
     }
   }

@@ -88,7 +88,7 @@ const isDomainDisabled = computed(() => !githubAuthStore.isOwner)
 </script>
 
 <template>
-  <Fieldset legend="Deployment" toggleable :collapsed="true">
+  <Fieldset legend="Deployment" toggleable :collapsed="false">
     <div class="sr-deploy-config">
       <div class="sr-deploy-field">
         <label for="deploy-domain" class="sr-deploy-label">Domain</label>

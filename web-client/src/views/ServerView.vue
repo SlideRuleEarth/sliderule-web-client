@@ -1,19 +1,60 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import SingleColumnLayout from '@/layouts/SingleColumnLayout.vue'
 import Card from 'primevue/card'
+import Tabs from 'primevue/tabs'
+import TabList from 'primevue/tablist'
+import Tab from 'primevue/tab'
+import TabPanels from 'primevue/tabpanels'
+import TabPanel from 'primevue/tabpanel'
+import Message from 'primevue/message'
 import SrSysConfig from '@/components/SrSysConfig.vue'
 import SrDeployConfig from '@/components/SrDeployConfig.vue'
 import SrClusterStatus from '@/components/SrClusterStatus.vue'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 
 const githubAuthStore = useGitHubAuthStore()
+const activeTab = ref('sysconfig')
 
 // Auth state computed properties
 const isAuthenticated = computed(() => {
   return githubAuthStore.authStatus === 'authenticated' && githubAuthStore.hasValidAuth
 })
+const isAuthenticating = computed(() => githubAuthStore.authStatus === 'authenticating')
+const username = computed(() => githubAuthStore.username)
+const isMember = computed(() => githubAuthStore.isMember)
+const isOwner = computed(() => githubAuthStore.isOwner)
+const lastError = computed(() => githubAuthStore.lastError)
 const canAccessMemberFeatures = computed(() => githubAuthStore.canAccessMemberFeatures)
+
+// Status severity for the message component
+const statusSeverity = computed(() => {
+  if (githubAuthStore.authStatus === 'error') return 'error'
+  if (!isAuthenticated.value) return 'secondary'
+  if (isOwner.value) return 'success'
+  if (isMember.value) return 'success'
+  return 'warn'
+})
+
+// Status message text
+const statusMessage = computed(() => {
+  if (githubAuthStore.authStatus === 'error') {
+    return lastError.value || 'Authentication failed'
+  }
+  if (isAuthenticating.value) {
+    return 'Authenticating with GitHub...'
+  }
+  if (!isAuthenticated.value) {
+    return 'Not logged in to GitHub'
+  }
+  if (isOwner.value) {
+    return `Logged in as ${username.value} - Organization Owner`
+  }
+  if (isMember.value) {
+    return `Logged in as ${username.value} - Organization Member`
+  }
+  return `Logged in as ${username.value} - Not a member of SlideRuleEarth`
+})
 </script>
 
 <template>
@@ -22,19 +63,29 @@ const canAccessMemberFeatures = computed(() => githubAuthStore.canAccessMemberFe
       <Card class="sr-server-card">
         <template #title>
           <div class="sr-server-title">Server</div>
+          <Message :severity="statusSeverity" :closable="false" class="sr-server-status">
+            {{ statusMessage }}
+          </Message>
         </template>
         <template #content>
-          <div class="sr-server-section">
-            <SrSysConfig :disabled="!isAuthenticated" />
-          </div>
-
-          <div v-if="canAccessMemberFeatures" class="sr-server-section">
-            <SrDeployConfig />
-          </div>
-
-          <div v-if="canAccessMemberFeatures" class="sr-server-section">
-            <SrClusterStatus />
-          </div>
+          <Tabs v-model:value="activeTab">
+            <TabList>
+              <Tab value="sysconfig">Current Connection</Tab>
+              <Tab v-if="canAccessMemberFeatures" value="deployconfig">Deploy</Tab>
+              <Tab v-if="canAccessMemberFeatures" value="clusterstatus">Cluster Status</Tab>
+            </TabList>
+            <TabPanels>
+              <TabPanel value="sysconfig">
+                <SrSysConfig :disabled="!isAuthenticated" />
+              </TabPanel>
+              <TabPanel v-if="canAccessMemberFeatures" value="deployconfig">
+                <SrDeployConfig />
+              </TabPanel>
+              <TabPanel v-if="canAccessMemberFeatures" value="clusterstatus">
+                <SrClusterStatus />
+              </TabPanel>
+            </TabPanels>
+          </Tabs>
         </template>
       </Card>
     </template>

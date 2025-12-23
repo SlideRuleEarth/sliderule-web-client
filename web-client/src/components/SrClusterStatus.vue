@@ -5,16 +5,13 @@ import Checkbox from 'primevue/checkbox'
 import ProgressSpinner from 'primevue/progressspinner'
 import AutoComplete from 'primevue/autocomplete'
 import { fetchClusterStatus, type ClusterStatusResponse } from '@/utils/fetchUtils'
-import { useSysConfigStore } from '@/stores/sysConfigStore'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
-import { storeToRefs } from 'pinia'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('SrClusterStatus')
 
 const props = withDefaults(
   defineProps<{
-    cluster?: string
     autoRefresh?: boolean
     refreshInterval?: number
     progressRefreshInterval?: number
@@ -60,9 +57,7 @@ const emit = defineEmits<{
   (_e: 'error', _message: string): void
 }>()
 
-const sysConfigStore = useSysConfigStore()
 const githubAuthStore = useGitHubAuthStore()
-const { subdomain, discoveredCluster } = storeToRefs(sysConfigStore)
 
 // Cluster selector state
 const selectedCluster = ref<string>('')
@@ -71,12 +66,6 @@ const filteredClusters = ref<string[]>([])
 // Build list of available cluster suggestions
 const clusterSuggestions = computed(() => {
   const suggestions: string[] = []
-
-  // Add discovered cluster from server if available
-  if (discoveredCluster.value && !suggestions.includes(discoveredCluster.value)) {
-    suggestions.push(discoveredCluster.value)
-  }
-
   // Add known clusters from GitHub auth (includes 'sliderule' public cluster)
   if (githubAuthStore.knownClusters?.length > 0) {
     for (const cluster of githubAuthStore.knownClusters) {
@@ -108,23 +97,11 @@ function searchClusters(event: { query: string }) {
   }
 }
 
-// Also sync with discovered cluster on initial load
-watch(discoveredCluster, (newVal) => {
-  if (newVal && !selectedCluster.value) {
-    selectedCluster.value = newVal
-  }
-})
-
 const loading = ref(false)
 const error = ref<string | null>(null)
 const statusData = ref<ClusterStatusResponse | null>(null)
 const autoRefreshEnabled = ref(props.autoRefresh)
 let refreshTimer: number | null = null
-
-const effectiveCluster = computed(
-  () =>
-    props.cluster ?? (subdomain.value !== 'sliderule' ? subdomain.value : discoveredCluster.value)
-)
 
 // Helper functions for extracting status info from data
 function getStackStatus(data: ClusterStatusResponse | null): string {
@@ -201,9 +178,14 @@ const effectiveRefreshInterval = computed(() => {
   return isInProgress.value ? props.progressRefreshInterval : props.refreshInterval
 })
 
+// Disable controls when no cluster is selected
+const controlsDisabled = computed(() => {
+  return !selectedCluster.value || selectedCluster.value.trim() === ''
+})
+
 async function refresh() {
-  if (!effectiveCluster.value) {
-    error.value = 'No cluster specified'
+  // Skip if no cluster is selected
+  if (!selectedCluster.value || selectedCluster.value.trim() === '') {
     return
   }
 
@@ -212,17 +194,17 @@ async function refresh() {
 
   try {
     // Fetch cluster status for the selected cluster
-    const result = await fetchClusterStatus(effectiveCluster.value)
+    const result = await fetchClusterStatus(selectedCluster.value)
 
     if (result.success) {
       statusData.value = result.data
       emit('status-updated', result.data)
-      logger.debug('Cluster status fetched', { cluster: effectiveCluster.value, data: result.data })
+      logger.debug('Cluster status fetched', { cluster: selectedCluster.value, data: result.data })
     } else {
       error.value = result.error ?? 'Failed to fetch status'
       emit('error', error.value)
       logger.error('Failed to fetch cluster status', {
-        cluster: effectiveCluster.value,
+        cluster: selectedCluster.value,
         error: result.error
       })
     }
@@ -231,7 +213,7 @@ async function refresh() {
     error.value = msg
     emit('error', msg)
     logger.error('Exception fetching cluster status', {
-      cluster: effectiveCluster.value,
+      cluster: selectedCluster.value,
       error: msg
     })
   } finally {
@@ -259,11 +241,23 @@ function stopAutoRefresh() {
   }
 }
 
-watch(effectiveCluster, () => {
-  // Clear previous data when cluster changes
+// Handle Enter key or blur to trigger refresh
+function onClusterKeydown(event: KeyboardEvent) {
+  if (event.key === 'Enter') {
+    statusData.value = null
+    void refresh()
+  }
+}
+
+function onClusterBlur() {
   statusData.value = null
   void refresh()
-})
+}
+
+function onClusterItemSelect() {
+  statusData.value = null
+  void refresh()
+}
 
 watch(autoRefreshEnabled, (enabled) => {
   if (enabled) {
@@ -308,11 +302,19 @@ defineExpose({ refresh })
           placeholder="Enter cluster name"
           class="sr-cluster-autocomplete"
           @complete="searchClusters"
+          @keydown="onClusterKeydown"
+          @blur="onClusterBlur"
+          @item-select="onClusterItemSelect"
         />
       </div>
       <div class="sr-server-status-controls">
         <div class="sr-auto-refresh-control">
-          <Checkbox v-model="autoRefreshEnabled" inputId="autoRefresh" :binary="true" />
+          <Checkbox
+            v-model="autoRefreshEnabled"
+            inputId="autoRefresh"
+            :binary="true"
+            :disabled="controlsDisabled"
+          />
           <label for="autoRefresh" class="sr-auto-refresh-label">Auto</label>
         </div>
         <Button
@@ -322,6 +324,7 @@ defineExpose({ refresh })
           rounded
           size="small"
           :loading="loading"
+          :disabled="controlsDisabled"
           @click="refresh"
         />
       </div>
@@ -344,10 +347,14 @@ defineExpose({ refresh })
         <span
           :class="[
             'sr-server-status-value',
-            clusterExists(statusData) ? 'sr-status-success' : 'sr-status-error'
+            statusData === null
+              ? ''
+              : clusterExists(statusData)
+                ? 'sr-status-success'
+                : 'sr-status-error'
           ]"
         >
-          {{ clusterExists(statusData) ? 'Yes' : 'No' }}
+          {{ statusData === null ? '-' : clusterExists(statusData) ? 'Yes' : 'No' }}
         </span>
       </div>
 
