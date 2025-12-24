@@ -20,6 +20,13 @@ import { type SrPosition } from '@/types/SrTypes'
 import { useAnalysisMapStore } from '@/stores/analysisMapStore'
 import { useFieldNameStore } from '@/stores/fieldNameStore'
 import {
+  useArrayColumnStore,
+  type ArrayColumnConfig,
+  type AggregationFunction,
+  type ArrayColumnMode
+} from '@/stores/arrayColumnStore'
+import { buildArrayAggregateSelect, buildArrayFlattenSelect } from '@/utils/arrayAgg'
+import {
   baseType,
   alias,
   FLOAT_TYPES,
@@ -384,6 +391,50 @@ function isScalarNumericDuckType(type: string): boolean {
   )
 }
 
+/**
+ * Check if a DuckDB type is an array/list containing numeric elements
+ * Matches types like LIST<DOUBLE>, DOUBLE[], LIST<INTEGER>, etc.
+ */
+function isNumericArrayDuckType(type: string): boolean {
+  const T = type.toUpperCase()
+
+  // Match LIST<numeric_type> pattern
+  const listMatch = T.match(/LIST\s*<\s*(.+)\s*>/)
+  if (listMatch) {
+    return isScalarNumericDuckType(listMatch[1].trim())
+  }
+
+  // Match numeric_type[] pattern
+  const arrayMatch = T.match(/^(.+)\[\]$/)
+  if (arrayMatch) {
+    return isScalarNumericDuckType(arrayMatch[1].trim())
+  }
+
+  return false
+}
+
+/**
+ * Extract the element type from an array type
+ * e.g., "LIST<DOUBLE>" -> "DOUBLE", "INTEGER[]" -> "INTEGER"
+ */
+function extractArrayElementType(type: string): string | null {
+  const T = type.toUpperCase()
+
+  // Match LIST<type> pattern
+  const listMatch = T.match(/LIST\s*<\s*(.+)\s*>/)
+  if (listMatch) {
+    return listMatch[1].trim()
+  }
+
+  // Match type[] pattern
+  const arrayMatch = T.match(/^(.+)\[\]$/)
+  if (arrayMatch) {
+    return arrayMatch[1].trim()
+  }
+
+  return null
+}
+
 export async function prepareDbForReqId(reqId: number): Promise<void> {
   const startTime = performance.now()
   try {
@@ -402,6 +453,20 @@ export async function prepareDbForReqId(reqId: number): Promise<void> {
     const scalarNumericCols = colTypes
       .filter((c) => isScalarNumericDuckType(c.type))
       .map((c) => c.name)
+
+    // Detect array columns with numeric elements for optional flattening/aggregation
+    const arrayColumns: ArrayColumnConfig[] = colTypes
+      .filter((c) => isNumericArrayDuckType(c.type))
+      .map((c) => ({
+        columnName: c.name,
+        columnType: c.type,
+        elementType: extractArrayElementType(c.type) || 'UNKNOWN'
+      }))
+
+    // Store array columns in the array column store for UI access
+    const reqIdStr = reqId.toString()
+    const arrayColumnStore = useArrayColumnStore()
+    arrayColumnStore.setArrayColumns(reqIdStr, arrayColumns)
 
     // Check if file has geometry column and add geometry-derived field names
     // These fields (height, longitude, latitude) are extracted at query time using ST_Z, ST_X, ST_Y
@@ -1433,6 +1498,15 @@ export async function updateAllFilterOptions(req_id: number): Promise<void> {
     })
   }
 }
+/**
+ * Configuration for array column processing (flattening or aggregation)
+ */
+export interface ArrayColumnQueryConfig {
+  columnName: string
+  mode: ArrayColumnMode
+  aggregations?: AggregationFunction[]
+}
+
 export interface FetchScatterDataOptions {
   /**
    * Extra columns to SELECT in addition to x and y columns.
@@ -1473,6 +1547,14 @@ export interface FetchScatterDataOptions {
    * Optional min axis value used by base API. overlayed should use this
    */
   parentMinX?: number
+
+  /**
+   * Optional array column configuration for flattening or aggregation.
+   * When set, the array column will be processed according to the mode:
+   * - 'flatten': UNNEST the array, creating one row per element
+   * - 'aggregate': Apply list functions (mean, min, max, etc.)
+   */
+  arrayColumnConfig?: ArrayColumnQueryConfig
 }
 export interface SrScatterChartDataArray {
   data: (number | string)[][]
@@ -1520,7 +1602,8 @@ export async function fetchScatterData(
     transformRow,
     handleMinMaxRow,
     whereClause = useChartStore().getWhereClause(reqIdStr),
-    normalizeX = options.normalizeX ?? false
+    normalizeX = options.normalizeX ?? false,
+    arrayColumnConfig
   } = options
 
   const startTime = performance.now()
@@ -1589,7 +1672,26 @@ export async function fetchScatterData(
       finalWhereClause = `WHERE ${sanitizedExistingClause} AND ${yNanClause}`
     }
 
-    const allAggCols = [x, ...y, ...extraSelectColumns]
+    // Detect derived array column names and array columns to filter from the min/max query
+    // (derived columns don't exist as actual columns in the parquet file,
+    // and array columns can't use APPROX_QUANTILE directly)
+    let derivedArrayColumnNames: string[] = []
+    let arrayColumnToFilter: string | null = null
+    if (arrayColumnConfig && arrayColumnConfig.mode !== 'none') {
+      const { columnName, mode, aggregations = [] } = arrayColumnConfig
+      if (mode === 'flatten') {
+        // Flatten mode: the array column can't use APPROX_QUANTILE directly,
+        // so we need to filter it out and handle it specially
+        arrayColumnToFilter = columnName
+      } else if (mode === 'aggregate' && aggregations.length > 0) {
+        derivedArrayColumnNames = aggregations.map((agg) => `${columnName}_${agg}`)
+      }
+    }
+
+    // Filter derived columns AND array columns (for flatten mode) from allAggCols for the min/max query
+    const allAggCols = [x, ...y, ...extraSelectColumns].filter(
+      (col) => !derivedArrayColumnNames.includes(col) && col !== arrayColumnToFilter
+    )
 
     const selectParts = buildSafeAggregateClauses(
       allAggCols,
@@ -1598,9 +1700,96 @@ export async function fetchScatterData(
       geometryInfo
     )
 
+    // Add min/max/low/high for derived array columns using their actual expressions
+    const derivedMinMaxParts: string[] = []
+    if (
+      arrayColumnConfig &&
+      arrayColumnConfig.mode === 'aggregate' &&
+      arrayColumnConfig.aggregations
+    ) {
+      const { columnName, aggregations } = arrayColumnConfig
+      const escapedCol = duckDbClient.escape(columnName)
+      // Filter out NaN and Inf values from the array before aggregating
+      const filteredCol = `list_filter(${escapedCol}, x -> x IS NOT NULL AND NOT isnan(x) AND NOT isinf(x))`
+
+      for (const agg of aggregations) {
+        const derivedName = `${columnName}_${agg}`
+        // Build the expression for this aggregation (using filtered array)
+        let expr: string
+        switch (agg) {
+          case 'mean':
+            expr = `list_avg(${filteredCol})`
+            break
+          case 'min':
+            expr = `list_min(${filteredCol})`
+            break
+          case 'max':
+            expr = `list_max(${filteredCol})`
+            break
+          case 'sum':
+            expr = `list_sum(${filteredCol})`
+            break
+          case 'count':
+            // Count uses original array to count all elements including NaN/Inf
+            expr = `len(${escapedCol})`
+            break
+          case 'first':
+            expr = `list_first(${filteredCol})`
+            break
+          case 'last':
+            expr = `list_last(${filteredCol})`
+            break
+          case 'median':
+            expr = `list_sort(${filteredCol})[CAST((len(${filteredCol}) + 1) / 2 AS INTEGER)]`
+            break
+          case 'stddev':
+            expr = `list_aggregate(${filteredCol}, 'stddev_pop')`
+            break
+          case 'unique_count':
+            expr = `len(list_distinct(${filteredCol}))`
+            break
+          default:
+            continue
+        }
+        // Add MIN, MAX, and percentile ranges (low/high) for this derived column
+        derivedMinMaxParts.push(`MIN(${expr}) AS "min_${derivedName}"`)
+        derivedMinMaxParts.push(`MAX(${expr}) AS "max_${derivedName}"`)
+        derivedMinMaxParts.push(
+          `PERCENTILE_CONT(0.01) WITHIN GROUP (ORDER BY ${expr}) AS "low_${derivedName}"`
+        )
+        derivedMinMaxParts.push(
+          `PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY ${expr}) AS "high_${derivedName}"`
+        )
+      }
+    }
+
+    // Add min/max/low/high for flatten mode array column using list functions
+    // For flatten mode, the array column will be UNNESTed in the data query,
+    // but for min/max we can use list_min/list_max to avoid UNNEST in this aggregate query
+    const flattenMinMaxParts: string[] = []
+    if (arrayColumnToFilter) {
+      const escapedCol = duckDbClient.escape(arrayColumnToFilter)
+      // Filter out NaN and Inf values from the array
+      const filteredCol = `list_filter(${escapedCol}, x -> x IS NOT NULL AND NOT isnan(x) AND NOT isinf(x))`
+
+      // Use list_min/list_max to get per-row min/max, then aggregate across all rows
+      flattenMinMaxParts.push(`MIN(list_min(${filteredCol})) AS "min_${arrayColumnToFilter}"`)
+      flattenMinMaxParts.push(`MAX(list_max(${filteredCol})) AS "max_${arrayColumnToFilter}"`)
+      // For percentiles, we need to use UNNEST - use a subquery approach
+      // Use APPROX_QUANTILE on the flattened values via a lateral UNNEST
+      flattenMinMaxParts.push(
+        `(SELECT APPROX_QUANTILE(u.val, 0.10) FROM (SELECT UNNEST(${filteredCol}) AS val FROM '${fileName}' ${finalWhereClause}) u WHERE u.val IS NOT NULL) AS "low_${arrayColumnToFilter}"`
+      )
+      flattenMinMaxParts.push(
+        `(SELECT APPROX_QUANTILE(u.val, 0.90) FROM (SELECT UNNEST(${filteredCol}) AS val FROM '${fileName}' ${finalWhereClause}) u WHERE u.val IS NOT NULL) AS "high_${arrayColumnToFilter}"`
+      )
+    }
+
+    const allMinMaxParts = [...selectParts, ...derivedMinMaxParts, ...flattenMinMaxParts]
+
     const minMaxQuery = `
             SELECT
-                ${selectParts.join(',\n')}
+                ${allMinMaxParts.join(',\n')}
             FROM '${fileName}'
             ${finalWhereClause}
         `
@@ -1699,7 +1888,9 @@ export async function fetchScatterData(
      * 4. Build the main query to fetch rows for x, all y columns, plus extras.
      *    Use the same finalWhereClause so NaNs in y columns are excluded.
      */
-    const allColumns = [x, ...y, ...extraSelectColumns]
+    // Build base column selections (filter out derived array columns and array columns in flatten mode - they'll be added via arrayColumnParts)
+    const baseColumnParts = [x, ...y, ...extraSelectColumns]
+      .filter((col) => !derivedArrayColumnNames.includes(col) && col !== arrayColumnToFilter)
       .map((col) => {
         // Check if this column should be extracted from geometry
         if (hasGeometry && col === lon_fieldname) {
@@ -1712,7 +1903,35 @@ export async function fetchScatterData(
           return duckDbClient.escape(col)
         }
       })
-      .join(', ')
+
+    // Handle array column processing - build SELECT clauses for the main query
+    let arrayColumnParts: string[] = []
+
+    if (arrayColumnConfig && arrayColumnConfig.mode !== 'none') {
+      const { columnName, mode, aggregations = [] } = arrayColumnConfig
+
+      if (mode === 'flatten') {
+        // Flatten mode: UNNEST the array column
+        arrayColumnParts = [buildArrayFlattenSelect(columnName)]
+        // Update derivedArrayColumnNames for flatten mode (column name stays the same)
+        derivedArrayColumnNames = [columnName]
+        logger.debug('Array column flatten mode', { columnName })
+      } else if (mode === 'aggregate' && aggregations.length > 0) {
+        // Aggregate mode: Apply list functions
+        arrayColumnParts = buildArrayAggregateSelect(columnName, aggregations)
+        // derivedArrayColumnNames was already set above for min/max query
+        logger.debug('Array column aggregate mode', {
+          columnName,
+          aggregations,
+          derivedColumns: derivedArrayColumnNames
+        })
+      }
+
+      // Store derived column names in chartStore for reference
+      useChartStore().setDerivedArrayColumns(reqIdStr, derivedArrayColumnNames)
+    }
+
+    const allColumns = [...baseColumnParts, ...arrayColumnParts].join(', ')
 
     let mainQuery = `SELECT ${allColumns} \nFROM '${fileName}'\n${finalWhereClause}`
     //console.log('fetchScatterData mainQuery:', mainQuery);
@@ -1761,6 +1980,16 @@ export async function fetchScatterData(
 
           if (extraSelectColumns.length > 0) {
             extraSelectColumns.forEach((colName) => {
+              // Convert to number or string, handling BigInt intelligently
+              const colVal = valueToNumberOrString(row[colName])
+              rowValues.push(colVal)
+              orderNdx = setDataOrder(dataOrderNdx, colName, orderNdx)
+            })
+          }
+
+          // Handle derived array columns (from flatten or aggregate mode)
+          if (derivedArrayColumnNames.length > 0) {
+            derivedArrayColumnNames.forEach((colName) => {
               // Convert to number or string, handling BigInt intelligently
               const colVal = valueToNumberOrString(row[colName])
               rowValues.push(colVal)

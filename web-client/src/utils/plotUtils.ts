@@ -26,6 +26,7 @@ import {
 } from '@/types/SrTypes'
 import { useSymbolStore } from '@/stores/symbolStore'
 import { useFieldNameStore } from '@/stores/fieldNameStore'
+import { useArrayColumnStore } from '@/stores/arrayColumnStore'
 import { useSrcIdTblStore } from '@/stores/srcIdTblStore'
 import { createDuckDbClient } from '@/utils/SrDuckDb'
 import { useActiveTabStore } from '@/stores/activeTabStore'
@@ -260,6 +261,18 @@ async function getGenericSeries({
       extraCols.push(lonFieldName)
     }
     fetchOptions.extraSelectColumns = extraCols
+
+    // Get array column configuration from store if available
+    const arrayColumnStore = useArrayColumnStore()
+    const arrayConfig = arrayColumnStore.getActiveConfig(reqIdStr)
+    if (arrayConfig) {
+      fetchOptions.arrayColumnConfig = {
+        columnName: arrayConfig.columnName,
+        mode: arrayConfig.mode,
+        aggregations: arrayConfig.aggregations
+      }
+      logger.debug('Array column config applied', { reqIdStr, arrayConfig })
+    }
 
     const { chartData = {}, ...rest } = await fetchData(reqIdStr, fileName, x, y, fetchOptions)
     //console.log(`${functionName} ${reqIdStr} ${y}: chartData:`, chartData, 'fetchOptions:', fetchOptions);
@@ -801,6 +814,16 @@ async function getSeriesFor(reqIdStr: string, isOverlay = false): Promise<SrScat
     // Only add height if Z is stored in geometry (not as separate column)
     if (geometryInfo.zCol && !existingColumns.includes(geometryInfo.zCol)) {
       existingColumns.push(geometryInfo.zCol)
+    }
+  }
+
+  // Add derived array columns to existingColumns
+  // These columns are computed at query time (e.g., tx_waveform_mean from list_avg)
+  // but don't exist as actual columns in the parquet file
+  const derivedArrayColumns = chartStore.getDerivedArrayColumns(reqIdStr)
+  for (const derivedCol of derivedArrayColumns) {
+    if (!existingColumns.includes(derivedCol)) {
+      existingColumns.push(derivedCol)
     }
   }
 
