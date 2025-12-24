@@ -9,6 +9,7 @@ import { storeToRefs } from 'pinia'
 import { useChartStore } from '@/stores/chartStore'
 import { onMounted, computed, watch } from 'vue'
 import SrCheckbox from './SrCheckbox.vue'
+import SrArrayColumnConfig from './SrArrayColumnConfig.vue'
 import {
   yDataBindingsReactive,
   findReqMenuLabel,
@@ -120,6 +121,12 @@ async function handleGediFieldNameChange(event: SelectChangeEvent) {
   } else if (activeTabStore.isActiveTabLabel('Elevation Plot')) {
     await callPlotUpdateDebounced('from handleGediFieldNameChange')
   }
+}
+
+function onDerivedColumnsChanged(derivedColumns: string[]) {
+  logger.debug('Derived columns changed from array config', { derivedColumns })
+  // The SrArrayColumnConfig component already updates the elevation data options
+  // and triggers plot update, so we just log here for debugging
 }
 
 async function enableLocationFinder(): Promise<void> {
@@ -248,6 +255,12 @@ watch(
         tooltipText="Use Percentile Range: Filtered(low/high) vs Full(min/max)"
         size="small"
         @update:modelValue="onUsePercentileRangeChange"
+      />
+      <!-- Array Column Configuration -->
+      <SrArrayColumnConfig
+        v-if="!props.isOverlay"
+        :reqId="props.reqId"
+        @derived-columns-changed="onDerivedColumnsChanged"
       />
       <div class="sr-ged02ap-el-select" v-if="recTreeStore.selectedApi == 'gedi02ap'">
         <label class="sr-ged02ap-elevation-label" :for="`sr-ged02ap-elevation-field-select`"
