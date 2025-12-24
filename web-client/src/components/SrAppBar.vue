@@ -41,13 +41,13 @@ const ttl = ref(720)
 const isGitHubAuthenticated = computed(() => {
   return githubAuthStore.authStatus === 'authenticated' && githubAuthStore.hasValidAuth
 })
-const isGitHubAuthenticating = computed(() => githubAuthStore.authStatus === 'authenticating')
+//const isGitHubAuthenticating = computed(() => githubAuthStore.authStatus === 'authenticating') // temporarily unused to hide login button
 const githubUsername = computed(() => githubAuthStore.username)
 const githubIsMember = computed(() => githubAuthStore.isMember)
 const githubIsOwner = computed(() => githubAuthStore.isOwner)
-function handleGitHubLogin() {
-  githubAuthStore.initiateLogin()
-}
+// function handleGitHubLogin() { // temporarily disabled to hide login button
+//   githubAuthStore.initiateLogin()
+// }
 
 const displayTour = computed(() => {
   return route.name === 'home' || route.name === 'request'
@@ -597,13 +597,15 @@ const mobileMenuItems = computed(() => {
       icon: 'pi pi-user',
       items: userMenuItems.value
     })
-  } else {
-    items.push({
-      label: 'Login',
-      icon: 'pi pi-github',
-      command: handleGitHubLogin
-    })
   }
+  // GitHub login temporarily disabled
+  // else {
+  //   items.push({
+  //     label: 'Login',
+  //     icon: 'pi pi-github',
+  //     command: handleGitHubLogin
+  //   })
+  // }
 
   return items
 })
@@ -845,6 +847,7 @@ function hideTooltip() {
       >
       </Button>
       <Menu :model="aboutMenuItems" popup ref="aboutMenu" />
+      <!-- GitHub login button temporarily disabled
       <Button
         v-if="!isGitHubAuthenticated"
         icon="pi pi-github"
@@ -857,6 +860,7 @@ function hideTooltip() {
         @click="handleGitHubLogin"
       >
       </Button>
+      -->
       <Button
         v-if="isGitHubAuthenticated"
         id="sr-user-button"
@@ -948,9 +952,6 @@ function hideTooltip() {
 </template>
 
 <style scoped>
-.sr-show-server-version {
-}
-
 .sr-org-menu-button {
   margin-left: 0.5rem;
   font-size: 0.75rem;
