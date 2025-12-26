@@ -70,9 +70,7 @@
             </DataTable>
           </TabPanel>
           <TabPanel value="1">
-            <div class="sr-plot-placeholder">
-              <p>Plot view coming soon</p>
-            </div>
+            <SrGenericPlot :rows="rows" :columns="columns" />
           </TabPanel>
         </TabPanels>
       </Tabs>
@@ -81,7 +79,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { createDuckDbClient, DuckDBClient } from '@/utils/SrDuckDb'
 import { useRecTreeStore } from '@/stores/recTreeStore'
 import { useChartStore } from '@/stores/chartStore'
@@ -102,9 +100,10 @@ import TabPanels from 'primevue/tabpanels'
 import TabPanel from 'primevue/tabpanel'
 import { useRequestsStore } from '@/stores/requestsStore'
 import SrExportSelected from './SrExportSelected.vue'
+import SrGenericPlot from './SrGenericPlot.vue'
 import { createLogger } from '@/utils/logger'
 
-const logger = createLogger('SrDuckDbShell')
+const logger = createLogger('SrRawAnalysis')
 const requestsStore = useRequestsStore()
 
 const recTreeStore = useRecTreeStore()
@@ -122,6 +121,17 @@ const isLoading = ref(false)
 const computedFileLabel = computed(() => `${chartStore.getFile(recTreeStore.selectedReqIdStr)}`)
 const limit = ref(1000)
 const activeResultTab = ref('0') // '0' = Table, '1' = Plot
+
+// Watch for query changes from chartStore (e.g., when Array Column Options change)
+watch(initQuery, (newQuery) => {
+  query.value = newQuery
+  // Reset results when query changes
+  rows.value = []
+  columns.value = []
+  info.value = 'Query updated. Click "Run Sql Query" to see results.'
+  logger.debug('Query updated from chartStore', { newQuery })
+})
+
 const computedLimitClause = computed(() => (limit.value > 0 ? `LIMIT ${limit.value}` : ''))
 const computedStartingInfoText = computed(() => {
   if (limit.value > 0) {
@@ -289,13 +299,5 @@ async function executeQuery() {
 
 .sr-info {
   white-space: pre-wrap;
-}
-
-.sr-plot-placeholder {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 200px;
-  color: var(--p-text-muted-color);
 }
 </style>

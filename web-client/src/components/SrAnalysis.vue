@@ -25,8 +25,8 @@
             <SrDeck3DView v-if="shouldDisplay3DView" />
           </TabPanel>
           <TabPanel value="3">
-            <!-- Similarly only render SrDuckDbShell if active tab is '3' AND chartStore has a query -->
-            <SrDuckDbShell v-if="shouldDisplayShell" />
+            <!-- Only render SrRawAnalysis if active tab is '3' -->
+            <SrRawAnalysis v-if="shouldDisplayShell" />
           </TabPanel>
         </TabPanels>
       </Tabs>
@@ -46,7 +46,7 @@ import Tab from 'primevue/tab'
 import TabPanels from 'primevue/tabpanels'
 import TabPanel from 'primevue/tabpanel'
 import SrElevationPlot from '@/components/SrElevationPlot.vue'
-import SrDuckDbShell from '@/components/SrDuckDbShell.vue'
+import SrRawAnalysis from '@/components/SrRawAnalysis.vue'
 import { useRecTreeStore } from '@/stores/recTreeStore'
 import { useActiveTabStore } from '@/stores/activeTabStore'
 import { useGlobalChartStore } from '@/stores/globalChartStore'

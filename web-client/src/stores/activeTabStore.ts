@@ -5,7 +5,7 @@ import { createLogger } from '@/utils/logger'
 const logger = createLogger('ActiveTabStore')
 
 export const useActiveTabStore = defineStore('activeTabStore', () => {
-  const tabLabels: string[] = ['Elevation Plot', 'Time Series', '3-D View', 'Generic Plot']
+  const tabLabels: string[] = ['Elevation Plot', 'Time Series', '3-D View', 'Generic']
   const activeTab = ref<string>('0') // Store activeTab as a string
   // Getter: Get the active tab index as a string
   const getActiveTab = computed<string>(() => activeTab.value)
