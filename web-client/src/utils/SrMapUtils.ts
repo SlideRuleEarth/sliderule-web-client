@@ -21,6 +21,7 @@ import { useReqParamsStore } from '@/stores/reqParamsStore'
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore'
 import { useDeckStore } from '@/stores/deckStore'
 import { useElevationColorMapStore } from '@/stores/elevationColorMapStore'
+import { useChartStore } from '@/stores/chartStore'
 import { useSrToastStore } from '@/stores/srToastStore'
 import { useAdvancedModeStore } from '@/stores/advancedModeStore'
 import { useAnalysisMapStore } from '@/stores/analysisMapStore'
@@ -776,6 +777,8 @@ export function createDeckLayer(
   elevationData: ElevationDataItem[],
   extHMean: ExtHMean,
   heightFieldName: string,
+  colorFieldName: string,
+  colorMinMax: { min: number; max: number },
   positions: SrPosition[],
   projName: string
 ): ScatterplotLayer {
@@ -811,11 +814,12 @@ export function createDeckLayer(
       })
     : positions
 
+  // Use continuous gradient color mapping for all fields
   const colorFn = createUnifiedColorMapperRGBA({
     colorMap: elevationColorMapStore.getElevationColorMap(),
-    min: extHMean.lowHMean,
-    max: extHMean.highHMean,
-    valueAccessor: (d) => d[heightFieldName]
+    min: colorMinMax.min,
+    max: colorMinMax.max,
+    valueAccessor: (d) => d[colorFieldName]
   })
   const precomputedColors = elevationData.map(colorFn)
 
@@ -873,18 +877,35 @@ export function updateDeckLayerWithObject(
   extHMean: ExtHMean,
   heightFieldName: string,
   positions: SrPosition[],
-  _projName: string
+  _projName: string,
+  reqIdStr?: string
 ): void {
   //const startTime = performance.now();
   //logger.debug(`updateDeckLayerWithObject ${name} startTime:`, startTime);
   try {
     const deckInstance = useDeckStore().getDeckInstance()
     if (deckInstance) {
+      const chartStore = useChartStore()
+      const globalChartStore = useGlobalChartStore()
+
+      // Get selected color field (fallback to height field)
+      const selectedColorField = reqIdStr ? chartStore.getSelectedColorEncodeData(reqIdStr) : null
+      const colorFieldName = selectedColorField || heightFieldName
+
+      // Get min/max for color field
+      const allMinMax = globalChartStore.getAllColumnMinMaxValues()
+      const fieldMinMax = allMinMax[colorFieldName]
+      const colorMinMax = fieldMinMax
+        ? { min: fieldMinMax.low, max: fieldMinMax.high }
+        : { min: extHMean.lowHMean, max: extHMean.highHMean }
+
       const layer = createDeckLayer(
         name,
         elevationData,
         extHMean,
         heightFieldName,
+        colorFieldName,
+        colorMinMax,
         positions,
         _projName
       )

@@ -866,7 +866,8 @@ export const duckDbReadAndUpdateElevationData = async (
           summary.extHMean,
           height_fieldname,
           positions,
-          projName
+          projName,
+          req_id.toString()
         )
       } else {
         logger.error('Summary is undefined', { reqId: req_id })
@@ -1066,7 +1067,8 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, layerName
           summary.extHMean,
           height_fieldname,
           positions,
-          projName
+          projName,
+          req_id.toString()
         )
       } else {
         logger.error('Summary is undefined for selected layer', { reqId: req_id })
