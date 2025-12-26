@@ -22,11 +22,11 @@
             <SrTimeSeries v-if="shouldDisplayTimeSeries" :startingReqId="reqId" />
           </TabPanel>
           <TabPanel value="2">
-            <!-- Similarly only render SrDuckDbShell if active tab is '1' AND chartStore has a query -->
-            <SrDuckDbShell v-if="shouldDisplayShell" />
+            <SrDeck3DView v-if="shouldDisplay3DView" />
           </TabPanel>
           <TabPanel value="3">
-            <SrDeck3DView v-if="shouldDisplay3DView" />
+            <!-- Similarly only render SrDuckDbShell if active tab is '3' AND chartStore has a query -->
+            <SrDuckDbShell v-if="shouldDisplayShell" />
           </TabPanel>
         </TabPanels>
       </Tabs>
@@ -94,14 +94,14 @@ const shouldDisplayTimeSeries = computed(() => {
 
 const shouldDisplayShell = computed(() => {
   return (
-    activeTabStore.getActiveTab === '2' //&& // Only show on tab 2
+    activeTabStore.getActiveTab === '3' //&& // Only show on tab 3
     //chartStore.getQuerySql(recTreeStore.selectedReqIdStr) !== ''
   )
 })
 
 const shouldDisplay3DView = computed(() => {
   return (
-    activeTabStore.getActiveTab === '3' && // Only show on tab 3
+    activeTabStore.getActiveTab === '2' && // Only show on tab 2
     recTreeStore.selectedReqId > 0 &&
     recTreeStore.allReqIds.includes(reqId.value)
   )
