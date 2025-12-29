@@ -981,10 +981,14 @@ const onHoverHandler = isIPhone
         }
       }
 
-      // Broadcast hover coordinates for map-to-plot linking
+      // Broadcast hover coordinates for map-to-plot linking and location finder marker
       const globalChartStore = useGlobalChartStore()
       if (globalChartStore.enableLocationFinder) {
-        if (object && !useDeckStore().getIsDragging()) {
+        // Check if hovering on the selected/highlighted layer (not other tracks)
+        const layerId = pickingInfo.layer?.id ?? ''
+        const isSelectedLayer = layerId.includes(SELECTED_LAYER_NAME_PREFIX)
+
+        if (object && !useDeckStore().getIsDragging() && isSelectedLayer) {
           const recTreeStore = useRecTreeStore()
           const reqId = Number(recTreeStore.selectedReqIdStr)
           const fieldNameStore = useFieldNameStore()
@@ -994,8 +998,15 @@ const onHoverHandler = isIPhone
           globalChartStore.mapHoverLat = object[latField]
           globalChartStore.mapHoverLon = object[lonField]
           globalChartStore.mapHoverActive = true
+
+          // Also update location finder to show marker on the map
+          globalChartStore.locationFinderLat = object[latField]
+          globalChartStore.locationFinderLon = object[lonField]
         } else {
           globalChartStore.mapHoverActive = false
+          // Hide the location finder marker when not hovering on the highlighted track
+          globalChartStore.locationFinderLat = NaN
+          globalChartStore.locationFinderLon = NaN
         }
       }
     }
