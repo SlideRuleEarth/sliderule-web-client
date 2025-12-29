@@ -42,7 +42,7 @@
           </div>
           <!-- Run Button -->
           <Button
-            title="Run the current SQL query. (Note you can edit this query directly! and reset it using the Select/Where buttons)"
+            title="Run the current SQL query.&#10;(NOTE: you can edit this query directly!&#10;Then reset it using the Select/Where buttons)"
             :disabled="isLoading"
             @click="executeQuery"
             size="small"

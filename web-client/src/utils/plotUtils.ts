@@ -39,7 +39,7 @@ import {
   needsTransformation
 } from '@/utils/SrCrsTransform'
 import { createLogger } from '@/utils/logger'
-import { getGeometryInfo } from '@/utils/duckAgg'
+import { getGeometryInfo, buildColumnExpressions } from '@/utils/duckAgg'
 
 const logger = createLogger('PlotUtils')
 
@@ -2266,7 +2266,7 @@ export function clearPlotHighlight(): void {
  * This function is decoupled from plot rendering and can be called independently.
  * Properly handles:
  * - Column quoting
- * - Geometry column extraction (ST_X/ST_Y for lat/lon)
+ * - Geometry column extraction (ST_X/ST_Y/ST_Z for lat/lon/height)
  * - Time field inclusion
  *
  * @param reqIdStr - Request ID string
@@ -2288,6 +2288,7 @@ export async function buildSelectClauseFromStore(reqIdStr: string): Promise<stri
   // Get field names for special handling
   const latFieldName = fieldNameStore.getLatFieldName(reqId)
   const lonFieldName = fieldNameStore.getLonFieldName(reqId)
+  const heightFieldName = fieldNameStore.getHFieldName(reqId)
   const timeFieldName = fieldNameStore.getTimeFieldName(reqId)
 
   // Get DuckDB client and column types to detect geometry
@@ -2305,15 +2306,14 @@ export async function buildSelectClauseFromStore(reqIdStr: string): Promise<stri
     allColumns.push(timeFieldName)
   }
 
-  // Build column expressions with proper quoting and geometry extraction
-  const columnExpressions = allColumns.map((col) => {
-    if (hasGeometry && col === lonFieldName) {
-      return `ST_X(${duckDbClient.escape('geometry')}) AS ${duckDbClient.escape(col)}`
-    } else if (hasGeometry && col === latFieldName) {
-      return `ST_Y(${duckDbClient.escape('geometry')}) AS ${duckDbClient.escape(col)}`
-    } else {
-      return duckDbClient.escape(col)
-    }
+  // Build column expressions using shared helper
+  const columnExpressions = buildColumnExpressions(allColumns, {
+    hasGeometry,
+    geometryInfo,
+    latFieldName,
+    lonFieldName,
+    heightFieldName,
+    escape: duckDbClient.escape
   })
 
   const columnsStr = columnExpressions.join(', ')
