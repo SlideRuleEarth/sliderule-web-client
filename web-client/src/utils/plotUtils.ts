@@ -2260,3 +2260,62 @@ export function clearPlotHighlight(): void {
     lastHighlightedDataIndex = null
   }
 }
+
+/**
+ * Build a SQL SELECT clause from current store values.
+ * This function is decoupled from plot rendering and can be called independently.
+ * Properly handles:
+ * - Column quoting
+ * - Geometry column extraction (ST_X/ST_Y for lat/lon)
+ * - Time field inclusion
+ *
+ * @param reqIdStr - Request ID string
+ * @returns SQL SELECT...FROM clause, or empty string if data not available
+ */
+export async function buildSelectClauseFromStore(reqIdStr: string): Promise<string> {
+  const chartStore = useChartStore()
+  const fieldNameStore = useFieldNameStore()
+  const reqId = parseInt(reqIdStr)
+
+  const fileName = chartStore.getFile(reqIdStr)
+  const xColumn = chartStore.getXDataForChart(reqIdStr)
+  const yColumns = chartStore.getYDataOptions(reqIdStr)
+
+  if (!fileName || !xColumn) {
+    return ''
+  }
+
+  // Get field names for special handling
+  const latFieldName = fieldNameStore.getLatFieldName(reqId)
+  const lonFieldName = fieldNameStore.getLonFieldName(reqId)
+  const timeFieldName = fieldNameStore.getTimeFieldName(reqId)
+
+  // Get DuckDB client and column types to detect geometry
+  const duckDbClient = await createDuckDbClient()
+  await duckDbClient.insertOpfsParquet(fileName)
+  const colTypes = await duckDbClient.queryColumnTypes(fileName)
+  const geometryInfo = getGeometryInfo(colTypes, reqId)
+  const hasGeometry = geometryInfo?.hasGeometry ?? false
+
+  // Build column list: x column + y columns
+  const allColumns = [xColumn, ...yColumns].filter(Boolean)
+
+  // Ensure time field is included if not already present
+  if (timeFieldName && !allColumns.includes(timeFieldName)) {
+    allColumns.push(timeFieldName)
+  }
+
+  // Build column expressions with proper quoting and geometry extraction
+  const columnExpressions = allColumns.map((col) => {
+    if (hasGeometry && col === lonFieldName) {
+      return `ST_X(${duckDbClient.escape('geometry')}) AS ${duckDbClient.escape(col)}`
+    } else if (hasGeometry && col === latFieldName) {
+      return `ST_Y(${duckDbClient.escape('geometry')}) AS ${duckDbClient.escape(col)}`
+    } else {
+      return duckDbClient.escape(col)
+    }
+  })
+
+  const columnsStr = columnExpressions.join(', ')
+  return `SELECT ${columnsStr} \nFROM '${fileName}'`
+}
