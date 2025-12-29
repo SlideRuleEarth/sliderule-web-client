@@ -21,7 +21,8 @@ import {
   initializeColorEncoding,
   initSymbolSize,
   callPlotUpdateDebounced,
-  setTooltipContentCallback
+  setTooltipContentCallback,
+  updateLocationFinderFromEvent
 } from '@/utils/plotUtils'
 import SrRunControl from '@/components/SrRunControl.vue'
 import { processRunSlideRuleClicked } from '@/utils/workerDomUtils'
@@ -562,6 +563,13 @@ watch(
         })()
       })
 
+      // Update location finder on mouseover (works even when tooltip is disabled)
+      chartInstance.on('mouseover', (params: any) => {
+        const latFieldName = fieldNameStore.getLatFieldName(recTreeStore.selectedReqId)
+        const lonFieldName = fieldNameStore.getLonFieldName(recTreeStore.selectedReqId)
+        updateLocationFinderFromEvent(params, latFieldName, lonFieldName)
+      })
+
       // Add context menu handler to chart DOM element
       const chartDom = chartInstance.getDom()
       if (chartDom) {
@@ -678,6 +686,15 @@ watch(
     })
     // Handle the change in slope lines visibility
     await callPlotUpdateDebounced('from watch atlChartFilterStore.showSlopeLines')
+  }
+)
+
+watch(
+  () => globalChartStore.showPlotTooltip,
+  (newValue) => {
+    if (plotRef.value?.chart) {
+      plotRef.value.chart.setOption({ tooltip: { show: newValue } })
+    }
   }
 )
 
@@ -944,6 +961,13 @@ watch(
           "
           class="slope-checkbox-group"
         >
+          <Checkbox
+            v-model="globalChartStore.showPlotTooltip"
+            binary
+            inputId="plotTooltipCheckbox"
+            size="small"
+          />
+          <label for="plotTooltipCheckbox" class="sr-checkbox-label">Tooltip</label>
           <Checkbox
             v-if="
               recTreeStore.selectedApi.includes('atl06') ||

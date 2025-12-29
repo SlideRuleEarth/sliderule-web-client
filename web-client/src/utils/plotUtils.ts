@@ -752,6 +752,23 @@ export function setTooltipContentCallback(callback: ((_text: string) => void) | 
   tooltipContentCallback = callback
 }
 
+// Update location finder from chart mouseover event (works even when tooltip is disabled)
+export function updateLocationFinderFromEvent(
+  params: any,
+  latFieldName: string,
+  lonFieldName: string
+) {
+  if (!params?.data || !params?.dimensionNames) return
+
+  const paramsData = params.data
+  const paramsDim = params.dimensionNames as string[]
+
+  paramsDim.forEach((dim, ndx) => {
+    const val = paramsData[ndx]
+    filterDataForPos(dim, val, latFieldName, lonFieldName)
+  })
+}
+
 export function formatTooltip(
   params: any,
   latFieldName: string,
@@ -1178,6 +1195,7 @@ export async function getScatterOptions(req_id: number): Promise<any> {
           }
         },
         tooltip: {
+          show: globalChartStore.showPlotTooltip,
           trigger: 'item',
           formatter: (params: any) => formatTooltip(params, latFieldName, lonFieldName, reqIdStr),
           confine: true,
@@ -2202,16 +2220,9 @@ export function highlightPlotPointByCoordinates(lat: number, lon: number, reqIdS
       })
     }
 
-    // Highlight the matched point
+    // Highlight the matched point (tooltip only shown on direct plot hover, not map hover)
     plotRef.chart.dispatchAction({
       type: 'highlight',
-      seriesIndex: 0,
-      dataIndex: matchedIndex
-    })
-
-    // Also show the tooltip at that point
-    plotRef.chart.dispatchAction({
-      type: 'showTip',
       seriesIndex: 0,
       dataIndex: matchedIndex
     })

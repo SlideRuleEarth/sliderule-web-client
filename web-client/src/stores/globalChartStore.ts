@@ -42,6 +42,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
   const allColumnMinMaxValues = ref<MinMaxLowHigh>({})
   const usePercentileRange = ref<boolean>(false)
   const useMapLegendFullRange = ref<boolean>(true)
+  const showPlotTooltip = ref<boolean>(false)
 
   function setCycleOptions(newCycleOptions: SrListNumberItem[]) {
     cycleOptions.value = newCycleOptions
@@ -515,6 +516,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     getLow,
     getHigh,
     usePercentileRange,
-    useMapLegendFullRange
+    useMapLegendFullRange,
+    showPlotTooltip
   }
 })
