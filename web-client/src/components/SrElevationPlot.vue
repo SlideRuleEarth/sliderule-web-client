@@ -682,11 +682,11 @@ watch(
 )
 
 watch(
-  () => atlChartFilterStore.includeAtl08,
+  () => atlChartFilterStore.excludeAtl08,
   async (newValue) => {
-    logger.debug('ATL08 inclusion changed', {
+    logger.debug('ATL08 exclusion changed', {
       newValue,
-      includeAtl08: atlChartFilterStore.includeAtl08,
+      excludeAtl08: atlChartFilterStore.excludeAtl08,
       showPhotonCloud: atlChartFilterStore.showPhotonCloud
     })
     // If photon cloud is visible, reload it with the new ATL08 setting

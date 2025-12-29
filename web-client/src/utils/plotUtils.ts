@@ -1909,7 +1909,7 @@ export async function getPhotonOverlayRunContext(): Promise<SrRunContext> {
   }
   if (atlChartFilterStore.getShowPhotonCloud()) {
     //console.log('Show Photon Cloud Overlay checked');
-    const reqId = await indexedDb.findCachedRec(runContext, useAtlChartFilterStore().includeAtl08)
+    const reqId = await indexedDb.findCachedRec(runContext, !useAtlChartFilterStore().excludeAtl08)
     if (reqId && reqId > 0) {
       // Use the cached request
       runContext.reqId = reqId

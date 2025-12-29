@@ -182,7 +182,7 @@ async function enableLocationFinder(): Promise<void> {
 
 onMounted(() => {
   // Reset the ATL08 classification checkbox when component loads
-  atlChartFilterStore.includeAtl08 = true
+  atlChartFilterStore.excludeAtl08 = false
   void enableLocationFinder()
 })
 
@@ -269,10 +269,10 @@ watch(
         v-if="showAtl08Checkbox && !props.isOverlay"
         class="sr-checkbox-style"
         :defaultValue="false"
-        label="Include ATL08 classification in photon cloud overlay"
+        label="Exclude ATL08 classification from photon cloud overlay"
         labelFontSize="small"
-        v-model="atlChartFilterStore.includeAtl08"
-        tooltipText="Include ATL08 classification in photon cloud overlay"
+        v-model="atlChartFilterStore.excludeAtl08"
+        tooltipText="Exclude ATL08 classification from photon cloud overlay. On rare occasions, when Atl08 data causes issues with rendering the photon cloud, you can exclude it here."
         size="small"
       />
       <!-- Array Column Configuration -->
