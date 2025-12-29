@@ -938,22 +938,6 @@ watch(
           </ToggleButton>
         </div>
         <div
-          v-if="mission === 'ICESat-2'"
-          class="atl08-checkbox-group"
-          @mouseover="
-            tooltipRef?.showTooltip($event, 'Include ATL08 classification in photon cloud overlay')
-          "
-          @mouseleave="tooltipRef?.hideTooltip()"
-        >
-          <Checkbox
-            v-model="atlChartFilterStore.includeAtl08"
-            binary
-            inputId="elevPlotAtl08Checkbox"
-            size="small"
-          />
-          <label for="elevPlotAtl08Checkbox" class="sr-checkbox-label">with atl08</label>
-        </div>
-        <div
           v-if="
             recTreeStore.selectedApi.includes('atl06') ||
             recTreeStore.selectedApi.includes('atl03x-surface')
@@ -978,7 +962,7 @@ watch(
             "
             for="sslCheckbox"
             class="sr-checkbox-label"
-            >Show linear fit for each segment</label
+            >linear fit</label
           >
         </div>
         <SrRunControl :includeAdvToggle="false" buttonLabel="Photon Cloud" />
@@ -1205,13 +1189,6 @@ watch(
   flex-direction: row;
   align-items: center; /* vertical centering */
   margin-left: 0.25rem;
-}
-
-.atl08-checkbox-group {
-  display: flex;
-  flex-direction: row;
-  align-items: center; /* vertical centering */
-  margin-left: 0rem;
 }
 
 .sr-checkbox-label {

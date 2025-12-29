@@ -23,6 +23,7 @@ import { useFieldNameStore } from '@/stores/fieldNameStore'
 import { useToast } from 'primevue'
 import { useActiveTabStore } from '@/stores/activeTabStore'
 import { useDeck3DConfigStore } from '@/stores/deck3DConfigStore'
+import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore'
 import { loadAndCachePointCloudData } from '@/utils/deck3DPlotUtils'
 import { renderCachedData } from '@/utils/deck3DPlotUtils'
 import { useSrcIdTblStore } from '@/stores/srcIdTblStore'
@@ -39,6 +40,7 @@ const deck3DConfigStore = useDeck3DConfigStore()
 const { deckContainer } = storeToRefs(deck3DConfigStore)
 const activeTabStore = useActiveTabStore()
 const srcIdTblStore = useSrcIdTblStore()
+const atlChartFilterStore = useAtlChartFilterStore()
 
 // Define props with TypeScript types
 const props = withDefaults(
@@ -59,6 +61,11 @@ const computedReqIdStr = computed(() => {
 const computedFunc = computed(() => {
   if (!recTreeStore.isTreeLoaded) return ''
   return recTreeStore.findApiForReqId(props.reqId)
+})
+
+const showAtl08Checkbox = computed(() => {
+  const mission = fieldNameStore.getMissionForReqId(props.reqId)
+  return mission === 'ICESat-2' && !recTreeStore.selectedApi.includes('atl13x')
 })
 
 const computedLabel = computed(() => {
@@ -174,6 +181,8 @@ async function enableLocationFinder(): Promise<void> {
 }
 
 onMounted(() => {
+  // Reset the ATL08 classification checkbox when component loads
+  atlChartFilterStore.includeAtl08 = true
   void enableLocationFinder()
 })
 
@@ -255,6 +264,16 @@ watch(
         tooltipText="Use Percentile Range: Filtered(low/high) vs Full(min/max)"
         size="small"
         @update:modelValue="onUsePercentileRangeChange"
+      />
+      <SrCheckbox
+        v-if="showAtl08Checkbox && !props.isOverlay"
+        class="sr-checkbox-style"
+        :defaultValue="false"
+        label="Include ATL08 classification in photon cloud overlay"
+        labelFontSize="small"
+        v-model="atlChartFilterStore.includeAtl08"
+        tooltipText="Include ATL08 classification in photon cloud overlay"
+        size="small"
       />
       <!-- Array Column Configuration -->
       <SrArrayColumnConfig
