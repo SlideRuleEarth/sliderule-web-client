@@ -155,7 +155,7 @@ function formatClaimValue(key: string, value: unknown): string {
     v-if="canAccess"
     legend="JWT Decoder"
     toggleable
-    :collapsed="true"
+    :collapsed="false"
     class="sr-decoder-fieldset"
   >
     <p class="sr-decoder-desc">Paste any JWT to view its claims:</p>

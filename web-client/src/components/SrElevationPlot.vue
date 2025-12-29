@@ -21,11 +21,16 @@ import {
   initializeColorEncoding,
   initSymbolSize,
   callPlotUpdateDebounced,
-  setTooltipContentCallback
+  setTooltipContentCallback,
+  updateLocationFinderFromEvent
 } from '@/utils/plotUtils'
 import SrRunControl from '@/components/SrRunControl.vue'
 import { processRunSlideRuleClicked } from '@/utils/workerDomUtils'
-import { initDataBindingsToChartStore } from '@/utils/plotUtils'
+import {
+  initDataBindingsToChartStore,
+  highlightPlotPointByCoordinates,
+  clearPlotHighlight
+} from '@/utils/plotUtils'
 import { useRecTreeStore } from '@/stores/recTreeStore'
 import SrPlotCntrl from './SrPlotCntrl.vue'
 import { useAutoReqParamsStore } from '@/stores/reqParamsStore'
@@ -558,6 +563,13 @@ watch(
         })()
       })
 
+      // Update location finder on mouseover (works even when tooltip is disabled)
+      chartInstance.on('mouseover', (params: any) => {
+        const latFieldName = fieldNameStore.getLatFieldName(recTreeStore.selectedReqId)
+        const lonFieldName = fieldNameStore.getLonFieldName(recTreeStore.selectedReqId)
+        updateLocationFinderFromEvent(params, latFieldName, lonFieldName)
+      })
+
       // Add context menu handler to chart DOM element
       const chartDom = chartInstance.getDom()
       if (chartDom) {
@@ -678,16 +690,43 @@ watch(
 )
 
 watch(
-  () => atlChartFilterStore.includeAtl08,
+  () => globalChartStore.showPlotTooltip,
+  (newValue) => {
+    if (plotRef.value?.chart) {
+      plotRef.value.chart.setOption({ tooltip: { show: newValue } })
+    }
+  }
+)
+
+watch(
+  () => atlChartFilterStore.excludeAtl08,
   async (newValue) => {
-    logger.debug('ATL08 inclusion changed', {
+    logger.debug('ATL08 exclusion changed', {
       newValue,
-      includeAtl08: atlChartFilterStore.includeAtl08,
+      excludeAtl08: atlChartFilterStore.excludeAtl08,
       showPhotonCloud: atlChartFilterStore.showPhotonCloud
     })
     // If photon cloud is visible, reload it with the new ATL08 setting
     if (atlChartFilterStore.showPhotonCloud) {
       await handlePhotonCloudShow()
+    }
+  }
+)
+
+// Watch for map hover coordinates to highlight corresponding point on plot
+watch(
+  () => [
+    globalChartStore.mapHoverLat,
+    globalChartStore.mapHoverLon,
+    globalChartStore.mapHoverActive
+  ],
+  ([lat, lon, active]) => {
+    if (!active || lat === null || lon === null) {
+      clearPlotHighlight()
+      return
+    }
+    if (globalChartStore.enableLocationFinder && recTreeStore.selectedReqIdStr) {
+      highlightPlotPointByCoordinates(lat as number, lon as number, recTreeStore.selectedReqIdStr)
     }
   }
 )
@@ -915,21 +954,14 @@ watch(
           >
           </ToggleButton>
         </div>
-        <div
-          v-if="mission === 'ICESat-2'"
-          class="atl08-checkbox-group"
-          @mouseover="
-            tooltipRef?.showTooltip($event, 'Include ATL08 classification in photon cloud overlay')
-          "
-          @mouseleave="tooltipRef?.hideTooltip()"
-        >
+        <div class="plot-tooltip-checkbox-group">
           <Checkbox
-            v-model="atlChartFilterStore.includeAtl08"
+            v-model="globalChartStore.showPlotTooltip"
             binary
-            inputId="elevPlotAtl08Checkbox"
+            inputId="plotTooltipCheckbox"
             size="small"
           />
-          <label for="elevPlotAtl08Checkbox" class="sr-checkbox-label">with atl08</label>
+          <label for="plotTooltipCheckbox" class="sr-checkbox-label">Tooltip</label>
         </div>
         <div
           v-if="
@@ -939,25 +971,13 @@ watch(
           class="slope-checkbox-group"
         >
           <Checkbox
-            v-if="
-              recTreeStore.selectedApi.includes('atl06') ||
-              recTreeStore.selectedApi.includes('atl03x-surface')
-            "
             v-model="atlChartFilterStore.showSlopeLines"
             binary
             inputId="sslCheckbox"
             size="small"
             :tooltipText="'Show linear fit for each segment'"
           />
-          <label
-            v-if="
-              recTreeStore.selectedApi.includes('atl06') ||
-              recTreeStore.selectedApi.includes('atl03x-surface')
-            "
-            for="sslCheckbox"
-            class="sr-checkbox-label"
-            >Show linear fit for each segment</label
-          >
+          <label for="sslCheckbox" class="sr-checkbox-label">linear fit</label>
         </div>
         <SrRunControl :includeAdvToggle="false" buttonLabel="Photon Cloud" />
       </div>
@@ -1178,18 +1198,17 @@ watch(
   min-width: 10rem;
 }
 
+.plot-tooltip-checkbox-group {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
 .slope-checkbox-group {
   display: flex;
   flex-direction: row;
   align-items: center; /* vertical centering */
   margin-left: 0.25rem;
-}
-
-.atl08-checkbox-group {
-  display: flex;
-  flex-direction: row;
-  align-items: center; /* vertical centering */
-  margin-left: 0rem;
 }
 
 .sr-checkbox-label {
@@ -1207,7 +1226,7 @@ watch(
 }
 
 .sr-show-hide-button {
-  margin: 1rem;
+  margin: 0.25rem;
   min-width: 10rem;
   border-radius: 2rem;
 }

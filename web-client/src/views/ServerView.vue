@@ -1,13 +1,20 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import SingleColumnLayout from '@/layouts/SingleColumnLayout.vue'
 import Card from 'primevue/card'
+import Tabs from 'primevue/tabs'
+import TabList from 'primevue/tablist'
+import Tab from 'primevue/tab'
+import TabPanels from 'primevue/tabpanels'
+import TabPanel from 'primevue/tabpanel'
 import Message from 'primevue/message'
 import SrSysConfig from '@/components/SrSysConfig.vue'
 import SrDeployConfig from '@/components/SrDeployConfig.vue'
+import SrClusterStackStatus from '@/components/SrClusterStackStatus.vue'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 
 const githubAuthStore = useGitHubAuthStore()
+const activeTab = ref('sysconfig')
 
 // Auth state computed properties
 const isAuthenticated = computed(() => {
@@ -56,19 +63,29 @@ const statusMessage = computed(() => {
       <Card class="sr-server-card">
         <template #title>
           <div class="sr-server-title">Server</div>
-        </template>
-        <template #content>
           <Message :severity="statusSeverity" :closable="false" class="sr-server-status">
             {{ statusMessage }}
           </Message>
-
-          <div class="sr-server-section">
-            <SrSysConfig :disabled="!isAuthenticated" />
-          </div>
-
-          <div v-if="canAccessMemberFeatures" class="sr-server-section">
-            <SrDeployConfig />
-          </div>
+        </template>
+        <template #content>
+          <Tabs v-model:value="activeTab">
+            <TabList>
+              <Tab value="sysconfig">Current Connection</Tab>
+              <Tab v-if="canAccessMemberFeatures" value="deployconfig">Deploy</Tab>
+              <Tab v-if="canAccessMemberFeatures" value="clusterstatus">Stack Status</Tab>
+            </TabList>
+            <TabPanels>
+              <TabPanel value="sysconfig">
+                <SrSysConfig :disabled="!isAuthenticated" />
+              </TabPanel>
+              <TabPanel v-if="canAccessMemberFeatures" value="deployconfig">
+                <SrDeployConfig />
+              </TabPanel>
+              <TabPanel v-if="canAccessMemberFeatures" value="clusterstatus">
+                <SrClusterStackStatus />
+              </TabPanel>
+            </TabPanels>
+          </Tabs>
         </template>
       </Card>
     </template>

@@ -3,7 +3,6 @@ import { ref } from 'vue'
 import {
   fetchServerVersionInfo as fetchVersionUtil,
   fetchCurrentNodes as fetchNodesUtil,
-  fetchStackStatus as fetchStackStatusUtil,
   type StackStatus
 } from '@/utils/fetchUtils'
 
@@ -59,22 +58,6 @@ export const useDeployConfigStore = defineStore(
     }
 
     /**
-     * Fetch stack status for a single cluster.
-     */
-    async function fetchClusterStackStatus(cluster: string): Promise<StackStatus> {
-      const result = await fetchStackStatusUtil(cluster, domain.value)
-      clusterStackStatus.value[cluster] = result.status
-      return result.status
-    }
-
-    /**
-     * Refresh stack status for all provided clusters.
-     */
-    async function refreshAllClusterStatus(clusters: string[]): Promise<void> {
-      await Promise.all(clusters.map(async (c) => fetchClusterStackStatus(c)))
-    }
-
-    /**
      * Check if a cluster should be disabled based on its stack status.
      */
     function isClusterDisabled(cluster: string): boolean {
@@ -122,8 +105,6 @@ export const useDeployConfigStore = defineStore(
       resetStatus,
       fetchServerVersionInfo,
       fetchCurrentNodes,
-      fetchClusterStackStatus,
-      refreshAllClusterStatus,
       isClusterDisabled,
       getStackStatusLabel
     }

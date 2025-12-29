@@ -32,6 +32,7 @@ import { useDeckStore } from '@/stores/deckStore'
 import SrProgressSpinnerControl from '@/components/SrProgressSpinnerControl.vue'
 import { useAnalysisMapStore } from '@/stores/analysisMapStore'
 import { useGlobalChartStore } from '@/stores/globalChartStore'
+import { useChartStore } from '@/stores/chartStore'
 import { callPlotUpdateDebounced } from '@/utils/plotUtils'
 import { setCyclesGtsSpotsFromFileUsingRgtYatc, updateSrViewName } from '@/utils/SrMapUtils'
 import Checkbox from 'primevue/checkbox'
@@ -209,9 +210,38 @@ const elevationIsLoading = computed(
 const loadStateStr = computed(() => {
   return elevationIsLoading.value ? 'Loading' : 'Loaded'
 })
-const computedHFieldName = computed(() => {
+const chartStore = useChartStore()
+// Track the color field currently displayed on the map (not just selected in dropdown)
+const currentMapColorField = ref<string>('')
+
+// Update the map color field - call this when the map actually updates
+const updateCurrentMapColorField = () => {
+  const selectedColorField = chartStore.getSelectedColorEncodeData(recTreeStore.selectedReqIdStr)
+  if (selectedColorField && selectedColorField !== 'solid' && selectedColorField !== 'unset') {
+    currentMapColorField.value = selectedColorField
+  } else {
+    currentMapColorField.value = fncs.getHFieldName(recTreeStore.selectedReqId)
+  }
+}
+
+const computedLegendDataKey = computed(() => {
+  // Use the current map color field, or fall back to height field if not yet set
+  if (currentMapColorField.value) {
+    return currentMapColorField.value
+  }
   return fncs.getHFieldName(recTreeStore.selectedReqId)
 })
+
+// Watch for color encoding changes - only update legend when "Link to Plot" is enabled
+watch(
+  () => chartStore.getSelectedColorEncodeData(recTreeStore.selectedReqIdStr),
+  () => {
+    if (globalChartStore.enableLocationFinder) {
+      updateCurrentMapColorField()
+    }
+  }
+)
+
 const computedMission = computed(() => {
   return fncs.getMissionForReqId(recTreeStore.selectedReqId)
 })
@@ -715,6 +745,7 @@ const updateAnalysisMapView = async (reason: string) => {
         }
 
         await updateMapAndPlot(`SrAnalysisMap: ${reason}`)
+        updateCurrentMapColorField()
       } else {
         logger.error('srViewKey is null')
       }
@@ -894,7 +925,7 @@ function handleSaveTooltip() {
         <SrLegendControl
           @legend-control-created="handleLegendControlCreated"
           :reqIdStr="recTreeStore.selectedReqIdStr"
-          :data_key="computedHFieldName"
+          :data_key="computedLegendDataKey"
         >
         </SrLegendControl>
         <SrRecSelectControl

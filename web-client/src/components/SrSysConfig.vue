@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { computed, watch, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import AutoComplete from 'primevue/autocomplete'
 import Select from 'primevue/select'
 import Button from 'primevue/button'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 import { useSysConfigStore } from '@/stores/sysConfigStore'
 import { useLegacyJwtStore } from '@/stores/SrLegacyJwtStore'
-import { useClusterReachability } from '@/composables/useClusterReachability'
 import { storeToRefs } from 'pinia'
 
 const props = defineProps<{
@@ -16,39 +16,31 @@ const githubAuthStore = useGitHubAuthStore()
 const sysConfigStore = useSysConfigStore()
 const legacyJwtStore = useLegacyJwtStore()
 
-const { domain, cluster, version, current_nodes, canConnectVersion, canConnectNodes } =
+const { domain, subdomain, version, cluster, current_nodes, canConnectVersion, canConnectNodes } =
   storeToRefs(sysConfigStore)
+
+// Filtered suggestions for autocomplete
+const filteredSubdomains = ref<string[]>([])
 
 async function refreshStatus() {
   sysConfigStore.resetStatus()
   await Promise.all([sysConfigStore.fetchServerVersionInfo(), sysConfigStore.fetchCurrentNodes()])
 }
 
-// Refresh status when domain or cluster changes
-watch([domain, cluster], () => {
-  void refreshStatus()
-})
-
 // Fetch status on mount
 onMounted(() => {
   void refreshStatus()
 })
 
-// Cluster options from auth (includes 'sliderule' public cluster)
-const clusterOptions = computed(() => {
-  // If authenticated, use knownClusters (which includes 'sliderule')
-  if (githubAuthStore.knownClusters?.length > 0) {
-    return githubAuthStore.knownClusters
+// Subdomain options from auth (includes 'sliderule' public subdomain)
+const subDomainOptions = computed(() => {
+  // If authenticated, use knownSubdomains (which includes 'sliderule')
+  if (githubAuthStore.knownSubdomains?.length > 0) {
+    return githubAuthStore.knownSubdomains
   }
   // Fallback for non-authenticated users
   return ['sliderule']
 })
-
-// Use composable for cluster reachability
-const { refreshClusterReachability, clusterOptionsWithState } = useClusterReachability(
-  clusterOptions,
-  domain
-)
 
 // Available domain options - testsliderule.org only for org owners
 const domainOptions = computed(() => {
@@ -58,49 +50,100 @@ const domainOptions = computed(() => {
   return ['slideruleearth.io']
 })
 
+// Search/filter functions for autocomplete
+function searchSubdomains(event: { query: string }) {
+  const query = event.query.toLowerCase()
+  const options = subDomainOptions.value
+  if (!query) {
+    filteredSubdomains.value = [...options]
+  } else {
+    filteredSubdomains.value = options.filter((s) => s.toLowerCase().includes(query))
+  }
+}
+
+// Clear status display when user starts typing (clears stale red values)
+function onInputChange() {
+  sysConfigStore.resetStatus()
+}
+
+// Event handlers - only refresh on Enter, blur, or item select (not every keystroke)
+function onSubdomainKeydown(event: KeyboardEvent) {
+  if (event.key === 'Enter') {
+    void refreshStatus()
+  }
+}
+
+function onSubdomainBlur() {
+  void refreshStatus()
+}
+
+function onSubdomainItemSelect() {
+  sysConfigStore.resetStatus()
+  void refreshStatus()
+}
+
+function onDomainChange() {
+  sysConfigStore.resetStatus()
+  void refreshStatus()
+}
+
 // Disable reset button if already on public cluster
 const isPublicCluster = computed(
-  () => cluster.value === 'sliderule' && domain.value === 'slideruleearth.io'
+  () => subdomain.value === 'sliderule' && domain.value === 'slideruleearth.io'
 )
 
-// Reset to public cluster
-function resetToPublicCluster() {
+// Reset to public subdomain and domain
+function resetToPublicDomain() {
   legacyJwtStore.clearAllJwts()
   sysConfigStore.$reset()
   // Set defaults: slideruleearth.io and sliderule
   domain.value = 'slideruleearth.io'
-  cluster.value = 'sliderule'
-  // Note: watch will trigger refreshStatus automatically
+  subdomain.value = 'sliderule'
+  void refreshStatus()
 }
 </script>
 
 <template>
   <div class="sr-sysconfig">
-    <h4 class="sr-sysconfig-header">Current Domain & Cluster</h4>
-    <div class="sr-sysconfig-field">
-      <label for="sysconfig-domain" class="sr-sysconfig-label">Domain</label>
-      <Select
-        id="sysconfig-domain"
-        v-model="domain"
-        :options="domainOptions"
-        :disabled="props.disabled"
-        class="sr-sysconfig-select"
-      />
+    <div class="sr-sysconfig-domain-row">
+      <label class="sr-sysconfig-connect-label">https://</label>
+      <div class="sr-sysconfig-select-group">
+        <AutoComplete
+          id="sysconfig-subdomain"
+          v-model="subdomain"
+          :suggestions="filteredSubdomains"
+          :dropdown="true"
+          :forceSelection="false"
+          placeholder="subdomain"
+          :disabled="props.disabled"
+          class="sr-sysconfig-subdomain"
+          @complete="searchSubdomains"
+          @input="onInputChange"
+          @keydown="onSubdomainKeydown"
+          @blur="onSubdomainBlur"
+          @item-select="onSubdomainItemSelect"
+        />
+        <span class="sr-sysconfig-hint">subdomain</span>
+      </div>
+      <span class="sr-sysconfig-dot">.</span>
+      <div class="sr-sysconfig-select-group">
+        <Select
+          id="sysconfig-domain"
+          v-model="domain"
+          :options="domainOptions"
+          placeholder="domain"
+          :disabled="props.disabled"
+          class="sr-sysconfig-domain"
+          @change="onDomainChange"
+        />
+        <span class="sr-sysconfig-hint">domain</span>
+      </div>
     </div>
     <div class="sr-sysconfig-field">
-      <label for="sysconfig-cluster" class="sr-sysconfig-label">Cluster</label>
-      <Select
-        id="sysconfig-cluster"
-        v-model="cluster"
-        :editable="true"
-        :options="clusterOptionsWithState"
-        optionLabel="label"
-        optionValue="value"
-        optionDisabled="disabled"
-        :disabled="props.disabled"
-        class="sr-sysconfig-select"
-        @show="refreshClusterReachability"
-      />
+      <label class="sr-sysconfig-label">Cluster</label>
+      <span :class="['sr-sysconfig-value', `sr-status-${canConnectVersion}`]">
+        {{ cluster || 'unknown' }}
+      </span>
     </div>
     <div class="sr-sysconfig-field">
       <label class="sr-sysconfig-label">Version</label>
@@ -123,7 +166,7 @@ function resetToPublicCluster() {
         variant="text"
         rounded
         :disabled="isPublicCluster"
-        @click="resetToPublicCluster"
+        @click="resetToPublicDomain"
       />
       <Button
         label="Refresh Status"
@@ -145,12 +188,50 @@ function resetToPublicCluster() {
   padding: 0.5rem 0;
 }
 
-.sr-sysconfig-header {
-  margin: 0 0 0.5rem 0;
-  font-size: 0.9rem;
-  font-weight: 600;
-  text-align: center;
-  color: var(--p-primary-color);
+.sr-sysconfig-domain-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.sr-sysconfig-connect-label {
+  font-family: var(--font-family);
+  font-size: 1rem;
+  white-space: nowrap;
+  margin-right: 0.5rem;
+  color: var(--p-text-muted-color);
+  align-self: flex-start;
+  padding-top: 0.5rem;
+}
+
+.sr-sysconfig-select-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.sr-sysconfig-hint {
+  font-size: 0.65rem;
+  color: var(--p-text-muted-color);
+  margin-top: 0.15rem;
+}
+
+.sr-sysconfig-subdomain {
+  width: 10em;
+}
+
+.sr-sysconfig-dot {
+  font-family: var(--font-family);
+  font-size: 1rem;
+  font-weight: bold;
+  color: var(--p-text-muted-color);
+  align-self: flex-start;
+  padding-top: 0.5rem;
+}
+
+.sr-sysconfig-domain {
+  width: 12em;
 }
 
 .sr-sysconfig-field {
@@ -163,10 +244,6 @@ function resetToPublicCluster() {
   font-size: small;
   white-space: nowrap;
   margin-right: 0.5rem;
-}
-
-.sr-sysconfig-select {
-  width: 15em;
 }
 
 .sr-sysconfig-value {

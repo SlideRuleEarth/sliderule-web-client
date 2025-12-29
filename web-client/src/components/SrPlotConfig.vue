@@ -9,6 +9,7 @@ import { storeToRefs } from 'pinia'
 import { useChartStore } from '@/stores/chartStore'
 import { onMounted, computed, watch } from 'vue'
 import SrCheckbox from './SrCheckbox.vue'
+import SrArrayColumnConfig from './SrArrayColumnConfig.vue'
 import {
   yDataBindingsReactive,
   findReqMenuLabel,
@@ -22,6 +23,7 @@ import { useFieldNameStore } from '@/stores/fieldNameStore'
 import { useToast } from 'primevue'
 import { useActiveTabStore } from '@/stores/activeTabStore'
 import { useDeck3DConfigStore } from '@/stores/deck3DConfigStore'
+import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore'
 import { loadAndCachePointCloudData } from '@/utils/deck3DPlotUtils'
 import { renderCachedData } from '@/utils/deck3DPlotUtils'
 import { useSrcIdTblStore } from '@/stores/srcIdTblStore'
@@ -38,6 +40,7 @@ const deck3DConfigStore = useDeck3DConfigStore()
 const { deckContainer } = storeToRefs(deck3DConfigStore)
 const activeTabStore = useActiveTabStore()
 const srcIdTblStore = useSrcIdTblStore()
+const atlChartFilterStore = useAtlChartFilterStore()
 
 // Define props with TypeScript types
 const props = withDefaults(
@@ -58,6 +61,11 @@ const computedReqIdStr = computed(() => {
 const computedFunc = computed(() => {
   if (!recTreeStore.isTreeLoaded) return ''
   return recTreeStore.findApiForReqId(props.reqId)
+})
+
+const showAtl08Checkbox = computed(() => {
+  const mission = fieldNameStore.getMissionForReqId(props.reqId)
+  return mission === 'ICESat-2' && !recTreeStore.selectedApi.includes('atl13x')
 })
 
 const computedLabel = computed(() => {
@@ -122,6 +130,12 @@ async function handleGediFieldNameChange(event: SelectChangeEvent) {
   }
 }
 
+function onDerivedColumnsChanged(derivedColumns: string[]) {
+  logger.debug('Derived columns changed from array config', { derivedColumns })
+  // The SrArrayColumnConfig component already updates the elevation data options
+  // and triggers plot update, so we just log here for debugging
+}
+
 async function enableLocationFinder(): Promise<void> {
   const latField = fieldNameStore.getLatFieldName(props.reqId)
   const lonField = fieldNameStore.getLonFieldName(props.reqId)
@@ -167,6 +181,8 @@ async function enableLocationFinder(): Promise<void> {
 }
 
 onMounted(() => {
+  // Reset the ATL08 classification checkbox when component loads
+  atlChartFilterStore.excludeAtl08 = false
   void enableLocationFinder()
 })
 
@@ -248,6 +264,22 @@ watch(
         tooltipText="Use Percentile Range: Filtered(low/high) vs Full(min/max)"
         size="small"
         @update:modelValue="onUsePercentileRangeChange"
+      />
+      <SrCheckbox
+        v-if="showAtl08Checkbox && !props.isOverlay"
+        class="sr-checkbox-style"
+        :defaultValue="false"
+        label="Exclude ATL08 classification from photon cloud overlay"
+        labelFontSize="small"
+        v-model="atlChartFilterStore.excludeAtl08"
+        tooltipText="Exclude ATL08 classification from photon cloud overlay. On rare occasions, when Atl08 data causes issues with rendering the photon cloud, you can exclude it here."
+        size="small"
+      />
+      <!-- Array Column Configuration -->
+      <SrArrayColumnConfig
+        v-if="!props.isOverlay"
+        :reqId="props.reqId"
+        @derived-columns-changed="onDerivedColumnsChanged"
       />
       <div class="sr-ged02ap-el-select" v-if="recTreeStore.selectedApi == 'gedi02ap'">
         <label class="sr-ged02ap-elevation-label" :for="`sr-ged02ap-elevation-field-select`"

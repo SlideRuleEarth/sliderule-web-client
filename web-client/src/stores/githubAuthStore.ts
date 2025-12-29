@@ -18,6 +18,7 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
     teams: [] as string[],
     teamRoles: {} as Record<string, string>,
     orgRoles: [] as string[],
+    knownSubdomains: [] as string[],
     knownClusters: [] as string[],
     deployableClusters: [] as string[],
     token: null as string | null,
@@ -44,6 +45,7 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
       'teams',
       'teamRoles',
       'orgRoles',
+      'knownSubdomains',
       'knownClusters',
       'deployableClusters',
       'token',
@@ -234,9 +236,12 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
       this.teams = params.teams ? params.teams.split(',').filter((t) => t) : []
       this.teamRoles = params.teamRoles ? JSON.parse(params.teamRoles) : {}
       this.orgRoles = params.orgRoles ? params.orgRoles.split(',').filter((r) => r) : []
-      this.knownClusters = params.knownClusters
+      // Store all subdomains (includes 'sliderule')
+      this.knownSubdomains = params.knownClusters
         ? params.knownClusters.split(',').filter((c) => c)
         : []
+      // Filter out 'sliderule' for actual clusters
+      this.knownClusters = this.knownSubdomains.filter((c) => c !== 'sliderule')
       this.deployableClusters = params.deployableClusters
         ? params.deployableClusters.split(',').filter((c) => c)
         : []
@@ -284,6 +289,7 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
       this.teams = []
       this.teamRoles = {}
       this.orgRoles = []
+      this.knownSubdomains = []
       this.knownClusters = []
       this.deployableClusters = []
       this.token = null

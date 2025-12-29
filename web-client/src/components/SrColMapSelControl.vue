@@ -1,6 +1,10 @@
 <template>
   <div ref="colorMapSelControlElement" class="sr-col-map-sel-control ol-unselectable ol-control">
-    <SrMenuInput :menuOptions="getColorMapOptions()" v-model="selectedElevationColorMap" />
+    <SrMenuInput
+      :menuOptions="getColorMapOptions()"
+      v-model="selectedElevationColorMap"
+      tooltipText="Select Color Map"
+    />
   </div>
 </template>
 

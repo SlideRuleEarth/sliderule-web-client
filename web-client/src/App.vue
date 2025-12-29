@@ -71,10 +71,10 @@ const checkUnsupported = () => {
 
 const checkPrivateClusterAuth = () => {
   const domain = sysConfigStore.domain
-  const org = sysConfigStore.cluster
+  const subdomain = sysConfigStore.subdomain
 
   // Skip check for public cluster
-  if (org === 'sliderule') {
+  if (subdomain === 'sliderule') {
     return
   }
 
@@ -84,10 +84,10 @@ const checkPrivateClusterAuth = () => {
     toast.add({
       severity: 'warn',
       summary: 'Authentication Required',
-      detail: `Private cluster "${org}" requires login.`,
+      detail: `Private cluster "${subdomain}" requires login.`,
       life: srToastStore.getLife()
     })
-    logger.info('Private cluster configured without authentication', { domain, org })
+    logger.info('Private cluster configured without authentication', { domain, subdomain })
     authDialogStore.show()
   }
 }
@@ -96,7 +96,7 @@ async function fetchOrgInfo(): Promise<void> {
   const psHost = `https://ps.${sysConfigStore.domain}`
   try {
     const response = await authenticatedFetch(
-      `${psHost}/api/org_num_nodes/${sysConfigStore.cluster}/`,
+      `${psHost}/api/org_num_nodes/${sysConfigStore.subdomain}/`,
       {
         method: 'GET',
         headers: {
@@ -124,7 +124,7 @@ async function fetchOrgInfo(): Promise<void> {
 }
 
 async function handleGlobalLogin(): Promise<void> {
-  const orgName = sysConfigStore.cluster
+  const orgName = sysConfigStore.subdomain
   const psHost = `https://ps.${sysConfigStore.domain}`
   logger.debug('handleGlobalLogin', { username: loginUsername.value, orgName })
 
@@ -149,7 +149,7 @@ async function handleGlobalLogin(): Promise<void> {
         refreshToken: result.refresh,
         expiration: result.expiration
       }
-      legacyJwtStore.setJwt(sysConfigStore.domain, sysConfigStore.cluster, jwt)
+      legacyJwtStore.setJwt(sysConfigStore.domain, sysConfigStore.subdomain, jwt)
       await fetchOrgInfo()
       toast.add({
         severity: 'success',
@@ -183,9 +183,9 @@ async function handleGlobalLogin(): Promise<void> {
   }
 }
 
-async function resetToPublicCluster() {
+async function resetToPublicDomain() {
   legacyJwtStore.clearAllJwts()
-  await sysConfigStore.resetToPublicCluster()
+  await sysConfigStore.resetToPublicDomain()
   loginUsername.value = ''
   loginPassword.value = ''
   authDialogStore.hide()
@@ -838,7 +838,7 @@ async function handleLongTourButtonClick() {
     >
       <form class="sr-global-login-form" @submit.prevent="handleGlobalLogin">
         <p class="sr-login-org-info">
-          Logging in to: <strong>{{ sysConfigStore.cluster }}</strong>
+          Logging in to: <strong>{{ sysConfigStore.subdomain }}</strong>
         </p>
         <div class="sr-login-field">
           <label for="global-username">Username</label>
@@ -865,7 +865,7 @@ async function handleLongTourButtonClick() {
             label="Reset to Public Cluster"
             severity="secondary"
             icon="pi pi-refresh"
-            @click="resetToPublicCluster"
+            @click="resetToPublicDomain"
           />
           <Button label="Login" type="submit" />
         </div>

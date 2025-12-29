@@ -20,6 +20,12 @@ let scrollTimeout: number | undefined
 function updatePosition(lat: number, lon: number) {
   if (!props.map || !highlightEl) return
 
+  // Hide marker if coordinates are invalid (NaN signals hover ended)
+  if (!isFinite(lat) || !isFinite(lon)) {
+    hideMarker()
+    return
+  }
+
   const view = props.map.getView()
   if (!view) return
 
