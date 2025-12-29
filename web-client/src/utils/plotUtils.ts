@@ -100,6 +100,15 @@ export interface SrScatterSeriesData {
     itemStyle?: {
       color: string | ((_params: any) => string)
     }
+    emphasis?: {
+      scale?: boolean
+      itemStyle?: {
+        borderColor?: string
+        borderWidth?: number
+        shadowBlur?: number
+        shadowColor?: string
+      }
+    }
     encode?: {
       x: number
       y: number
@@ -348,6 +357,15 @@ async function getGenericSeries({
           dimensions: [...gradientColorMapStore.getDimensions()],
           encode: { x: 0, y: yIndex },
           itemStyle: { color: colorFunction },
+          emphasis: {
+            scale: true,
+            itemStyle: {
+              borderColor: '#ff0000',
+              borderWidth: 2,
+              shadowBlur: 10,
+              shadowColor: 'rgba(255, 0, 0, 0.5)'
+            }
+          },
           z: zValue,
           large: useAtlChartFilterStore().getLargeData(),
           largeThreshold: useAtlChartFilterStore().getLargeDataThreshold(),
@@ -2109,5 +2127,125 @@ export async function checkAndSetFilterFor3D() {
       await resetFilterUsingSelectedRec()
       globalChartStore.use_rgt_in_filter = true
     }
+  }
+}
+
+// Track the last highlighted data index for cleanup
+let lastHighlightedDataIndex: number | null = null
+
+/**
+ * Highlight a point on the plot by matching lat/lon coordinates from map hover
+ * Uses exact coordinate matching since map and plot share the same data source
+ */
+export function highlightPlotPointByCoordinates(lat: number, lon: number, reqIdStr: string): void {
+  const atlChartFilterStore = useAtlChartFilterStore()
+  const plotRef = atlChartFilterStore.getPlotRef()
+
+  if (!plotRef?.chart) {
+    logger.debug('highlightPlotPointByCoordinates: no chart available')
+    return
+  }
+
+  // Get dimensions directly from the chart series options
+  const options = plotRef.chart.getOption()
+  const series = options.series as { data?: (number | string)[][]; dimensions?: string[] }[]
+  const dimensions = series?.[0]?.dimensions
+  const seriesData = series?.[0]?.data
+
+  if (!dimensions || !Array.isArray(dimensions)) {
+    logger.debug('highlightPlotPointByCoordinates: no dimensions in series')
+    return
+  }
+
+  if (!seriesData || !Array.isArray(seriesData)) {
+    logger.debug('highlightPlotPointByCoordinates: no series data')
+    return
+  }
+
+  const fieldNameStore = useFieldNameStore()
+  const reqId = parseInt(reqIdStr)
+  const latFieldName = fieldNameStore.getLatFieldName(reqId)
+  const lonFieldName = fieldNameStore.getLonFieldName(reqId)
+
+  // Find lat/lon indices from dimensions array
+  const latIdx = dimensions.indexOf(latFieldName)
+  const lonIdx = dimensions.indexOf(lonFieldName)
+
+  if (latIdx === -1 || lonIdx === -1) {
+    logger.warn('Lat/lon not found in dimensions', { latFieldName, lonFieldName, dimensions })
+    return
+  }
+
+  // Find matching point by exact lat/lon (same data source, so should match exactly)
+  let matchedIndex = -1
+  for (let i = 0; i < seriesData.length; i++) {
+    const point = seriesData[i]
+    const pointLat = point[latIdx] as number
+    const pointLon = point[lonIdx] as number
+
+    // Use exact match since coordinates come from the same data source
+    if (pointLat === lat && pointLon === lon) {
+      matchedIndex = i
+      break
+    }
+  }
+
+  if (matchedIndex >= 0 && matchedIndex !== lastHighlightedDataIndex) {
+    logger.debug('highlightPlotPointByCoordinates: highlighting point', { matchedIndex, lat, lon })
+
+    // Downplay any previous highlight
+    if (lastHighlightedDataIndex !== null) {
+      plotRef.chart.dispatchAction({
+        type: 'downplay',
+        seriesIndex: 0,
+        dataIndex: lastHighlightedDataIndex
+      })
+    }
+
+    // Highlight the matched point
+    plotRef.chart.dispatchAction({
+      type: 'highlight',
+      seriesIndex: 0,
+      dataIndex: matchedIndex
+    })
+
+    // Also show the tooltip at that point
+    plotRef.chart.dispatchAction({
+      type: 'showTip',
+      seriesIndex: 0,
+      dataIndex: matchedIndex
+    })
+
+    lastHighlightedDataIndex = matchedIndex
+  } else if (matchedIndex < 0) {
+    logger.debug('highlightPlotPointByCoordinates: no match found', {
+      lat,
+      lon,
+      seriesDataLength: seriesData.length
+    })
+  }
+}
+
+/**
+ * Clear any highlighted point on the plot
+ */
+export function clearPlotHighlight(): void {
+  const atlChartFilterStore = useAtlChartFilterStore()
+  const plotRef = atlChartFilterStore.getPlotRef()
+
+  if (!plotRef?.chart) {
+    return
+  }
+
+  if (lastHighlightedDataIndex !== null) {
+    plotRef.chart.dispatchAction({
+      type: 'downplay',
+      seriesIndex: 0,
+      dataIndex: lastHighlightedDataIndex
+    })
+    plotRef.chart.dispatchAction({
+      type: 'hideTip'
+    })
+    lastHighlightedDataIndex = null
   }
 }

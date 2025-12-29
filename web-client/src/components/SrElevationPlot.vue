@@ -25,7 +25,11 @@ import {
 } from '@/utils/plotUtils'
 import SrRunControl from '@/components/SrRunControl.vue'
 import { processRunSlideRuleClicked } from '@/utils/workerDomUtils'
-import { initDataBindingsToChartStore } from '@/utils/plotUtils'
+import {
+  initDataBindingsToChartStore,
+  highlightPlotPointByCoordinates,
+  clearPlotHighlight
+} from '@/utils/plotUtils'
 import { useRecTreeStore } from '@/stores/recTreeStore'
 import SrPlotCntrl from './SrPlotCntrl.vue'
 import { useAutoReqParamsStore } from '@/stores/reqParamsStore'
@@ -688,6 +692,24 @@ watch(
     // If photon cloud is visible, reload it with the new ATL08 setting
     if (atlChartFilterStore.showPhotonCloud) {
       await handlePhotonCloudShow()
+    }
+  }
+)
+
+// Watch for map hover coordinates to highlight corresponding point on plot
+watch(
+  () => [
+    globalChartStore.mapHoverLat,
+    globalChartStore.mapHoverLon,
+    globalChartStore.mapHoverActive
+  ],
+  ([lat, lon, active]) => {
+    if (!active || lat === null || lon === null) {
+      clearPlotHighlight()
+      return
+    }
+    if (globalChartStore.enableLocationFinder && recTreeStore.selectedReqIdStr) {
+      highlightPlotPointByCoordinates(lat as number, lon as number, recTreeStore.selectedReqIdStr)
     }
   }
 )

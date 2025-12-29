@@ -980,6 +980,24 @@ const onHoverHandler = isIPhone
           analysisMapStore.tooltipRef.hideTooltip()
         }
       }
+
+      // Broadcast hover coordinates for map-to-plot linking
+      const globalChartStore = useGlobalChartStore()
+      if (globalChartStore.enableLocationFinder) {
+        if (object && !useDeckStore().getIsDragging()) {
+          const recTreeStore = useRecTreeStore()
+          const reqId = Number(recTreeStore.selectedReqIdStr)
+          const fieldNameStore = useFieldNameStore()
+          const latField = fieldNameStore.getLatFieldName(reqId)
+          const lonField = fieldNameStore.getLonFieldName(reqId)
+
+          globalChartStore.mapHoverLat = object[latField]
+          globalChartStore.mapHoverLon = object[lonField]
+          globalChartStore.mapHoverActive = true
+        } else {
+          globalChartStore.mapHoverActive = false
+        }
+      }
     }
 
 // Function to swap coordinates from (longitude, latitude) to (latitude, longitude)
