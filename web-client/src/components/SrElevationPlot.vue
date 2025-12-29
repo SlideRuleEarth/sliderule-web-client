@@ -954,6 +954,15 @@ watch(
           >
           </ToggleButton>
         </div>
+        <div class="plot-tooltip-checkbox-group">
+          <Checkbox
+            v-model="globalChartStore.showPlotTooltip"
+            binary
+            inputId="plotTooltipCheckbox"
+            size="small"
+          />
+          <label for="plotTooltipCheckbox" class="sr-checkbox-label">Tooltip</label>
+        </div>
         <div
           v-if="
             recTreeStore.selectedApi.includes('atl06') ||
@@ -962,32 +971,13 @@ watch(
           class="slope-checkbox-group"
         >
           <Checkbox
-            v-model="globalChartStore.showPlotTooltip"
-            binary
-            inputId="plotTooltipCheckbox"
-            size="small"
-          />
-          <label for="plotTooltipCheckbox" class="sr-checkbox-label">Tooltip</label>
-          <Checkbox
-            v-if="
-              recTreeStore.selectedApi.includes('atl06') ||
-              recTreeStore.selectedApi.includes('atl03x-surface')
-            "
             v-model="atlChartFilterStore.showSlopeLines"
             binary
             inputId="sslCheckbox"
             size="small"
             :tooltipText="'Show linear fit for each segment'"
           />
-          <label
-            v-if="
-              recTreeStore.selectedApi.includes('atl06') ||
-              recTreeStore.selectedApi.includes('atl03x-surface')
-            "
-            for="sslCheckbox"
-            class="sr-checkbox-label"
-            >linear fit</label
-          >
+          <label for="sslCheckbox" class="sr-checkbox-label">linear fit</label>
         </div>
         <SrRunControl :includeAdvToggle="false" buttonLabel="Photon Cloud" />
       </div>
@@ -1208,6 +1198,12 @@ watch(
   min-width: 10rem;
 }
 
+.plot-tooltip-checkbox-group {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
 .slope-checkbox-group {
   display: flex;
   flex-direction: row;
@@ -1230,7 +1226,7 @@ watch(
 }
 
 .sr-show-hide-button {
-  margin: 1rem;
+  margin: 0.25rem;
   min-width: 10rem;
   border-radius: 2rem;
 }

@@ -68,7 +68,7 @@ verify-s3-assets: ## Check that all index-*.js and index-*.css files referenced 
 		fi; \
 	done
 	@echo ""
-	@echo "📅 Build date/time: $$(date +"%Y-%m-%d %T")"
+	@echo "📅 Verified: $$(date +"%Y-%m-%d %T") (scroll up for exact Build Date/Time)"
 
 verify-s3-assets-testsliderule:
 	make verify-s3-assets S3_BUCKET=testsliderule-webclient
