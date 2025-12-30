@@ -172,7 +172,11 @@ const handleWorkerMsg = async (workerMsg: WorkerMessage) => {
     case 'error':
       if (workerMsg.error) {
         logger.error('Worker error', { error: workerMsg.error })
-        useSrToastStore().error(workerMsg.error?.type, workerMsg.error?.message)
+        useSrToastStore().networkError(
+          workerMsg.error.func,
+          workerMsg.error.code,
+          workerMsg.error.message
+        )
       }
       if (worker) {
         await cleanUpWorker(workerMsg.req_id)

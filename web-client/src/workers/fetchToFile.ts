@@ -751,6 +751,11 @@ onmessage = async (event) => {
 
                 // Keep user-friendly message for error display
                 emsg = parts.slice(3).join(':') || emsg
+              } else if (error instanceof DOMException && error.name === 'AbortError') {
+                // Request was aborted (timeout or user cancel)
+                code = 'TIMEOUT'
+                emsg =
+                  'Request timed out. The server may be overloaded or taking too long to respond.'
               } else if (
                 emsg.includes('Failed to fetch') ||
                 (error instanceof TypeError && error.message === 'Failed to fetch')
@@ -761,8 +766,34 @@ onmessage = async (event) => {
                   'Network error: Unable to connect to the server. This may be due to CORS restrictions, DNS issues, or the server being unavailable.'
               } else {
                 if (navigator.onLine) {
-                  code = 'NETWORK'
-                  emsg = 'Network error: Possible DNS resolution issue or server down.'
+                  // Try a version check to determine if server is reachable (no auth required)
+                  const serverUrl = cmd.sysConfig?.domain
+                    ? `https://${cmd.sysConfig.cluster}.${cmd.sysConfig.domain}/source/version`
+                    : null
+                  let serverReachable = false
+                  if (serverUrl) {
+                    try {
+                      const healthResponse = await fetch(serverUrl, {
+                        method: 'GET',
+                        signal: AbortSignal.timeout(5000)
+                      })
+                      serverReachable = healthResponse.ok
+                    } catch {
+                      serverReachable = false
+                    }
+                  }
+
+                  if (serverReachable) {
+                    code = 'NETWORK'
+                    emsg =
+                      'Network error: The server is reachable but the request failed. ' +
+                      'The server may have closed the connection or encountered an error processing your request.'
+                  } else {
+                    code = 'SERVER_UNREACHABLE'
+                    emsg =
+                      'Network error: The server appears to be unreachable. ' +
+                      'This could be due to DNS issues, server downtime, or network problems.'
+                  }
                 } else {
                   code = 'OFFLINE'
                   emsg = 'Network error: your browser appears to be/have been offline.'
@@ -772,7 +803,12 @@ onmessage = async (event) => {
                 logger.error('Error details', { func: cmd.func, error: emsg })
               }
               postMessage(
-                await errorMsg(reqID, { type: 'NetworkError', code: code, message: emsg })
+                await errorMsg(reqID, {
+                  type: 'NetworkError',
+                  code: code,
+                  message: emsg,
+                  func: cmd.func
+                })
               )
             } finally {
               if (reqID) {
@@ -798,16 +834,20 @@ onmessage = async (event) => {
 
               if (arrowDataFileOffset > 0) {
                 logger.debug('Finally: file written', { fileName, offset: arrowDataFileOffset })
-              } else {
+              } else if (read_state !== 'error') {
+                // Only send NO_DATA error if we haven't already sent an error (e.g., NETWORK error)
                 logger.error('Finally: No arrow Data File data records were processed')
                 postMessage(
                   await errorMsg(reqID, {
                     type: 'runWorkerError',
                     code: 'NO_DATA',
                     message:
-                      'No data was received from the server. The request may have failed, returned empty results, or encountered a server error.'
+                      'No data was received from the server. The request may have returned empty results.',
+                    func: cmd.func
                   })
                 )
+              } else {
+                logger.debug('Finally: No data received, but error already reported')
               }
               await checkDoneProcessing(
                 reqID,

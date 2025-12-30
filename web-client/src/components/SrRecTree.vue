@@ -360,7 +360,22 @@ onUnmounted(() => {
             )
           "
           @mouseover="
-            tooltipRef?.showTooltip($event, 'View request parameters (sent and received)')
+            (e: MouseEvent) => {
+              const parms = slotProps.node.data.parameters || slotProps.node.data.rcvd_parms
+              const actualParms = parms?.parms || parms
+              const keys = actualParms ? Object.keys(actualParms) : []
+              tooltipRef?.showTooltip(
+                e,
+                [
+                  '<strong>View request parameters</strong>',
+                  keys.length > 0
+                    ? `<br>${keys.slice(0, 5).join(', ')}${keys.length > 5 ? '...' : ''}`
+                    : null
+                ]
+                  .filter(Boolean)
+                  .join('')
+              )
+            }
           "
           @mouseleave="tooltipRef?.hideTooltip"
           variant="text"

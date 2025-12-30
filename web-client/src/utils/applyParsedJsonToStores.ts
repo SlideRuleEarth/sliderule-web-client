@@ -14,7 +14,7 @@ const logger = createLogger('ApplyParsedJsonToStores')
 export function applyParsedJsonToStores(
   data: any,
   store: ReturnType<typeof import('@/stores/reqParamsStore').useReqParamsStore>,
-  _rasterStore: ReturnType<typeof import('@/stores/rasterParamsStore').useRasterParamsStore>,
+  rasterStore: ReturnType<typeof import('@/stores/rasterParamsStore').useRasterParamsStore>,
   _addError: (_section: string, _message: string) => void
 ) {
   //console.log('Applying parsed JSON data to stores:', data);
@@ -216,6 +216,11 @@ export function applyParsedJsonToStores(
   } else {
     // If phoreal is not present at all in loaded parameters, turn off PhoREAL
     store.setEnablePhoReal(false)
+  }
+
+  // Handle raster sampling parameters
+  if (data.samples && typeof data.samples === 'object') {
+    rasterStore.setParmsFromJson(data.samples)
   }
 
   function coerce(field: string, _input: unknown, assign: (_v: number[]) => void) {

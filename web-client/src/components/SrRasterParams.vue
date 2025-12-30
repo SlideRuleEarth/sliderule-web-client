@@ -51,6 +51,11 @@
         tooltipText="boolean whether to include auxiliary information about the sampled pixel in the form of a 32-bit flag"
       />
       <Sr32BitFlag :disabled="!rasterParamsStore.withFlags" />
+      <SrCheckbox
+        label="Force Single Sample"
+        v-model="rasterParamsStore.force_single_sample"
+        tooltipText="boolean whether to force returning only a single sample per raster (the closest one) when multiple samples are available"
+      />
       <div class="sr-time-filter">
         <SrCheckbox label="Use Time Filter" v-model="rasterParamsStore.useTimeFilter" />
         <SrCalendar
@@ -151,7 +156,6 @@ const addRasterParams = () => {
     key: rasterParamsStore.key,
     asset: rasterParamsStore.asset,
     algorithm: rasterParamsStore.algorithm,
-    //Note: force_single_sample is hardcoded to true
     force_single_sample: rasterParamsStore.force_single_sample,
     radius: rasterParamsStore.radius,
     zonalStats: rasterParamsStore.zonalStats,
