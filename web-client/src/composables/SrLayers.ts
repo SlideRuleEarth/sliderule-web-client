@@ -295,7 +295,7 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     allowed_reprojections: ['EPSG:3857', 'EPSG:4326'],
     init_visibility: true,
     init_opacity: 1,
-    max_zoom: 19
+    max_zoom: 17
   },
   'OpenStreetMap Standard': {
     title: 'OpenStreetMap Standard',
@@ -403,7 +403,7 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     allowed_reprojections: ['EPSG:3857', 'EPSG:4326'],
     init_visibility: true,
     init_opacity: 1,
-    max_zoom: 21
+    max_zoom: 13
   },
   OpenTopoMap: {
     title: 'OpenTopoMap',
@@ -415,7 +415,7 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     allowed_reprojections: ['EPSG:3857', 'EPSG:4326'],
     init_visibility: true,
     init_opacity: 1,
-    max_zoom: 17
+    max_zoom: 13
   },
   'Arctic Ocean Base': {
     title: 'Arctic Ocean Base',
@@ -593,7 +593,7 @@ export const layers = ref<{ [key: string]: SrLayer }>({
     allowed_reprojections: ['EPSG:3857', 'EPSG:4326'],
     init_visibility: true,
     init_opacity: 1,
-    max_zoom: 14
+    max_zoom: 13
   },
   // NASA VIIRS True Color imagery - daily satellite imagery
   // Date is calculated dynamically (3 days ago) to ensure availability
@@ -737,18 +737,10 @@ export const getLayer = (
       visible: srLayer.init_visibility
     }
 
-    // Set maxZoom on layer if specified in layer definition
-    // EXCEPT for NASA GIBS and EOX layers - they need source maxZoom for tile limiting but no layer maxZoom for overzooming
-    const isNasaGibsLayer = srLayer.url.includes('gibs.earthdata.nasa.gov')
-    const isEoxLayer = srLayer.url.includes('tiles.maps.eox.at')
-    if (srLayer.max_zoom !== undefined && !isNasaGibsLayer && !isEoxLayer) {
-      localTileLayerOptions.maxZoom = srLayer.max_zoom
-      logger.debug('[SrLayers] Setting layer maxZoom:', {
-        layerTitle: title,
-        layerMaxZoom: srLayer.max_zoom,
-        sourceProjection: srLayer.source_projection
-      })
-    }
+    // Note: Layer maxZoom is NOT set here - we use source maxZoom instead to enable overzooming
+    // This allows tiles to be scaled when zooming beyond the available zoom level
+    // rather than hiding the layer completely
+
     if (cachedLayer) {
       layerInstance = cachedLayer // Return the cached layer if it exists
       logger.debug('Using cached layer', { title, projectionName })
@@ -795,33 +787,18 @@ export const getLayer = (
           crossOrigin: 'anonymous' // Required for NASA GIBS
         }
 
-        // NASA GIBS EPSG:3857 layers - set source maxZoom to enable overzooming
-        // This prevents tile requests beyond availability (which return 400 errors)
-        // and allows OpenLayers to scale existing tiles when zooming beyond the limit
-        if (
-          isNasaGibs &&
-          srLayer.source_projection === 'EPSG:3857' &&
-          srLayer.max_zoom !== undefined
-        ) {
+        // Enable overzooming for all XYZ layers with max_zoom defined
+        // This prevents tile requests beyond availability and allows OpenLayers
+        // to scale existing tiles when zooming beyond the limit
+        if (srLayer.max_zoom !== undefined) {
           xyzOptions.maxZoom = srLayer.max_zoom
-          logger.debug('[SrLayers] NASA GIBS EPSG:3857 configured for overzooming:', {
+          logger.debug('[SrLayers] XYZ layer configured for overzooming:', {
             layerTitle: title,
             sourceMaxZoom: srLayer.max_zoom,
             note: 'Tiles limited to source maxZoom, will scale beyond'
           })
         }
 
-        // EOX Sentinel-2 Cloudless layers - enable overzooming beyond zoom 13
-        // Tiles are available up to zoom 13, setting source maxZoom enables scaling beyond that
-        const isEoxLayer = srLayer.url.includes('tiles.maps.eox.at')
-        if (isEoxLayer) {
-          xyzOptions.maxZoom = 13
-          logger.debug('[SrLayers] EOX layer configured for overzooming:', {
-            layerTitle: title,
-            sourceMaxZoom: 13,
-            note: 'Tiles available up to zoom 13, will scale beyond'
-          })
-        }
         // Add custom tile grid for EPSG:5936 to ensure proper tile loading
         if (srLayer.source_projection === 'EPSG:5936') {
           xyzOptions.tileGrid = arcticTileGrid
