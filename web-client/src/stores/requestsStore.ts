@@ -364,7 +364,8 @@ export const useRequestsStore = defineStore('requests', {
               rcvd_parms: child.data.rcvd_parms,
               svr_parms: child.data.svr_parms,
               geo_metadata: child.data.geo_metadata,
-              srViewName: child.data.srViewName
+              srViewName: child.data.srViewName,
+              status_details: child.data.status_details
             },
             children: childNodes
           } as TreeNode
