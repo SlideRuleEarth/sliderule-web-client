@@ -39,7 +39,7 @@ import {
   needsTransformation
 } from '@/utils/SrCrsTransform'
 import { createLogger } from '@/utils/logger'
-import { getGeometryInfo } from '@/utils/duckAgg'
+import { getGeometryInfo, buildColumnExpressions } from '@/utils/duckAgg'
 
 const logger = createLogger('PlotUtils')
 
@@ -2259,4 +2259,63 @@ export function clearPlotHighlight(): void {
     })
     lastHighlightedDataIndex = null
   }
+}
+
+/**
+ * Build a SQL SELECT clause from current store values.
+ * This function is decoupled from plot rendering and can be called independently.
+ * Properly handles:
+ * - Column quoting
+ * - Geometry column extraction (ST_X/ST_Y/ST_Z for lat/lon/height)
+ * - Time field inclusion
+ *
+ * @param reqIdStr - Request ID string
+ * @returns SQL SELECT...FROM clause, or empty string if data not available
+ */
+export async function buildSelectClauseFromStore(reqIdStr: string): Promise<string> {
+  const chartStore = useChartStore()
+  const fieldNameStore = useFieldNameStore()
+  const reqId = parseInt(reqIdStr)
+
+  const fileName = chartStore.getFile(reqIdStr)
+  const xColumn = chartStore.getXDataForChart(reqIdStr)
+  const yColumns = chartStore.getYDataOptions(reqIdStr)
+
+  if (!fileName || !xColumn) {
+    return ''
+  }
+
+  // Get field names for special handling
+  const latFieldName = fieldNameStore.getLatFieldName(reqId)
+  const lonFieldName = fieldNameStore.getLonFieldName(reqId)
+  const heightFieldName = fieldNameStore.getHFieldName(reqId)
+  const timeFieldName = fieldNameStore.getTimeFieldName(reqId)
+
+  // Get DuckDB client and column types to detect geometry
+  const duckDbClient = await createDuckDbClient()
+  await duckDbClient.insertOpfsParquet(fileName)
+  const colTypes = await duckDbClient.queryColumnTypes(fileName)
+  const geometryInfo = getGeometryInfo(colTypes, reqId)
+  const hasGeometry = geometryInfo?.hasGeometry ?? false
+
+  // Build column list: x column + y columns
+  const allColumns = [xColumn, ...yColumns].filter(Boolean)
+
+  // Ensure time field is included if not already present
+  if (timeFieldName && !allColumns.includes(timeFieldName)) {
+    allColumns.push(timeFieldName)
+  }
+
+  // Build column expressions using shared helper
+  const columnExpressions = buildColumnExpressions(allColumns, {
+    hasGeometry,
+    geometryInfo,
+    latFieldName,
+    lonFieldName,
+    heightFieldName,
+    escape: duckDbClient.escape
+  })
+
+  const columnsStr = columnExpressions.join(', ')
+  return `SELECT ${columnsStr} \nFROM '${fileName}'`
 }

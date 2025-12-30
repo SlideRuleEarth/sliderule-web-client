@@ -1,33 +1,71 @@
 <template>
   <div class="sr-plot-container">
-    <div class="sr-axis-selectors">
-      <div class="sr-axis-select">
-        <label>X Axis:</label>
-        <Select
-          v-model="selectedXAxis"
-          :options="columns"
-          placeholder="Select X axis"
-          class="sr-axis-dropdown"
-        />
-      </div>
-      <div class="sr-axis-select">
-        <label>Y Axis:</label>
-        <Select
-          v-model="selectedYAxis"
-          :options="columns"
-          placeholder="Select Y axis"
-          class="sr-axis-dropdown"
-        />
-      </div>
-    </div>
-    <div v-if="chartOption" class="sr-chart-wrapper">
-      <VChart :option="chartOption" autoresize class="sr-chart" />
-    </div>
-    <div v-else class="sr-plot-placeholder">
-      <p v-if="columns.length === 0">Run a query to populate axis options</p>
-      <p v-else-if="rows.length === 0">No data available</p>
-      <p v-else>Select X and Y axis columns</p>
-    </div>
+    <Tabs v-model:value="activeTab">
+      <TabList>
+        <Tab value="plot">Plot</Tab>
+        <Tab value="control">Plot Control</Tab>
+      </TabList>
+
+      <TabPanels>
+        <TabPanel value="plot">
+          <div v-if="chartOption" class="sr-chart-wrapper">
+            <VChart :key="chartKey" :option="chartOption" autoresize class="sr-chart" />
+          </div>
+          <div v-else class="sr-plot-placeholder">
+            <p v-if="columns.length === 0">Run a query to see a plot</p>
+            <p v-else-if="rows.length === 0">No data available</p>
+            <p v-else>Select X and Y axis columns</p>
+          </div>
+        </TabPanel>
+
+        <TabPanel value="control">
+          <div v-if="columns.length === 0" class="sr-plot-placeholder">
+            <p>Run a query to populate axis options</p>
+          </div>
+          <div v-else class="sr-control-panel">
+            <!-- Row 1: Title -->
+            <div class="sr-control-row">
+              <div class="sr-control-item">
+                <label>Title:</label>
+                <InputText v-model="plotTitle" :placeholder="defaultTitle" class="sr-title-input" />
+              </div>
+            </div>
+            <!-- Row 2: X and Y Axis -->
+            <div class="sr-control-row">
+              <div class="sr-control-item">
+                <label>X:</label>
+                <Select
+                  v-model="selectedXAxis"
+                  :options="columns"
+                  placeholder="X axis"
+                  class="sr-axis-dropdown"
+                />
+              </div>
+              <div class="sr-control-item">
+                <label>Y:</label>
+                <Select
+                  v-model="selectedYAxis"
+                  :options="columns"
+                  placeholder="Y axis"
+                  class="sr-axis-dropdown"
+                />
+              </div>
+            </div>
+            <!-- Row 3: Point Size and Color -->
+            <div class="sr-control-row">
+              <div class="sr-control-item">
+                <label>Size:</label>
+                <InputNumber v-model="pointSize" :min="1" :max="20" class="sr-size-input" />
+              </div>
+              <div class="sr-control-item">
+                <label>Color:</label>
+                <ColorPicker v-model="pointColor" class="sr-color-picker" />
+              </div>
+            </div>
+          </div>
+        </TabPanel>
+      </TabPanels>
+    </Tabs>
   </div>
 </template>
 
@@ -48,6 +86,14 @@ import VChart, { THEME_KEY } from 'vue-echarts'
 
 // PrimeVue Components
 import Select from 'primevue/select'
+import InputText from 'primevue/inputtext'
+import InputNumber from 'primevue/inputnumber'
+import ColorPicker from 'primevue/colorpicker'
+import Tabs from 'primevue/tabs'
+import TabList from 'primevue/tablist'
+import Tab from 'primevue/tab'
+import TabPanels from 'primevue/tabpanels'
+import TabPanel from 'primevue/tabpanel'
 
 // Register ECharts components
 use([
@@ -65,9 +111,24 @@ const props = defineProps<{
   columns: string[]
 }>()
 
-// Plot axis selection
+// Tab and plot controls
+const activeTab = ref('plot')
+const plotTitle = ref<string>('')
 const selectedXAxis = ref<string | null>(null)
 const selectedYAxis = ref<string | null>(null)
+const pointSize = ref<number>(5)
+const pointColor = ref<string>('4287f5')
+
+// Default title based on selected axes
+const defaultTitle = computed(() => {
+  if (selectedXAxis.value && selectedYAxis.value) {
+    return `${selectedYAxis.value} vs ${selectedXAxis.value}`
+  }
+  return 'Plot title'
+})
+
+// Key to force chart re-render when axes change (resets zoom)
+const chartKey = computed(() => `${selectedXAxis.value}-${selectedYAxis.value}`)
 
 // Computed chart options
 const chartOption = computed(() => {
@@ -87,7 +148,7 @@ const chartOption = computed(() => {
 
   return {
     title: {
-      text: `${selectedYAxis.value} vs ${selectedXAxis.value}`,
+      text: plotTitle.value || `${selectedYAxis.value} vs ${selectedXAxis.value}`,
       left: 'center'
     },
     tooltip: {
@@ -120,7 +181,10 @@ const chartOption = computed(() => {
       {
         type: 'scatter',
         data: data,
-        symbolSize: 5
+        symbolSize: pointSize.value,
+        itemStyle: {
+          color: `#${pointColor.value}`
+        }
       }
     ]
   }
@@ -170,28 +234,55 @@ watch(
   width: 100%;
 }
 
-.sr-axis-selectors {
+.sr-control-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem;
+}
+
+.sr-control-row {
   display: flex;
   flex-direction: row;
-  gap: 1rem;
+  gap: 0.75rem;
   justify-content: center;
   flex-wrap: wrap;
 }
 
-.sr-axis-select {
+.sr-control-item {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.25rem;
 }
 
-.sr-axis-select label {
+.sr-control-item label {
   font-size: small;
   white-space: nowrap;
 }
 
+.sr-title-input {
+  width: 12rem;
+}
+
 .sr-axis-dropdown {
-  min-width: 10rem;
+  width: 8rem;
+}
+
+.sr-size-input {
+  width: 5rem;
+}
+
+.sr-color-picker {
+  width: 2.5rem;
+}
+
+:deep(.sr-axis-dropdown .p-select-label) {
+  font-size: small;
+}
+
+:deep(.sr-size-input .p-inputnumber-input) {
+  font-size: small;
 }
 
 .sr-chart-wrapper {

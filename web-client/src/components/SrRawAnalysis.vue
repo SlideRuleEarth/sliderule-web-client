@@ -19,8 +19,30 @@
       </div>
       <div class="sr-btn-msg-panel">
         <div class="sr-query-buttons">
+          <!-- Refresh buttons in a column -->
+          <div class="sr-refresh-buttons">
+            <Button
+              :title="selectButtonTooltip"
+              @click="updateSelectFromOptions"
+              size="small"
+              icon="pi pi-refresh"
+              label="Select"
+              severity="secondary"
+              class="sr-refresh-btn"
+            />
+            <Button
+              title="Reset WHERE clause from current filter settings set using the Advanced Filter Control tool"
+              @click="updateQueryFromFilter"
+              size="small"
+              icon="pi pi-refresh"
+              label="Where"
+              severity="secondary"
+              class="sr-refresh-btn"
+            />
+          </div>
           <!-- Run Button -->
           <Button
+            title="Run the current SQL query.&#10;(NOTE: you can edit this query directly!&#10;Then reset it using the Select/Where buttons)"
             :disabled="isLoading"
             @click="executeQuery"
             size="small"
@@ -53,7 +75,7 @@
       <Tabs v-model:value="activeResultTab">
         <TabList>
           <Tab value="0">Table</Tab>
-          <Tab value="1">Plot</Tab>
+          <Tab value="1">Scatter Plot</Tab>
         </TabList>
         <TabPanels>
           <TabPanel value="0">
@@ -84,6 +106,7 @@ import { createDuckDbClient, DuckDBClient } from '@/utils/SrDuckDb'
 import { useRecTreeStore } from '@/stores/recTreeStore'
 import { useChartStore } from '@/stores/chartStore'
 import { runSqlQuery } from '@/utils/SrDbShellUtils'
+import { createWhereClause } from '@/utils/spotUtils'
 
 // PrimeVue Components
 import Button from 'primevue/button'
@@ -102,6 +125,7 @@ import { useRequestsStore } from '@/stores/requestsStore'
 import SrExportSelected from './SrExportSelected.vue'
 import SrGenericPlot from './SrGenericPlot.vue'
 import { createLogger } from '@/utils/logger'
+import { buildSelectClauseFromStore } from '@/utils/plotUtils'
 
 const logger = createLogger('SrRawAnalysis')
 const requestsStore = useRequestsStore()
@@ -109,9 +133,66 @@ const requestsStore = useRequestsStore()
 const recTreeStore = useRecTreeStore()
 const chartStore = useChartStore()
 
+// Dynamic tooltip matching Plot Configuration label
+const selectButtonTooltip = computed(() => {
+  const reqId = recTreeStore.selectedReqId
+  const func = recTreeStore.findApiForReqId(reqId)
+  return `Reset SELECT columns using: Plot Configuration for ${reqId} - ${func}`
+})
+
+// Base query from chartStore (without dynamic WHERE clause updates)
 const initQuery = computed(() => {
   return chartStore.getQuerySql(recTreeStore.selectedReqIdStr).trim()
 })
+
+// Function to build query with current filter WHERE clause
+function buildQueryWithCurrentFilter(): string {
+  const baseQuery = chartStore.getQuerySql(recTreeStore.selectedReqIdStr).trim()
+  if (!baseQuery) return ''
+
+  const reqId = recTreeStore.selectedReqId
+  if (reqId <= 0) return baseQuery
+
+  const currentWhereClause = createWhereClause(reqId)
+
+  // Remove existing WHERE clause and everything after it
+  const whereIndex = baseQuery.toUpperCase().indexOf('\nWHERE ')
+  const queryWithoutWhere = whereIndex >= 0 ? baseQuery.substring(0, whereIndex) : baseQuery
+
+  // Add current WHERE clause if present
+  if (currentWhereClause) {
+    return `${queryWithoutWhere}\n${currentWhereClause}`
+  }
+  return queryWithoutWhere
+}
+
+// Update WHERE clause from current filter settings
+function updateQueryFromFilter() {
+  query.value = buildQueryWithCurrentFilter()
+  rows.value = []
+  columns.value = []
+  info.value = 'WHERE clause updated. Click "Run Sql Query" to see results.'
+}
+
+// Update SELECT/FROM from current data options (preserves user's WHERE clause)
+async function updateSelectFromOptions() {
+  const newSelectFrom = await buildSelectClauseFromStore(recTreeStore.selectedReqIdStr)
+  if (!newSelectFrom) {
+    info.value = 'No data available to build query.'
+    return
+  }
+
+  // Extract current WHERE clause from user's query (if any)
+  const currentQuery = query.value
+  const currentWhereIndex = currentQuery.toUpperCase().indexOf('\nWHERE ')
+  const currentWhereClause = currentWhereIndex >= 0 ? currentQuery.substring(currentWhereIndex) : ''
+
+  // Combine new SELECT/FROM with user's WHERE clause
+  query.value = currentWhereClause ? `${newSelectFrom}${currentWhereClause}` : newSelectFrom
+  rows.value = []
+  columns.value = []
+  info.value = 'SELECT columns updated. Click "Run Sql Query" to see results.'
+}
 const query = ref<string>(initQuery.value)
 const rows = ref<Array<Record<string, any>>>([])
 const columns = ref<string[]>([])
@@ -119,7 +200,7 @@ const error = ref<string | null>(null)
 const info = ref<string | null>(null)
 const isLoading = ref(false)
 const computedFileLabel = computed(() => `${chartStore.getFile(recTreeStore.selectedReqIdStr)}`)
-const limit = ref(1000)
+const limit = ref(5000)
 const activeResultTab = ref('0') // '0' = Table, '1' = Plot
 
 // Watch for query changes from chartStore (e.g., when Array Column Options change)
@@ -179,6 +260,11 @@ async function executeQuery() {
   columns.value = []
   const finalQuery = `${query.value} ${computedLimitClause.value}`
   try {
+    // Ensure the parquet file is registered with DuckDB before querying
+    const fileName = chartStore.getFile(recTreeStore.selectedReqIdStr)
+    if (fileName) {
+      await duckDbClient.insertOpfsParquet(fileName)
+    }
     const result = await runSqlQuery(duckDbClient, finalQuery)
     rows.value = result.rows
     columns.value = result.columns
@@ -269,6 +355,25 @@ async function executeQuery() {
   gap: 0.5rem;
   white-space: nowrap;
 }
+.sr-refresh-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sr-refresh-btn {
+  font-size: x-small;
+  padding: 0.25rem 0.5rem;
+}
+
+:deep(.sr-refresh-btn .p-button-icon) {
+  font-size: x-small;
+}
+
+:deep(.sr-refresh-btn .p-button-label) {
+  font-size: x-small;
+}
+
 .sr-run-button {
   min-width: 8rem;
 }

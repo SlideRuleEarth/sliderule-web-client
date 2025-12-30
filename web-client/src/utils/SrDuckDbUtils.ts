@@ -36,7 +36,8 @@ import {
   TEMPORAL_TYPES,
   buildSafeAggregateClauses,
   getGeometryInfo,
-  getGeometryInfoWithTypes
+  getGeometryInfoWithTypes,
+  buildColumnExpressions
 } from '@/utils/duckAgg'
 import {
   extractCrsFromGeoMetadata,
@@ -1890,21 +1891,21 @@ export async function fetchScatterData(
      * 4. Build the main query to fetch rows for x, all y columns, plus extras.
      *    Use the same finalWhereClause so NaNs in y columns are excluded.
      */
-    // Build base column selections (filter out derived array columns and array columns in flatten mode - they'll be added via arrayColumnParts)
-    const baseColumnParts = [x, ...y, ...extraSelectColumns]
-      .filter((col) => !derivedArrayColumnNames.includes(col) && col !== arrayColumnToFilter)
-      .map((col) => {
-        // Check if this column should be extracted from geometry
-        if (hasGeometry && col === lon_fieldname) {
-          return `ST_X(${duckDbClient.escape('geometry')}) AS ${duckDbClient.escape(col)}`
-        } else if (hasGeometry && col === lat_fieldname) {
-          return `ST_Y(${duckDbClient.escape('geometry')}) AS ${duckDbClient.escape(col)}`
-        } else if (hasGeometry && geometryInfo?.zCol && col === height_fieldname) {
-          return `ST_Z(${duckDbClient.escape('geometry')}) AS ${duckDbClient.escape(col)}`
-        } else {
-          return duckDbClient.escape(col)
-        }
-      })
+    // Build base column selections using shared helper
+    // Filter out derived array columns and array columns in flatten mode - they'll be added via arrayColumnParts
+    const columnsToExclude = [...derivedArrayColumnNames]
+    if (arrayColumnToFilter) {
+      columnsToExclude.push(arrayColumnToFilter)
+    }
+    const baseColumnParts = buildColumnExpressions([x, ...y, ...extraSelectColumns], {
+      hasGeometry,
+      geometryInfo,
+      latFieldName: lat_fieldname,
+      lonFieldName: lon_fieldname,
+      heightFieldName: height_fieldname,
+      escape: duckDbClient.escape,
+      excludeColumns: columnsToExclude
+    })
 
     // Handle array column processing - build SELECT clauses for the main query
     let arrayColumnParts: string[] = []
