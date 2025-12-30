@@ -314,9 +314,14 @@ onUnmounted(() => {
           @mouseover="
             tooltipRef?.showTooltip(
               $event,
-              slotProps.node.data.srViewName
-                ? `View: ${slotProps.node.data.srViewName}`
-                : 'No view name available'
+              [
+                slotProps.node.data.description
+                  ? `<strong>${slotProps.node.data.description}</strong>`
+                  : null,
+                slotProps.node.data.srViewName ? `View: ${slotProps.node.data.srViewName}` : null
+              ]
+                .filter(Boolean)
+                .join('<br>') || 'No description available'
             )
           "
           @mouseleave="tooltipRef?.hideTooltip"
