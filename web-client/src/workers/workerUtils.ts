@@ -32,6 +32,7 @@ export interface WorkerError {
   type: string
   code: string
   message: string
+  func?: string // The API function that failed (e.g., 'atl03x-surface')
 }
 export interface SrProgress {
   read_state: string
