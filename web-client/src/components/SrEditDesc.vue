@@ -7,8 +7,10 @@ import { useSrToastStore } from '@/stores/srToastStore'
 import { getCenter, calculateBounds } from '@/utils/geoUtils'
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue'
 import { createLogger } from '@/utils/logger'
+import { useGeoCoderStore } from '@/stores/geoCoderStore'
 
 const logger = createLogger('SrEditDesc')
+const geoCoderStore = useGeoCoderStore()
 
 // Define props first
 const props = defineProps({
@@ -50,56 +52,9 @@ const fetchDescription = async () => {
           }
 
           const c = getCenter(bounds)
-
-          // Validate coordinates before attempting fetch
-          if (c.lat === 0 && c.lon === 0) {
-            logger.warn('fetchDescription Invalid coordinates (0,0), skipping geocoding', {
-              reqId: props.reqId
-            })
-            descrRef.value = 'Location unavailable'
-            return
-          }
-
-          // Validate coordinates are within valid range
-          if (Math.abs(c.lat) > 90 || Math.abs(c.lon) > 180) {
-            logger.warn('fetchDescription Invalid coordinates out of range', {
-              reqId: props.reqId,
-              lat: c.lat,
-              lon: c.lon
-            })
-            descrRef.value = 'Invalid location coordinates'
-            return
-          }
-
-          try {
-            // Fetch address data from OpenStreetMap
-            const response = await fetch(
-              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${c.lat}&lon=${c.lon}`,
-              { signal: AbortSignal.timeout(5000) } // 5 second timeout
-            )
-
-            if (!response.ok) {
-              throw new Error(`Geocoding failed with status ${response.status}`)
-            }
-
-            const data = await response.json()
-            const descr = data.display_name
-            logger.debug('fetchDescription New Description', { descr })
-            // If display_name is available, update the request record
-            if (data && descr) {
-              descrRef.value = descr
-              void db.updateRequest(props.reqId, { description: descrRef.value })
-            }
-          } catch (error) {
-            logger.warn('fetchDescription Failed to fetch location name', {
-              error: error instanceof Error ? error.message : String(error),
-              lat: c.lat,
-              lon: c.lon
-            })
-            // Set a fallback description with coordinates
-            descrRef.value = `Location: ${c.lat.toFixed(4)}, ${c.lon.toFixed(4)}`
-            void db.updateRequest(props.reqId, { description: descrRef.value })
-          }
+          const result = await geoCoderStore.reverseGeocode(c.lat, c.lon)
+          descrRef.value = result.displayName
+          void db.updateRequest(props.reqId, { description: descrRef.value })
         } else {
           // No valid polygon found in svr_parms
           logger.warn('fetchDescription No valid polygon in svr_parms', {
