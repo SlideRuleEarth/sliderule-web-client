@@ -68,6 +68,14 @@ export function getDefaultReqParamsState(): SrReqParamsState {
     useReadTimeout: false,
     readTimeoutValue: 601,
 
+    // ─── Projection ───
+    useProj: false,
+    projValue: 2, // 0=North Polar, 1=South Polar, 2=Plate Carree (default)
+
+    // ─── Cluster Size Hint ───
+    useClusterSizeHint: false,
+    clusterSizeHintValue: 0,
+
     // ─── Photon Processing Parameters ───
     useLength: false,
     lengthValue: 40,
@@ -730,6 +738,12 @@ const createReqParamsStore = (id: string) =>
         if (this.useReadTimeout) {
           req['read-timeout'] = this.readTimeoutValue
         }
+        if (this.useProj) {
+          req.proj = this.projValue
+        }
+        if (this.useClusterSizeHint) {
+          req.cluster_size_hint = this.clusterSizeHintValue
+        }
         if (this.useDatum) {
           req.datum = 'EGM08'
         }
@@ -1029,6 +1043,30 @@ const createReqParamsStore = (id: string) =>
       },
       setReadTimeout(readTimeoutValue: number) {
         this.readTimeoutValue = readTimeoutValue
+      },
+      setUseProj(useProj: boolean) {
+        this.useProj = useProj
+      },
+      getUseProj(): boolean {
+        return this.useProj
+      },
+      getProj(): number {
+        return this.projValue
+      },
+      setProj(projValue: number) {
+        this.projValue = projValue
+      },
+      setUseClusterSizeHint(useClusterSizeHint: boolean) {
+        this.useClusterSizeHint = useClusterSizeHint
+      },
+      getUseClusterSizeHint(): boolean {
+        return this.useClusterSizeHint
+      },
+      getClusterSizeHint(): number {
+        return this.clusterSizeHintValue
+      },
+      setClusterSizeHint(clusterSizeHintValue: number) {
+        this.clusterSizeHintValue = clusterSizeHintValue
       },
       restoreTimeouts() {
         logger.debug('Restoring timeouts to defaults')

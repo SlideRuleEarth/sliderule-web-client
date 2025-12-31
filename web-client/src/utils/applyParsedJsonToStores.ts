@@ -138,6 +138,15 @@ export function applyParsedJsonToStores(
         logger.debug(`Unrecognized beam values skipped: ${unmatched.join(', ')}`)
         _addError('beams', 'Some beam values were not recognized and skipped (check input file)')
       }
+      // Warn user that string beam names will be converted to numeric values on export
+      if (matched.length > 0 && data.beams.some((b: unknown) => typeof b === 'string')) {
+        const beamConversions = matched.map((gt) => `"${gt.label}" → ${gt.value}`).join(', ')
+        logger.debug(`Beam string names will be exported as numeric values: ${beamConversions}`)
+        _addError(
+          'beams',
+          `Beam names will be converted to numeric format on export: ${beamConversions}`
+        )
+      }
     } else if (typeof data.beams === 'number') {
       // Handle GEDI beams (number - 0 means all beams)
       store.gediBeams = data.beams === 0 ? [0, 1, 2, 3, 5, 6, 8, 11] : [data.beams]
@@ -219,6 +228,15 @@ export function applyParsedJsonToStores(
   }
   if (data.atl08_fields && Array.isArray(data.atl08_fields)) {
     store.atl08_fields = data.atl08_fields
+    // Only warn if current API won't export this field
+    const api = store.iceSat2SelectedAPI
+    const willExport = api === 'atl08p' || (api === 'atl03x' && store.enablePhoReal)
+    if (!willExport) {
+      _addError(
+        'atl08_fields',
+        'Only exported for atl08p or atl03x-phoreal APIs - select one of these APIs or this field will be missing'
+      )
+    }
   }
 
   // Handle ATL03 field arrays
@@ -235,6 +253,13 @@ export function applyParsedJsonToStores(
   // Handle ATL13 and GEDI field arrays
   if (data.atl13_fields && Array.isArray(data.atl13_fields)) {
     store.atl13_fields = data.atl13_fields
+    // Only warn if current API won't export this field
+    if (store.iceSat2SelectedAPI !== 'atl13x') {
+      _addError(
+        'atl13_fields',
+        'Only exported for atl13x API - select atl13x or this field will be missing'
+      )
+    }
   }
   if (data.gedi_fields && Array.isArray(data.gedi_fields)) {
     store.gedi_fields = data.gedi_fields
@@ -256,10 +281,24 @@ export function applyParsedJsonToStores(
   if (data.cnt !== undefined) {
     store.setUseMinimumPhotonCount(true)
     coerce('cnt', data.cnt, (v) => store.setMinimumPhotonCount(v[0]))
+    // Only warn if pass_invalid is true (meaning cnt won't be exported)
+    if (store.passInvalid) {
+      _addError(
+        'cnt',
+        'Only exported when pass_invalid is false - set pass_invalid to false or this field will be missing'
+      )
+    }
   }
   if (data.ats !== undefined) {
     store.setUseAlongTrackSpread(true)
     coerce('ats', data.ats, (v) => store.setAlongTrackSpread(v[0]))
+    // Only warn if pass_invalid is true (meaning ats won't be exported)
+    if (store.passInvalid) {
+      _addError(
+        'ats',
+        'Only exported when pass_invalid is false - set pass_invalid to false or this field will be missing'
+      )
+    }
     logger.debug('Parsing srt values', { srt: data.srt })
   }
   if (data.srt !== undefined) {
@@ -310,6 +349,14 @@ export function applyParsedJsonToStores(
   if (data['read-timeout'] !== undefined) {
     store.setUseReadTimeout(true)
     store.setReadTimeout(data['read-timeout'])
+  }
+  if (data.proj !== undefined) {
+    store.useProj = true
+    store.projValue = data.proj
+  }
+  if (data.cluster_size_hint !== undefined) {
+    store.useClusterSizeHint = true
+    store.clusterSizeHintValue = data.cluster_size_hint
   }
   if (data.datum === 'EGM08') store.useDatum = true
   if (data.dist_in_seg) store.distanceIn = { name: 'segments', value: 'segments' }
@@ -372,6 +419,13 @@ export function applyParsedJsonToStores(
       (store.useAtl24SensorDepthExceeded = true),
         (store.atl24SensorDepthExceeded = data.atl24.sensor_depth_exceeded)
     if (data.atl24.anc_fields) store.atl24AncillaryFields = data.atl24.anc_fields
+    // Only warn if current API won't export atl24 parameters
+    if (store.iceSat2SelectedAPI !== 'atl24x') {
+      _addError(
+        'atl24',
+        'Only exported for atl24x API - select atl24x or this field will be missing'
+      )
+    }
   }
 
   if (data.yapc) {

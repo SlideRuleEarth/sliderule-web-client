@@ -36,9 +36,16 @@ function loadTestJson(filename: string): any {
 function getNonPolygonErrors(
   errors: Array<{ section: string; message: string }>
 ): Array<{ section: string; message: string }> {
-  return errors.filter(
-    (e) => e.section !== 'poly' && !e.message.toLowerCase().includes('converted to')
-  )
+  return errors.filter((e) => {
+    const msg = e.message.toLowerCase()
+    // Exclude polygon adjustments
+    if (e.section === 'poly') return false
+    // Exclude type conversions (ADJUSTED category)
+    if (msg.includes('converted to')) return false
+    // Exclude API mismatch warnings (informational, not errors)
+    if (msg.includes('only exported for') || msg.includes('will be missing')) return false
+    return true
+  })
 }
 
 /**
@@ -721,6 +728,270 @@ describe('applyParsedJsonToStores - Round-trip Tests', () => {
     })
   })
 
+  describe('Core request fields - xseries comprehensive test', () => {
+    it('should import and export all core request fields for xseries APIs', () => {
+      // Test input with ALL core request fields from xseries documentation:
+      // asset (set automatically), resources, poly, proj, datum, timeout,
+      // rqst-timeout, node-timeout, read-timeout, cluster_size_hint, region_mask, samples
+      const input = {
+        poly: [
+          { lon: -108.05, lat: 39.0 },
+          { lon: -108.0, lat: 39.0 },
+          { lon: -108.0, lat: 39.05 },
+          { lon: -108.05, lat: 39.05 },
+          { lon: -108.05, lat: 39.0 }
+        ],
+        proj: 0, // North Polar
+        datum: 'EGM08',
+        timeout: 300,
+        'rqst-timeout': 400,
+        'node-timeout': 500,
+        'read-timeout': 600,
+        cluster_size_hint: 8
+      }
+
+      applyParsedJsonToStores(input, reqParamsStore, rasterParamsStore, addError)
+
+      reqParamsStore.setMissionValue('ICESat-2')
+      reqParamsStore.setIceSat2API('atl03x')
+
+      // Verify store state for all core fields
+      expect(reqParamsStore.useProj).toBe(true)
+      expect(reqParamsStore.projValue).toBe(0)
+      expect(reqParamsStore.useDatum).toBe(true)
+      expect(reqParamsStore.useServerTimeout).toBe(true)
+      expect(reqParamsStore.serverTimeoutValue).toBe(300)
+      expect(reqParamsStore.useReqTimeout).toBe(true)
+      expect(reqParamsStore.reqTimeoutValue).toBe(400)
+      expect(reqParamsStore.useNodeTimeout).toBe(true)
+      expect(reqParamsStore.nodeTimeoutValue).toBe(500)
+      expect(reqParamsStore.useReadTimeout).toBe(true)
+      expect(reqParamsStore.readTimeoutValue).toBe(600)
+      expect(reqParamsStore.useClusterSizeHint).toBe(true)
+      expect(reqParamsStore.clusterSizeHintValue).toBe(8)
+
+      // Verify export contains all core fields
+      const output = reqParamsStore.getAtlxxReqParams(0)
+
+      // Polygon (exported as convex hull when rasterize disabled)
+      expect(output.parms.poly).toBeDefined()
+      expect(Array.isArray(output.parms.poly)).toBe(true)
+
+      // Projection
+      expect(output.parms.proj).toBe(0)
+
+      // Datum
+      expect(output.parms.datum).toBe('EGM08')
+
+      // Timeouts
+      expect(output.parms.timeout).toBe(300)
+      expect(output.parms['rqst-timeout']).toBe(400)
+      expect(output.parms['node-timeout']).toBe(500)
+      expect(output.parms['read-timeout']).toBe(600)
+
+      // Cluster size hint
+      expect(output.parms.cluster_size_hint).toBe(8)
+
+      expect(getNonPolygonErrors(importErrors)).toHaveLength(0)
+    })
+
+    it('should handle all core request fields for atl24x API', () => {
+      const input = {
+        poly: [
+          { lon: -108.05, lat: 39.0 },
+          { lon: -108.0, lat: 39.0 },
+          { lon: -108.0, lat: 39.05 },
+          { lon: -108.05, lat: 39.05 },
+          { lon: -108.05, lat: 39.0 }
+        ],
+        proj: 1, // South Polar
+        datum: 'EGM08',
+        timeout: 900,
+        'rqst-timeout': 900,
+        'node-timeout': 900,
+        'read-timeout': 900,
+        cluster_size_hint: 16,
+        atl24: {
+          class_ph: ['bathymetry', 'sea_surface'],
+          compact: true
+        }
+      }
+
+      applyParsedJsonToStores(input, reqParamsStore, rasterParamsStore, addError)
+
+      reqParamsStore.setMissionValue('ICESat-2')
+      reqParamsStore.setIceSat2API('atl24x')
+
+      const output = reqParamsStore.getAtlxxReqParams(0)
+
+      // Verify all core fields
+      expect(output.parms.proj).toBe(1)
+      expect(output.parms.datum).toBe('EGM08')
+      expect(output.parms.timeout).toBe(900)
+      expect(output.parms['rqst-timeout']).toBe(900)
+      expect(output.parms['node-timeout']).toBe(900)
+      expect(output.parms['read-timeout']).toBe(900)
+      expect(output.parms.cluster_size_hint).toBe(16)
+
+      // Verify ATL24-specific fields
+      expect(output.parms.atl24).toBeDefined()
+      expect(output.parms.atl24.class_ph).toEqual(
+        expect.arrayContaining(['bathymetry', 'sea_surface'])
+      )
+      expect(output.parms.atl24.compact).toBe(true)
+
+      expect(getNonPolygonErrors(importErrors)).toHaveLength(0)
+    })
+
+    it('should handle all core request fields for atl13x API', () => {
+      const input = {
+        poly: [
+          { lon: -108.05, lat: 39.0 },
+          { lon: -108.0, lat: 39.0 },
+          { lon: -108.0, lat: 39.05 },
+          { lon: -108.05, lat: 39.05 },
+          { lon: -108.05, lat: 39.0 }
+        ],
+        proj: 2, // Plate Carree
+        datum: 'EGM08',
+        timeout: 120,
+        'rqst-timeout': 120,
+        'node-timeout': 120,
+        'read-timeout': 120,
+        cluster_size_hint: 4,
+        atl13: {
+          coord: { lon: -108.025, lat: 39.025 }
+        },
+        atl13_fields: ['ht_ortho']
+      }
+
+      applyParsedJsonToStores(input, reqParamsStore, rasterParamsStore, addError)
+
+      reqParamsStore.setMissionValue('ICESat-2')
+      reqParamsStore.setIceSat2API('atl13x')
+
+      const output = reqParamsStore.getAtlxxReqParams(0)
+
+      // Verify all core fields
+      expect(output.parms.proj).toBe(2)
+      expect(output.parms.datum).toBe('EGM08')
+      expect(output.parms.timeout).toBe(120)
+      expect(output.parms['rqst-timeout']).toBe(120)
+      expect(output.parms['node-timeout']).toBe(120)
+      expect(output.parms['read-timeout']).toBe(120)
+      expect(output.parms.cluster_size_hint).toBe(4)
+
+      // Verify ATL13-specific fields
+      expect(output.parms.atl13).toBeDefined()
+      expect(output.parms.atl13.coord).toEqual({ lon: -108.025, lat: 39.025 })
+      expect(output.parms.atl13_fields).toEqual(['ht_ortho'])
+
+      expect(getNonPolygonErrors(importErrors)).toHaveLength(0)
+    })
+
+    it('should handle all core request fields for atl03x-surface API', () => {
+      const input = {
+        poly: [
+          { lon: -108.05, lat: 39.0 },
+          { lon: -108.0, lat: 39.0 },
+          { lon: -108.0, lat: 39.05 },
+          { lon: -108.05, lat: 39.05 },
+          { lon: -108.05, lat: 39.0 }
+        ],
+        proj: 0, // North Polar
+        datum: 'EGM08',
+        timeout: 600,
+        'rqst-timeout': 600,
+        'node-timeout': 600,
+        'read-timeout': 600,
+        cluster_size_hint: 12,
+        fit: {
+          maxi: 6,
+          h_win: 3.0,
+          sigma_r: 5.0
+        },
+        len: 40.0,
+        res: 20.0
+      }
+
+      applyParsedJsonToStores(input, reqParamsStore, rasterParamsStore, addError)
+
+      reqParamsStore.setMissionValue('ICESat-2')
+      reqParamsStore.setIceSat2API('atl03x-surface')
+
+      const output = reqParamsStore.getAtlxxReqParams(0)
+
+      // Verify all core fields
+      expect(output.parms.proj).toBe(0)
+      expect(output.parms.datum).toBe('EGM08')
+      expect(output.parms.timeout).toBe(600)
+      expect(output.parms['rqst-timeout']).toBe(600)
+      expect(output.parms['node-timeout']).toBe(600)
+      expect(output.parms['read-timeout']).toBe(600)
+      expect(output.parms.cluster_size_hint).toBe(12)
+
+      // Verify surface fit fields
+      expect(output.parms.fit).toBeDefined()
+      expect(output.parms.fit.maxi).toBe(6)
+      expect(output.parms.fit.h_win).toBe(3.0)
+      expect(output.parms.fit.sigma_r).toBe(5.0)
+      expect(output.parms.len).toBe(40.0)
+      expect(output.parms.res).toBe(20.0)
+
+      expect(getNonPolygonErrors(importErrors)).toHaveLength(0)
+    })
+
+    it('should handle all core request fields for atl03x-phoreal API', () => {
+      const input = {
+        poly: [
+          { lon: -108.05, lat: 39.0 },
+          { lon: -108.0, lat: 39.0 },
+          { lon: -108.0, lat: 39.05 },
+          { lon: -108.05, lat: 39.05 },
+          { lon: -108.05, lat: 39.0 }
+        ],
+        proj: 1, // South Polar
+        datum: 'EGM08',
+        timeout: 450,
+        'rqst-timeout': 450,
+        'node-timeout': 450,
+        'read-timeout': 450,
+        cluster_size_hint: 6,
+        phoreal: {
+          geoloc: 'mean',
+          binsize: 1.0,
+          above_classifier: true,
+          use_abs_h: true
+        }
+      }
+
+      applyParsedJsonToStores(input, reqParamsStore, rasterParamsStore, addError)
+
+      reqParamsStore.setMissionValue('ICESat-2')
+      reqParamsStore.setIceSat2API('atl03x-phoreal')
+
+      const output = reqParamsStore.getAtlxxReqParams(0)
+
+      // Verify all core fields
+      expect(output.parms.proj).toBe(1)
+      expect(output.parms.datum).toBe('EGM08')
+      expect(output.parms.timeout).toBe(450)
+      expect(output.parms['rqst-timeout']).toBe(450)
+      expect(output.parms['node-timeout']).toBe(450)
+      expect(output.parms['read-timeout']).toBe(450)
+      expect(output.parms.cluster_size_hint).toBe(6)
+
+      // Verify phoreal fields
+      expect(output.parms.phoreal).toBeDefined()
+      expect(output.parms.phoreal!.geoloc).toBe('mean')
+      expect(output.parms.phoreal!.binsize).toBe(1.0)
+      expect(output.parms.phoreal!.above_classifier).toBe(true)
+      expect(output.parms.phoreal!.use_abs_h).toBe(true)
+
+      expect(getNonPolygonErrors(importErrors)).toHaveLength(0)
+    })
+  })
+
   describe('Import issue categorization', () => {
     it('should categorize polygon adjustments as ADJUSTED', () => {
       // Clockwise polygon will trigger a reordering warning
@@ -764,10 +1035,11 @@ describe('applyParsedJsonToStores - Round-trip Tests', () => {
 
       applyParsedJsonToStores(inputWithBadBeams, reqParamsStore, rasterParamsStore, addError)
 
-      // Should have warning about unrecognized beams
+      // Should have warnings about unrecognized beams and format conversion
       const beamErrors = importErrors.filter((e) => e.section === 'beams')
-      expect(beamErrors.length).toBe(1)
-      expect(beamErrors[0].message).toContain('not recognized')
+      expect(beamErrors.length).toBe(2)
+      expect(beamErrors.some((e) => e.message.includes('not recognized'))).toBe(true)
+      expect(beamErrors.some((e) => e.message.includes('converted to numeric format'))).toBe(true)
     })
 
     it('should categorize invalid srt values as INVALID', () => {

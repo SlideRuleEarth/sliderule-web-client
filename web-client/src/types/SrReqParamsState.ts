@@ -44,6 +44,14 @@ export interface SrReqParamsState {
   useReadTimeout: boolean
   readTimeoutValue: number
 
+  // ─── Projection ───
+  useProj: boolean
+  projValue: number // 0=North Polar, 1=South Polar, 2=Plate Carree (default)
+
+  // ─── Cluster Size Hint ───
+  useClusterSizeHint: boolean
+  clusterSizeHintValue: number
+
   // ─── Photon Processing Parameters ───
   useLength: boolean
   lengthValue: number

@@ -13,7 +13,8 @@ export enum ImportIssueCategory {
   IGNORED = 'IGNORED', // Field recognized but intentionally skipped (e.g., unrecognized beam values)
   INVALID = 'INVALID', // Field value was malformed and could not be applied
   ADJUSTED = 'ADJUSTED', // Field was converted/normalized (legacy names, polygon winding)
-  UNKNOWN = 'UNKNOWN' // Field not recognized by the application at all
+  UNKNOWN = 'UNKNOWN', // Field not recognized by the application at all
+  API_MISMATCH = 'API_MISMATCH' // Field imported but won't be exported due to current API/settings selection
 }
 /* eslint-enable no-unused-vars */
 
@@ -101,6 +102,10 @@ function addError(section: string, message: string) {
 
 function inferCategory(message: string): ImportIssueCategory {
   const lowerMsg = message.toLowerCase()
+  // Check for API mismatch: field won't be exported due to API/settings selection
+  if (lowerMsg.includes('only exported for') || lowerMsg.includes('may appear missing in diff')) {
+    return ImportIssueCategory.API_MISMATCH
+  }
   // Check for adjustments: polygon changes, param renames, type conversions
   if (
     lowerMsg.includes('adjusted') ||
@@ -132,7 +137,8 @@ function formatGroupedIssues(issues: Record<string, ImportIssue[]>): string {
     [ImportIssueCategory.ADJUSTED]: [],
     [ImportIssueCategory.IGNORED]: [],
     [ImportIssueCategory.INVALID]: [],
-    [ImportIssueCategory.UNKNOWN]: []
+    [ImportIssueCategory.UNKNOWN]: [],
+    [ImportIssueCategory.API_MISMATCH]: []
   }
 
   for (const [field, fieldIssues] of Object.entries(issues)) {
@@ -144,6 +150,7 @@ function formatGroupedIssues(issues: Record<string, ImportIssue[]>): string {
   // Format with category headings
   const sections: string[] = []
   const categoryOrder: ImportIssueCategory[] = [
+    ImportIssueCategory.API_MISMATCH,
     ImportIssueCategory.ADJUSTED,
     ImportIssueCategory.IGNORED,
     ImportIssueCategory.INVALID,
@@ -154,7 +161,8 @@ function formatGroupedIssues(issues: Record<string, ImportIssue[]>): string {
     const items = byCategory[category]
     if (items.length > 0) {
       const heading = `${category}:`
-      const lines = items.map((item) => `  ${item.field}: ${item.message}`)
+      // Format each item with field on one line and message indented below
+      const lines = items.map((item) => `  ${item.field}:\n      ${item.message}`)
       sections.push([heading, ...lines].join('\n'))
     }
   }

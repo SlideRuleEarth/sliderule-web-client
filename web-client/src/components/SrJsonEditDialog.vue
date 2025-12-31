@@ -495,12 +495,44 @@ pre {
 .json-dual-panel {
   display: flex;
   gap: 1rem;
+  align-items: stretch;
 }
 
 .json-pane {
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-width: 0;
+}
+
+/* Make the right pane's tabs component stretch to fill available height */
+.json-pane :deep(.p-tabs) {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.json-pane :deep(.p-tabpanels) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.json-pane :deep(.p-tabpanel) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.json-pane :deep(.tab-content) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.json-pane :deep(.tab-content pre) {
+  flex: 1;
+  max-height: none;
 }
 
 .pane-title {
