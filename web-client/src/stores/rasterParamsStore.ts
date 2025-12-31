@@ -19,6 +19,8 @@ export type RasterParams = {
   use_poi_time: boolean
   catalog: string
   bands: string[]
+  slope_aspect: boolean
+  slope_scale_length: number
 }
 export const RasterParamsCols = [
   { field: 'key', header: 'Key' },
@@ -34,7 +36,9 @@ export const RasterParamsCols = [
   { field: 'closestTime', header: 'closestTime' },
   { field: 'catalog', header: 'catalog' },
   { field: 'use_poi_time', header: 'use_poi_time' },
-  { field: 'bands', header: 'bands' }
+  { field: 'bands', header: 'bands' },
+  { field: 'slope_aspect', header: 'slope_aspect' },
+  { field: 'slope_scale_length', header: 'slope_scale_length' }
 ]
 
 export const useRasterParamsStore = defineStore('rasterParams', {
@@ -59,6 +63,9 @@ export const useRasterParamsStore = defineStore('rasterParams', {
     catalog: '' as RasterParams['catalog'],
     useBands: false as boolean, // Flag to indicate if bands are used
     bands: [] as RasterParams['bands'],
+    slope_aspect: false as RasterParams['slope_aspect'],
+    useSlopeScaleLength: false as boolean, // Flag to indicate if slope_scale_length is used
+    slope_scale_length: 0 as RasterParams['slope_scale_length'],
     assetOptions: [
       { name: 'gedil3-elevation', value: 'gedil3-elevation' },
       { name: 'gedil3-canopy', value: 'gedil3-canopy' },
@@ -145,6 +152,8 @@ export const useRasterParamsStore = defineStore('rasterParams', {
         if (row.use_poi_time) entry.use_poi_time = row.use_poi_time
         if (row.catalog) entry.catalog = row.catalog
         if (row.bands?.length) entry.bands = row.bands
+        if (row.slope_aspect) entry.slope_aspect = row.slope_aspect
+        if (row.slope_scale_length > 0) entry.slope_scale_length = row.slope_scale_length
 
         samples[row.key] = entry
       })
@@ -165,7 +174,9 @@ export const useRasterParamsStore = defineStore('rasterParams', {
         closestTime: entry.closest_time ? new Date(entry.closest_time) : null,
         use_poi_time: entry.use_poi_time ?? false,
         catalog: entry.catalog ?? '',
-        bands: Array.isArray(entry.bands) ? entry.bands : []
+        bands: Array.isArray(entry.bands) ? entry.bands : [],
+        slope_aspect: entry.slope_aspect ?? false,
+        slope_scale_length: entry.slope_scale_length ?? 0
       }))
     },
     async setAssetOptions() {

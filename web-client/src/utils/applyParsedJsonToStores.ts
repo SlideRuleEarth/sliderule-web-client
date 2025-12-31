@@ -51,12 +51,48 @@ export function applyParsedJsonToStores(
   if (data.t1) store.setT1(new Date(data.t1))
 
   if (data.beams) {
-    const matched = mapGtStringsToSrListNumberItems(data.beams)
-    store.setSelectedGtOptions(matched)
-    const unmatched = data.beams.filter((name: string) => !matched.some((gt) => gt.label === name))
-    if (unmatched.length > 0) {
-      _addError('beams', `unrecognized value(s): ${unmatched.join(', ')}`)
+    // Handle ICESat-2 beams (array of strings like "gt1l", "gt2r")
+    if (Array.isArray(data.beams)) {
+      const matched = mapGtStringsToSrListNumberItems(data.beams)
+      store.setSelectedGtOptions(matched)
+      const unmatched = data.beams.filter(
+        (name: string) => !matched.some((gt) => gt.label === name)
+      )
+      if (unmatched.length > 0) {
+        _addError('beams', `unrecognized value(s): ${unmatched.join(', ')}`)
+      }
+    } else if (typeof data.beams === 'number') {
+      // Handle GEDI beams (number - 0 means all beams)
+      store.gediBeams = data.beams === 0 ? [0, 1, 2, 3, 5, 6, 8, 11] : [data.beams]
     }
+  }
+
+  // Handle GEDI-specific quality filter parameters
+  // Current naming: degrade_filter, l2_quality_filter, etc.
+  // Also accepts legacy short names (degrade, l2_quality, etc.) for backwards compatibility
+  if (data.degrade_filter !== undefined) {
+    store.degradeFlag = data.degrade_filter
+  } else if (data.degrade !== undefined) {
+    store.degradeFlag = data.degrade
+    _addError('degrade', 'Legacy parameter name "degrade" converted to "degrade_filter"')
+  }
+  if (data.l2_quality_filter !== undefined) {
+    store.l2QualityFlag = data.l2_quality_filter
+  } else if (data.l2_quality !== undefined) {
+    store.l2QualityFlag = data.l2_quality
+    _addError('l2_quality', 'Legacy parameter name "l2_quality" converted to "l2_quality_filter"')
+  }
+  if (data.l4_quality_filter !== undefined) {
+    store.l4QualityFlag = data.l4_quality_filter
+  } else if (data.l4_quality !== undefined) {
+    store.l4QualityFlag = data.l4_quality
+    _addError('l4_quality', 'Legacy parameter name "l4_quality" converted to "l4_quality_filter"')
+  }
+  if (data.surface_flag !== undefined) {
+    store.surfaceFlag = data.surface_flag
+  } else if (data.surface !== undefined) {
+    store.surfaceFlag = data.surface
+    _addError('surface', 'Legacy parameter name "surface" converted to "surface_flag"')
   }
 
   if (data.cnf) {
@@ -69,6 +105,40 @@ export function applyParsedJsonToStores(
       store.qualityPH = qualityPHOptions.filter((opt) => v.includes(opt.value))
     })
   }
+
+  // Handle ATL06/ATL08 fields
+  if (data.atl06_fields && Array.isArray(data.atl06_fields)) {
+    store.atl06_fields = data.atl06_fields
+  }
+  if (data.atl08_fields && Array.isArray(data.atl08_fields)) {
+    store.atl08_fields = data.atl08_fields
+  }
+
+  // Handle ATL03 field arrays
+  if (data.atl03_geo_fields && Array.isArray(data.atl03_geo_fields)) {
+    store.atl03_geo_fields = data.atl03_geo_fields
+  }
+  if (data.atl03_corr_fields && Array.isArray(data.atl03_corr_fields)) {
+    store.atl03_corr_fields = data.atl03_corr_fields
+  }
+  if (data.atl03_ph_fields && Array.isArray(data.atl03_ph_fields)) {
+    store.atl03_ph_fields = data.atl03_ph_fields
+  }
+
+  // Handle ATL13 and GEDI field arrays
+  if (data.atl13_fields && Array.isArray(data.atl13_fields)) {
+    store.atl13_fields = data.atl13_fields
+  }
+  if (data.gedi_fields && Array.isArray(data.gedi_fields)) {
+    store.gedi_fields = data.gedi_fields
+  }
+
+  // Handle max_resources
+  if (data.max_resources !== undefined) {
+    store.setUseMaxResources(true)
+    store.setMaxResources(data.max_resources)
+  }
+
   if (data.cnt !== undefined) {
     store.setUseMinimumPhotonCount(true)
     coerce('cnt', data.cnt, (v) => store.setMinimumPhotonCount(v[0]))
@@ -188,13 +258,23 @@ export function applyParsedJsonToStores(
         store.setUseMaxIterations(true)
         store.setMaxIterations(data.fit.maxi)
       }
-      if ('H_min_win' in data.fit) {
+      // Accept both h_win (current) and H_min_win (legacy)
+      if ('h_win' in data.fit) {
+        store.setUseMinWindowHeight(true)
+        store.setMinWindowHeight(data.fit.h_win)
+      } else if ('H_min_win' in data.fit) {
         store.setUseMinWindowHeight(true)
         store.setMinWindowHeight(data.fit.H_min_win)
+        _addError('fit.H_min_win', 'Legacy parameter name "H_min_win" converted to "h_win"')
       }
-      if ('sigma_r_max' in data.fit) {
+      // Accept both sigma_r (current) and sigma_r_max (legacy)
+      if ('sigma_r' in data.fit) {
+        store.setUseMaxRobustDispersion(true)
+        store.setSigmaRmax(data.fit.sigma_r)
+      } else if ('sigma_r_max' in data.fit) {
         store.setUseMaxRobustDispersion(true)
         store.setSigmaRmax(data.fit.sigma_r_max)
+        _addError('fit.sigma_r_max', 'Legacy parameter name "sigma_r_max" converted to "sigma_r"')
       }
     }
   } else {
@@ -211,7 +291,23 @@ export function applyParsedJsonToStores(
 
     // Only set specific values if they exist in the phoreal object
     if (typeof data.phoreal === 'object' && data.phoreal !== null) {
-      // Add phoreal-specific parameter handling here if needed
+      if ('geoloc' in data.phoreal) {
+        store.usePhoRealGeoLocation = true
+        store.phoRealGeoLocation = data.phoreal.geoloc
+      }
+      if ('binsize' in data.phoreal) {
+        store.usePhoRealBinSize = true
+        store.phoRealBinSize = data.phoreal.binsize
+      }
+      if ('above_classifier' in data.phoreal) {
+        store.usePhoRealABoVEClassifier = data.phoreal.above_classifier
+      }
+      if ('use_abs_h' in data.phoreal) {
+        store.usePhoRealAbsoluteHeights = data.phoreal.use_abs_h
+      }
+      if ('send_waveform' in data.phoreal) {
+        store.usePhoRealSendWaveforms = data.phoreal.send_waveform
+      }
     }
   } else {
     // If phoreal is not present at all in loaded parameters, turn off PhoREAL

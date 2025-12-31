@@ -508,16 +508,16 @@ const createReqParamsStore = (id: string) =>
           }
         } else if (this.missionValue === 'GEDI') {
           if (this.degradeFlag) {
-            req.degrade = true
+            req.degrade_filter = true
           }
           if (this.l2QualityFlag) {
-            req.l2_quality = true
+            req.l2_quality_filter = true
           }
           if (this.l4QualityFlag) {
-            req.l4_quality = true
+            req.l4_quality_filter = true
           }
           if (this.surfaceFlag) {
-            req.surface = true
+            req.surface_flag = true
           }
         }
         const geojsonStore = useGeoJsonStore()
