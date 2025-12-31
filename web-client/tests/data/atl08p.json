@@ -1,0 +1,16 @@
+{
+  "parms": {
+    "poly": [
+      {"lon": -108.05, "lat": 39.00},
+      {"lon": -108.00, "lat": 39.00},
+      {"lon": -108.00, "lat": 39.05},
+      {"lon": -108.05, "lat": 39.05},
+      {"lon": -108.05, "lat": 39.00}
+    ],
+    "phoreal": {
+      "binsize": 1.0,
+      "send_waveform": true
+    },
+    "atl08_fields": ["segment_snowcover", "segment_landcover"]
+  }
+}

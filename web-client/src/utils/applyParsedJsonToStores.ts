@@ -1,5 +1,5 @@
 // src/utils/applyParsedJsonToStores.ts
-import { mapGtStringsToSrListNumberItems } from '@/utils/parmUtils'
+import { mapGtStringsToSrListNumberItems, tracksOptions } from '@/utils/parmUtils'
 import { coerceToNumberArray } from '@/utils/coerceUtils'
 import {
   surfaceReferenceTypeOptions,
@@ -45,14 +45,20 @@ export function applyParsedJsonToStores(
     store.setRegion(data.region)
   }
   if (data.t0) {
+    store.setEnableGranuleSelection(true)
     store.setUseTime(true)
     store.setT0(new Date(data.t0))
   }
-  if (data.t1) store.setT1(new Date(data.t1))
+  if (data.t1) {
+    store.setEnableGranuleSelection(true)
+    store.setUseTime(true)
+    store.setT1(new Date(data.t1))
+  }
 
-  if (data.beams) {
+  if (data.beams !== undefined) {
     // Handle ICESat-2 beams (array of strings like "gt1l", "gt2r")
     if (Array.isArray(data.beams)) {
+      store.setEnableGranuleSelection(true)
       const matched = mapGtStringsToSrListNumberItems(data.beams)
       store.setSelectedGtOptions(matched)
       const unmatched = data.beams.filter(
@@ -64,6 +70,19 @@ export function applyParsedJsonToStores(
     } else if (typeof data.beams === 'number') {
       // Handle GEDI beams (number - 0 means all beams)
       store.gediBeams = data.beams === 0 ? [0, 1, 2, 3, 5, 6, 8, 11] : [data.beams]
+    }
+  }
+
+  // Handle ICESat-2 tracks (array of numbers like [1, 2, 3])
+  if (data.tracks !== undefined && Array.isArray(data.tracks)) {
+    store.setEnableGranuleSelection(true)
+    const matched = tracksOptions.filter((opt) => data.tracks.includes(opt.value))
+    store.setSelectedTrackOptions(matched)
+    const unmatched = data.tracks.filter(
+      (v: number) => !tracksOptions.some((opt) => opt.value === v)
+    )
+    if (unmatched.length > 0) {
+      _addError('tracks', `unrecognized value(s): ${unmatched.join(', ')}`)
     }
   }
 
@@ -131,6 +150,13 @@ export function applyParsedJsonToStores(
   }
   if (data.gedi_fields && Array.isArray(data.gedi_fields)) {
     store.gedi_fields = data.gedi_fields
+  }
+
+  // Handle ancillary fields (anc_fields can be for ATL03 or ATL08 depending on context)
+  if (data.anc_fields && Array.isArray(data.anc_fields)) {
+    // For now, store in both - the export will use the appropriate one based on API
+    store.atl03AncillaryFields = data.anc_fields
+    store.atl08AncillaryFields = data.anc_fields
   }
 
   // Handle max_resources
@@ -207,6 +233,9 @@ export function applyParsedJsonToStores(
   if (data.atl13) {
     store.useAtl13Point = !!data.atl13.coord
     store.atl13 = { ...store.atl13, ...data.atl13 }
+    if ('refid' in data.atl13) {
+      store.useAtl13RefId = true
+    }
   }
 
   if (data.atl24) {
@@ -237,6 +266,7 @@ export function applyParsedJsonToStores(
     store.enableYAPC = true
     store.setYAPCScore(data.yapc.score)
     if ('knn' in data.yapc) store.setUseYAPCKnn(true), store.setYAPCKnn(data.yapc.knn)
+    if ('min_knn' in data.yapc) store.setUseYAPCMinKnn(true), store.setYAPCMinKnn(data.yapc.min_knn)
     if ('win_h' in data.yapc)
       store.setUsesYAPCWindowHeight(true), store.setYAPCWindowHeight(data.yapc.win_h)
     if ('win_x' in data.yapc)
@@ -312,6 +342,13 @@ export function applyParsedJsonToStores(
   } else {
     // If phoreal is not present at all in loaded parameters, turn off PhoREAL
     store.setEnablePhoReal(false)
+  }
+
+  // Handle output options
+  if (data.output && typeof data.output === 'object') {
+    if ('with_checksum' in data.output) {
+      store.setUseChecksum(data.output.with_checksum)
+    }
   }
 
   // Handle raster sampling parameters

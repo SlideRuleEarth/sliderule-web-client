@@ -1,0 +1,18 @@
+{
+  "parms": {
+    "poly": [
+      {"lon": -108.05, "lat": 39.00},
+      {"lon": -108.00, "lat": 39.00},
+      {"lon": -108.00, "lat": 39.05},
+      {"lon": -108.05, "lat": 39.05},
+      {"lon": -108.05, "lat": 39.00}
+    ],
+    "degrade_filter": true,
+    "l2_quality_filter": true,
+    "l4_quality_filter": true,
+    "surface_flag": true,
+    "beams": 0,
+    "gedi_fields": ["agbd"]
+  },
+  "resources": ["GEDI04_A_2019123154305_O02202_03_T00174_02_002_02_V002.h5"]
+}
