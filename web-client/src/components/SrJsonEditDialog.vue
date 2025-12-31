@@ -1,15 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
-import type { Ref } from 'vue'
 import Dialog from 'primevue/dialog'
 import Button from 'primevue/button'
 import Textarea from 'primevue/textarea'
 import Select from 'primevue/select'
 import SrJsonDiffViewer from './SrJsonDiffViewer.vue'
+import SrParmsFormatTabs from './SrParmsFormatTabs.vue'
 import { missionItems, iceSat2APIsItems, gediAPIsItems } from '@/types/SrStaticOptions'
-import hljs from 'highlight.js/lib/core'
-import json from 'highlight.js/lib/languages/json'
-import 'highlight.js/styles/atom-one-dark.css'
 import type { ZodTypeAny } from 'zod'
 import { useJsonImporter } from '@/composables/SrJsonImporter'
 import { importRequestJsonToStore } from '@/utils/importRequestToStore'
@@ -29,8 +26,6 @@ const mapStore = useMapStore()
 
 const toast = useToast()
 
-hljs.registerLanguage('json', json)
-
 function showToast(summary: string, detail: string, severity = 'warn') {
   toast.add({
     severity,
@@ -43,11 +38,9 @@ const props = withDefaults(
   defineProps<{
     zodSchema: ZodTypeAny
     width?: string
-    title?: string
   }>(),
   {
-    width: '60vw',
-    title: 'JSON Viewer'
+    width: '60vw'
   }
 )
 
@@ -55,7 +48,6 @@ const emit = defineEmits<{
   (_e: 'json-valid', _value: unknown): void
 }>()
 
-const jsonBlock = ref<HTMLElement | null>(null)
 const editableReqJson = ref('')
 const parsedEditableReqJson = computed(() => {
   try {
@@ -96,14 +88,9 @@ const hasChangesToApply = computed(() => {
   return JSON.stringify(parsedEditableReqJson.value) !== JSON.stringify(parsedCurrentReqJson.value)
 })
 
-const readonlyHighlightedJson = computed(() => {
-  return hljs.highlight(currentReqJson.value, { language: 'json' }).value
-})
-
 const fileInputRef = ref<HTMLInputElement | null>(null)
 
-// Endpoint confirmation dialog state
-const showEndpointDialog = ref(false)
+// Endpoint selector state (used in header)
 const selectedMission = ref(reqParamsStore.missionValue)
 const selectedAPI = ref(reqParamsStore.getCurAPIStr())
 
@@ -121,31 +108,34 @@ watch(selectedMission, (newMission) => {
   }
 })
 
-const { data: importedData, error: importError, importJson } = useJsonImporter(props.zodSchema)
-
-const importFromFile = () => {
-  // Initialize dialog with current endpoint settings
-  selectedMission.value = reqParamsStore.missionValue
-  selectedAPI.value = reqParamsStore.getCurAPIStr()
-  showEndpointDialog.value = true
-}
-
-const confirmEndpointAndImport = () => {
-  // Apply selected mission and API to store
+// Handle mission change from header selector
+function handleMissionChange() {
   reqParamsStore.setMissionValue(selectedMission.value)
+  // Update API in store based on new mission
   if (selectedMission.value === 'ICESat-2') {
     reqParamsStore.setIceSat2API(selectedAPI.value)
   } else {
     reqParamsStore.setGediAPI(selectedAPI.value)
   }
-
-  // Close dialog and trigger file input
-  showEndpointDialog.value = false
-  fileInputRef.value?.click()
+  // Refresh the request parameters display
+  updateEditableJsonFromStore()
 }
 
-const cancelEndpointDialog = () => {
-  showEndpointDialog.value = false
+// Handle API change from header selector
+function handleAPIChange() {
+  if (selectedMission.value === 'ICESat-2') {
+    reqParamsStore.setIceSat2API(selectedAPI.value)
+  } else {
+    reqParamsStore.setGediAPI(selectedAPI.value)
+  }
+  // Refresh the request parameters display
+  updateEditableJsonFromStore()
+}
+
+const { data: importedData, error: importError, importJson } = useJsonImporter(props.zodSchema)
+
+const importFromFile = () => {
+  fileInputRef.value?.click()
 }
 const handleFileChange = (event: Event) => {
   const input = event.target as HTMLInputElement
@@ -236,26 +226,16 @@ const copyEditableReqJsonToClipboard = async () => {
 }
 
 watch(computedShowParamsDialog, (newVal) => {
-  //console.log('SrJsonEditDialog watch showParamsDialog changed:', newVal);
   if (newVal) {
-    //console.log('SrJsonEditDialog watch showParamsDialog Dialog opened, highlighting JSON.');
+    // Initialize endpoint selectors with current store values
+    selectedMission.value = reqParamsStore.missionValue
+    selectedAPI.value = reqParamsStore.getCurAPIStr()
     updateEditableJsonFromStore()
-    void nextTick(() => highlightJson())
   } else {
-    //console.log('SrJsonEditDialog watch showParamsDialog Dialog closed.');
     // Zoom to poly if it exists
     zoomToPoly()
   }
 })
-
-const highlightJson = () => {
-  logger.debug('Highlighting JSON in readonly panel')
-  if (jsonBlock.value) {
-    jsonBlock.value.removeAttribute('data-highlighted') // allow re-highlighting
-    jsonBlock.value.innerHTML = readonlyHighlightedJson.value // replace with fresh content
-    hljs.highlightElement(jsonBlock.value)
-  }
-}
 
 function updateEditableJsonFromStore() {
   currentReqObj.value = reqParamsStore.getAtlxxReqParams(0)
@@ -284,24 +264,6 @@ const importToStore = () => {
     validationError.value = 'Import failed: Invalid JSON'
     isValidJson.value = false
   }
-}
-function exportToFile(json: string | Ref<string>) {
-  const jsonString = typeof json === 'string' ? json : json.value
-
-  const defaultName = `sliderule-request-${new Date().toISOString().replace(/[:.]/g, '-')}.json`
-  const filename = prompt('Enter file name to save:', defaultName)
-
-  if (!filename) return // user cancelled
-
-  const blob = new Blob([jsonString], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename.endsWith('.json') ? filename : `${filename}.json`
-  a.click()
-
-  URL.revokeObjectURL(url)
 }
 
 function handleParamsAccessed(index: number) {
@@ -407,8 +369,24 @@ function zoomToPoly() {
     :modal="true"
     :closable="true"
     :style="{ width: props.width }"
-    :header="props.title"
   >
+    <template #header>
+      <div class="endpoint-header">
+        <span class="endpoint-label">endpoint =</span>
+        <Select
+          v-model="selectedMission"
+          :options="missionItems"
+          class="endpoint-mission-select"
+          @change="handleMissionChange"
+        />
+        <Select
+          v-model="selectedAPI"
+          :options="apiOptions"
+          class="endpoint-api-select"
+          @change="handleAPIChange"
+        />
+      </div>
+    </template>
     <div class="sr-dialog-container">
       <div class="json-dual-panel">
         <!-- Editable panel -->
@@ -458,27 +436,10 @@ function zoomToPoly() {
             />
           </div>
         </div>
-        <!-- Readonly panel -->
+        <!-- Current Request State panel with format tabs -->
         <div class="json-pane">
           <h3 class="pane-title">Current Request State</h3>
-          <!-- eslint-disable-next-line vue/no-v-html -->
-          <pre ref="jsonBlock" v-html="readonlyHighlightedJson"></pre>
-          <div class="copy-btn-container">
-            <Button
-              label="Copy to clipboard"
-              size="small"
-              icon="pi pi-copy"
-              @click="copyEditableReqJsonToClipboard"
-              class="copy-btn"
-            />
-            <Button
-              label="Output to File"
-              size="small"
-              icon="pi pi-file-export"
-              @click="exportToFile(editableReqJson)"
-              class="copy-btn"
-            />
-          </div>
+          <SrParmsFormatTabs :rcvdParms="currentReqObj" :endpoint="selectedAPI" mode="sending" />
         </div>
       </div>
       <div class="sr-diff-footer">
@@ -492,48 +453,6 @@ function zoomToPoly() {
         />
       </div>
     </div>
-  </Dialog>
-
-  <!-- Endpoint Confirmation Dialog -->
-  <Dialog
-    v-model:visible="showEndpointDialog"
-    :modal="true"
-    :closable="true"
-    header="Confirm Endpoint for Import"
-    :style="{ width: '400px' }"
-  >
-    <div class="endpoint-dialog-content">
-      <p class="endpoint-dialog-message">
-        Select the mission and API endpoint for the imported request:
-      </p>
-
-      <div class="endpoint-field">
-        <label for="mission-select">Mission</label>
-        <Select
-          id="mission-select"
-          v-model="selectedMission"
-          :options="missionItems"
-          class="w-full"
-        />
-      </div>
-
-      <div class="endpoint-field">
-        <label for="api-select">API Endpoint</label>
-        <Select id="api-select" v-model="selectedAPI" :options="apiOptions" class="w-full" />
-      </div>
-    </div>
-
-    <template #footer>
-      <div class="endpoint-dialog-footer">
-        <Button
-          label="Cancel"
-          icon="pi pi-times"
-          severity="secondary"
-          @click="cancelEndpointDialog"
-        />
-        <Button label="Import" icon="pi pi-file-import" @click="confirmEndpointAndImport" />
-      </div>
-    </template>
   </Dialog>
 </template>
 
@@ -631,32 +550,24 @@ pre {
   padding: 0.5rem 1rem;
 }
 
-/* Endpoint confirmation dialog styles */
-.endpoint-dialog-content {
+/* Endpoint header selector styles */
+.endpoint-header {
   display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.endpoint-dialog-message {
-  margin: 0;
-  color: var(--text-color-secondary);
-}
-
-.endpoint-field {
-  display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 0.5rem;
+  font-size: 1.1rem;
 }
 
-.endpoint-field label {
+.endpoint-label {
   font-weight: 600;
-  font-size: 0.9rem;
+  color: var(--text-color);
 }
 
-.endpoint-dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
+.endpoint-mission-select {
+  min-width: 120px;
+}
+
+.endpoint-api-select {
+  min-width: 150px;
 }
 </style>
