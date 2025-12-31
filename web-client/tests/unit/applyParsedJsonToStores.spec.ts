@@ -28,6 +28,20 @@ function loadTestJson(filename: string): any {
 }
 
 /**
+ * Filter out informational warnings from import errors.
+ * These warnings are expected messages about:
+ * - Polygon transformation (winding direction, starting point, convex hull)
+ * - Type conversions (numeric to string names, string to numbers)
+ */
+function getNonPolygonErrors(
+  errors: Array<{ section: string; message: string }>
+): Array<{ section: string; message: string }> {
+  return errors.filter(
+    (e) => e.section !== 'poly' && !e.message.toLowerCase().includes('converted to')
+  )
+}
+
+/**
  * Compare two values, handling special cases like arrays and dates
  */
 function compareValue(expected: any, actual: any, path: string): string[] {
@@ -140,7 +154,11 @@ describe('applyParsedJsonToStores - Round-trip Tests', () => {
       'atl08.json',
       'atl08p.json',
       'atl13x.json',
-      'atl24x.json',
+      'atl24x-string.json',
+      'atl24x-strings.json',
+      'atl24x-number.json',
+      'atl24x-numbers.json',
+      'atl24x-legacy.json',
       'gedi01bp.json',
       'gedi02ap.json',
       'gedi04ap.json'
@@ -171,7 +189,7 @@ describe('applyParsedJsonToStores - Round-trip Tests', () => {
       expect(output.parms.atl03_geo_fields).toEqual(['solar_elevation'])
       expect(output.parms.t0).toBeDefined()
       expect(output.parms.t1).toBeDefined()
-      expect(importErrors).toHaveLength(0)
+      expect(getNonPolygonErrors(importErrors)).toHaveLength(0)
     })
 
     it('atl03x-surface: should preserve fit parameters (maxi, h_win, sigma_r)', () => {
@@ -195,7 +213,7 @@ describe('applyParsedJsonToStores - Round-trip Tests', () => {
       expect(output.parms.cnt).toBe(10)
       expect(output.parms.ats).toBe(10.0)
 
-      expect(importErrors).toHaveLength(0)
+      expect(getNonPolygonErrors(importErrors)).toHaveLength(0)
     })
 
     it('atl03x-phoreal: should preserve phoreal sub-parameters', () => {
@@ -214,7 +232,7 @@ describe('applyParsedJsonToStores - Round-trip Tests', () => {
       expect(output.parms.phoreal!.above_classifier).toBe(true)
       expect(output.parms.phoreal!.use_abs_h).toBe(true)
 
-      expect(importErrors).toHaveLength(0)
+      expect(getNonPolygonErrors(importErrors)).toHaveLength(0)
     })
 
     it('atl03vp: should preserve quality_ph parameter', () => {
@@ -229,7 +247,7 @@ describe('applyParsedJsonToStores - Round-trip Tests', () => {
       // Verify quality_ph is preserved
       expect(output.parms.quality_ph).toEqual(expect.arrayContaining([0, 1, 2, 3]))
 
-      expect(importErrors).toHaveLength(0)
+      expect(getNonPolygonErrors(importErrors)).toHaveLength(0)
     })
 
     it('atl06sp: should preserve rgt and cycle parameters', () => {
@@ -245,7 +263,7 @@ describe('applyParsedJsonToStores - Round-trip Tests', () => {
       expect(output.parms.rgt).toBe(1234)
       expect(output.parms.cycle).toBe(10)
 
-      expect(importErrors).toHaveLength(0)
+      expect(getNonPolygonErrors(importErrors)).toHaveLength(0)
     })
 
     it('atl06p: should preserve fit, atl08_class, and field arrays', () => {
@@ -267,7 +285,7 @@ describe('applyParsedJsonToStores - Round-trip Tests', () => {
       // Verify field arrays
       expect(output.parms.atl06_fields).toEqual(['ground_track/ref_azimuth'])
 
-      expect(importErrors).toHaveLength(0)
+      expect(getNonPolygonErrors(importErrors)).toHaveLength(0)
     })
 
     it('atl08p: should preserve phoreal with send_waveform and atl08_fields', () => {
@@ -289,7 +307,7 @@ describe('applyParsedJsonToStores - Round-trip Tests', () => {
         expect.arrayContaining(['segment_snowcover', 'segment_landcover'])
       )
 
-      expect(importErrors).toHaveLength(0)
+      expect(getNonPolygonErrors(importErrors)).toHaveLength(0)
     })
 
     it('atl13x: should preserve atl13 coord and atl13_fields', () => {
@@ -308,11 +326,11 @@ describe('applyParsedJsonToStores - Round-trip Tests', () => {
       // Verify atl13_fields
       expect(output.parms.atl13_fields).toEqual(['ht_ortho'])
 
-      expect(importErrors).toHaveLength(0)
+      expect(getNonPolygonErrors(importErrors)).toHaveLength(0)
     })
 
-    it('atl24x: should preserve atl24 parameters and datum', () => {
-      const input = loadTestJson('atl24x.json')
+    it('atl24x-string: should import class_ph with single string value', () => {
+      const input = loadTestJson('atl24x-string.json')
       applyParsedJsonToStores(input.parms, reqParamsStore, rasterParamsStore, addError)
 
       reqParamsStore.setMissionValue('ICESat-2')
@@ -320,16 +338,90 @@ describe('applyParsedJsonToStores - Round-trip Tests', () => {
 
       const output = reqParamsStore.getAtlxxReqParams(0)
 
-      // Verify atl24 parameters
+      // Verify single string class_ph ["bathymetry"]
+      expect(output.parms.atl24).toBeDefined()
+      expect(output.parms.atl24.class_ph).toEqual(expect.arrayContaining(['bathymetry']))
+      expect(output.parms.atl24.class_ph).toHaveLength(1)
+
+      expect(getNonPolygonErrors(importErrors)).toHaveLength(0)
+    })
+
+    it('atl24x-strings: should import class_ph with multiple string values', () => {
+      const input = loadTestJson('atl24x-strings.json')
+      applyParsedJsonToStores(input.parms, reqParamsStore, rasterParamsStore, addError)
+
+      reqParamsStore.setMissionValue('ICESat-2')
+      reqParamsStore.setIceSat2API('atl24x')
+
+      const output = reqParamsStore.getAtlxxReqParams(0)
+
+      // Verify multiple string class_ph ["bathymetry", "sea_surface"]
       expect(output.parms.atl24).toBeDefined()
       expect(output.parms.atl24.compact).toBe(true)
-      expect(output.parms.atl24.class_ph).toEqual(expect.arrayContaining(['bathymetry']))
+      expect(output.parms.atl24.class_ph).toEqual(
+        expect.arrayContaining(['bathymetry', 'sea_surface'])
+      )
+      expect(output.parms.atl24.class_ph).toHaveLength(2)
       expect(output.parms.atl24.confidence_threshold).toBe(0.6)
 
       // Verify datum
       expect(output.parms.datum).toBe('EGM08')
 
-      expect(importErrors).toHaveLength(0)
+      expect(getNonPolygonErrors(importErrors)).toHaveLength(0)
+    })
+
+    it('atl24x-number: should import class_ph with single numeric value', () => {
+      const input = loadTestJson('atl24x-number.json')
+      applyParsedJsonToStores(input.parms, reqParamsStore, rasterParamsStore, addError)
+
+      reqParamsStore.setMissionValue('ICESat-2')
+      reqParamsStore.setIceSat2API('atl24x')
+
+      const output = reqParamsStore.getAtlxxReqParams(0)
+
+      // Verify single numeric class_ph [40] was converted to string ['bathymetry']
+      expect(output.parms.atl24).toBeDefined()
+      expect(output.parms.atl24.class_ph).toEqual(expect.arrayContaining(['bathymetry']))
+      expect(output.parms.atl24.class_ph).toHaveLength(1)
+
+      expect(getNonPolygonErrors(importErrors)).toHaveLength(0)
+    })
+
+    it('atl24x-numbers: should import class_ph with multiple numeric values', () => {
+      const input = loadTestJson('atl24x-numbers.json')
+      applyParsedJsonToStores(input.parms, reqParamsStore, rasterParamsStore, addError)
+
+      reqParamsStore.setMissionValue('ICESat-2')
+      reqParamsStore.setIceSat2API('atl24x')
+
+      const output = reqParamsStore.getAtlxxReqParams(0)
+
+      // Verify multiple numeric class_ph [40, 41] was converted to strings ['bathymetry', 'sea_surface']
+      expect(output.parms.atl24).toBeDefined()
+      expect(output.parms.atl24.class_ph).toEqual(
+        expect.arrayContaining(['bathymetry', 'sea_surface'])
+      )
+      expect(output.parms.atl24.class_ph).toHaveLength(2)
+
+      expect(getNonPolygonErrors(importErrors)).toHaveLength(0)
+    })
+
+    it('atl24x-legacy: should import legacy classification field with warning', () => {
+      const input = loadTestJson('atl24x-legacy.json')
+      applyParsedJsonToStores(input.parms, reqParamsStore, rasterParamsStore, addError)
+
+      reqParamsStore.setMissionValue('ICESat-2')
+      reqParamsStore.setIceSat2API('atl24x')
+
+      const output = reqParamsStore.getAtlxxReqParams(0)
+
+      // Verify classification was converted to class_ph
+      expect(output.parms.atl24).toBeDefined()
+      expect(output.parms.atl24.class_ph).toEqual(expect.arrayContaining(['bathymetry']))
+
+      // Verify warning was generated for legacy field
+      expect(importErrors.length).toBeGreaterThan(0)
+      expect(importErrors.some((e) => e.message.includes('classification'))).toBe(true)
     })
   })
 
@@ -361,7 +453,7 @@ describe('applyParsedJsonToStores - Round-trip Tests', () => {
       // Verify resources
       expect(output.resources).toEqual(['GEDI01_B_2019108002012_O01959_T03909_02_003_01_V002.h5'])
 
-      expect(importErrors).toHaveLength(0)
+      expect(getNonPolygonErrors(importErrors)).toHaveLength(0)
     })
 
     it('gedi02ap: should preserve degrade_filter, l2_quality_filter, and gedi_fields', () => {
@@ -383,7 +475,7 @@ describe('applyParsedJsonToStores - Round-trip Tests', () => {
       // Verify beams (all beams = 0)
       expect(output.parms.beams).toBe(0)
 
-      expect(importErrors).toHaveLength(0)
+      expect(getNonPolygonErrors(importErrors)).toHaveLength(0)
     })
 
     it('gedi04ap: should preserve all GEDI quality flags and gedi_fields', () => {
@@ -407,7 +499,7 @@ describe('applyParsedJsonToStores - Round-trip Tests', () => {
       // Verify beams (all beams = 0)
       expect(output.parms.beams).toBe(0)
 
-      expect(importErrors).toHaveLength(0)
+      expect(getNonPolygonErrors(importErrors)).toHaveLength(0)
     })
   })
 
@@ -436,7 +528,7 @@ describe('applyParsedJsonToStores - Round-trip Tests', () => {
       expect(output.parms.poly).toBeDefined()
       expect(Array.isArray(output.parms.poly)).toBe(true)
 
-      expect(importErrors).toHaveLength(0)
+      expect(getNonPolygonErrors(importErrors)).toHaveLength(0)
     })
 
     it('should export convexHull with area >= original poly area', () => {
@@ -460,7 +552,7 @@ describe('applyParsedJsonToStores - Round-trip Tests', () => {
       // (convex hull always contains the original polygon)
       expect(outputPolyArea).toBeGreaterThanOrEqual(inputPolyArea * 0.99) // Allow 1% tolerance for floating point
 
-      expect(importErrors).toHaveLength(0)
+      expect(getNonPolygonErrors(importErrors)).toHaveLength(0)
     })
 
     it('should export polygon with correct winding direction (counter-clockwise)', () => {
@@ -491,7 +583,36 @@ describe('applyParsedJsonToStores - Round-trip Tests', () => {
       // (because latitude increases northward, opposite of screen coordinates)
       expect(signedArea).toBeLessThanOrEqual(0)
 
-      expect(importErrors).toHaveLength(0)
+      expect(getNonPolygonErrors(importErrors)).toHaveLength(0)
+    })
+
+    it('should generate warning for clockwise polygon (direction change)', () => {
+      // Clockwise polygon: SW → NW → NE → SE (going north first, then east, then south, then west)
+      const clockwiseInput = {
+        poly: [
+          { lon: -108.05, lat: 39.0 }, // SW
+          { lon: -108.05, lat: 39.05 }, // NW
+          { lon: -108.0, lat: 39.05 }, // NE
+          { lon: -108.0, lat: 39.0 }, // SE
+          { lon: -108.05, lat: 39.0 } // back to SW
+        ]
+      }
+
+      applyParsedJsonToStores(clockwiseInput, reqParamsStore, rasterParamsStore, addError)
+
+      // Should have a warning about direction change
+      const polyErrors = importErrors.filter((e) => e.section === 'poly')
+      expect(polyErrors.some((e) => e.message.includes('counter-clockwise direction'))).toBe(true)
+    })
+
+    it('should generate warning for starting point change', () => {
+      // Test data uses clockwise polygon - convexHull will also change starting point
+      const input = loadTestJson('atl03x.json')
+      applyParsedJsonToStores(input.parms, reqParamsStore, rasterParamsStore, addError)
+
+      // Should have a warning about starting point change
+      const polyErrors = importErrors.filter((e) => e.section === 'poly')
+      expect(polyErrors.some((e) => e.message.includes('starting point'))).toBe(true)
     })
   })
 
@@ -597,6 +718,96 @@ describe('applyParsedJsonToStores - Round-trip Tests', () => {
       const output = reqParamsStore.getAtlxxReqParams(0)
 
       expect(output.resources).toEqual(input.resources)
+    })
+  })
+
+  describe('Import issue categorization', () => {
+    it('should categorize polygon adjustments as ADJUSTED', () => {
+      // Clockwise polygon will trigger a reordering warning
+      const clockwiseInput = {
+        poly: [
+          { lon: -108.05, lat: 39.0 },
+          { lon: -108.05, lat: 39.05 },
+          { lon: -108.0, lat: 39.05 },
+          { lon: -108.0, lat: 39.0 },
+          { lon: -108.05, lat: 39.0 }
+        ]
+      }
+
+      applyParsedJsonToStores(clockwiseInput, reqParamsStore, rasterParamsStore, addError)
+
+      // Should have warnings about polygon adjustments
+      const polyErrors = importErrors.filter((e) => e.section === 'poly')
+      expect(polyErrors.length).toBeGreaterThan(0)
+      // Messages should contain "reordered" or "adjusted" or "starting point"
+      expect(
+        polyErrors.some(
+          (e) =>
+            e.message.includes('reordered') ||
+            e.message.includes('adjusted') ||
+            e.message.includes('starting point')
+        )
+      ).toBe(true)
+    })
+
+    it('should categorize unrecognized beam values as IGNORED', () => {
+      const inputWithBadBeams = {
+        poly: [
+          { lon: -108.05, lat: 39.0 },
+          { lon: -108.0, lat: 39.0 },
+          { lon: -108.0, lat: 39.05 },
+          { lon: -108.05, lat: 39.05 },
+          { lon: -108.05, lat: 39.0 }
+        ],
+        beams: ['gt1l', 'invalid_beam', 'gt2r']
+      }
+
+      applyParsedJsonToStores(inputWithBadBeams, reqParamsStore, rasterParamsStore, addError)
+
+      // Should have warning about unrecognized beams
+      const beamErrors = importErrors.filter((e) => e.section === 'beams')
+      expect(beamErrors.length).toBe(1)
+      expect(beamErrors[0].message).toContain('not recognized')
+    })
+
+    it('should categorize invalid srt values as INVALID', () => {
+      const inputWithBadSrt = {
+        poly: [
+          { lon: -108.05, lat: 39.0 },
+          { lon: -108.0, lat: 39.0 },
+          { lon: -108.0, lat: 39.05 },
+          { lon: -108.05, lat: 39.05 },
+          { lon: -108.05, lat: 39.0 }
+        ],
+        srt: ['not-a-number']
+      }
+
+      applyParsedJsonToStores(inputWithBadSrt, reqParamsStore, rasterParamsStore, addError)
+
+      // Should have warning about invalid srt
+      const srtErrors = importErrors.filter((e) => e.section === 'srt')
+      expect(srtErrors.length).toBe(1)
+      expect(srtErrors[0].message).toContain('invalid')
+    })
+
+    it('should categorize legacy parameter conversions as ADJUSTED', () => {
+      const legacyInput = {
+        poly: [
+          { lon: -108.05, lat: 39.0 },
+          { lon: -108.0, lat: 39.0 },
+          { lon: -108.0, lat: 39.05 },
+          { lon: -108.05, lat: 39.05 },
+          { lon: -108.05, lat: 39.0 }
+        ],
+        degrade: true // Legacy name
+      }
+
+      applyParsedJsonToStores(legacyInput, reqParamsStore, rasterParamsStore, addError)
+
+      // Should have warning about parameter name update
+      const degradeErrors = importErrors.filter((e) => e.section === 'degrade')
+      expect(degradeErrors.length).toBe(1)
+      expect(degradeErrors[0].message).toContain('Parameter name updated')
     })
   })
 })

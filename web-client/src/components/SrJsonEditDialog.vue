@@ -4,7 +4,9 @@ import type { Ref } from 'vue'
 import Dialog from 'primevue/dialog'
 import Button from 'primevue/button'
 import Textarea from 'primevue/textarea'
+import Select from 'primevue/select'
 import SrJsonDiffViewer from './SrJsonDiffViewer.vue'
+import { missionItems, iceSat2APIsItems, gediAPIsItems } from '@/types/SrStaticOptions'
 import hljs from 'highlight.js/lib/core'
 import json from 'highlight.js/lib/languages/json'
 import 'highlight.js/styles/atom-one-dark.css'
@@ -100,10 +102,50 @@ const readonlyHighlightedJson = computed(() => {
 
 const fileInputRef = ref<HTMLInputElement | null>(null)
 
+// Endpoint confirmation dialog state
+const showEndpointDialog = ref(false)
+const selectedMission = ref(reqParamsStore.missionValue)
+const selectedAPI = ref(reqParamsStore.getCurAPIStr())
+
+// Computed API options based on selected mission
+const apiOptions = computed(() => {
+  return selectedMission.value === 'ICESat-2' ? iceSat2APIsItems : gediAPIsItems
+})
+
+// Update selected API when mission changes
+watch(selectedMission, (newMission) => {
+  const options = newMission === 'ICESat-2' ? iceSat2APIsItems : gediAPIsItems
+  // If current API is not in new mission's options, reset to first option
+  if (!options.includes(selectedAPI.value)) {
+    selectedAPI.value = options[0]
+  }
+})
+
 const { data: importedData, error: importError, importJson } = useJsonImporter(props.zodSchema)
 
 const importFromFile = () => {
+  // Initialize dialog with current endpoint settings
+  selectedMission.value = reqParamsStore.missionValue
+  selectedAPI.value = reqParamsStore.getCurAPIStr()
+  showEndpointDialog.value = true
+}
+
+const confirmEndpointAndImport = () => {
+  // Apply selected mission and API to store
+  reqParamsStore.setMissionValue(selectedMission.value)
+  if (selectedMission.value === 'ICESat-2') {
+    reqParamsStore.setIceSat2API(selectedAPI.value)
+  } else {
+    reqParamsStore.setGediAPI(selectedAPI.value)
+  }
+
+  // Close dialog and trigger file input
+  showEndpointDialog.value = false
   fileInputRef.value?.click()
+}
+
+const cancelEndpointDialog = () => {
+  showEndpointDialog.value = false
 }
 const handleFileChange = (event: Event) => {
   const input = event.target as HTMLInputElement
@@ -451,6 +493,48 @@ function zoomToPoly() {
       </div>
     </div>
   </Dialog>
+
+  <!-- Endpoint Confirmation Dialog -->
+  <Dialog
+    v-model:visible="showEndpointDialog"
+    :modal="true"
+    :closable="true"
+    header="Confirm Endpoint for Import"
+    :style="{ width: '400px' }"
+  >
+    <div class="endpoint-dialog-content">
+      <p class="endpoint-dialog-message">
+        Select the mission and API endpoint for the imported request:
+      </p>
+
+      <div class="endpoint-field">
+        <label for="mission-select">Mission</label>
+        <Select
+          id="mission-select"
+          v-model="selectedMission"
+          :options="missionItems"
+          class="w-full"
+        />
+      </div>
+
+      <div class="endpoint-field">
+        <label for="api-select">API Endpoint</label>
+        <Select id="api-select" v-model="selectedAPI" :options="apiOptions" class="w-full" />
+      </div>
+    </div>
+
+    <template #footer>
+      <div class="endpoint-dialog-footer">
+        <Button
+          label="Cancel"
+          icon="pi pi-times"
+          severity="secondary"
+          @click="cancelEndpointDialog"
+        />
+        <Button label="Import" icon="pi pi-file-import" @click="confirmEndpointAndImport" />
+      </div>
+    </template>
+  </Dialog>
 </template>
 
 <style scoped>
@@ -545,5 +629,34 @@ pre {
   white-space: nowrap;
   font-weight: bold;
   padding: 0.5rem 1rem;
+}
+
+/* Endpoint confirmation dialog styles */
+.endpoint-dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.endpoint-dialog-message {
+  margin: 0;
+  color: var(--text-color-secondary);
+}
+
+.endpoint-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.endpoint-field label {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.endpoint-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
 }
 </style>

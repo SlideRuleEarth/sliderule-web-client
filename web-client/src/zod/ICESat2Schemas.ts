@@ -5,6 +5,28 @@ const Coordinate = z.object({
   lat: z.number()
 })
 
+// ATL24 classification name to value mapping
+const atl24ClassificationMap: Record<string, number> = {
+  unclassified: 0,
+  atl24_unclassified: 0,
+  bathymetry: 40,
+  atl24_bathymetry: 40,
+  sea_surface: 41,
+  atl24_sea_surface: 41
+}
+
+// Schema that accepts both string names and numbers, converting strings to numbers
+const Atl24ClassificationSchema = z
+  .array(z.union([z.number(), z.string()]))
+  .transform((arr) =>
+    arr.map((val) => {
+      if (typeof val === 'number') return val
+      const normalized = val.toLowerCase().trim()
+      return atl24ClassificationMap[normalized] ?? parseInt(val, 10)
+    })
+  )
+  .optional()
+
 // const _GeoJSONPolygon = z.object({
 //     type: z.literal('Polygon'),
 //     coordinates: z.array(z.array(z.array(z.number()))),
@@ -27,8 +49,10 @@ export const PhoRealSchema = z.object({
 const Atl24Schema = z
   .object({
     compact: z.boolean().optional(),
-    class_ph: z.array(z.string()).optional(),
-    classification: z.array(z.number()).optional(),
+    // class_ph accepts both strings ["bathymetry"] and numbers [40]
+    class_ph: z.array(z.union([z.number(), z.string()])).optional(),
+    // classification is legacy - use class_ph instead
+    classification: Atl24ClassificationSchema,
     confidence_threshold: z.number().optional(),
     // These fields can be either boolean or array of strings ["off", "on"]
     // The UI uses multi-select with On/Off options, server returns lowercase

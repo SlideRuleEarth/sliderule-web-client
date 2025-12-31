@@ -9,7 +9,7 @@
     ],
     "atl24": {
       "compact": true,
-      "classification": ["bathymetry"],
+      "classification": [40],
       "confidence_threshold": 0.6,
       "night": false
     },

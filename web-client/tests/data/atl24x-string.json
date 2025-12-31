@@ -1,0 +1,18 @@
+{
+  "parms": {
+    "poly": [
+      {"lon": -108.05, "lat": 39.00},
+      {"lon": -108.00, "lat": 39.00},
+      {"lon": -108.00, "lat": 39.05},
+      {"lon": -108.05, "lat": 39.05},
+      {"lon": -108.05, "lat": 39.00}
+    ],
+    "atl24": {
+      "compact": true,
+      "class_ph": ["bathymetry"],
+      "confidence_threshold": 0.6,
+      "night": false
+    },
+    "datum": "EGM08"
+  }
+}

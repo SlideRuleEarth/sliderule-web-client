@@ -6,10 +6,41 @@ import {
   signalConfidenceNumberOptions,
   qualityPHOptions
 } from '@/types/SrStaticOptions'
-import { convexHull, calculatePolygonArea } from '@/composables/SrTurfUtils'
+import { convexHull, calculatePolygonArea, isClockwise } from '@/composables/SrTurfUtils'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('ApplyParsedJsonToStores')
+
+// ATL24 class_ph value to name mapping (for converting numeric values to strings)
+// API uses class_ph with values: 0=unclassified, 40=bathymetry, 41=sea_surface
+// Legacy "classification" field is also supported for backward compatibility
+const atl24ClassificationValueToName: Record<number, string> = {
+  0: 'unclassified',
+  40: 'bathymetry',
+  41: 'sea_surface'
+}
+
+// Convert class_ph array (which may contain numbers or strings) to string names
+// Returns the converted array and info about any numeric conversions
+function convertClassificationToStrings(classValues: (number | string)[]): {
+  values: string[]
+  conversions: Array<{ from: number; to: string }>
+} {
+  const values: string[] = []
+  const conversions: Array<{ from: number; to: string }> = []
+
+  for (const val of classValues) {
+    if (typeof val === 'string') {
+      values.push(val)
+    } else {
+      const stringVal = atl24ClassificationValueToName[val] ?? String(val)
+      values.push(stringVal)
+      conversions.push({ from: val, to: stringVal })
+    }
+  }
+
+  return { values, conversions }
+}
 
 export function applyParsedJsonToStores(
   data: any,
@@ -22,8 +53,47 @@ export function applyParsedJsonToStores(
   if (data.poly !== undefined) {
     store.setPoly(data.poly)
     if (data.poly && data.poly.length > 0) {
-      store.setConvexHull(convexHull(data.poly))
+      // Check original polygon properties before convex hull
+      const originalIsClockwise = isClockwise(data.poly)
+      const originalStart = data.poly[0]
+
+      const hull = convexHull(data.poly)
+      store.setConvexHull(hull)
       store.setAreaOfConvexHull(calculatePolygonArea(data.poly))
+
+      // Warning for vertex count change (shape simplification)
+      if (hull.length !== data.poly.length) {
+        logger.debug(
+          `Polygon contained concave vertices - simplified to convex hull (${data.poly.length} → ${hull.length} vertices)`
+        )
+        _addError(
+          'poly',
+          `Polygon adjusted to convex shape (${data.poly.length} → ${hull.length} vertices) - ensures complete coverage of your selected region`
+        )
+      }
+
+      // Warning for direction change (convexHull always returns counter-clockwise)
+      if (originalIsClockwise) {
+        logger.debug(
+          'Polygon winding direction reversed: clockwise → counter-clockwise (GeoJSON standard for exterior rings)'
+        )
+        _addError(
+          'poly',
+          'Polygon vertices reordered to counter-clockwise direction (this is normal - your region is unchanged)'
+        )
+      }
+
+      // Warning for starting point change
+      const hullStart = hull[0]
+      if (originalStart.lon !== hullStart.lon || originalStart.lat !== hullStart.lat) {
+        logger.debug(
+          `Polygon starting vertex changed: convex hull algorithm selected (${hullStart.lon.toFixed(4)}, ${hullStart.lat.toFixed(4)}) as canonical start, was (${originalStart.lon.toFixed(4)}, ${originalStart.lat.toFixed(4)})`
+        )
+        _addError(
+          'poly',
+          'Polygon starting point adjusted (this is cosmetic - your region coverage is identical)'
+        )
+      }
     }
   }
   if (data.rgt !== undefined) {
@@ -65,7 +135,8 @@ export function applyParsedJsonToStores(
         (name: string) => !matched.some((gt) => gt.label === name)
       )
       if (unmatched.length > 0) {
-        _addError('beams', `unrecognized value(s): ${unmatched.join(', ')}`)
+        logger.debug(`Unrecognized beam values skipped: ${unmatched.join(', ')}`)
+        _addError('beams', 'Some beam values were not recognized and skipped (check input file)')
       }
     } else if (typeof data.beams === 'number') {
       // Handle GEDI beams (number - 0 means all beams)
@@ -82,7 +153,8 @@ export function applyParsedJsonToStores(
       (v: number) => !tracksOptions.some((opt) => opt.value === v)
     )
     if (unmatched.length > 0) {
-      _addError('tracks', `unrecognized value(s): ${unmatched.join(', ')}`)
+      logger.debug(`Unrecognized track values skipped: ${unmatched.join(', ')}`)
+      _addError('tracks', 'Some track values were not recognized and skipped (check input file)')
     }
   }
 
@@ -93,25 +165,41 @@ export function applyParsedJsonToStores(
     store.degradeFlag = data.degrade_filter
   } else if (data.degrade !== undefined) {
     store.degradeFlag = data.degrade
-    _addError('degrade', 'Legacy parameter name "degrade" converted to "degrade_filter"')
+    logger.debug('Legacy parameter conversion: degrade → degrade_filter')
+    _addError(
+      'degrade',
+      'Parameter name updated: "degrade" is now "degrade_filter" (your settings were preserved)'
+    )
   }
   if (data.l2_quality_filter !== undefined) {
     store.l2QualityFlag = data.l2_quality_filter
   } else if (data.l2_quality !== undefined) {
     store.l2QualityFlag = data.l2_quality
-    _addError('l2_quality', 'Legacy parameter name "l2_quality" converted to "l2_quality_filter"')
+    logger.debug('Legacy parameter conversion: l2_quality → l2_quality_filter')
+    _addError(
+      'l2_quality',
+      'Parameter name updated: "l2_quality" is now "l2_quality_filter" (your settings were preserved)'
+    )
   }
   if (data.l4_quality_filter !== undefined) {
     store.l4QualityFlag = data.l4_quality_filter
   } else if (data.l4_quality !== undefined) {
     store.l4QualityFlag = data.l4_quality
-    _addError('l4_quality', 'Legacy parameter name "l4_quality" converted to "l4_quality_filter"')
+    logger.debug('Legacy parameter conversion: l4_quality → l4_quality_filter')
+    _addError(
+      'l4_quality',
+      'Parameter name updated: "l4_quality" is now "l4_quality_filter" (your settings were preserved)'
+    )
   }
   if (data.surface_flag !== undefined) {
     store.surfaceFlag = data.surface_flag
   } else if (data.surface !== undefined) {
     store.surfaceFlag = data.surface
-    _addError('surface', 'Legacy parameter name "surface" converted to "surface_flag"')
+    logger.debug('Legacy parameter conversion: surface → surface_flag')
+    _addError(
+      'surface',
+      'Parameter name updated: "surface" is now "surface_flag" (your settings were preserved)'
+    )
   }
 
   if (data.cnf) {
@@ -191,7 +279,8 @@ export function applyParsedJsonToStores(
       store.enableAtl03Classification = true
     } else {
       store.surfaceReferenceType = []
-      _addError('srt', `invalid value: ${JSON.stringify(data.srt)}`)
+      logger.debug(`Invalid srt value: ${JSON.stringify(data.srt)}`)
+      _addError('srt', 'Surface reference type value was invalid and not applied')
     }
   }
 
@@ -242,8 +331,31 @@ export function applyParsedJsonToStores(
     store.enableAtl24Classification = true
     if (data.atl24.compact !== undefined)
       (store.useAtl24Compact = true), (store.atl24Compact = data.atl24.compact)
-    if (data.atl24.classification !== undefined)
-      (store.useAtl24Classification = true), (store.atl24_class_ph = data.atl24.classification)
+    // Handle both classification (legacy) and class_ph (current)
+    if (data.atl24.classification !== undefined) {
+      store.useAtl24Classification = true
+      const result = convertClassificationToStrings(data.atl24.classification)
+      store.atl24_class_ph = result.values
+      logger.debug('Legacy parameter conversion: atl24.classification → atl24.class_ph')
+      _addError(
+        'atl24.classification',
+        'Parameter name updated: "classification" is now "class_ph" (your settings were preserved)'
+      )
+      if (result.conversions.length > 0) {
+        const conversionList = result.conversions.map((c) => `${c.from} → "${c.to}"`).join(', ')
+        _addError('atl24.classification', `Numeric values converted to names: ${conversionList}`)
+      }
+    }
+    if (data.atl24.class_ph !== undefined) {
+      store.useAtl24Classification = true
+      // class_ph can contain numbers or strings, convert all to strings
+      const result = convertClassificationToStrings(data.atl24.class_ph)
+      store.atl24_class_ph = result.values
+      if (result.conversions.length > 0) {
+        const conversionList = result.conversions.map((c) => `${c.from} → "${c.to}"`).join(', ')
+        _addError('atl24.class_ph', `Numeric values converted to names: ${conversionList}`)
+      }
+    }
     if (data.atl24.confidence_threshold !== undefined)
       (store.useAtl24ConfidenceThreshold = true),
         (store.atl24ConfidenceThreshold = data.atl24.confidence_threshold)
@@ -295,7 +407,11 @@ export function applyParsedJsonToStores(
       } else if ('H_min_win' in data.fit) {
         store.setUseMinWindowHeight(true)
         store.setMinWindowHeight(data.fit.H_min_win)
-        _addError('fit.H_min_win', 'Legacy parameter name "H_min_win" converted to "h_win"')
+        logger.debug('Legacy parameter conversion: fit.H_min_win → fit.h_win')
+        _addError(
+          'fit.H_min_win',
+          'Parameter name updated: "H_min_win" is now "h_win" (your settings were preserved)'
+        )
       }
       // Accept both sigma_r (current) and sigma_r_max (legacy)
       if ('sigma_r' in data.fit) {
@@ -304,7 +420,11 @@ export function applyParsedJsonToStores(
       } else if ('sigma_r_max' in data.fit) {
         store.setUseMaxRobustDispersion(true)
         store.setSigmaRmax(data.fit.sigma_r_max)
-        _addError('fit.sigma_r_max', 'Legacy parameter name "sigma_r_max" converted to "sigma_r"')
+        logger.debug('Legacy parameter conversion: fit.sigma_r_max → fit.sigma_r')
+        _addError(
+          'fit.sigma_r_max',
+          'Parameter name updated: "sigma_r_max" is now "sigma_r" (your settings were preserved)'
+        )
       }
     }
   } else {
@@ -357,8 +477,19 @@ export function applyParsedJsonToStores(
   }
 
   function coerce(field: string, _input: unknown, assign: (_v: number[]) => void) {
-    const { valid, invalid } = coerceToNumberArray(_input)
+    const { valid, invalid, conversions } = coerceToNumberArray(_input)
     assign(valid)
-    if (invalid.length > 0) _addError(field, `invalid value(s): ${invalid.join(', ')}`)
+    if (conversions.length > 0) {
+      const conversionList = conversions.map((c) => `"${c.from}" → ${c.to}`).join(', ')
+      logger.debug(`String ${field} values converted to numbers: ${conversionList}`)
+      _addError(field, `String values converted to numbers: ${conversionList}`)
+    }
+    if (invalid.length > 0) {
+      logger.debug(`Invalid ${field} values skipped: ${invalid.join(', ')}`)
+      _addError(
+        field,
+        `Some ${field} values were invalid and skipped (check input file and endpoint selection)`
+      )
+    }
   }
 }
