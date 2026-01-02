@@ -370,6 +370,10 @@ export async function updateNumGranulesInRecord(req_id: number): Promise<void> {
 
 export async function updateAreaInRecord(req_id: number): Promise<void> {
   const poly = await db.getSvrReqPoly(req_id)
+  // Skip if no valid polygon data
+  if (!Array.isArray(poly) || poly.length === 0) {
+    return
+  }
   const area = calculatePolygonArea(poly)
   await db.updateRequestRecord({ req_id: req_id, area_of_poly: area })
 }

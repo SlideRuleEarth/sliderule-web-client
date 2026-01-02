@@ -397,20 +397,41 @@ export const useRequestsStore = defineStore('requests', {
           srRecord.area_of_poly == null || Number.isNaN(Number(srRecord.area_of_poly))
 
         if (areaMissing) {
-          await updateAreaInRecord(reqId) // <-- uses SrParquetUtils
-          updatedArea = true
+          try {
+            await updateAreaInRecord(reqId) // <-- uses SrParquetUtils
+            updatedArea = true
+          } catch (error) {
+            logger.warn('Failed to update area for request', {
+              reqId,
+              error: error instanceof Error ? error.message : String(error)
+            })
+          }
         }
 
         // num_gran needs update?
         const granMissing = srRecord.num_gran == null || Number.isNaN(Number(srRecord.num_gran))
 
         if (granMissing) {
-          await updateNumGranulesInRecord(reqId) // <-- uses SrParquetUtils
-          updatedGranules = true
+          try {
+            await updateNumGranulesInRecord(reqId) // <-- uses SrParquetUtils
+            updatedGranules = true
+          } catch (error) {
+            logger.warn('Failed to update granules for request', {
+              reqId,
+              error: error instanceof Error ? error.message : String(error)
+            })
+          }
         }
 
         // Always update request parameters from metadata for x endpoints
-        await updateReqParmsFromMeta(reqId) //for x endpoints
+        try {
+          await updateReqParmsFromMeta(reqId) //for x endpoints
+        } catch (error) {
+          logger.warn('Failed to update req params from meta for request', {
+            reqId,
+            error: error instanceof Error ? error.message : String(error)
+          })
+        }
 
         if (updatedArea || updatedGranules) {
           await this.fetchReqs() // refresh in-memory state
