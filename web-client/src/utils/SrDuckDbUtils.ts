@@ -79,6 +79,56 @@ function safeToNumber(value: any): number {
 }
 
 /**
+ * Count invalid geometries in a parquet file (null, empty, or with non-finite coordinates).
+ * Returns the count of records that will be filtered out.
+ */
+async function countInvalidGeometries(filename: string): Promise<number> {
+  const duckDbClient = await createDuckDbClient()
+  try {
+    const query = `
+      SELECT COUNT(*) as invalid_count
+      FROM read_parquet('${filename}')
+      WHERE geometry IS NULL
+         OR ST_IsEmpty(geometry)
+         OR NOT isfinite(ST_X(geometry))
+         OR NOT isfinite(ST_Y(geometry))
+    `
+    const result = await duckDbClient.query(query)
+    for await (const chunk of result.readRows()) {
+      if (chunk.length > 0) {
+        return Number((chunk[0] as { invalid_count: number }).invalid_count)
+      }
+    }
+    return 0
+  } catch (error) {
+    logger.warn('Could not count invalid geometries', {
+      error: error instanceof Error ? error.message : String(error)
+    })
+    return 0
+  }
+}
+
+/** WHERE clause fragment to filter out invalid geometries */
+const VALID_GEOMETRY_FILTER = `geometry IS NOT NULL AND NOT ST_IsEmpty(geometry) AND isfinite(ST_X(geometry)) AND isfinite(ST_Y(geometry))`
+
+/**
+ * Report invalid geometries via logger and toast notification.
+ */
+function reportInvalidGeometries(count: number, reqId: number, context: string): void {
+  if (count > 0) {
+    logger.warn(`Found invalid geometries (${context})`, {
+      reqId,
+      invalidCount: count,
+      context
+    })
+    useSrToastStore().warn(
+      `Invalid Geometries Filtered (${context})`,
+      `${count} record(s) with invalid or missing geometry coordinates were skipped.`
+    )
+  }
+}
+
+/**
  * Converts a value to a number or string, handling BigInt values intelligently.
  * For BigInt values outside safe range, converts to string for display purposes.
  * This allows identifier fields like shot_number to be displayed/plotted as strings.
@@ -746,6 +796,12 @@ export const duckDbReadAndUpdateElevationData = async (
       const colTypes = await duckDbClient.queryColumnTypes(filename)
       const hasGeometry = colTypes.some((c) => c.name === 'geometry')
 
+      // Count and report invalid geometries if geometry column exists
+      if (hasGeometry) {
+        const invalidGeometryCount = await countInvalidGeometries(filename)
+        reportInvalidGeometries(invalidGeometryCount, req_id, 'elevation data')
+      }
+
       // Get field names from fieldNameStore
       const fieldNameStore = useFieldNameStore()
       const lonField = fieldNameStore.getLonFieldName(req_id)
@@ -790,7 +846,9 @@ export const duckDbReadAndUpdateElevationData = async (
         selectClause = '*'
       }
 
-      const queryStr = `SELECT ${selectClause} FROM read_parquet('${filename}')`
+      // Add WHERE clause to filter invalid geometries when geometry column exists
+      const whereClause = hasGeometry ? ` WHERE ${VALID_GEOMETRY_FILTER}` : ''
+      const queryStr = `SELECT ${selectClause} FROM read_parquet('${filename}')${whereClause}`
       const result = await duckDbClient.queryChunkSampled(queryStr, sample_fraction)
 
       if (result.totalRows) {
@@ -968,6 +1026,9 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, layerName
     const colTypes = await duckDbClient.queryColumnTypes(filename)
     const hasGeometry = colTypes.some((c) => c.name === 'geometry')
 
+    // Note: Invalid geometries are reported once during elevation data load,
+    // no need to re-report here for each track selection
+
     // Get field names from fieldNameStore
     const fieldNameStore = useFieldNameStore()
     const lonField = fieldNameStore.getLonFieldName(req_id)
@@ -1012,11 +1073,14 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, layerName
       selectClause = '*'
     }
 
+    // Build query with geometry filter if applicable
+    const geometryFilter = hasGeometry ? `AND ${VALID_GEOMETRY_FILTER}` : ''
     queryStr = `
             SELECT ${selectClause} FROM read_parquet('${filename}')
             WHERE ${utfn} = ${rgt}
             AND ${uofn} IN (${cycles.join(', ')})
             AND ${usfn} IN (${spots.join(', ')})
+            ${geometryFilter}
         `
     if (use_y_atc_filter) {
       queryStr += `AND y_atc BETWEEN ${min_y_atc} AND ${max_y_atc}`

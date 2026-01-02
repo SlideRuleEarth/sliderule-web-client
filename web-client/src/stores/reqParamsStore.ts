@@ -32,35 +32,33 @@ import {
 
 export function getDefaultReqParamsState(): SrReqParamsState {
   return {
-    missionValue: 'ICESat-2' as string,
-    iceSat2SelectedAPI: 'atl03x-surface' as string,
-    gediSelectedAPI: 'gedi01bp' as string,
-    using_worker: false,
-    isFeatherStream: false,
-    rasterizePolyCellSize: 0.01,
-    ignorePolygon: false,
+    // ═══════════════════════════════════════════════════════════════════════════
+    // EXPORTABLE API PARAMETERS
+    // These fields are exported to the SlideRule server API request
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    // ─── Region / Polygon ───
     poly: null as SrRegion | null,
-    polygonSource: null as 'polygon' | 'box' | 'upload' | null,
     convexHull: null as SrRegion | null,
     areaOfConvexHull: 0.0 as number,
-    isAtl24PhotonOverlay: false,
-    urlValue: 'slideruleearth.io',
+
+    // ─── Granule Selection ───
     enableGranuleSelection: false,
     tracks: [] as SrListNumberItem[],
-    selectAllTracks: false,
     beams: [] as SrListNumberItem[],
-    selectAllBeams: false,
     useRGT: false,
     rgtValue: 1,
     useCycle: false,
     cycleValue: 1,
     useRegion: false,
     regionValue: 1,
+
+    // ─── Time Range ───
     useTime: false,
-    gpsToUTCOffset: 18,
-    minDate: new Date('2018-10-01T00:00:00Z'),
     t0Value: new Date('2018-10-01T00:00:00Z'),
     t1Value: new Date(),
+
+    // ─── Timeouts ───
     useServerTimeout: false,
     serverTimeoutValue: 601,
     useReqTimeout: false,
@@ -69,15 +67,37 @@ export function getDefaultReqParamsState(): SrReqParamsState {
     nodeTimeoutValue: 601,
     useReadTimeout: false,
     readTimeoutValue: 601,
+
+    // ─── Projection ───
+    useProj: false,
+    projValue: 2, // 0=North Polar, 1=South Polar, 2=Plate Carree (default)
+
+    // ─── Cluster Size Hint ───
+    useClusterSizeHint: false,
+    clusterSizeHintValue: 0,
+
+    // ─── Photon Processing Parameters ───
     useLength: false,
     lengthValue: 40,
     useStep: false,
     stepValue: 20,
-    confidenceValue: 4,
-    iterationsValue: 6,
-    spreadValue: 20.0,
-    PE_CountValue: 10,
-    windowValue: 3.0,
+    useAlongTrackSpread: false,
+    alongTrackSpread: -1.0,
+    useMinimumPhotonCount: false,
+    minimumPhotonCount: -1,
+    distanceIn: distanceInOptions[0], // { label: 'meters', value: 'meters' },
+    passInvalid: false,
+
+    // ─── Surface Fit Algorithm ───
+    useSurfaceFitAlgorithm: true, // start with this on
+    maxIterations: -1,
+    useMaxIterations: false,
+    minWindowHeight: -1.0,
+    useMinWindowHeight: false,
+    maxRobustDispersion: -1,
+    useMaxRobustDispersion: false,
+
+    // ─── ATL03 Classification ───
     enableAtl03Classification: false,
     surfaceReferenceType: [surfaceReferenceTypeOptions[0]] as SrMultiSelectNumberItem[],
     signalConfidence: [
@@ -86,59 +106,21 @@ export function getDefaultReqParamsState(): SrReqParamsState {
       signalConfidenceNumberOptions[6]
     ],
     qualityPH: [qualityPHOptions[0]] as SrMultiSelectNumberItem[],
+
+    // ─── ATL08 Classification ───
     enableAtl08Classification: false,
     atl08LandType: [] as string[],
-    distanceIn: distanceInOptions[0], // { label: 'meters', value: 'meters' },
-    passInvalid: false,
-    useAlongTrackSpread: false,
-    alongTrackSpread: -1.0,
-    useMinimumPhotonCount: false,
-    minimumPhotonCount: -1,
-    useSurfaceFitAlgorithm: true, // start with this on
-    maxIterations: -1,
-    useMaxIterations: false,
-    minWindowHeight: -1.0,
-    useMinWindowHeight: false,
-    maxRobustDispersion: -1,
-    useMaxRobustDispersion: false,
-    enablePhoReal: false,
-    usePhoRealGeoLocation: false,
-    phoRealGeoLocation: geoLocationOptions[0], // 'mean'
-    usePhoRealBinSize: false,
-    phoRealBinSize: 0,
-    usePhoRealAbsoluteHeights: false,
-    usePhoRealSendWaveforms: false,
-    usePhoRealABoVEClassifier: false,
-    gediBeams: [0, 1, 2, 3, 5, 6, 8, 11] as number[],
-    degradeFlag: false,
-    l2QualityFlag: false,
-    l4QualityFlag: false,
-    surfaceFlag: false,
-    fileOutput: true,
-    staged: false,
-    outputLocation: { label: 'local', value: 'local' },
-    outputLocationPath: '',
-    isGeoParquet: true,
-    awsRegion: awsRegionOptions[0], // { label: 'us-west-2', value: 'us-west-2' },
-    enableYAPC: false,
-    useYAPCScore: false,
-    YAPCScore: 0.0,
-    usesYAPCKnn: false,
-    YAPCKnn: 0,
-    usesYAPCMinKnn: false,
-    YAPCMinKnn: 5,
-    usesYAPCWindowHeight: false,
-    YAPCWindowHeight: 6.0,
-    usesYAPCWindowWidth: false,
-    YAPCWindowWidth: 15.0,
-    usesYAPCVersion: false,
-    YAPCVersion: 0 as number,
-    resources: [] as string[],
-    useChecksum: false,
-    useMaxResources: false,
-    maxResourcesValue: 300,
+
+    // ─── ATL13 Parameters ───
+    useAtl13RefId: false,
+    atl13: {
+      coord: null as Atl13Coord | null
+    } as { refid: number; name: string; coord: Atl13Coord | null },
+    useAtl13Polygon: false,
+    useAtl13Point: false,
+
+    // ─── ATL24 Parameters ───
     enableAtl24Classification: false,
-    defaultsFetched: false,
     useDatum: false,
     useAtl24Compact: false,
     atl24Compact: false,
@@ -156,6 +138,40 @@ export function getDefaultReqParamsState(): SrReqParamsState {
     atl24Night: OnOffOptions,
     useAtl24SensorDepthExceeded: false,
     atl24SensorDepthExceeded: OnOffOptions,
+
+    // ─── YAPC Parameters ───
+    enableYAPC: false,
+    useYAPCScore: false,
+    YAPCScore: 0.0,
+    usesYAPCKnn: false,
+    YAPCKnn: 0,
+    usesYAPCMinKnn: false,
+    YAPCMinKnn: 5,
+    usesYAPCWindowHeight: false,
+    YAPCWindowHeight: 6.0,
+    usesYAPCWindowWidth: false,
+    YAPCWindowWidth: 15.0,
+    usesYAPCVersion: false,
+    YAPCVersion: 0 as number,
+
+    // ─── PhoREAL Parameters ───
+    enablePhoReal: false,
+    usePhoRealBinSize: false,
+    phoRealBinSize: 0,
+    usePhoRealGeoLocation: false,
+    phoRealGeoLocation: geoLocationOptions[0], // 'mean'
+    usePhoRealAbsoluteHeights: false,
+    usePhoRealSendWaveforms: false,
+    usePhoRealABoVEClassifier: false,
+
+    // ─── GEDI Parameters ───
+    gediBeams: [0, 1, 2, 3, 5, 6, 8, 11] as number[],
+    degradeFlag: false,
+    l2QualityFlag: false,
+    l4QualityFlag: false,
+    surfaceFlag: false,
+
+    // ─── Ancillary Field Arrays ───
     atl24AncillaryFields: [] as string[],
     atl03AncillaryFields: [] as string[],
     atl08AncillaryFields: [] as string[],
@@ -166,15 +182,59 @@ export function getDefaultReqParamsState(): SrReqParamsState {
     atl08_fields: [] as string[],
     atl13_fields: [] as string[],
     gedi_fields: [] as string[],
-    useAtl13RefId: false,
-    atl13: {
-      coord: null as Atl13Coord | null
-    } as { refid: number; name: string; coord: Atl13Coord | null },
-    useAtl13Polygon: false,
-    useAtl13Point: false,
+
+    // ─── Resources ───
+    resources: [] as string[],
+    useChecksum: false,
+    useMaxResources: false,
+    maxResourcesValue: 300,
+
+    // ─── Advanced Parameter Editor ───
     forcedAddedParams: {} as Record<string, unknown>,
     forcedRemovedParams: [] as string[],
-    showParamsDialog: false
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // INTERNAL UI STATE
+    // These fields are NOT exported to the API - they control UI behavior only
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    // ─── Mission & API Selection (UI only) ───
+    missionValue: 'ICESat-2' as string,
+    iceSat2SelectedAPI: 'atl03x-surface' as string,
+    gediSelectedAPI: 'gedi01bp' as string,
+
+    // ─── Internal Processing Flags (UI only) ───
+    using_worker: false,
+    isFeatherStream: false,
+    defaultsFetched: false,
+
+    // ─── UI State Flags (UI only) ───
+    polygonSource: null as 'polygon' | 'box' | 'upload' | null,
+    selectAllTracks: false,
+    selectAllBeams: false,
+    showParamsDialog: false,
+    ignorePolygon: false,
+    isAtl24PhotonOverlay: false,
+
+    // ─── Server & Output Configuration (UI only) ───
+    urlValue: 'slideruleearth.io',
+    rasterizePolyCellSize: 0.01,
+    fileOutput: true,
+    staged: false,
+    outputLocation: { label: 'local', value: 'local' },
+    outputLocationPath: '',
+    isGeoParquet: true,
+    awsRegion: awsRegionOptions[0], // { label: 'us-west-2', value: 'us-west-2' },
+
+    // ─── Legacy UI Defaults (UI only) ───
+    // These store default values for UI components
+    gpsToUTCOffset: 18,
+    minDate: new Date('2018-10-01T00:00:00Z'),
+    confidenceValue: 4,
+    iterationsValue: 6,
+    spreadValue: 20.0,
+    PE_CountValue: 10,
+    windowValue: 3.0
   }
 }
 function setNestedValue(obj: any, path: string, value: unknown) {
@@ -508,16 +568,32 @@ const createReqParamsStore = (id: string) =>
           }
         } else if (this.missionValue === 'GEDI') {
           if (this.degradeFlag) {
-            req.degrade = true
+            req.degrade_filter = true
           }
           if (this.l2QualityFlag) {
-            req.l2_quality = true
+            req.l2_quality_filter = true
           }
           if (this.l4QualityFlag) {
-            req.l4_quality = true
+            req.l4_quality_filter = true
           }
           if (this.surfaceFlag) {
-            req.surface = true
+            req.surface_flag = true
+          }
+          // GEDI beams: 0 means all beams, otherwise export as bitmask
+          // Default [0,1,2,3,5,6,8,11] = all beams = 0
+          const allGediBeams = [0, 1, 2, 3, 5, 6, 8, 11]
+          const isAllBeams =
+            this.gediBeams.length === allGediBeams.length &&
+            allGediBeams.every((b) => this.gediBeams.includes(b))
+          if (isAllBeams) {
+            req.beams = 0
+          } else if (this.gediBeams.length > 0) {
+            // For single beam selection, export the beam number
+            req.beams = this.gediBeams.length === 1 ? this.gediBeams[0] : this.gediBeams
+          }
+          // Export GEDI fields
+          if (this.gedi_fields.length > 0) {
+            req.gedi_fields = this.gedi_fields
           }
         }
         const geojsonStore = useGeoJsonStore()
@@ -661,6 +737,12 @@ const createReqParamsStore = (id: string) =>
         }
         if (this.useReadTimeout) {
           req['read-timeout'] = this.readTimeoutValue
+        }
+        if (this.useProj) {
+          req.proj = this.projValue
+        }
+        if (this.useClusterSizeHint) {
+          req.cluster_size_hint = this.clusterSizeHintValue
         }
         if (this.useDatum) {
           req.datum = 'EGM08'
@@ -962,6 +1044,30 @@ const createReqParamsStore = (id: string) =>
       setReadTimeout(readTimeoutValue: number) {
         this.readTimeoutValue = readTimeoutValue
       },
+      setUseProj(useProj: boolean) {
+        this.useProj = useProj
+      },
+      getUseProj(): boolean {
+        return this.useProj
+      },
+      getProj(): number {
+        return this.projValue
+      },
+      setProj(projValue: number) {
+        this.projValue = projValue
+      },
+      setUseClusterSizeHint(useClusterSizeHint: boolean) {
+        this.useClusterSizeHint = useClusterSizeHint
+      },
+      getUseClusterSizeHint(): boolean {
+        return this.useClusterSizeHint
+      },
+      getClusterSizeHint(): number {
+        return this.clusterSizeHintValue
+      },
+      setClusterSizeHint(clusterSizeHintValue: number) {
+        this.clusterSizeHintValue = clusterSizeHintValue
+      },
       restoreTimeouts() {
         logger.debug('Restoring timeouts to defaults')
         this.useServerTimeout = false
@@ -1111,13 +1217,30 @@ const createReqParamsStore = (id: string) =>
         //console.log('setIceSat2API:', value);
         this.iceSat2SelectedAPI = value
 
-        // Auto-enable fit or phoreal based on API selection
-        // This ensures the JSON will have fit:{} or phoreal:{} when opened in Edit dialog
-        if (value === 'atl03x-surface') {
+        // Auto-enable/disable API-specific parameters based on API selection
+        // This ensures the JSON will have the correct parameters when opened in Edit dialog
+        // Each API type should only have its specific parameters enabled
+
+        // Reset all API-specific flags first
+        this.setUseSurfaceFitAlgorithm(false)
+        this.setEnablePhoReal(false)
+        this.enableAtl24Classification = false
+        this.useAtl13Point = false
+
+        // Enable the specific parameters for each API type
+        if (value === 'atl03x-surface' || value === 'atl06p') {
           this.setUseSurfaceFitAlgorithm(true)
-        } else if (value === 'atl03x-phoreal') {
+        } else if (value === 'atl03x-phoreal' || value === 'atl08p') {
           this.setEnablePhoReal(true)
+        } else if (value === 'atl24x') {
+          this.enableAtl24Classification = true
+        } else if (value === 'atl13x') {
+          // atl13x needs the atl13 object - preserve existing coord (if any)
+          // Set useAtl13Point based on whether coord exists
+          this.useAtl13Point = this.atl13?.coord != null
+          // Note: coord is preserved if it exists - no need to clear valid data
         }
+        // For all other APIs (atl03x, atl06, atl08, etc.), all flags remain disabled
       },
       getGediAPI(): string {
         return this.gediSelectedAPI

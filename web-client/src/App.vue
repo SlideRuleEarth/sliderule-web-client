@@ -676,7 +676,14 @@ async function handleLongTourButtonClick() {
 <template>
   <div class="app-layout">
     <div>
-      <SrToast position="top-left" />
+      <SrToast position="top-left">
+        <template #message="slotProps">
+          <div class="sr-toast-content">
+            <span class="sr-toast-summary">{{ slotProps.message.summary }}</span>
+            <div class="sr-toast-detail" v-html="slotProps.message.detail"></div>
+          </div>
+        </template>
+      </SrToast>
     </div>
     <header class="app-header">
       <SrAppBar

@@ -120,6 +120,28 @@
           tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/raster_sampling.html#parameters"
         />
       </div>
+      <div class="sr-slope-aspect">
+        <SrCheckbox
+          label="Slope Aspect"
+          v-model="rasterParamsStore.slope_aspect"
+          tooltipText="boolean whether to calculate and return slope and aspect values for the sampled raster"
+        />
+        <SrCheckbox
+          label="Use Slope Scale Length"
+          v-model="rasterParamsStore.useSlopeScaleLength"
+        />
+        <SrSliderInput
+          label="Slope Scale Length"
+          v-model="rasterParamsStore.slope_scale_length"
+          :insensitive="!rasterParamsStore.useSlopeScaleLength"
+          :min="0"
+          :max="1000"
+          :defaultValue="0"
+          :decimalPlaces="2"
+          tooltipText="scale length in meters used for slope/aspect calculation"
+          unitsLabel="m"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -166,7 +188,11 @@ const addRasterParams = () => {
     substring: rasterParamsStore.substring,
     closestTime: rasterParamsStore.useClosetTime ? rasterParamsStore.closestTime : null,
     catalog: rasterParamsStore.catalog,
-    bands: rasterParamsStore.useBands ? rasterParamsStore.bands : []
+    bands: rasterParamsStore.useBands ? rasterParamsStore.bands : [],
+    slope_aspect: rasterParamsStore.slope_aspect,
+    slope_scale_length: rasterParamsStore.useSlopeScaleLength
+      ? rasterParamsStore.slope_scale_length
+      : 0
   }
   rasterParamsStore.addRasterParams(rasterParams)
 }
@@ -221,6 +247,13 @@ const addRasterParams = () => {
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  margin: 0.5rem;
+  padding: 0.5rem;
+}
+.sr-slope-aspect {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
   margin: 0.5rem;
   padding: 0.5rem;
 }

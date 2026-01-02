@@ -340,6 +340,17 @@ onUnmounted(() => {
       <template #header>
         <div style="text-align: center; width: 100%">Status</div>
       </template>
+      <template #body="slotProps">
+        <span
+          v-if="slotProps.node.data.status_details"
+          @mouseover="tooltipRef?.showTooltip($event, slotProps.node.data.status_details)"
+          @mouseleave="tooltipRef?.hideTooltip"
+          style="cursor: help"
+        >
+          {{ slotProps.node.data.status }}
+        </span>
+        <span v-else>{{ slotProps.node.data.status }}</span>
+      </template>
     </Column>
     <!-- Request Parameters Button & Dialog -->
     <Column field="parameters" class="sr-par-fmt">

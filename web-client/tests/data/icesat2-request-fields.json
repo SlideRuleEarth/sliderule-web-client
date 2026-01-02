@@ -1,0 +1,49 @@
+{
+  "description": "All ICESat-2 Request Fields from https://slideruleearth.io/web/rtd/user_guide/xseries.html#icesat-2-request-fields",
+  "note": "fit and phoreal are mutually exclusive - this file uses fit; see icesat2-phoreal-fields.json for phoreal",
+  "parms": {
+    "poly": [
+      {"lon": -108.05, "lat": 39.00},
+      {"lon": -108.00, "lat": 39.00},
+      {"lon": -108.00, "lat": 39.05},
+      {"lon": -108.05, "lat": 39.05},
+      {"lon": -108.05, "lat": 39.00}
+    ],
+    "srt": [0, 1, 2],
+    "pass_invalid": true,
+    "dist_in_seg": true,
+    "cnf": [2, 3, 4],
+    "quality_ph": [0, 1, 2, 3],
+    "atl08_class": ["atl08_ground", "atl08_canopy", "atl08_top_of_canopy"],
+    "beams": ["gt1l", "gt1r", "gt2l", "gt2r", "gt3l", "gt3r"],
+    "tracks": [1, 2, 3],
+    "len": 40.0,
+    "res": 20.0,
+    "ats": 10.0,
+    "cnt": 10,
+    "fit": {
+      "maxi": 6,
+      "h_win": 3.0,
+      "sigma_r": 5.0
+    },
+    "yapc": {
+      "score": 100,
+      "knn": 0,
+      "min_knn": 5,
+      "win_h": 6.0,
+      "win_x": 15.0,
+      "version": 3
+    },
+    "atl24": {
+      "class_ph": ["bathymetry", "sea_surface"],
+      "compact": true,
+      "confidence_threshold": 0.7
+    },
+    "atl03_geo_fields": ["solar_elevation", "solar_azimuth"],
+    "atl03_corr_fields": ["geoid", "dac"],
+    "atl03_ph_fields": ["dist_ph_along", "dist_ph_across"],
+    "atl06_fields": ["ground_track/ref_azimuth", "h_li_sigma"],
+    "atl08_fields": ["segment_snowcover", "segment_landcover"],
+    "atl13_fields": ["ht_ortho", "water_depth"]
+  }
+}

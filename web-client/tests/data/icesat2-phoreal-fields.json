@@ -1,0 +1,19 @@
+{
+  "description": "ICESat-2 PhoREAL algorithm fields - mutually exclusive with fit",
+  "parms": {
+    "poly": [
+      {"lon": -108.05, "lat": 39.00},
+      {"lon": -108.00, "lat": 39.00},
+      {"lon": -108.00, "lat": 39.05},
+      {"lon": -108.05, "lat": 39.05},
+      {"lon": -108.05, "lat": 39.00}
+    ],
+    "phoreal": {
+      "geoloc": "center",
+      "binsize": 0.5,
+      "above_classifier": true,
+      "use_abs_h": true,
+      "send_waveform": true
+    }
+  }
+}

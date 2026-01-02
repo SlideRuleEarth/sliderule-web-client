@@ -1,0 +1,28 @@
+{
+  "parms": {
+    "poly": [
+      {"lon": -108.05, "lat": 39.00},
+      {"lon": -108.00, "lat": 39.00},
+      {"lon": -108.00, "lat": 39.05},
+      {"lon": -108.05, "lat": 39.05},
+      {"lon": -108.05, "lat": 39.00}
+    ],
+    "srt": [0],
+    "cnf": [4, 3, 2],
+    "atl08_class": ["atl08_ground"],
+    "ats": 10.0,
+    "cnt": 10,
+    "len": 40.0,
+    "res": 20.0,
+    "atl06_fields": ["ground_track/ref_azimuth"],
+    "atl08_fields": ["segment_snowcover", "segment_landcover", "beam_azimuth", "segment_watermask", "urban_flag"],
+    "samples": {
+      "3dep": {
+        "asset": "usgs3dep-10meter-dem",
+        "slope_aspect": true
+      }
+    },
+    "t0": "2020-10-13T00:00:00Z",
+    "t1": "2021-10-13T00:00:00Z"
+  }
+}

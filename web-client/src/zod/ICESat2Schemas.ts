@@ -5,6 +5,28 @@ const Coordinate = z.object({
   lat: z.number()
 })
 
+// ATL24 classification name to value mapping
+const atl24ClassificationMap: Record<string, number> = {
+  unclassified: 0,
+  atl24_unclassified: 0,
+  bathymetry: 40,
+  atl24_bathymetry: 40,
+  sea_surface: 41,
+  atl24_sea_surface: 41
+}
+
+// Schema that accepts both string names and numbers, converting strings to numbers
+const Atl24ClassificationSchema = z
+  .array(z.union([z.number(), z.string()]))
+  .transform((arr) =>
+    arr.map((val) => {
+      if (typeof val === 'number') return val
+      const normalized = val.toLowerCase().trim()
+      return atl24ClassificationMap[normalized] ?? parseInt(val, 10)
+    })
+  )
+  .optional()
+
 // const _GeoJSONPolygon = z.object({
 //     type: z.literal('Polygon'),
 //     coordinates: z.array(z.array(z.array(z.number()))),
@@ -14,9 +36,21 @@ const YapcSchema = z.object({
   score: z.number(),
   version: z.number().optional(),
   knn: z.number().optional(),
+  min_knn: z.number().optional(),
   win_h: z.number().optional(),
   win_x: z.number().optional()
 })
+
+// Surface fit algorithm parameters (for ATL06/surface APIs)
+const FitSchema = z
+  .object({
+    maxi: z.number().optional(), // max iterations
+    h_win: z.number().optional(), // min window height (current name)
+    H_min_win: z.number().optional(), // min window height (legacy name)
+    sigma_r: z.number().optional(), // max robust dispersion (current name)
+    sigma_r_max: z.number().optional() // max robust dispersion (legacy name)
+  })
+  .optional()
 export const PhoRealSchema = z.object({
   above_classifier: z.boolean().optional(),
   binsize: z.number().optional(),
@@ -27,8 +61,10 @@ export const PhoRealSchema = z.object({
 const Atl24Schema = z
   .object({
     compact: z.boolean().optional(),
-    class_ph: z.array(z.string()).optional(),
-    classification: z.array(z.number()).optional(),
+    // class_ph accepts both strings ["bathymetry"] and numbers [40]
+    class_ph: z.array(z.union([z.number(), z.string()])).optional(),
+    // classification is legacy - use class_ph instead
+    classification: Atl24ClassificationSchema,
     confidence_threshold: z.number().optional(),
     // These fields can be either boolean or array of strings ["off", "on"]
     // The UI uses multi-select with On/Off options, server returns lowercase
@@ -64,7 +100,7 @@ export const ICESat2ParamsSchema = z.object({
   region: z.array(z.number()).optional(),
   t0: z.string().datetime().optional(),
   t1: z.string().datetime().optional(),
-  beams: z.array(z.string()).optional(),
+  beams: z.array(z.union([z.string(), z.number()])).optional(),
   cnf: z.union([z.number(), z.array(z.number()), z.array(z.string())]).optional(),
   quality_ph: z.array(z.number()).optional(),
   srt: z.union([z.literal(-1), z.array(z.number()), z.array(z.string())]).optional(),
@@ -80,9 +116,9 @@ export const ICESat2ParamsSchema = z.object({
   atl06_fields: z.array(z.string()).optional(),
   atl08_fields: z.array(z.string()).optional(),
   atl08_class: z.array(z.string()).optional(),
-  atl13: Atl13Schema,
+  atl13: Atl13Schema.optional(),
   atl13_fields: z.array(z.string()).optional(),
-  atl24: Atl24Schema,
+  atl24: Atl24Schema.optional(),
   timeout: z.number().optional(),
   'rqst-timeout': z.number().optional(),
   'node-timeout': z.number().optional(),
@@ -90,6 +126,7 @@ export const ICESat2ParamsSchema = z.object({
   datum: z.string().optional(),
   samples: z.record(z.unknown()).optional(),
   yapc: YapcSchema.optional(),
+  fit: FitSchema.optional(),
   phoreal: PhoRealSchema.optional(),
   cmr: z
     .object({

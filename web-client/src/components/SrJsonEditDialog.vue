@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
-import type { Ref } from 'vue'
 import Dialog from 'primevue/dialog'
 import Button from 'primevue/button'
 import Textarea from 'primevue/textarea'
+import Select from 'primevue/select'
 import SrJsonDiffViewer from './SrJsonDiffViewer.vue'
-import hljs from 'highlight.js/lib/core'
-import json from 'highlight.js/lib/languages/json'
-import 'highlight.js/styles/atom-one-dark.css'
+import SrParmsFormatTabs from './SrParmsFormatTabs.vue'
+import { missionItems, iceSat2APIsItems, gediAPIsItems } from '@/types/SrStaticOptions'
 import type { ZodTypeAny } from 'zod'
 import { useJsonImporter } from '@/composables/SrJsonImporter'
 import { importRequestJsonToStore } from '@/utils/importRequestToStore'
@@ -27,8 +26,6 @@ const mapStore = useMapStore()
 
 const toast = useToast()
 
-hljs.registerLanguage('json', json)
-
 function showToast(summary: string, detail: string, severity = 'warn') {
   toast.add({
     severity,
@@ -41,11 +38,9 @@ const props = withDefaults(
   defineProps<{
     zodSchema: ZodTypeAny
     width?: string
-    title?: string
   }>(),
   {
-    width: '60vw',
-    title: 'JSON Viewer'
+    width: '60vw'
   }
 )
 
@@ -53,7 +48,6 @@ const emit = defineEmits<{
   (_e: 'json-valid', _value: unknown): void
 }>()
 
-const jsonBlock = ref<HTMLElement | null>(null)
 const editableReqJson = ref('')
 const parsedEditableReqJson = computed(() => {
   try {
@@ -94,11 +88,69 @@ const hasChangesToApply = computed(() => {
   return JSON.stringify(parsedEditableReqJson.value) !== JSON.stringify(parsedCurrentReqJson.value)
 })
 
-const readonlyHighlightedJson = computed(() => {
-  return hljs.highlight(currentReqJson.value, { language: 'json' }).value
+// Compute automatic fields based on selected API
+// These fields are auto-populated by the system and shouldn't show force checkboxes
+const computedAutomaticFields = computed(() => {
+  const baseFields = ['asset', 'output', 'cmr']
+  const api = reqParamsStore.iceSat2SelectedAPI
+
+  // Add API-specific automatic fields
+  if (api === 'atl03x-surface' || api === 'atl06p') {
+    baseFields.push('fit')
+  } else if (api === 'atl03x-phoreal' || api === 'atl08p') {
+    baseFields.push('phoreal')
+  } else if (api === 'atl24x') {
+    baseFields.push('atl24')
+  } else if (api === 'atl13x') {
+    baseFields.push('atl13')
+  }
+
+  return new Set(baseFields)
 })
 
 const fileInputRef = ref<HTMLInputElement | null>(null)
+
+// Endpoint selector state (used in header)
+const selectedMission = ref(reqParamsStore.missionValue)
+const selectedAPI = ref(reqParamsStore.getCurAPIStr())
+
+// Computed API options based on selected mission
+const apiOptions = computed(() => {
+  return selectedMission.value === 'ICESat-2' ? iceSat2APIsItems : gediAPIsItems
+})
+
+// Update selected API when mission changes
+watch(selectedMission, (newMission) => {
+  const options = newMission === 'ICESat-2' ? iceSat2APIsItems : gediAPIsItems
+  // If current API is not in new mission's options, reset to first option
+  if (!options.includes(selectedAPI.value)) {
+    selectedAPI.value = options[0]
+  }
+})
+
+// Handle mission change from header selector
+function handleMissionChange() {
+  reqParamsStore.setMissionValue(selectedMission.value)
+  // Update API in store based on new mission
+  if (selectedMission.value === 'ICESat-2') {
+    reqParamsStore.setIceSat2API(selectedAPI.value)
+  } else {
+    reqParamsStore.setGediAPI(selectedAPI.value)
+  }
+  // Refresh the request parameters display
+  updateEditableJsonFromStore()
+}
+
+// Handle API change from header selector
+function handleAPIChange() {
+  if (selectedMission.value === 'ICESat-2') {
+    reqParamsStore.setIceSat2API(selectedAPI.value)
+  } else {
+    reqParamsStore.setGediAPI(selectedAPI.value)
+  }
+  // Refresh the request parameters display
+  updateEditableJsonFromStore()
+}
 
 const { data: importedData, error: importError, importJson } = useJsonImporter(props.zodSchema)
 
@@ -194,26 +246,16 @@ const copyEditableReqJsonToClipboard = async () => {
 }
 
 watch(computedShowParamsDialog, (newVal) => {
-  //console.log('SrJsonEditDialog watch showParamsDialog changed:', newVal);
   if (newVal) {
-    //console.log('SrJsonEditDialog watch showParamsDialog Dialog opened, highlighting JSON.');
+    // Initialize endpoint selectors with current store values
+    selectedMission.value = reqParamsStore.missionValue
+    selectedAPI.value = reqParamsStore.getCurAPIStr()
     updateEditableJsonFromStore()
-    void nextTick(() => highlightJson())
   } else {
-    //console.log('SrJsonEditDialog watch showParamsDialog Dialog closed.');
     // Zoom to poly if it exists
     zoomToPoly()
   }
 })
-
-const highlightJson = () => {
-  logger.debug('Highlighting JSON in readonly panel')
-  if (jsonBlock.value) {
-    jsonBlock.value.removeAttribute('data-highlighted') // allow re-highlighting
-    jsonBlock.value.innerHTML = readonlyHighlightedJson.value // replace with fresh content
-    hljs.highlightElement(jsonBlock.value)
-  }
-}
 
 function updateEditableJsonFromStore() {
   currentReqObj.value = reqParamsStore.getAtlxxReqParams(0)
@@ -242,24 +284,6 @@ const importToStore = () => {
     validationError.value = 'Import failed: Invalid JSON'
     isValidJson.value = false
   }
-}
-function exportToFile(json: string | Ref<string>) {
-  const jsonString = typeof json === 'string' ? json : json.value
-
-  const defaultName = `sliderule-request-${new Date().toISOString().replace(/[:.]/g, '-')}.json`
-  const filename = prompt('Enter file name to save:', defaultName)
-
-  if (!filename) return // user cancelled
-
-  const blob = new Blob([jsonString], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename.endsWith('.json') ? filename : `${filename}.json`
-  a.click()
-
-  URL.revokeObjectURL(url)
 }
 
 function handleParamsAccessed(index: number) {
@@ -365,8 +389,24 @@ function zoomToPoly() {
     :modal="true"
     :closable="true"
     :style="{ width: props.width }"
-    :header="props.title"
   >
+    <template #header>
+      <div class="endpoint-header">
+        <span class="endpoint-label">endpoint =</span>
+        <Select
+          v-model="selectedMission"
+          :options="missionItems"
+          class="endpoint-mission-select"
+          @change="handleMissionChange"
+        />
+        <Select
+          v-model="selectedAPI"
+          :options="apiOptions"
+          class="endpoint-api-select"
+          @change="handleAPIChange"
+        />
+      </div>
+    </template>
     <div class="sr-dialog-container">
       <div class="json-dual-panel">
         <!-- Editable panel -->
@@ -416,34 +456,17 @@ function zoomToPoly() {
             />
           </div>
         </div>
-        <!-- Readonly panel -->
+        <!-- Current Request State panel with format tabs -->
         <div class="json-pane">
           <h3 class="pane-title">Current Request State</h3>
-          <!-- eslint-disable-next-line vue/no-v-html -->
-          <pre ref="jsonBlock" v-html="readonlyHighlightedJson"></pre>
-          <div class="copy-btn-container">
-            <Button
-              label="Copy to clipboard"
-              size="small"
-              icon="pi pi-copy"
-              @click="copyEditableReqJsonToClipboard"
-              class="copy-btn"
-            />
-            <Button
-              label="Output to File"
-              size="small"
-              icon="pi pi-file-export"
-              @click="exportToFile(editableReqJson)"
-              class="copy-btn"
-            />
-          </div>
+          <SrParmsFormatTabs :rcvdParms="currentReqObj" :endpoint="selectedAPI" mode="sending" />
         </div>
       </div>
       <div class="sr-diff-footer">
         <SrJsonDiffViewer
           :before="parsedEditableReqJson"
           :after="parsedCurrentReqJson"
-          :automaticFields="new Set(['asset', 'output', 'cmr'])"
+          :automaticFields="computedAutomaticFields"
           beforeLabel="Editable Request"
           afterLabel="Current Request State"
           @forced-req_params="handleParamsAccessed"
@@ -492,12 +515,44 @@ pre {
 .json-dual-panel {
   display: flex;
   gap: 1rem;
+  align-items: stretch;
 }
 
 .json-pane {
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-width: 0;
+}
+
+/* Make the right pane's tabs component stretch to fill available height */
+.json-pane :deep(.p-tabs) {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.json-pane :deep(.p-tabpanels) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.json-pane :deep(.p-tabpanel) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.json-pane :deep(.tab-content) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.json-pane :deep(.tab-content pre) {
+  flex: 1;
+  max-height: none;
 }
 
 .pane-title {
@@ -545,5 +600,26 @@ pre {
   white-space: nowrap;
   font-weight: bold;
   padding: 0.5rem 1rem;
+}
+
+/* Endpoint header selector styles */
+.endpoint-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.1rem;
+}
+
+.endpoint-label {
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.endpoint-mission-select {
+  min-width: 120px;
+}
+
+.endpoint-api-select {
+  min-width: 150px;
 }
 </style>

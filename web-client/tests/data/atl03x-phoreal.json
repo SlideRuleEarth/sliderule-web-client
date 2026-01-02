@@ -1,0 +1,20 @@
+{
+  "parms": {
+    "poly": [
+      {"lon": -108.05, "lat": 39.00},
+      {"lon": -108.00, "lat": 39.00},
+      {"lon": -108.00, "lat": 39.05},
+      {"lon": -108.05, "lat": 39.05},
+      {"lon": -108.05, "lat": 39.00}
+    ],
+    "srt": [0],
+    "cnf": [4, 3, 2],
+    "phoreal": {
+      "geoloc": "mean",
+      "binsize": 1.0,
+      "above_classifier": true,
+      "use_abs_h": true
+    },
+    "atl08_fields": ["segment_landcover"]
+  }
+}

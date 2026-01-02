@@ -1,0 +1,15 @@
+{
+  "parms": {
+    "poly": [
+      {"lon": -108.05, "lat": 39.00},
+      {"lon": -108.00, "lat": 39.00},
+      {"lon": -108.00, "lat": 39.05},
+      {"lon": -108.05, "lat": 39.05},
+      {"lon": -108.05, "lat": 39.00}
+    ],
+    "degrade_filter": true,
+    "beams": 0,
+    "gedi_fields": ["elevation_bin0"]
+  },
+  "resources": ["GEDI01_B_2019108002012_O01959_T03909_02_003_01_V002.h5"]
+}
