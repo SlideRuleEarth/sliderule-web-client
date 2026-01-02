@@ -13,7 +13,6 @@ import Graticule from 'ol/layer/Graticule.js'
 import type OLMap from 'ol/Map.js'
 import { unByKey } from 'ol/Observable'
 import type { EventsKey } from 'ol/events'
-import type { ExtHMean } from '@/workers/workerUtils'
 import { Style, Icon, Fill, Stroke, Circle as CircleStyle } from 'ol/style'
 import { Text as TextStyle } from 'ol/style'
 import { getSpotNumber, getGtsForSpotsAndScOrients } from '@/utils/spotUtils'
@@ -872,7 +871,6 @@ export function createDeckLayer(
 export function updateDeckLayerWithObject(
   name: string,
   elevationData: ElevationDataItem[],
-  extHMean: ExtHMean,
   heightFieldName: string,
   positions: SrPosition[],
   _projName: string,
