@@ -1235,9 +1235,10 @@ const createReqParamsStore = (id: string) =>
         } else if (value === 'atl24x') {
           this.enableAtl24Classification = true
         } else if (value === 'atl13x') {
-          // atl13x needs the atl13 object with coord (can be null for polygon-based queries)
-          this.useAtl13Point = false // Will use polygon if no point is set
-          this.atl13.coord = null
+          // atl13x needs the atl13 object - preserve existing coord (if any)
+          // Set useAtl13Point based on whether coord exists
+          this.useAtl13Point = this.atl13?.coord != null
+          // Note: coord is preserved if it exists - no need to clear valid data
         }
         // For all other APIs (atl03x, atl06, atl08, etc.), all flags remain disabled
       },

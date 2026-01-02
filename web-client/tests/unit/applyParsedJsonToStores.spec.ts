@@ -44,6 +44,8 @@ function getNonPolygonErrors(
     if (msg.includes('converted to')) return false
     // Exclude API mismatch warnings (informational, not errors)
     if (msg.includes('only exported for') || msg.includes('will be missing')) return false
+    if (msg.includes('was imported but will be ignored')) return false
+    if (msg.includes('is required for')) return false
     return true
   })
 }

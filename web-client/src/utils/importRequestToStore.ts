@@ -130,7 +130,8 @@ function inferCategory(message: string): ImportIssueCategory {
 
 type ToastFn = (_summary: string, _detail: string, _severity?: string) => void
 
-// Group issues by category and format as text with headings
+// Group issues by category and format as HTML with styled headings
+// Uses CSS classes only (no inline styles) to comply with CSP
 function formatGroupedIssues(issues: Record<string, ImportIssue[]>): string {
   // Group all issues by category
   const byCategory: Record<ImportIssueCategory, Array<{ field: string; message: string }>> = {
@@ -147,7 +148,7 @@ function formatGroupedIssues(issues: Record<string, ImportIssue[]>): string {
     }
   }
 
-  // Format with category headings
+  // Format with category headings as HTML using CSS classes
   const sections: string[] = []
   const categoryOrder: ImportIssueCategory[] = [
     ImportIssueCategory.API_MISMATCH,
@@ -160,14 +161,18 @@ function formatGroupedIssues(issues: Record<string, ImportIssue[]>): string {
   for (const category of categoryOrder) {
     const items = byCategory[category]
     if (items.length > 0) {
-      const heading = `${category}:`
-      // Format each item with field on one line and message indented below
-      const lines = items.map((item) => `  ${item.field}:\n      ${item.message}`)
-      sections.push([heading, ...lines].join('\n'))
+      // Styled category heading using CSS class
+      const heading = `<div class="sr-toast-category">${category}:</div>`
+      // Format each item with field name and italic hint message using CSS classes
+      const lines = items.map(
+        (item) =>
+          `<div class="sr-toast-field">${item.field}:</div><div class="sr-toast-hint">${item.message}</div>`
+      )
+      sections.push([heading, ...lines].join(''))
     }
   }
 
-  return sections.join('\n\n')
+  return sections.join('<div class="sr-toast-spacer"></div>')
 }
 
 function showGroupedIssues(
@@ -289,9 +294,13 @@ export function importRequestJsonToStore(
     }
   }
 
-  // Apply API-specific cleanup by re-triggering the API selection logic
-  // This resets all API-specific flags and enables only the appropriate ones
-  store.setIceSat2API(selectedApi)
+  // Apply API-specific cleanup - reset flags but preserve imported data values
+  // Unlike setIceSat2API which also resets data, we only reset the enable flags
+  // to match the selected API, while preserving any values that were imported
+  store.setUseSurfaceFitAlgorithm(selectedApi === 'atl03x-surface' || selectedApi === 'atl06p')
+  store.setEnablePhoReal(selectedApi === 'atl03x-phoreal' || selectedApi === 'atl08p')
+  store.enableAtl24Classification = selectedApi === 'atl24x'
+  store.useAtl13Point = selectedApi === 'atl13x' && store.atl13?.coord != null
   logger.debug('Applied API-specific cleanup after import', { selectedApi })
 
   // Detect unknown top-level keys

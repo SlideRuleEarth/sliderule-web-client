@@ -212,11 +212,70 @@ html {
     }
 }
 
-/* 
-========== iPad-Specific Overrides (Optional) ========== 
+/*
+========== iPad-Specific Overrides (Optional) ==========
 @media screen and (min-device-width: 768px) and (max-device-width: 1024px) and (orientation: portrait) {
     body {
         background-color: #fafafa;
     }
 }
 */
+
+/* ========== Toast Notification Styling ========== */
+
+/* Custom toast content wrapper */
+.sr-toast-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+/* Toast summary (title) */
+.sr-toast-summary {
+    font-weight: 600;
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Toast detail container */
+.sr-toast-detail {
+    font-size: 0.875rem;
+    line-height: 1.4;
+}
+
+/* Category headings - darker and bold */
+.sr-toast-category {
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-top: 0.75rem;
+    margin-bottom: 0.25rem;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+}
+
+/* First category heading doesn't need top margin */
+.sr-toast-detail .sr-toast-category:first-child {
+    margin-top: 0;
+}
+
+/* Field names */
+.sr-toast-field {
+    font-weight: 600;
+    color: #333;
+    margin-left: 0.5rem;
+    margin-top: 0.25rem;
+}
+
+/* Hint messages - italic */
+.sr-toast-hint {
+    font-style: italic;
+    color: #444;
+    margin-left: 1rem;
+    margin-bottom: 0.25rem;
+}
+
+/* Spacer between category sections */
+.sr-toast-spacer {
+    height: 0.5rem;
+}
