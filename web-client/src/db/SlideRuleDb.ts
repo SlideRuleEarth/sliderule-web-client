@@ -1054,12 +1054,20 @@ export class SlideRuleDexie extends Dexie {
       const request = await this.requests.get(req_id)
       const isSuccess = request?.status === 'success'
 
-      const svrParmsUsedStr = getServerParams(request as SrRequestRecord)
+      const svrParmsRaw = getServerParams(request as SrRequestRecord)
 
-      //const svrParmsUsedStr = await this.getSvrParams(req_id) as unknown as string;
-      //console.log('svrParmsUsedStr:',svrParmsUsedStr);
-      if (svrParmsUsedStr) {
-        const svrParmsUsed: SrSvrParmsUsed = JSON.parse(svrParmsUsedStr as string)
+      if (svrParmsRaw) {
+        // Handle both string (JSON) and already-parsed object formats
+        let svrParmsUsed: SrSvrParmsUsed
+        try {
+          svrParmsUsed = typeof svrParmsRaw === 'string' ? JSON.parse(svrParmsRaw) : svrParmsRaw
+        } catch (parseError) {
+          logger.error('Failed to parse svr_parms', {
+            reqId: req_id,
+            error: parseError instanceof Error ? parseError.message : String(parseError)
+          })
+          return {} as SrRegion
+        }
 
         if (svrParmsUsed.server) {
           if (svrParmsUsed.server.rqst.parms) {
