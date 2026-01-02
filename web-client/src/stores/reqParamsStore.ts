@@ -1217,13 +1217,29 @@ const createReqParamsStore = (id: string) =>
         //console.log('setIceSat2API:', value);
         this.iceSat2SelectedAPI = value
 
-        // Auto-enable fit or phoreal based on API selection
-        // This ensures the JSON will have fit:{} or phoreal:{} when opened in Edit dialog
-        if (value === 'atl03x-surface') {
+        // Auto-enable/disable API-specific parameters based on API selection
+        // This ensures the JSON will have the correct parameters when opened in Edit dialog
+        // Each API type should only have its specific parameters enabled
+
+        // Reset all API-specific flags first
+        this.setUseSurfaceFitAlgorithm(false)
+        this.setEnablePhoReal(false)
+        this.enableAtl24Classification = false
+        this.useAtl13Point = false
+
+        // Enable the specific parameters for each API type
+        if (value === 'atl03x-surface' || value === 'atl06p') {
           this.setUseSurfaceFitAlgorithm(true)
-        } else if (value === 'atl03x-phoreal') {
+        } else if (value === 'atl03x-phoreal' || value === 'atl08p') {
           this.setEnablePhoReal(true)
+        } else if (value === 'atl24x') {
+          this.enableAtl24Classification = true
+        } else if (value === 'atl13x') {
+          // atl13x needs the atl13 object with coord (can be null for polygon-based queries)
+          this.useAtl13Point = false // Will use polygon if no point is set
+          this.atl13.coord = null
         }
+        // For all other APIs (atl03x, atl06, atl08, etc.), all flags remain disabled
       },
       getGediAPI(): string {
         return this.gediSelectedAPI

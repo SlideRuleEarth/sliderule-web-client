@@ -36,9 +36,21 @@ const YapcSchema = z.object({
   score: z.number(),
   version: z.number().optional(),
   knn: z.number().optional(),
+  min_knn: z.number().optional(),
   win_h: z.number().optional(),
   win_x: z.number().optional()
 })
+
+// Surface fit algorithm parameters (for ATL06/surface APIs)
+const FitSchema = z
+  .object({
+    maxi: z.number().optional(), // max iterations
+    h_win: z.number().optional(), // min window height (current name)
+    H_min_win: z.number().optional(), // min window height (legacy name)
+    sigma_r: z.number().optional(), // max robust dispersion (current name)
+    sigma_r_max: z.number().optional() // max robust dispersion (legacy name)
+  })
+  .optional()
 export const PhoRealSchema = z.object({
   above_classifier: z.boolean().optional(),
   binsize: z.number().optional(),
@@ -104,9 +116,9 @@ export const ICESat2ParamsSchema = z.object({
   atl06_fields: z.array(z.string()).optional(),
   atl08_fields: z.array(z.string()).optional(),
   atl08_class: z.array(z.string()).optional(),
-  atl13: Atl13Schema,
+  atl13: Atl13Schema.optional(),
   atl13_fields: z.array(z.string()).optional(),
-  atl24: Atl24Schema,
+  atl24: Atl24Schema.optional(),
   timeout: z.number().optional(),
   'rqst-timeout': z.number().optional(),
   'node-timeout': z.number().optional(),
@@ -114,6 +126,7 @@ export const ICESat2ParamsSchema = z.object({
   datum: z.string().optional(),
   samples: z.record(z.unknown()).optional(),
   yapc: YapcSchema.optional(),
+  fit: FitSchema.optional(),
   phoreal: PhoRealSchema.optional(),
   cmr: z
     .object({

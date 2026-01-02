@@ -246,6 +246,54 @@ export function importRequestJsonToStore(
   const data = result.data.parms
   applyParsedJsonToStores(data, store, rasterStore, addError)
 
+  // After importing, apply API-specific cleanup logic and warn about mismatches
+  // This ensures consistency with the same logic used when switching APIs
+  const selectedApi = store.iceSat2SelectedAPI
+
+  // Detect API-specific params that were imported but don't match the selected API
+  // These will be cleaned up when we call setIceSat2API
+  if (data.fit !== undefined) {
+    if (selectedApi !== 'atl03x-surface' && selectedApi !== 'atl06p') {
+      addIssue(
+        'fit',
+        `The "fit" parameter was imported but will be ignored because the selected API is "${selectedApi}". Switch to "atl03x-surface" or "atl06p" to use surface fitting.`,
+        ImportIssueCategory.API_MISMATCH
+      )
+    }
+  }
+  if (data.phoreal !== undefined) {
+    if (selectedApi !== 'atl03x-phoreal' && selectedApi !== 'atl08p') {
+      addIssue(
+        'phoreal',
+        `The "phoreal" parameter was imported but will be ignored because the selected API is "${selectedApi}". Switch to "atl03x-phoreal" or "atl08p" to use PhoREAL.`,
+        ImportIssueCategory.API_MISMATCH
+      )
+    }
+  }
+  if (data.atl24 !== undefined) {
+    if (selectedApi !== 'atl24x') {
+      addIssue(
+        'atl24',
+        `The "atl24" parameter was imported but will be ignored because the selected API is "${selectedApi}". Switch to "atl24x" to use ATL24 classification.`,
+        ImportIssueCategory.API_MISMATCH
+      )
+    }
+  }
+  if (data.atl13 !== undefined) {
+    if (selectedApi !== 'atl13x') {
+      addIssue(
+        'atl13',
+        `The "atl13" parameter was imported but will be ignored because the selected API is "${selectedApi}". Switch to "atl13x" to use ATL13 inland water.`,
+        ImportIssueCategory.API_MISMATCH
+      )
+    }
+  }
+
+  // Apply API-specific cleanup by re-triggering the API selection logic
+  // This resets all API-specific flags and enables only the appropriate ones
+  store.setIceSat2API(selectedApi)
+  logger.debug('Applied API-specific cleanup after import', { selectedApi })
+
   // Detect unknown top-level keys
   const unknownKeys = detectUnknownKeys(data)
   unknownKeys.forEach((key) => {

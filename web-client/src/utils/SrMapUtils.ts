@@ -775,8 +775,6 @@ export async function resetFilterUsingSelectedRec() {
 export function createDeckLayer(
   name: string,
   elevationData: ElevationDataItem[],
-  extHMean: ExtHMean,
-  heightFieldName: string,
   colorFieldName: string,
   colorMinMax: { min: number; max: number },
   positions: SrPosition[],
@@ -897,13 +895,11 @@ export function updateDeckLayerWithObject(
       const fieldMinMax = allMinMax[colorFieldName]
       const colorMinMax = fieldMinMax
         ? { min: fieldMinMax.low, max: fieldMinMax.high }
-        : { min: extHMean.lowHMean, max: extHMean.highHMean }
+        : { min: 0, max: 1 }
 
       const layer = createDeckLayer(
         name,
         elevationData,
-        extHMean,
-        heightFieldName,
         colorFieldName,
         colorMinMax,
         positions,

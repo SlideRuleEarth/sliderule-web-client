@@ -530,6 +530,39 @@ export function applyParsedJsonToStores(
     rasterStore.setParmsFromJson(data.samples)
   }
 
+  // Validate API-specific required parameters
+  // Warn if the selected API requires specific parameters but they're missing from the import
+  const selectedApi = store.iceSat2SelectedAPI
+  if (selectedApi === 'atl03x-surface' || selectedApi === 'atl06p') {
+    if (data.fit === undefined) {
+      _addError(
+        'fit',
+        'The "fit" parameter is required for surface fitting APIs (atl03x-surface, atl06p) - add fit:{} to enable surface fitting'
+      )
+    }
+  } else if (selectedApi === 'atl03x-phoreal' || selectedApi === 'atl08p') {
+    if (data.phoreal === undefined) {
+      _addError(
+        'phoreal',
+        'The "phoreal" parameter is required for PhoREAL APIs (atl03x-phoreal, atl08p) - add phoreal:{} to enable vegetation analysis'
+      )
+    }
+  } else if (selectedApi === 'atl24x') {
+    if (data.atl24 === undefined) {
+      _addError(
+        'atl24',
+        'The "atl24" parameter is required for ATL24 API - add atl24:{} to enable bathymetry classification'
+      )
+    }
+  } else if (selectedApi === 'atl13x') {
+    if (data.atl13 === undefined) {
+      _addError(
+        'atl13',
+        'The "atl13" parameter is required for ATL13 API - add atl13:{"coord":null} to enable inland water body analysis'
+      )
+    }
+  }
+
   function coerce(field: string, _input: unknown, assign: (_v: number[]) => void) {
     const { valid, invalid, conversions } = coerceToNumberArray(_input)
     assign(valid)

@@ -88,6 +88,26 @@ const hasChangesToApply = computed(() => {
   return JSON.stringify(parsedEditableReqJson.value) !== JSON.stringify(parsedCurrentReqJson.value)
 })
 
+// Compute automatic fields based on selected API
+// These fields are auto-populated by the system and shouldn't show force checkboxes
+const computedAutomaticFields = computed(() => {
+  const baseFields = ['asset', 'output', 'cmr']
+  const api = reqParamsStore.iceSat2SelectedAPI
+
+  // Add API-specific automatic fields
+  if (api === 'atl03x-surface' || api === 'atl06p') {
+    baseFields.push('fit')
+  } else if (api === 'atl03x-phoreal' || api === 'atl08p') {
+    baseFields.push('phoreal')
+  } else if (api === 'atl24x') {
+    baseFields.push('atl24')
+  } else if (api === 'atl13x') {
+    baseFields.push('atl13')
+  }
+
+  return new Set(baseFields)
+})
+
 const fileInputRef = ref<HTMLInputElement | null>(null)
 
 // Endpoint selector state (used in header)
@@ -446,7 +466,7 @@ function zoomToPoly() {
         <SrJsonDiffViewer
           :before="parsedEditableReqJson"
           :after="parsedCurrentReqJson"
-          :automaticFields="new Set(['asset', 'output', 'cmr'])"
+          :automaticFields="computedAutomaticFields"
           beforeLabel="Editable Request"
           afterLabel="Current Request State"
           @forced-req_params="handleParamsAccessed"
