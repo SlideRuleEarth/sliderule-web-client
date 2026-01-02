@@ -1066,7 +1066,7 @@ export class SlideRuleDexie extends Dexie {
             reqId: req_id,
             error: parseError instanceof Error ? parseError.message : String(parseError)
           })
-          return {} as SrRegion
+          return []
         }
 
         if (svrParmsUsed.server) {
@@ -1084,7 +1084,7 @@ export class SlideRuleDexie extends Dexie {
                 status: request?.status
               })
             }
-            return {} as SrRegion
+            return []
           }
         } else if (svrParmsUsed.poly) {
           return svrParmsUsed.poly //atl24x with new server format
@@ -1094,7 +1094,7 @@ export class SlideRuleDexie extends Dexie {
           } else {
             logger.warn('No svr_parms.poly found', { reqId: req_id, status: request?.status })
           }
-          return {} as SrRegion
+          return []
         }
       } else {
         if (isSuccess) {
@@ -1102,7 +1102,7 @@ export class SlideRuleDexie extends Dexie {
         } else {
           logger.warn('No svr_parms found', { reqId: req_id, status: request?.status })
         }
-        return {} as SrRegion
+        return []
       }
     } catch (error) {
       const request = await this.requests.get(req_id)

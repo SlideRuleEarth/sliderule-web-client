@@ -122,35 +122,52 @@ describe('SlideRuleDb.getSvrReqPoly', () => {
       expect(result).toEqual(samplePoly)
     })
 
-    it('should return empty object when svr_parms is empty', async () => {
+    it('should return empty array when svr_parms is empty', async () => {
       mockRequest.svr_parms = undefined
 
       vi.spyOn(db.requests, 'get').mockResolvedValue(mockRequest)
 
       const result = await db.getSvrReqPoly(123)
 
-      expect(result).toEqual({})
+      expect(result).toEqual([])
+      expect(Array.isArray(result)).toBe(true)
     })
 
-    it('should return empty object when svr_parms has no poly', async () => {
+    it('should return empty array when svr_parms has no poly', async () => {
       mockRequest.svr_parms = { someOtherField: 'value' } as any
 
       vi.spyOn(db.requests, 'get').mockResolvedValue(mockRequest)
 
       const result = await db.getSvrReqPoly(123)
 
-      expect(result).toEqual({})
+      expect(result).toEqual([])
+      expect(Array.isArray(result)).toBe(true)
     })
 
-    it('should return empty object for invalid JSON string', async () => {
+    it('should return empty array for invalid JSON string', async () => {
       mockRequest.svr_parms = 'not valid json{' as any
 
       vi.spyOn(db.requests, 'get').mockResolvedValue(mockRequest)
 
       const result = await db.getSvrReqPoly(123)
 
-      // Should return empty object instead of throwing
-      expect(result).toEqual({})
+      // Should return empty array instead of throwing
+      expect(result).toEqual([])
+      expect(Array.isArray(result)).toBe(true)
+    })
+
+    it('should return a value that supports .map() even when empty', async () => {
+      // This is a regression test for the bug where {} was returned instead of []
+      // which caused "t.map is not a function" errors when code tried to use .map()
+      mockRequest.svr_parms = undefined
+
+      vi.spyOn(db.requests, 'get').mockResolvedValue(mockRequest)
+
+      const result = await db.getSvrReqPoly(123)
+
+      // This is the key test - .map() should work without crashing
+      expect(() => result.map((p) => [p.lon, p.lat])).not.toThrow()
+      expect(result.map((p) => [p.lon, p.lat])).toEqual([])
     })
 
     it('should handle nested server.rqst.parms structure with string input', async () => {

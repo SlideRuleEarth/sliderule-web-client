@@ -922,7 +922,6 @@ export const duckDbReadAndUpdateElevationData = async (
         updateDeckLayerWithObject(
           layerName,
           rows,
-          summary.extHMean,
           height_fieldname,
           positions,
           projName,
@@ -1129,7 +1128,6 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, layerName
         updateDeckLayerWithObject(
           layerName,
           rowChunks,
-          summary.extHMean,
           height_fieldname,
           positions,
           projName,
