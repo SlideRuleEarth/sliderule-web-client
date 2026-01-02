@@ -88,7 +88,7 @@ export const ICESat2ParamsSchema = z.object({
   region: z.array(z.number()).optional(),
   t0: z.string().datetime().optional(),
   t1: z.string().datetime().optional(),
-  beams: z.array(z.string()).optional(),
+  beams: z.array(z.union([z.string(), z.number()])).optional(),
   cnf: z.union([z.number(), z.array(z.number()), z.array(z.string())]).optional(),
   quality_ph: z.array(z.number()).optional(),
   srt: z.union([z.literal(-1), z.array(z.number()), z.array(z.string())]).optional(),

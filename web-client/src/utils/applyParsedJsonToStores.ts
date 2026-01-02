@@ -126,13 +126,13 @@ export function applyParsedJsonToStores(
   }
 
   if (data.beams !== undefined) {
-    // Handle ICESat-2 beams (array of strings like "gt1l", "gt2r")
+    // Handle ICESat-2 beams (array of strings like "gt1l" or numbers like 10)
     if (Array.isArray(data.beams)) {
       store.setEnableGranuleSelection(true)
       const matched = mapGtStringsToSrListNumberItems(data.beams)
       store.setSelectedGtOptions(matched)
       const unmatched = data.beams.filter(
-        (name: string) => !matched.some((gt) => gt.label === name)
+        (beam: string | number) => !matched.some((gt) => gt.label === beam || gt.value === beam)
       )
       if (unmatched.length > 0) {
         logger.debug(`Unrecognized beam values skipped: ${unmatched.join(', ')}`)
