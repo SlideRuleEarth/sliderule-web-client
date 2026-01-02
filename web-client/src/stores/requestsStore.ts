@@ -454,9 +454,16 @@ export const useRequestsStore = defineStore('requests', {
       let totalUpdatedGranules = 0
 
       for (const id of ids) {
-        const { updatedArea, updatedGranules } = await this.cleanupRequest(id)
-        if (updatedArea) totalUpdatedArea++
-        if (updatedGranules) totalUpdatedGranules++
+        try {
+          const { updatedArea, updatedGranules } = await this.cleanupRequest(id)
+          if (updatedArea) totalUpdatedArea++
+          if (updatedGranules) totalUpdatedGranules++
+        } catch (error) {
+          logger.warn('Failed to cleanup request, continuing with next', {
+            reqId: id,
+            error: error instanceof Error ? error.message : String(error)
+          })
+        }
       }
 
       return {
