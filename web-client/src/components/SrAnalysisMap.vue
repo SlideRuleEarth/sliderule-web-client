@@ -1354,13 +1354,20 @@ function handleSaveTooltip() {
 :deep(.ol-scale-line) {
   bottom: 0.25rem;
   left: 0.5rem;
-  background: color-mix(in srgb, var(--p-primary-color) 20%, transparent);
-  border: none;
+  background: color-mix(in srgb, var(--p-primary-color) 20%, transparent) !important;
+  border: none !important;
   border-radius: var(--p-border-radius);
 }
 
 :deep(.ol-scale-line:hover) {
-  background: color-mix(in srgb, var(--p-primary-color) 80%, transparent);
+  background: color-mix(in srgb, var(--p-primary-color) 80%, transparent) !important;
+}
+
+:deep(.ol-scale-line-inner) {
+  color: black;
+  font-size: 0.7rem;
+  font-weight: 500;
+  border-color: black;
 }
 
 /* Ensure OL controls container is above Deck.gl canvas (which has z-index: 1) */
