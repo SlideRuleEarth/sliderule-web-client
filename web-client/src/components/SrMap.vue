@@ -1754,15 +1754,11 @@ watch(
   border: 1px;
 }
 
-:deep(.ol-control.ol-attribution) {
+/* Attribution positioning - styling is in sr-common-styles.css */
+:deep(.ol-attribution) {
   bottom: 0.5rem;
   top: auto;
   left: auto;
-  background-color: transparent;
-  border-radius: var(--p-border-radius);
-  border: 1px;
-  border-color: black;
-  background-color: color var(--p-primary-color);
 }
 
 :deep(.ol-control.ol-layerswitcher button) {

@@ -78,29 +78,76 @@ function nodeSelect(_node: any) {
       size="small"
       :filter="true"
       @nodeSelect="nodeSelect"
+      panelClass="sr-treeselect-panel"
+      :pt="{
+        panel: { class: 'sr-treeselect-panel' },
+        tree: { class: 'sr-treeselect-tree' },
+        filterInput: { class: 'sr-treeselect-filter' }
+      }"
     />
   </div>
 </template>
 
 <style scoped>
-:deep(.sr-menu-input-wrapper) {
-  margin-top: 0.5rem;
-  margin-left: 0rem;
+.sr-record-selector-control {
+  background-color: transparent;
 }
 
-.ol-control .sr-select-menu-item {
-  margin: 0rem;
-  color: white;
-  background-color: black;
+:deep(.p-treeselect) {
+  background: color-mix(in srgb, var(--p-primary-color) 20%, transparent);
+  border: 1px solid var(--p-primary-color);
   border-radius: var(--p-border-radius);
 }
 
-.sr-record-selector-control .sr-record-selector-button-box {
-  display: flex; /* Aligns children (input and icon) in a row */
-  flex-direction: row; /* Stack children horizontally */
-  align-items: center; /* Centers children vertically */
-  justify-content: center; /* Centers children horizontally */
-  margin: 0rem;
-  padding: 0rem;
+:deep(.p-treeselect:hover) {
+  background: color-mix(in srgb, var(--p-primary-color) 40%, transparent);
+}
+
+:deep(.p-treeselect-label) {
+  color: black;
+  font-weight: 500;
+  font-size: 0.75rem;
+}
+
+:deep(.p-treeselect-dropdown) {
+  color: black;
+}
+
+/* Panel/overlay styling */
+:deep(.p-treeselect-panel) {
+  background: color-mix(in srgb, var(--p-primary-color) 30%, white);
+  border: 1px solid var(--p-primary-color);
+}
+
+:deep(.p-treeselect-filter-input) {
+  background: rgba(255, 255, 255, 0.8);
+  border-color: var(--p-primary-color);
+  color: black;
+}
+
+:deep(.p-treeselect-items-wrapper) {
+  background: transparent;
+}
+
+:deep(.p-tree) {
+  background: transparent;
+  color: black;
+}
+
+:deep(.p-tree-node-label) {
+  color: black;
+}
+
+:deep(.p-tree-node-content:hover) {
+  background: color-mix(in srgb, var(--p-primary-color) 40%, transparent);
+}
+
+:deep(.p-tree-node-content.p-highlight) {
+  background: color-mix(in srgb, var(--p-primary-color) 50%, transparent);
+  color: black;
+}
+
+:deep(.p-tree-toggler) {
+  color: black;
 }
 </style>

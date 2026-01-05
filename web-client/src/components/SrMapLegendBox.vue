@@ -1,10 +1,5 @@
 <template>
-  <div
-    class="sr-legend-box"
-    :style="{
-      background: props.transparentBackground ? 'transparent' : 'rgba(255, 255, 255, 0.25)'
-    }"
-  >
+  <div class="sr-legend-box" :class="{ 'sr-legend-box-transparent': props.transparentBackground }">
     <div class="sr-color-map-gradient" :style="elevationColorMap.getColorGradientStyle"></div>
     <div class="sr-legend-minmax">
       <span class="sr-legend-min">
@@ -83,7 +78,9 @@ watch(
 
 <style scoped>
 .sr-legend-box {
-  color: var(--p-primary-color);
+  color: black;
+  background: color-mix(in srgb, var(--p-primary-color) 20%, transparent);
+  border: 1px solid var(--p-primary-color);
   padding: 0.25rem;
   border-radius: var(--p-border-radius);
   display: flex;
@@ -93,8 +90,16 @@ watch(
   gap: 0.125rem;
 }
 
+.sr-legend-box:hover {
+  background: color-mix(in srgb, var(--p-primary-color) 40%, transparent);
+}
+
+.sr-legend-box-transparent {
+  background: transparent;
+}
+
 .sr-color-map-gradient {
-  border: 1px solid #ccc;
+  border: 1px solid var(--p-primary-color);
   margin: 0;
 }
 

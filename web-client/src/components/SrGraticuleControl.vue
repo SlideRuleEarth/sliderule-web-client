@@ -54,13 +54,14 @@ function handleGraticuleChanged() {
 
 <style scoped>
 .sr-graticule-control {
-  background-color: transparent;
+  background: color-mix(in srgb, var(--p-primary-color) 20%, transparent);
+  border: 1px solid var(--p-primary-color);
   border-radius: var(--p-border-radius);
   padding: 0.375rem 0.5rem;
 }
 
 .sr-graticule-control:hover {
-  border-color: var(--p-primary-color);
+  background: color-mix(in srgb, var(--p-primary-color) 40%, transparent);
 }
 
 .graticule-checkbox-container {
@@ -74,7 +75,6 @@ function handleGraticuleChanged() {
   font-size: 0.75rem;
   font-weight: 500;
   color: black;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
@@ -82,11 +82,11 @@ function handleGraticuleChanged() {
 }
 
 :deep(.graticule-checkbox-box) {
-  background: color-mix(in srgb, var(--p-primary-color) 20%, transparent);
+  background: rgba(255, 255, 255, 0.3);
   border-color: var(--p-primary-color);
 }
 
-:deep(.graticule-checkbox-box:hover) {
-  background: color-mix(in srgb, var(--p-primary-color) 30%, transparent);
+.graticule-checkbox-container:hover :deep(.graticule-checkbox-box) {
+  background: rgba(255, 255, 255, 0.5);
 }
 </style>

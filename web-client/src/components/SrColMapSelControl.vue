@@ -72,26 +72,30 @@ watch(storeColorMap, (newColorMapName) => {
 </script>
 
 <style scoped>
+.sr-col-map-sel-control {
+  background-color: transparent;
+}
+
 .sr-color-map-select {
   min-width: 6rem;
 }
 
 :deep(.p-select) {
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px solid color-mix(in srgb, var(--p-primary-color) 40%, transparent);
-  backdrop-filter: blur(2px);
-}
-
-:deep(.p-select:hover) {
+  background: color-mix(in srgb, var(--p-primary-color) 20%, transparent);
   border-color: var(--p-primary-color);
 }
 
+:deep(.p-select:hover) {
+  background: color-mix(in srgb, var(--p-primary-color) 40%, transparent);
+}
+
 :deep(.p-select-label) {
-  color: var(--p-primary-color);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  color: black;
+  font-weight: 500;
+  font-size: 0.75rem;
 }
 
 :deep(.p-select-dropdown) {
-  color: var(--p-primary-color);
+  color: black;
 }
 </style>
