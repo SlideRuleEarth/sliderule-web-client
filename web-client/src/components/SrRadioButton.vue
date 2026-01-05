@@ -85,7 +85,7 @@ const handleChange = (event: Event) => {
   align-items: center;
   justify-content: center;
   border-radius: var(--p-border-radius);
-  background: transparent;
+  background: color-mix(in srgb, var(--p-primary-color) 10%, transparent);
   transition:
     background-color 0.2s ease,
     transform 0.1s ease;
@@ -93,7 +93,7 @@ const handleChange = (event: Event) => {
 }
 
 .radio-button-label:hover {
-  background: color-mix(in srgb, var(--p-primary-color) 30%, transparent);
+  background: color-mix(in srgb, var(--p-primary-color) 80%, transparent);
 }
 
 .radio-button-label:active {

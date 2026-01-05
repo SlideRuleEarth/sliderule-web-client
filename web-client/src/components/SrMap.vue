@@ -1755,7 +1755,7 @@ watch(
 }
 
 :deep(.ol-control.ol-layerswitcher:hover) {
-  background: color-mix(in srgb, var(--p-primary-color) 40%, transparent);
+  background: color-mix(in srgb, var(--p-primary-color) 80%, transparent);
 }
 
 /* Attribution positioning - styling is in sr-common-styles.css */
@@ -1765,24 +1765,19 @@ watch(
   left: auto;
 }
 
-/* ScaleLine control styling */
+/* ScaleLine control positioning - styling is in sr-common-styles.css */
 :deep(.ol-scale-line) {
   bottom: 0.25rem;
   left: 0.5rem;
-  background: rgba(255, 255, 255, 0.25);
-  border-radius: var(--p-border-radius);
-}
-
-:deep(.ol-scale-line-inner) {
-  color: black;
-  font-size: 0.7rem;
-  font-weight: 500;
-  border-color: black;
 }
 
 :deep(.ol-control.ol-layerswitcher button) {
-  background-color: transparent;
+  background: color-mix(in srgb, var(--p-primary-color) 10%, transparent);
   border-radius: var(--p-border-radius);
+}
+
+:deep(.ol-control.ol-layerswitcher button:hover) {
+  background: color-mix(in srgb, var(--p-primary-color) 80%, transparent);
 }
 :deep(.ol-control.ol-layerswitcher > button::before) {
   border-radius: var(--p-border-radius);
@@ -1901,7 +1896,7 @@ watch(
 }
 
 :deep(.ol-geocoder .gcd-gl-btn:hover) {
-  background: color-mix(in srgb, var(--p-primary-color) 40%, transparent) !important;
+  background: color-mix(in srgb, var(--p-primary-color) 80%, transparent) !important;
   border: none !important;
 }
 
@@ -1931,7 +1926,6 @@ watch(
   left: 11rem;
   background-color: transparent;
   border-radius: var(--p-border-radius);
-  color: white;
   max-width: 30rem;
 }
 
@@ -1960,7 +1954,7 @@ watch(
 }
 
 :deep(.ol-control.ol-wmscapabilities:hover) {
-  background: color-mix(in srgb, var(--p-primary-color) 40%, transparent);
+  background: color-mix(in srgb, var(--p-primary-color) 80%, transparent);
 }
 
 :deep(.ol-control.ol-wmscapabilities > button) {
@@ -1990,7 +1984,7 @@ watch(
   top: 6rem;
   left: 0.5rem;
   right: auto;
-  background: color-mix(in srgb, var(--p-primary-color) 20%, transparent);
+  background: color-mix(in srgb, var(--p-primary-color) 10%, transparent);
   border: 1px solid var(--p-primary-color);
   border-radius: var(--p-border-radius);
   margin: auto;
@@ -2019,8 +2013,8 @@ watch(
   right: auto; /* Reset right positioning */
   top: auto; /* Unset top positioning */
   transform: translateX(-50%); /* Adjust for the element's width */
-  color: var(--p-primary-color);
-  background: rgba(255, 255, 255, 0.25);
+  color: black;
+  background: color-mix(in srgb, var(--p-primary-color) 25%, transparent);
   border-radius: var(--p-border-radius);
   font-size: 0.875rem;
   padding: 0.25rem 0.5rem;
@@ -2032,14 +2026,14 @@ watch(
 :deep(.ol-zoom .ol-zoom-out) {
   margin: 2px;
   border-radius: var(--p-border-radius);
-  background: transparent;
+  background: color-mix(in srgb, var(--p-primary-color) 10%, transparent);
   color: black;
   font-weight: 500;
 }
 
 :deep(.ol-zoom .ol-zoom-in):hover,
 :deep(.ol-zoom .ol-zoom-out):hover {
-  background: color-mix(in srgb, var(--p-primary-color) 30%, transparent);
+  background: color-mix(in srgb, var(--p-primary-color) 80%, transparent);
 }
 
 :deep(.ol-zoom .ol-zoom-in):active,
@@ -2058,7 +2052,7 @@ watch(
   top: 0px;
   left: 25%;
   right: 25%;
-  border-top: 1px dashed var(--p-primary-color);
+  border-top: 1px dashed black;
 }
 
 .hidden-control {
@@ -2094,7 +2088,7 @@ watch(
 }
 
 :deep(.ol-control.sr-upload-region-control:hover) {
-  background: color-mix(in srgb, var(--p-primary-color) 40%, transparent);
+  background: color-mix(in srgb, var(--p-primary-color) 80%, transparent);
 }
 
 :deep(.ol-control.sr-export-polygon-control) {
@@ -2113,7 +2107,7 @@ watch(
 }
 
 :deep(.ol-control.sr-export-polygon-control:hover) {
-  background: color-mix(in srgb, var(--p-primary-color) 40%, transparent);
+  background: color-mix(in srgb, var(--p-primary-color) 80%, transparent);
 }
 
 :deep(.ol-measure-hud) {

@@ -67,7 +67,7 @@ function handleGraticuleChanged() {
 }
 
 .sr-graticule-control:hover {
-  background: color-mix(in srgb, var(--p-primary-color) 40%, transparent);
+  background: color-mix(in srgb, var(--p-primary-color) 80%, transparent);
 }
 
 .graticule-checkbox-container {

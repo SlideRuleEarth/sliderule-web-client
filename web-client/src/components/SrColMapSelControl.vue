@@ -91,7 +91,7 @@ watch(storeColorMap, (newColorMapName) => {
 }
 
 :deep(.p-select:hover) {
-  background: color-mix(in srgb, var(--p-primary-color) 40%, transparent);
+  background: color-mix(in srgb, var(--p-primary-color) 80%, transparent);
 }
 
 :deep(.p-select-label) {
