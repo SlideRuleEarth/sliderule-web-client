@@ -97,6 +97,11 @@ function nodeSelect(_node: any) {
   background: color-mix(in srgb, var(--p-primary-color) 20%, transparent);
   border: 1px solid var(--p-primary-color);
   border-radius: var(--p-border-radius);
+  padding: 0 0.25rem;
+  min-height: 0;
+  height: 1.4rem;
+  display: flex;
+  align-items: center;
 }
 
 :deep(.p-treeselect:hover) {
@@ -106,11 +111,18 @@ function nodeSelect(_node: any) {
 :deep(.p-treeselect-label) {
   color: black;
   font-weight: 500;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
+  padding: 0;
+  display: flex;
+  align-items: center;
 }
 
 :deep(.p-treeselect-dropdown) {
   color: black;
+  width: 1.25rem;
+  padding: 0;
+  display: flex;
+  align-items: center;
 }
 
 /* Panel/overlay styling */

@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { Control } from 'ol/control'
 import { useMapStore } from '@/stores/mapStore'
-import Checkbox from 'primevue/checkbox'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('SrGraticuleControl')
@@ -14,6 +13,13 @@ const emit = defineEmits<{
 }>()
 
 let customControl: Control | null = null
+
+const isChecked = computed({
+  get: () => mapStore.graticuleState,
+  set: (value: boolean) => {
+    mapStore.graticuleState = value
+  }
+})
 
 onMounted(() => {
   if (graticuleControlElement.value) {
@@ -37,15 +43,12 @@ function handleGraticuleChanged() {
 <template>
   <div ref="graticuleControlElement" class="sr-graticule-control ol-unselectable ol-control">
     <div class="graticule-checkbox-container" title="Toggle Graticule">
-      <Checkbox
-        v-model="mapStore.graticuleState"
-        :binary="true"
+      <input
+        id="graticule-toggle"
+        v-model="isChecked"
+        type="checkbox"
+        class="sr-custom-checkbox"
         @change="handleGraticuleChanged"
-        inputId="graticule-toggle"
-        size="small"
-        :pt="{
-          box: { class: 'graticule-checkbox-box' }
-        }"
       />
       <label for="graticule-toggle" class="graticule-label">Grid</label>
     </div>
@@ -57,7 +60,10 @@ function handleGraticuleChanged() {
   background: color-mix(in srgb, var(--p-primary-color) 20%, transparent);
   border: 1px solid var(--p-primary-color);
   border-radius: var(--p-border-radius);
-  padding: 0.375rem 0.5rem;
+  padding: 0 0.35rem;
+  height: 1.4rem;
+  display: flex;
+  align-items: center;
 }
 
 .sr-graticule-control:hover {
@@ -67,12 +73,12 @@ function handleGraticuleChanged() {
 .graticule-checkbox-container {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.25rem;
   cursor: pointer;
 }
 
 .graticule-label {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 500;
   color: black;
   cursor: pointer;
@@ -81,12 +87,39 @@ function handleGraticuleChanged() {
   margin: 0;
 }
 
-:deep(.graticule-checkbox-box) {
+/* Custom checkbox styling */
+.sr-custom-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 0.85rem;
+  height: 0.85rem;
+  border: 1px solid var(--p-primary-color);
+  border-radius: 2px;
   background: rgba(255, 255, 255, 0.3);
-  border-color: var(--p-primary-color);
+  cursor: pointer;
+  position: relative;
+  margin: 0;
+  flex-shrink: 0;
 }
 
-.graticule-checkbox-container:hover :deep(.graticule-checkbox-box) {
+.sr-custom-checkbox:hover {
   background: rgba(255, 255, 255, 0.5);
+}
+
+.sr-custom-checkbox:checked {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Inner checkmark - smaller with padding from border */
+.sr-custom-checkbox:checked::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -60%) rotate(45deg);
+  width: 0.2rem;
+  height: 0.4rem;
+  border: solid var(--p-primary-color);
+  border-width: 0 2px 2px 0;
 }
 </style>

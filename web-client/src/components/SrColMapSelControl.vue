@@ -83,6 +83,11 @@ watch(storeColorMap, (newColorMapName) => {
 :deep(.p-select) {
   background: color-mix(in srgb, var(--p-primary-color) 20%, transparent);
   border-color: var(--p-primary-color);
+  padding: 0 0.25rem;
+  min-height: 0;
+  height: 1.4rem;
+  display: flex;
+  align-items: center;
 }
 
 :deep(.p-select:hover) {
@@ -92,10 +97,17 @@ watch(storeColorMap, (newColorMapName) => {
 :deep(.p-select-label) {
   color: black;
   font-weight: 500;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
+  padding: 0;
+  display: flex;
+  align-items: center;
 }
 
 :deep(.p-select-dropdown) {
   color: black;
+  width: 1.25rem;
+  padding: 0;
+  display: flex;
+  align-items: center;
 }
 </style>

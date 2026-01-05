@@ -1,9 +1,5 @@
 <template>
-  <label
-    class="radio-button-label"
-    :title="computedTooltipText"
-    :class="{ 'disabled': isDisabled }" 
-  >
+  <label class="radio-button-label" :title="computedTooltipText" :class="{ disabled: isDisabled }">
     <input
       type="radio"
       :value="value"
@@ -12,7 +8,7 @@
       class="radio-input"
       :name="tooltipText"
       :aria-label="ariaLabel"
-      :disabled="isDisabled" 
+      :disabled="isDisabled"
     />
     <!-- If icon is present, render it -->
     <span v-if="icon" v-html="icon" class="icon-svg" name="icon-svg"></span>
@@ -22,21 +18,21 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
-import { createLogger } from '@/utils/logger';
+import { computed } from 'vue'
+import { createLogger } from '@/utils/logger'
 
-const logger = createLogger('SrRadioButton');
+const logger = createLogger('SrRadioButton')
 
 const props = withDefaults(
   defineProps<{
-    name: string;
-    class: string;
-    value?: string;
-    modelValue?: string;
-    icon?: string;
-    ariaLabel?: string;
-    tooltipText?: string;
-    disabled?: boolean; 
+    name: string
+    class: string
+    value?: string
+    modelValue?: string
+    icon?: string
+    ariaLabel?: string
+    tooltipText?: string
+    disabled?: boolean
   }>(),
   {
     name: '',
@@ -46,67 +42,68 @@ const props = withDefaults(
     icon: '',
     ariaLabel: '',
     tooltipText: '',
-    disabled: false,
+    disabled: false
   }
-);
+)
 
-const emit = defineEmits(['update:modelValue']);
+const emit = defineEmits(['update:modelValue'])
 
 const isChecked = computed(() => {
-  return props.modelValue === props.value;
-});
+  return props.modelValue === props.value
+})
 
-const isDisabled = computed(() => props.disabled);
+const isDisabled = computed(() => props.disabled)
 
 // Dynamically set the tooltip text
 const computedTooltipText = computed(() => {
   return isDisabled.value
-    ? "Choose: General -> Polygon Source -> Draw on Map to enable"
-    : props.tooltipText || '';
-});
+    ? 'Choose: General -> Polygon Source -> Draw on Map to enable'
+    : props.tooltipText || ''
+})
 
 const handleChange = (event: Event) => {
   if (!isDisabled.value) {
     try {
-      const target = event.target as HTMLInputElement;
+      const target = event.target as HTMLInputElement
       if (target) {
-        emit('update:modelValue', target.value);
+        emit('update:modelValue', target.value)
       }
     } catch (error) {
-      logger.error('handleChange error', { error: error instanceof Error ? error.message : String(error) });
+      logger.error('handleChange error', {
+        error: error instanceof Error ? error.message : String(error)
+      })
     }
   }
-};
+}
 </script>
 
 <style scoped>
 .radio-button-label {
   margin: 1px;
-  display: flex; /* Aligns children (input and icon) in a row */
-  flex-direction: column; /* Stack children vertically */
-  align-items: center; /* Centers children vertically */
-  justify-content: center; /* Centers children horizontally */
-  border-radius: 5px; /* Rounded corners */
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Slight shadow */
-  transition: background-color 0.3s ease, transform 0.1s ease, box-shadow 0.1s ease;
-  cursor: pointer; /* Change cursor to pointer on hover */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--p-border-radius);
+  background: transparent;
+  transition:
+    background-color 0.2s ease,
+    transform 0.1s ease;
+  cursor: pointer;
 }
 
 .radio-button-label:hover {
-  background-color: rgba(60, 60, 60, 1); /* Change color on hover */
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Reduce shadow to enhance the pressed look */
+  background: color-mix(in srgb, var(--p-primary-color) 30%, transparent);
 }
 
 .radio-button-label:active {
-  transform: translateY(4px); /* Further downward movement when clicked */
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); /* Even smaller shadow */
-  background-color: #a9a9a9; /* Darker grey to simulate pressed state */
-  transform: translateY(2px); /* Slight downward movement to simulate press */
+  background: color-mix(in srgb, var(--p-primary-color) 50%, transparent);
+  transform: translateY(1px);
 }
 
 .radio-button-label.disabled {
-  cursor: not-allowed; /* Indicate that the button is disabled */
-  opacity: 0.5; /* Make the button look disabled */
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 input[type='radio'] {

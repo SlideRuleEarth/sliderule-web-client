@@ -1673,7 +1673,7 @@ watch(
           :loadReqPoly="false"
           corner="top-right"
           :offsetX="'0.5rem'"
-          :offsetY="'2.5rem'"
+          :offsetY="'3rem'"
           bg="rgba(255,255,255,0.6)"
           color="black"
           @upload-region-control-created="handleUploadRegionControlCreated"
@@ -1746,12 +1746,16 @@ watch(
 }
 
 :deep(.ol-control.ol-layerswitcher) {
-  top: 5rem;
+  top: 5.5rem;
   bottom: auto;
   left: auto;
-  background-color: transparent;
+  background: color-mix(in srgb, var(--p-primary-color) 20%, transparent);
+  border: 1px solid var(--p-primary-color);
   border-radius: var(--p-border-radius);
-  border: 1px;
+}
+
+:deep(.ol-control.ol-layerswitcher:hover) {
+  background: color-mix(in srgb, var(--p-primary-color) 40%, transparent);
 }
 
 /* Attribution positioning - styling is in sr-common-styles.css */
@@ -1759,6 +1763,21 @@ watch(
   bottom: 0.5rem;
   top: auto;
   left: auto;
+}
+
+/* ScaleLine control styling */
+:deep(.ol-scale-line) {
+  bottom: 0.25rem;
+  left: 0.5rem;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: var(--p-border-radius);
+}
+
+:deep(.ol-scale-line-inner) {
+  color: black;
+  font-size: 0.7rem;
+  font-weight: 500;
+  border-color: black;
 }
 
 :deep(.ol-control.ol-layerswitcher button) {
@@ -1858,19 +1877,41 @@ watch(
   bottom: auto;
   left: 0.5rem;
   right: auto;
-  background-color: transparent;
-  border-radius: var(--p-border-radius);
-  color: white;
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: black;
   max-width: 30rem;
 }
 
 :deep(.gcd-gl-control) {
   background-color: transparent;
+}
+
+:deep(.ol-geocoder .gcd-gl-btn) {
+  background: color-mix(in srgb, var(--p-primary-color) 20%, transparent) !important;
+  border: none !important;
   border-radius: var(--p-border-radius);
+  color: black;
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+}
+
+:deep(.ol-geocoder .gcd-gl-btn:hover) {
+  background: color-mix(in srgb, var(--p-primary-color) 40%, transparent) !important;
+  border: none !important;
+}
+
+:deep(.ol-geocoder button) {
+  color: black;
+  background: transparent;
 }
 
 :deep(.ol-control.sr-view-control) {
-  top: 0rem;
+  top: 0.5rem;
   bottom: auto;
   left: 0.5rem;
   right: auto;
@@ -1884,10 +1925,10 @@ watch(
 }
 
 :deep(.ol-control.sr-baselayer-control) {
-  top: 0rem;
+  top: 0.5rem;
   bottom: auto;
   right: auto;
-  left: 8.5rem;
+  left: 11rem;
   background-color: transparent;
   border-radius: var(--p-border-radius);
   color: white;
@@ -1896,9 +1937,9 @@ watch(
 
 :deep(.ol-control.sr-graticule-control) {
   top: auto;
-  bottom: 2rem;
+  bottom: 2.5rem;
   right: auto;
-  left: 0rem;
+  left: 0.5rem;
   border-radius: var(--p-border-radius);
 }
 
@@ -1911,12 +1952,29 @@ watch(
   top: 0.5rem;
   bottom: auto;
   left: auto;
-  right: 0.75rem;
-  background-color: transparent;
+  right: 0.5rem;
+  background: color-mix(in srgb, var(--p-primary-color) 20%, transparent);
+  border: 1px solid var(--p-primary-color);
   border-radius: var(--p-border-radius);
-  padding: 0.125rem;
-  border: 1px;
+  padding: 0.25rem;
 }
+
+:deep(.ol-control.ol-wmscapabilities:hover) {
+  background: color-mix(in srgb, var(--p-primary-color) 40%, transparent);
+}
+
+:deep(.ol-control.ol-wmscapabilities > button) {
+  color: black;
+  font-weight: 500;
+  font-size: 1.1rem;
+  background: transparent;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  display: grid;
+  place-items: center;
+}
+
 :deep(.ol-wmscapabilities .ol-url button) {
   color: white;
   border-radius: var(--p-border-radius);
@@ -1932,7 +1990,8 @@ watch(
   top: 6rem;
   left: 0.5rem;
   right: auto;
-  background-color: black;
+  background: color-mix(in srgb, var(--p-primary-color) 20%, transparent);
+  border: 1px solid var(--p-primary-color);
   border-radius: var(--p-border-radius);
   margin: auto;
   font-size: 1.25rem;
@@ -1942,7 +2001,8 @@ watch(
   top: 12rem;
   left: 0.5rem;
   right: auto;
-  background-color: black;
+  background: color-mix(in srgb, var(--p-primary-color) 20%, transparent);
+  border: 1px solid var(--p-primary-color);
   border-radius: var(--p-border-radius);
 }
 
@@ -1968,48 +2028,37 @@ watch(
   white-space: nowrap; /* Prevent text wrapping */
 }
 
-:deep(.ol-zoom .ol-zoom-in) {
+:deep(.ol-zoom .ol-zoom-in),
+:deep(.ol-zoom .ol-zoom-out) {
   margin: 2px;
   border-radius: var(--p-border-radius);
-  background-color: black;
-  color: var(--ol-font-color);
-  font-weight: normal;
+  background: transparent;
+  color: black;
+  font-weight: 500;
 }
 
-:deep(.ol-zoom .ol-zoom-in):active {
-  background-color: rgba(60, 60, 60, 1); /* Change color on hover */
-  transform: translateY(2px); /* Slight downward movement to simulate press */
+:deep(.ol-zoom .ol-zoom-in):hover,
+:deep(.ol-zoom .ol-zoom-out):hover {
+  background: color-mix(in srgb, var(--p-primary-color) 30%, transparent);
 }
 
-:deep(.ol-zoom .ol-zoom-in):hover {
-  background-color: rgba(60, 60, 60, 1); /* Change color on hover */
+:deep(.ol-zoom .ol-zoom-in):active,
+:deep(.ol-zoom .ol-zoom-out):active {
+  background: color-mix(in srgb, var(--p-primary-color) 50%, transparent);
+  transform: translateY(1px);
 }
 
 :deep(.ol-zoom .ol-zoom-out) {
   position: relative;
-  margin: 2px;
-  border-radius: var(--p-border-radius);
-  background-color: black;
-  color: var(--ol-font-color);
-  font-weight: normal;
-}
-
-:deep(.ol-zoom .ol-zoom-out):active {
-  background-color: rgba(60, 60, 60, 1); /* Change color on hover */
-  transform: translateY(2px); /* Slight downward movement to simulate press */
-}
-
-:deep(.ol-zoom .ol-zoom-out):hover {
-  background-color: rgba(60, 60, 60, 1); /* Change color on hover */
 }
 
 :deep(.ol-zoom .ol-zoom-out):before {
   content: '';
   position: absolute;
   top: 0px;
-  left: 25%; /* Adjust this value to control where the border starts */
-  right: 25%; /* Adjust this value to control where the border ends */
-  border-top: 1px dashed rgb(200, 200, 200);
+  left: 25%;
+  right: 25%;
+  border-top: 1px dashed var(--p-primary-color);
 }
 
 .hidden-control {
@@ -2036,12 +2085,16 @@ watch(
   bottom: var(--sr-bottom, auto);
   left: var(--sr-left, auto);
 
-  background-color: var(--sr-bg, black);
-  color: var(--sr-color, var(--ol-font-color));
+  background: color-mix(in srgb, var(--p-primary-color) 20%, transparent);
+  border: 1px solid var(--p-primary-color);
+  color: black;
   border-radius: var(--sr-radius, var(--p-border-radius));
 
-  /* Whatever defaults you want: padding, shadow, etc. */
   padding: 0.25rem;
+}
+
+:deep(.ol-control.sr-upload-region-control:hover) {
+  background: color-mix(in srgb, var(--p-primary-color) 40%, transparent);
 }
 
 :deep(.ol-control.sr-export-polygon-control) {
@@ -2051,11 +2104,16 @@ watch(
   bottom: var(--sr-bottom, auto);
   left: var(--sr-left, auto);
 
-  background-color: var(--sr-bg, rgba(0, 0, 0, 0.8));
-  color: var(--sr-color, white);
+  background: color-mix(in srgb, var(--p-primary-color) 20%, transparent);
+  border: 1px solid var(--p-primary-color);
+  color: black;
   border-radius: var(--sr-radius, var(--p-border-radius));
 
   padding: 0.25rem;
+}
+
+:deep(.ol-control.sr-export-polygon-control:hover) {
+  background: color-mix(in srgb, var(--p-primary-color) 40%, transparent);
 }
 
 :deep(.ol-measure-hud) {

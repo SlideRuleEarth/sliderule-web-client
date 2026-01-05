@@ -35,68 +35,64 @@
       :disabled="mapStore.polygonSource !== 'Draw on Map'"
     />
   </div>
-
-
 </template>
 
 <script setup lang="ts">
-  import { onMounted, ref, computed, watch } from 'vue'
-  import SrRadioButton from './SrRadioButton.vue';
-  import { useMapStore } from "@/stores/mapStore.js";
+import { onMounted, ref, computed, watch } from 'vue'
+import SrRadioButton from './SrRadioButton.vue'
+import { useMapStore } from '@/stores/mapStore.js'
 
-  const mapStore = useMapStore();
-  const picked = ref<string>(mapStore.drawType);
-  const emit = defineEmits(['draw-buttonbox-created', 'picked-changed']);
-  
-  onMounted(() => {
-    //console.log(`Mounted SrDrawButtonBox: ${picked.value}`);
-    emit('draw-buttonbox-created', picked);
-  });
+const mapStore = useMapStore()
+const picked = ref<string>(mapStore.drawType)
+const emit = defineEmits(['draw-buttonbox-created', 'picked-changed'])
 
-  watch(picked, (newValue) => {
-    //console.log("SrDrawButtonBox picked changed:", newValue);
-    emit('picked-changed', newValue);
-  });
+onMounted(() => {
+  //console.log(`Mounted SrDrawButtonBox: ${picked.value}`);
+  emit('draw-buttonbox-created', picked)
+})
 
-  // Expose a reset function to the parent
-  defineExpose({
-    resetPicked() {
-      //console.log("SrDrawButtonBox resetPicked");
-      const changed = picked.value !== '';
-      picked.value = '';
-      if (changed) {
-        emit('picked-changed', picked.value);
-      }
+watch(picked, (newValue) => {
+  //console.log("SrDrawButtonBox picked changed:", newValue);
+  emit('picked-changed', newValue)
+})
+
+// Expose a reset function to the parent
+defineExpose({
+  resetPicked() {
+    //console.log("SrDrawButtonBox resetPicked");
+    const changed = picked.value !== ''
+    picked.value = ''
+    if (changed) {
+      emit('picked-changed', picked.value)
     }
-  });
+  }
+})
 
-  const getCssVariable = (variable:any) => {
-    return getComputedStyle(document.documentElement).getPropertyValue(variable);
-  };
+const getCssVariable = (variable: any) => {
+  return getComputedStyle(document.documentElement).getPropertyValue(variable)
+}
 
-  const primaryColor = getCssVariable('--p-primary-color').trim() || 'blue'; // Fallback to blue if variable is not set
+const primaryColor = getCssVariable('--p-primary-color').trim() || 'blue' // Fallback to blue if variable is not set
 
-  const getPolygonIcon = computed(() => {
-    //console.log("getPolygonIcon picked:", picked.value)
-    return `<svg width="65%" height="65%" viewBox="0 0 100 100">
-      <polygon points="50,10 90,40 70,90 30,90 10,40" fill="none" stroke="${picked.value === 'Polygon' ? primaryColor : 'white'}" stroke-width="7" />
-    </svg>`;
-  });
+const getPolygonIcon = computed(() => {
+  //console.log("getPolygonIcon picked:", picked.value)
+  return `<svg width="65%" height="65%" viewBox="0 0 100 100">
+      <polygon points="50,10 90,40 70,90 30,90 10,40" fill="none" stroke="${picked.value === 'Polygon' ? primaryColor : 'black'}" stroke-width="7" />
+    </svg>`
+})
 
-  const getRectangleIcon = computed(() => {
-    //console.log("getRectangleIcon picked:", picked.value)
-    return `<svg width="65%" height="65%" viewBox="0 0 100 100">
-      <rect x="5" y="5" width="90" height="90" fill="none" stroke="${picked.value === 'Box' ? primaryColor : 'white'}" stroke-width="7" />
-    </svg>`;
-  });
+const getRectangleIcon = computed(() => {
+  //console.log("getRectangleIcon picked:", picked.value)
+  return `<svg width="65%" height="65%" viewBox="0 0 100 100">
+      <rect x="5" y="5" width="90" height="90" fill="none" stroke="${picked.value === 'Box' ? primaryColor : 'black'}" stroke-width="7" />
+    </svg>`
+})
 
-  const getTrashCanIcon = computed(() => {
-    return `<svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" >
-  <path d="M5 6.77273H9.2M19 6.77273H14.8M9.2 6.77273V5.5C9.2 4.94772 9.64772 4.5 10.2 4.5H13.8C14.3523 4.5 14.8 4.94772 14.8 5.5V6.77273M9.2 6.77273H14.8M6.4 8.59091V15.8636C6.4 17.5778 6.4 18.4349 6.94673 18.9675C7.49347 19.5 8.37342 19.5 10.1333 19.5H13.8667C15.6266 19.5 16.5065 19.5 17.0533 18.9675C17.6 18.4349 17.6 17.5778 17.6 15.8636V8.59091M9.2 10.4091V15.8636M12 10.4091V15.8636M14.8 10.4091V15.8636" stroke='white'}"  stroke-linecap="round" stroke-linejoin="round"/>
-  </svg>`;
-  });
-
-
+const getTrashCanIcon = computed(() => {
+  return `<svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" >
+  <path d="M5 6.77273H9.2M19 6.77273H14.8M9.2 6.77273V5.5C9.2 4.94772 9.64772 4.5 10.2 4.5H13.8C14.3523 4.5 14.8 4.94772 14.8 5.5V6.77273M9.2 6.77273H14.8M6.4 8.59091V15.8636C6.4 17.5778 6.4 18.4349 6.94673 18.9675C7.49347 19.5 8.37342 19.5 10.1333 19.5H13.8667C15.6266 19.5 16.5065 19.5 17.0533 18.9675C17.6 18.4349 17.6 17.5778 17.6 15.8636V8.59091M9.2 10.4091V15.8636M12 10.4091V15.8636M14.8 10.4091V15.8636" stroke='black'}"  stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>`
+})
 </script>
 
 <style scoped>
@@ -110,8 +106,7 @@
 .sr-button-box-divider {
   margin: 0.125em;
   padding: 0px;
-  border-top: 1px dashed rgb(200, 200, 200);
+  border-top: 1px dashed var(--p-primary-color);
   width: 50%;
 }
-
 </style>

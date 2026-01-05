@@ -70,7 +70,7 @@ const { addPolarOverlay, removePolarOverlay } = usePolarOverlay({
   zIndex: 100
 })
 
-const template = 'Lat:{y}\u00B0, Long:{x}\u00B0'
+const template = '{y}\u00B0, {x}\u00B0'
 const stringifyFunc = (coordinate: Coordinate) => {
   const projName = computedProjName.value
   let newProj = getProjection(projName)
@@ -1206,13 +1206,13 @@ function handleSaveTooltip() {
 :deep(.sr-legend-control) {
   background: rgba(255, 255, 255, 0.25);
   bottom: 0.25rem;
-  right: 3.5rem;
+  right: 10rem;
 }
 
 :deep(.sr-col-menu-sel-control) {
   top: auto;
   bottom: 0.25rem;
-  right: 15.5rem;
+  right: 3.5rem;
   border-radius: var(--p-border-radius);
 }
 
@@ -1279,7 +1279,7 @@ function handleSaveTooltip() {
 }
 
 :deep(.ol-zoom) {
-  top: 0.5rem;
+  top: 2rem;
   right: 0.5rem; /* right align -- match layer switcher and attribution */
   left: auto; /* Override the default positioning */
   background: color-mix(in srgb, var(--p-primary-color) 20%, transparent);
@@ -1335,12 +1335,12 @@ function handleSaveTooltip() {
 :deep(.ol-control.sr-baselayer-control) {
   top: 0.25rem;
   bottom: auto;
-  right: 3rem;
+  right: 0.5rem;
   left: auto;
   border-radius: var(--p-border-radius);
   color: white;
   max-width: 30rem;
-  background: rgba(255, 255, 255, 0.25);
+  background: transparent;
 }
 
 :deep(.ol-control.sr-graticule-control) {
@@ -1366,7 +1366,7 @@ function handleSaveTooltip() {
 
 /* Layer Switcher Control */
 :deep(.ol-control.ol-layerswitcher) {
-  top: 5rem;
+  top: 6.5rem;
   bottom: auto;
   left: auto;
   right: 0.5rem;
