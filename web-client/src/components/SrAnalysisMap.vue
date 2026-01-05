@@ -1280,7 +1280,7 @@ function handleSaveTooltip() {
 
 :deep(.ol-zoom) {
   top: 0.5rem;
-  right: 0.75rem; /* right align -- override the default */
+  right: 0.5rem; /* right align -- match layer switcher and attribution */
   left: auto; /* Override the default positioning */
   background: color-mix(in srgb, var(--p-primary-color) 20%, transparent);
   border: 1px solid var(--p-primary-color);
@@ -1345,16 +1345,15 @@ function handleSaveTooltip() {
 
 :deep(.ol-control.sr-graticule-control) {
   top: auto;
-  bottom: 2.125rem;
-  right: auto;
-  left: 0rem;
-  margin: 0.125rem;
+  bottom: 0.25rem;
+  right: 23rem;
+  left: auto;
+  margin: 0;
   border-radius: var(--p-border-radius);
-  background: rgba(255, 255, 255, 0.8);
 }
 
 :deep(.ol-scale-line) {
-  bottom: 0.5rem;
+  bottom: 0.25rem;
   left: 0.5rem;
   background: rgba(255, 255, 255, 0.25);
   border-radius: var(--p-border-radius);
@@ -1371,20 +1370,31 @@ function handleSaveTooltip() {
   bottom: auto;
   left: auto;
   right: 0.5rem;
-  background-color: transparent;
+  background: color-mix(in srgb, var(--p-primary-color) 20%, transparent);
+  border: 1px solid var(--p-primary-color);
   border-radius: var(--p-border-radius);
   z-index: 10000; /* Above Deck.gl overlay */
+}
+
+:deep(.ol-control.ol-layerswitcher:hover) {
+  background: color-mix(in srgb, var(--p-primary-color) 40%, transparent);
 }
 
 :deep(.ol-control.ol-layerswitcher > button) {
   width: 1.5rem;
   height: 1.5rem;
   padding: 0;
-  background: transparent;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: var(--p-border-radius);
   display: grid;
   place-items: center;
   line-height: 1;
   font-size: 1rem;
+  color: black;
+}
+
+:deep(.ol-control.ol-layerswitcher > button:hover) {
+  background: rgba(255, 255, 255, 0.5);
 }
 
 :deep(.ol-control.ol-layerswitcher .panel-container) {
