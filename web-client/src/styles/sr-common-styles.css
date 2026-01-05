@@ -279,3 +279,89 @@ html {
 .sr-toast-spacer {
     height: 0.5rem;
 }
+
+/* ========== OpenLayers Attribution Control Styling ========== */
+.ol-attribution {
+    background: color-mix(in srgb, var(--p-primary-color) 20%, transparent) !important;
+    border: 1px solid var(--p-primary-color) !important;
+    border-radius: var(--p-border-radius);
+}
+
+.ol-attribution:hover {
+    background: color-mix(in srgb, var(--p-primary-color) 40%, transparent) !important;
+}
+
+.ol-attribution button {
+    color: black !important;
+    background: transparent !important;
+}
+
+.ol-attribution ul {
+    color: black !important;
+    background: color-mix(in srgb, var(--p-primary-color) 20%, transparent) !important;
+}
+
+.ol-attribution.ol-collapsed {
+    background: color-mix(in srgb, var(--p-primary-color) 20%, transparent) !important;
+    border: 1px solid var(--p-primary-color) !important;
+}
+
+.ol-attribution.ol-collapsed:hover {
+    background: color-mix(in srgb, var(--p-primary-color) 40%, transparent) !important;
+}
+
+/* ========== OpenLayers Graticule Control Styling ========== */
+.ol-control.sr-graticule-control {
+    background: color-mix(in srgb, var(--p-primary-color) 20%, transparent) !important;
+    border: 1px solid var(--p-primary-color) !important;
+    border-radius: var(--p-border-radius);
+}
+
+.ol-control.sr-graticule-control:hover {
+    background: color-mix(in srgb, var(--p-primary-color) 40%, transparent) !important;
+}
+
+/* ========== TreeSelect Panel Styling (for record selector) ========== */
+.sr-treeselect-panel {
+    background: color-mix(in srgb, var(--p-primary-color) 30%, white) !important;
+    border: 1px solid var(--p-primary-color) !important;
+}
+
+.sr-treeselect-panel .p-inputtext,
+.sr-treeselect-filter {
+    background: rgba(255, 255, 255, 0.9) !important;
+    border-color: var(--p-primary-color) !important;
+    color: black !important;
+}
+
+.sr-treeselect-panel .p-tree,
+.sr-treeselect-tree {
+    background: transparent !important;
+    color: black !important;
+}
+
+.sr-treeselect-panel .p-tree-node-content {
+    color: black !important;
+}
+
+.sr-treeselect-panel .p-tree-node-label {
+    color: black !important;
+}
+
+.sr-treeselect-panel .p-tree-node-content:hover {
+    background: color-mix(in srgb, var(--p-primary-color) 40%, transparent) !important;
+}
+
+.sr-treeselect-panel .p-tree-node-content.p-tree-node-selected,
+.sr-treeselect-panel .p-tree-node-selected {
+    background: color-mix(in srgb, var(--p-primary-color) 50%, transparent) !important;
+    color: black !important;
+}
+
+.sr-treeselect-panel .p-tree-node-toggle-button {
+    color: black !important;
+}
+
+.sr-treeselect-panel .p-tree-node-toggle-button:hover {
+    background: color-mix(in srgb, var(--p-primary-color) 40%, transparent) !important;
+}

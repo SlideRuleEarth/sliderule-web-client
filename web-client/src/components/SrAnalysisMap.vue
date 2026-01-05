@@ -70,7 +70,7 @@ const { addPolarOverlay, removePolarOverlay } = usePolarOverlay({
   zIndex: 100
 })
 
-const template = 'Lat:{y}\u00B0, Long:{x}\u00B0'
+const template = '{y}\u00B0, {x}\u00B0'
 const stringifyFunc = (coordinate: Coordinate) => {
   const projName = computedProjName.value
   let newProj = getProjection(projName)
@@ -1206,13 +1206,13 @@ function handleSaveTooltip() {
 :deep(.sr-legend-control) {
   background: rgba(255, 255, 255, 0.25);
   bottom: 0.25rem;
-  right: 3.5rem;
+  right: 10rem;
 }
 
 :deep(.sr-col-menu-sel-control) {
   top: auto;
   bottom: 0.25rem;
-  right: 15.5rem;
+  right: 3.5rem;
   border-radius: var(--p-border-radius);
 }
 
@@ -1279,19 +1279,26 @@ function handleSaveTooltip() {
 }
 
 :deep(.ol-zoom) {
-  top: 0.5rem;
-  right: 0.75rem; /* right align -- override the default */
+  top: 2rem;
+  right: 0.5rem; /* right align -- match layer switcher and attribution */
   left: auto; /* Override the default positioning */
-  background-color: black;
+  background: color-mix(in srgb, var(--p-primary-color) 20%, transparent);
+  border: 1px solid var(--p-primary-color);
   border-radius: var(--p-border-radius);
   margin: auto;
   font-size: 0.75rem;
   z-index: 99999; /* Ensure it stays on top */
 }
 
+:deep(.ol-zoom:hover) {
+  background: color-mix(in srgb, var(--p-primary-color) 40%, transparent);
+}
+
 :deep(.ol-zoom button) {
   width: 1.5rem; /* Smaller button size */
   height: 1.5rem;
+  color: black;
+  background: transparent;
 }
 
 :deep(.ol-zoom .ol-zoom-in),
@@ -1299,28 +1306,21 @@ function handleSaveTooltip() {
   position: relative;
   margin: 1px;
   border-radius: var(--p-border-radius);
-  background-color: black;
-  color: var(--ol-font-color);
+  background: rgba(255, 255, 255, 0.3);
+  color: black;
   font-size: 1rem; /* Reduce text size in buttons */
   font-weight: normal;
 }
 
-:deep(.ol-zoom .ol-zoom-out):active {
-  background-color: rgba(60, 60, 60, 1); /* Change color on hover */
-  transform: translateY(2px); /* Slight downward movement to simulate press */
-}
-
-:deep(.ol-zoom .ol-zoom-out):hover {
-  background-color: rgba(60, 60, 60, 1); /* Change color on hover */
-}
-
+:deep(.ol-zoom .ol-zoom-out):active,
 :deep(.ol-zoom .ol-zoom-in):active {
-  background-color: rgba(60, 60, 60, 1); /* Change color on hover */
-  transform: translateY(2px); /* Slight downward movement to simulate press */
+  background: color-mix(in srgb, var(--p-primary-color) 50%, transparent);
+  transform: translateY(1px); /* Slight downward movement to simulate press */
 }
 
+:deep(.ol-zoom .ol-zoom-out):hover,
 :deep(.ol-zoom .ol-zoom-in):hover {
-  background-color: rgba(60, 60, 60, 1); /* Change color on hover */
+  background: rgba(255, 255, 255, 0.5);
 }
 
 :deep(.ol-zoom .ol-zoom-out):before {
@@ -1329,32 +1329,31 @@ function handleSaveTooltip() {
   top: 0px;
   left: 25%; /* Adjust this value to control where the border starts */
   right: 25%; /* Adjust this value to control where the border ends */
-  border-top: 1px dashed rgb(200, 200, 200);
+  border-top: 1px dashed var(--p-primary-color);
 }
 
 :deep(.ol-control.sr-baselayer-control) {
   top: 0.25rem;
   bottom: auto;
-  right: 3rem;
+  right: 0.5rem;
   left: auto;
   border-radius: var(--p-border-radius);
   color: white;
   max-width: 30rem;
-  background: rgba(255, 255, 255, 0.25);
+  background: transparent;
 }
 
 :deep(.ol-control.sr-graticule-control) {
   top: auto;
-  bottom: 2.125rem;
-  right: auto;
-  left: 0rem;
-  margin: 0.125rem;
+  bottom: 0.25rem;
+  right: 23rem;
+  left: auto;
+  margin: 0;
   border-radius: var(--p-border-radius);
-  background: rgba(255, 255, 255, 0.8);
 }
 
 :deep(.ol-scale-line) {
-  bottom: 0.5rem;
+  bottom: 0.25rem;
   left: 0.5rem;
   background: rgba(255, 255, 255, 0.25);
   border-radius: var(--p-border-radius);
@@ -1367,24 +1366,35 @@ function handleSaveTooltip() {
 
 /* Layer Switcher Control */
 :deep(.ol-control.ol-layerswitcher) {
-  top: 5rem;
+  top: 6.5rem;
   bottom: auto;
   left: auto;
   right: 0.5rem;
-  background-color: transparent;
+  background: color-mix(in srgb, var(--p-primary-color) 20%, transparent);
+  border: 1px solid var(--p-primary-color);
   border-radius: var(--p-border-radius);
   z-index: 10000; /* Above Deck.gl overlay */
+}
+
+:deep(.ol-control.ol-layerswitcher:hover) {
+  background: color-mix(in srgb, var(--p-primary-color) 40%, transparent);
 }
 
 :deep(.ol-control.ol-layerswitcher > button) {
   width: 1.5rem;
   height: 1.5rem;
   padding: 0;
-  background: transparent;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: var(--p-border-radius);
   display: grid;
   place-items: center;
   line-height: 1;
   font-size: 1rem;
+  color: black;
+}
+
+:deep(.ol-control.ol-layerswitcher > button:hover) {
+  background: rgba(255, 255, 255, 0.5);
 }
 
 :deep(.ol-control.ol-layerswitcher .panel-container) {
