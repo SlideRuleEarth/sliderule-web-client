@@ -321,6 +321,21 @@ html {
     background: color-mix(in srgb, var(--p-primary-color) 80%, transparent) !important;
 }
 
+/* ========== OpenLayers ScaleLine Control Styling ========== */
+.ol-scale-line {
+    background: color-mix(in srgb, var(--p-primary-color) 50%, transparent) !important;
+    border: none !important;
+    border-radius: var(--p-border-radius);
+}
+
+.ol-scale-line-inner {
+    color: black !important;
+    font-size: 0.7rem !important;
+    font-weight: 500 !important;
+    border-color: black !important;
+    background: transparent !important;
+}
+
 /* ========== TreeSelect Panel Styling (for record selector) ========== */
 .sr-treeselect-panel {
     background: color-mix(in srgb, var(--p-primary-color) 30%, white) !important;

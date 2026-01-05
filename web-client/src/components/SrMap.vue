@@ -1765,24 +1765,10 @@ watch(
   left: auto;
 }
 
-/* ScaleLine control styling */
+/* ScaleLine control positioning - styling is in sr-common-styles.css */
 :deep(.ol-scale-line) {
   bottom: 0.25rem;
   left: 0.5rem;
-  background: color-mix(in srgb, var(--p-primary-color) 20%, transparent) !important;
-  border: none !important;
-  border-radius: var(--p-border-radius);
-}
-
-:deep(.ol-scale-line:hover) {
-  background: color-mix(in srgb, var(--p-primary-color) 80%, transparent) !important;
-}
-
-:deep(.ol-scale-line-inner) {
-  color: black;
-  font-size: 0.7rem;
-  font-weight: 500;
-  border-color: black;
 }
 
 :deep(.ol-control.ol-layerswitcher button) {
@@ -2023,7 +2009,7 @@ watch(
   right: auto; /* Reset right positioning */
   top: auto; /* Unset top positioning */
   transform: translateX(-50%); /* Adjust for the element's width */
-  color: var(--p-primary-color);
+  color: black;
   background: rgba(255, 255, 255, 0.25);
   border-radius: var(--p-border-radius);
   font-size: 0.875rem;
