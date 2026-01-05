@@ -93,7 +93,7 @@ const handleChange = (event: Event) => {
 }
 
 .radio-button-label:hover {
-  background: color-mix(in srgb, var(--p-primary-color) 30%, transparent);
+  background: color-mix(in srgb, var(--p-primary-color) 80%, transparent);
 }
 
 .radio-button-label:active {

@@ -84,7 +84,7 @@ watch(
     <Select
       v-model="selectedBaseLayer"
       :options="baseLayerOptions"
-      v-tooltip.top="'Base Map Layer'"
+      title="Base Map Layer"
       class="sr-baselayer-select"
       size="small"
     />
@@ -111,7 +111,7 @@ watch(
 }
 
 :deep(.p-select:hover) {
-  background: color-mix(in srgb, var(--p-primary-color) 40%, transparent);
+  background: color-mix(in srgb, var(--p-primary-color) 80%, transparent);
 }
 
 :deep(.p-select-label) {

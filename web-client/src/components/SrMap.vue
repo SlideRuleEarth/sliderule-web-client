@@ -1755,7 +1755,7 @@ watch(
 }
 
 :deep(.ol-control.ol-layerswitcher:hover) {
-  background: color-mix(in srgb, var(--p-primary-color) 40%, transparent);
+  background: color-mix(in srgb, var(--p-primary-color) 80%, transparent);
 }
 
 /* Attribution positioning - styling is in sr-common-styles.css */
@@ -1769,8 +1769,13 @@ watch(
 :deep(.ol-scale-line) {
   bottom: 0.25rem;
   left: 0.5rem;
-  background: rgba(255, 255, 255, 0.25);
+  background: color-mix(in srgb, var(--p-primary-color) 20%, transparent);
+  border: none;
   border-radius: var(--p-border-radius);
+}
+
+:deep(.ol-scale-line:hover) {
+  background: color-mix(in srgb, var(--p-primary-color) 80%, transparent);
 }
 
 :deep(.ol-scale-line-inner) {
@@ -1901,7 +1906,7 @@ watch(
 }
 
 :deep(.ol-geocoder .gcd-gl-btn:hover) {
-  background: color-mix(in srgb, var(--p-primary-color) 40%, transparent) !important;
+  background: color-mix(in srgb, var(--p-primary-color) 80%, transparent) !important;
   border: none !important;
 }
 
@@ -1931,7 +1936,6 @@ watch(
   left: 11rem;
   background-color: transparent;
   border-radius: var(--p-border-radius);
-  color: white;
   max-width: 30rem;
 }
 
@@ -1960,7 +1964,7 @@ watch(
 }
 
 :deep(.ol-control.ol-wmscapabilities:hover) {
-  background: color-mix(in srgb, var(--p-primary-color) 40%, transparent);
+  background: color-mix(in srgb, var(--p-primary-color) 80%, transparent);
 }
 
 :deep(.ol-control.ol-wmscapabilities > button) {
@@ -2032,14 +2036,14 @@ watch(
 :deep(.ol-zoom .ol-zoom-out) {
   margin: 2px;
   border-radius: var(--p-border-radius);
-  background: transparent;
+  background: color-mix(in srgb, var(--p-primary-color) 20%, transparent);
   color: black;
   font-weight: 500;
 }
 
 :deep(.ol-zoom .ol-zoom-in):hover,
 :deep(.ol-zoom .ol-zoom-out):hover {
-  background: color-mix(in srgb, var(--p-primary-color) 30%, transparent);
+  background: color-mix(in srgb, var(--p-primary-color) 80%, transparent);
 }
 
 :deep(.ol-zoom .ol-zoom-in):active,
@@ -2094,7 +2098,7 @@ watch(
 }
 
 :deep(.ol-control.sr-upload-region-control:hover) {
-  background: color-mix(in srgb, var(--p-primary-color) 40%, transparent);
+  background: color-mix(in srgb, var(--p-primary-color) 80%, transparent);
 }
 
 :deep(.ol-control.sr-export-polygon-control) {
@@ -2113,7 +2117,7 @@ watch(
 }
 
 :deep(.ol-control.sr-export-polygon-control:hover) {
-  background: color-mix(in srgb, var(--p-primary-color) 40%, transparent);
+  background: color-mix(in srgb, var(--p-primary-color) 80%, transparent);
 }
 
 :deep(.ol-measure-hud) {

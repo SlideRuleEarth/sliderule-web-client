@@ -288,7 +288,7 @@ html {
 }
 
 .ol-attribution:hover {
-    background: color-mix(in srgb, var(--p-primary-color) 40%, transparent) !important;
+    background: color-mix(in srgb, var(--p-primary-color) 80%, transparent) !important;
 }
 
 .ol-attribution button {
@@ -307,7 +307,7 @@ html {
 }
 
 .ol-attribution.ol-collapsed:hover {
-    background: color-mix(in srgb, var(--p-primary-color) 40%, transparent) !important;
+    background: color-mix(in srgb, var(--p-primary-color) 80%, transparent) !important;
 }
 
 /* ========== OpenLayers Graticule Control Styling ========== */
@@ -318,7 +318,7 @@ html {
 }
 
 .ol-control.sr-graticule-control:hover {
-    background: color-mix(in srgb, var(--p-primary-color) 40%, transparent) !important;
+    background: color-mix(in srgb, var(--p-primary-color) 80%, transparent) !important;
 }
 
 /* ========== TreeSelect Panel Styling (for record selector) ========== */
@@ -349,7 +349,7 @@ html {
 }
 
 .sr-treeselect-panel .p-tree-node-content:hover {
-    background: color-mix(in srgb, var(--p-primary-color) 40%, transparent) !important;
+    background: color-mix(in srgb, var(--p-primary-color) 80%, transparent) !important;
 }
 
 .sr-treeselect-panel .p-tree-node-content.p-tree-node-selected,
@@ -363,5 +363,5 @@ html {
 }
 
 .sr-treeselect-panel .p-tree-node-toggle-button:hover {
-    background: color-mix(in srgb, var(--p-primary-color) 40%, transparent) !important;
+    background: color-mix(in srgb, var(--p-primary-color) 80%, transparent) !important;
 }

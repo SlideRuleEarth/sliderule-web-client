@@ -105,7 +105,7 @@ function nodeSelect(_node: any) {
 }
 
 :deep(.p-treeselect:hover) {
-  background: color-mix(in srgb, var(--p-primary-color) 40%, transparent);
+  background: color-mix(in srgb, var(--p-primary-color) 80%, transparent);
 }
 
 :deep(.p-treeselect-label) {
@@ -151,7 +151,7 @@ function nodeSelect(_node: any) {
 }
 
 :deep(.p-tree-node-content:hover) {
-  background: color-mix(in srgb, var(--p-primary-color) 40%, transparent);
+  background: color-mix(in srgb, var(--p-primary-color) 80%, transparent);
 }
 
 :deep(.p-tree-node-content.p-highlight) {

@@ -1291,7 +1291,7 @@ function handleSaveTooltip() {
 }
 
 :deep(.ol-zoom:hover) {
-  background: color-mix(in srgb, var(--p-primary-color) 40%, transparent);
+  background: color-mix(in srgb, var(--p-primary-color) 80%, transparent);
 }
 
 :deep(.ol-zoom button) {
@@ -1320,7 +1320,7 @@ function handleSaveTooltip() {
 
 :deep(.ol-zoom .ol-zoom-out):hover,
 :deep(.ol-zoom .ol-zoom-in):hover {
-  background: rgba(255, 255, 255, 0.5);
+  background: color-mix(in srgb, var(--p-primary-color) 80%, transparent);
 }
 
 :deep(.ol-zoom .ol-zoom-out):before {
@@ -1338,7 +1338,6 @@ function handleSaveTooltip() {
   right: 0.5rem;
   left: auto;
   border-radius: var(--p-border-radius);
-  color: white;
   max-width: 30rem;
   background: transparent;
 }
@@ -1355,8 +1354,13 @@ function handleSaveTooltip() {
 :deep(.ol-scale-line) {
   bottom: 0.25rem;
   left: 0.5rem;
-  background: rgba(255, 255, 255, 0.25);
+  background: color-mix(in srgb, var(--p-primary-color) 20%, transparent);
+  border: none;
   border-radius: var(--p-border-radius);
+}
+
+:deep(.ol-scale-line:hover) {
+  background: color-mix(in srgb, var(--p-primary-color) 80%, transparent);
 }
 
 /* Ensure OL controls container is above Deck.gl canvas (which has z-index: 1) */
@@ -1377,7 +1381,7 @@ function handleSaveTooltip() {
 }
 
 :deep(.ol-control.ol-layerswitcher:hover) {
-  background: color-mix(in srgb, var(--p-primary-color) 40%, transparent);
+  background: color-mix(in srgb, var(--p-primary-color) 80%, transparent);
 }
 
 :deep(.ol-control.ol-layerswitcher > button) {
@@ -1394,7 +1398,7 @@ function handleSaveTooltip() {
 }
 
 :deep(.ol-control.ol-layerswitcher > button:hover) {
-  background: rgba(255, 255, 255, 0.5);
+  background: color-mix(in srgb, var(--p-primary-color) 80%, transparent);
 }
 
 :deep(.ol-control.ol-layerswitcher .panel-container) {

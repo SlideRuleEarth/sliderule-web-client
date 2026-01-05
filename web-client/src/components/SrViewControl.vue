@@ -72,7 +72,7 @@ watch(
     <Select
       v-model="selectedView"
       :options="viewOptions"
-      v-tooltip.top="projectionTooltip"
+      :title="projectionTooltip"
       class="sr-view-select"
       size="small"
     />
@@ -99,7 +99,7 @@ watch(
 }
 
 :deep(.p-select:hover) {
-  background: color-mix(in srgb, var(--p-primary-color) 40%, transparent);
+  background: color-mix(in srgb, var(--p-primary-color) 80%, transparent);
 }
 
 :deep(.p-select-label) {
