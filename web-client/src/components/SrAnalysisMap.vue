@@ -1195,7 +1195,7 @@ function handleSaveTooltip() {
   bottom: auto; /* Unset bottom positioning */
   transform: translateX(-50%); /* Adjust for the element's width */
   color: black;
-  background: rgba(255, 255, 255, 0.25);
+  background: color-mix(in srgb, var(--p-primary-color) 25%, transparent);
   border-radius: var(--p-border-radius);
   font-size: smaller;
   padding: 0.25rem 0.5rem;
@@ -1204,7 +1204,7 @@ function handleSaveTooltip() {
 }
 
 :deep(.sr-legend-control) {
-  background: rgba(255, 255, 255, 0.25);
+  background: color-mix(in srgb, var(--p-primary-color) 20%, transparent);
   bottom: 0.25rem;
   right: 10rem;
 }
@@ -1288,10 +1288,6 @@ function handleSaveTooltip() {
   margin: auto;
   font-size: 0.75rem;
   z-index: 99999; /* Ensure it stays on top */
-}
-
-:deep(.ol-zoom:hover) {
-  background: color-mix(in srgb, var(--p-primary-color) 80%, transparent);
 }
 
 :deep(.ol-zoom button) {
@@ -1382,7 +1378,7 @@ function handleSaveTooltip() {
   width: 1.5rem;
   height: 1.5rem;
   padding: 0;
-  background: rgba(255, 255, 255, 0.3);
+  background: color-mix(in srgb, var(--p-primary-color) 10%, transparent);
   border-radius: var(--p-border-radius);
   display: grid;
   place-items: center;

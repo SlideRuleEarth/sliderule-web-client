@@ -1772,8 +1772,12 @@ watch(
 }
 
 :deep(.ol-control.ol-layerswitcher button) {
-  background-color: transparent;
+  background: color-mix(in srgb, var(--p-primary-color) 10%, transparent);
   border-radius: var(--p-border-radius);
+}
+
+:deep(.ol-control.ol-layerswitcher button:hover) {
+  background: color-mix(in srgb, var(--p-primary-color) 80%, transparent);
 }
 :deep(.ol-control.ol-layerswitcher > button::before) {
   border-radius: var(--p-border-radius);
@@ -1987,10 +1991,6 @@ watch(
   font-size: 1.25rem;
 }
 
-:deep(.ol-zoom:hover) {
-  background: color-mix(in srgb, var(--p-primary-color) 80%, transparent);
-}
-
 :deep(.sr-draw-control) {
   top: 12rem;
   left: 0.5rem;
@@ -2014,7 +2014,7 @@ watch(
   top: auto; /* Unset top positioning */
   transform: translateX(-50%); /* Adjust for the element's width */
   color: black;
-  background: rgba(255, 255, 255, 0.25);
+  background: color-mix(in srgb, var(--p-primary-color) 25%, transparent);
   border-radius: var(--p-border-radius);
   font-size: 0.875rem;
   padding: 0.25rem 0.5rem;
