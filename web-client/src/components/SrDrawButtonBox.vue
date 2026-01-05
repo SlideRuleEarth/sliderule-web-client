@@ -106,7 +106,7 @@ const getTrashCanIcon = computed(() => {
 .sr-button-box-divider {
   margin: 0.125em;
   padding: 0px;
-  border-top: 1px dashed var(--p-primary-color);
+  border-top: 1px dashed black;
   width: 50%;
 }
 </style>

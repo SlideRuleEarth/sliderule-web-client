@@ -1306,10 +1306,10 @@ function handleSaveTooltip() {
   position: relative;
   margin: 1px;
   border-radius: var(--p-border-radius);
-  background: rgba(255, 255, 255, 0.3);
+  background: color-mix(in srgb, var(--p-primary-color) 10%, transparent);
   color: black;
-  font-size: 1rem; /* Reduce text size in buttons */
-  font-weight: normal;
+  font-size: 1rem;
+  font-weight: 500;
 }
 
 :deep(.ol-zoom .ol-zoom-out):active,
@@ -1329,7 +1329,7 @@ function handleSaveTooltip() {
   top: 0px;
   left: 25%; /* Adjust this value to control where the border starts */
   right: 25%; /* Adjust this value to control where the border ends */
-  border-top: 1px dashed var(--p-primary-color);
+  border-top: 1px dashed black;
 }
 
 :deep(.ol-control.sr-baselayer-control) {

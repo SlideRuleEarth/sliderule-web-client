@@ -85,7 +85,7 @@ const handleChange = (event: Event) => {
   align-items: center;
   justify-content: center;
   border-radius: var(--p-border-radius);
-  background: transparent;
+  background: color-mix(in srgb, var(--p-primary-color) 10%, transparent);
   transition:
     background-color 0.2s ease,
     transform 0.1s ease;

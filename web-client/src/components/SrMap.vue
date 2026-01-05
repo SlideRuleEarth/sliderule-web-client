@@ -1980,11 +1980,15 @@ watch(
   top: 6rem;
   left: 0.5rem;
   right: auto;
-  background: color-mix(in srgb, var(--p-primary-color) 20%, transparent);
+  background: color-mix(in srgb, var(--p-primary-color) 10%, transparent);
   border: 1px solid var(--p-primary-color);
   border-radius: var(--p-border-radius);
   margin: auto;
   font-size: 1.25rem;
+}
+
+:deep(.ol-zoom:hover) {
+  background: color-mix(in srgb, var(--p-primary-color) 80%, transparent);
 }
 
 :deep(.sr-draw-control) {
@@ -2022,7 +2026,7 @@ watch(
 :deep(.ol-zoom .ol-zoom-out) {
   margin: 2px;
   border-radius: var(--p-border-radius);
-  background: color-mix(in srgb, var(--p-primary-color) 20%, transparent);
+  background: color-mix(in srgb, var(--p-primary-color) 10%, transparent);
   color: black;
   font-weight: 500;
 }
@@ -2048,7 +2052,7 @@ watch(
   top: 0px;
   left: 25%;
   right: 25%;
-  border-top: 1px dashed var(--p-primary-color);
+  border-top: 1px dashed black;
 }
 
 .hidden-control {
