@@ -2,15 +2,27 @@
   <div class="sr-legend" v-if="gradientColorMapStore">
     <Fieldset class="sr-legend-box" :legend="props.label" :toggleable="false" :collapsed="false">
       <div class="sr-cntrls-panel">
-        <Select
-          size="small"
-          label="Color Map"
-          labelFontSize="small"
-          v-model="gradientColorMapStore.selectedGradientColorMapName"
-          :options="srColorMapNames"
-          @update:modelValue="gradientColorMapChanged"
-          tooltipText="Gradient Color Map for scatter plot"
-        />
+        <div class="sr-select-with-link">
+          <Select
+            size="small"
+            label="Color Map"
+            labelFontSize="small"
+            v-model="gradientColorMapStore.selectedGradientColorMapName"
+            :options="srColorMapNames"
+            @update:modelValue="gradientColorMapChanged"
+            tooltipText="Gradient Color Map for scatter plot"
+          />
+          <div class="sr-link-container">
+            <Checkbox
+              v-model="linkToMap"
+              :binary="true"
+              inputId="linkToMap"
+              v-tooltip.top="'Sync color map to elevation map'"
+              class="sr-link-checkbox"
+            />
+            <label for="linkToMap" class="sr-link-label">Map</label>
+          </div>
+        </div>
       </div>
       <SrGradientLegend :reqId="props.req_id" :transparentBackground="true" />
     </Fieldset>
@@ -28,16 +40,22 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, watch, computed } from 'vue'
 import { srColorMapNames } from '@/utils/colorUtils'
 import Fieldset from 'primevue/fieldset'
 import Select from 'primevue/select'
 import Button from 'primevue/button'
+import Checkbox from 'primevue/checkbox'
 import SrGradientLegend from './SrGradientLegend.vue'
 import { useGradientColorMapStore } from '@/stores/gradientColorMapStore'
+import { useElevationColorMapStore } from '@/stores/elevationColorMapStore'
+import { storeToRefs } from 'pinia'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('SrGradientLegendCntrl')
+const elevationColorMapStore = useElevationColorMapStore()
+const { linkToGradient, linkedReqId, selectedElevationColorMap } =
+  storeToRefs(elevationColorMapStore)
 
 // Define props with TypeScript types
 const props = withDefaults(
@@ -62,13 +80,43 @@ const emit = defineEmits([
 // Initialize the store without awaiting directly
 const gradientColorMapStore = useGradientColorMapStore(props.req_id.toString())
 
+// Computed to check if this component is the linked one
+const linkToMap = computed({
+  get: () => linkToGradient.value && linkedReqId.value === props.req_id.toString(),
+  set: (value: boolean) => {
+    linkToGradient.value = value
+    linkedReqId.value = value ? props.req_id.toString() : null
+    if (value) {
+      // Sync both ways when enabling the link
+      elevationColorMapStore.setElevationColorMap(
+        gradientColorMapStore.selectedGradientColorMapName
+      )
+      elevationColorMapStore.updateElevationColorMapValues()
+    }
+  }
+})
+
 onMounted(() => {
   // Await the asynchronous store initialization after mounting
   logger.debug('Mounted SrGradientLegendCntrl', { gradientColorMapStore })
 })
 
+// Watch for elevation color map changes from the map control
+watch(selectedElevationColorMap, (newColorMapName) => {
+  if (linkToMap.value && newColorMapName !== gradientColorMapStore.selectedGradientColorMapName) {
+    logger.debug('Syncing elevation color map to gradient', { newColorMapName })
+    gradientColorMapStore.setSelectedGradientColorMapName(newColorMapName)
+    gradientColorMapStore.updateGradientColorMapValues()
+    emit('gradient-color-map-changed')
+  }
+})
+
 const gradientColorMapChanged = () => {
   gradientColorMapStore.updateGradientColorMapValues()
+  if (linkToMap.value) {
+    elevationColorMapStore.setElevationColorMap(gradientColorMapStore.selectedGradientColorMapName)
+    elevationColorMapStore.updateElevationColorMapValues()
+  }
   emit('gradient-color-map-changed')
 }
 
@@ -126,6 +174,30 @@ const gradientDefaultsRestored = async () => {
   justify-content: center;
   align-items: center;
   margin-bottom: 0.5rem;
+}
+
+.sr-select-with-link {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sr-link-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.125rem;
+}
+
+.sr-link-checkbox {
+  flex-shrink: 0;
+}
+
+.sr-link-label {
+  font-size: 0.625rem;
+  color: var(--p-text-muted-color);
+  cursor: pointer;
 }
 /* Custom Fieldset legend style */
 :deep(.sr-legend-box .p-fieldset-legend) {

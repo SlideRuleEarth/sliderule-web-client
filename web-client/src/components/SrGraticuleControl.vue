@@ -43,6 +43,9 @@ function handleGraticuleChanged() {
         @change="handleGraticuleChanged"
         inputId="graticule-toggle"
         size="small"
+        :pt="{
+          box: { class: 'graticule-checkbox-box' }
+        }"
       />
       <label for="graticule-toggle" class="graticule-label">Grid</label>
     </div>
@@ -56,6 +59,10 @@ function handleGraticuleChanged() {
   padding: 0.375rem 0.5rem;
 }
 
+.sr-graticule-control:hover {
+  border-color: var(--p-primary-color);
+}
+
 .graticule-checkbox-container {
   display: flex;
   align-items: center;
@@ -67,9 +74,19 @@ function handleGraticuleChanged() {
   font-size: 0.75rem;
   font-weight: 500;
   color: black;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
   margin: 0;
+}
+
+:deep(.graticule-checkbox-box) {
+  background: color-mix(in srgb, var(--p-primary-color) 20%, transparent);
+  border-color: var(--p-primary-color);
+}
+
+:deep(.graticule-checkbox-box:hover) {
+  background: color-mix(in srgb, var(--p-primary-color) 30%, transparent);
 }
 </style>
