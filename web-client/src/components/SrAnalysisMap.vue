@@ -1282,16 +1282,23 @@ function handleSaveTooltip() {
   top: 0.5rem;
   right: 0.75rem; /* right align -- override the default */
   left: auto; /* Override the default positioning */
-  background-color: black;
+  background: color-mix(in srgb, var(--p-primary-color) 20%, transparent);
+  border: 1px solid var(--p-primary-color);
   border-radius: var(--p-border-radius);
   margin: auto;
   font-size: 0.75rem;
   z-index: 99999; /* Ensure it stays on top */
 }
 
+:deep(.ol-zoom:hover) {
+  background: color-mix(in srgb, var(--p-primary-color) 40%, transparent);
+}
+
 :deep(.ol-zoom button) {
   width: 1.5rem; /* Smaller button size */
   height: 1.5rem;
+  color: black;
+  background: transparent;
 }
 
 :deep(.ol-zoom .ol-zoom-in),
@@ -1299,28 +1306,21 @@ function handleSaveTooltip() {
   position: relative;
   margin: 1px;
   border-radius: var(--p-border-radius);
-  background-color: black;
-  color: var(--ol-font-color);
+  background: rgba(255, 255, 255, 0.3);
+  color: black;
   font-size: 1rem; /* Reduce text size in buttons */
   font-weight: normal;
 }
 
-:deep(.ol-zoom .ol-zoom-out):active {
-  background-color: rgba(60, 60, 60, 1); /* Change color on hover */
-  transform: translateY(2px); /* Slight downward movement to simulate press */
-}
-
-:deep(.ol-zoom .ol-zoom-out):hover {
-  background-color: rgba(60, 60, 60, 1); /* Change color on hover */
-}
-
+:deep(.ol-zoom .ol-zoom-out):active,
 :deep(.ol-zoom .ol-zoom-in):active {
-  background-color: rgba(60, 60, 60, 1); /* Change color on hover */
-  transform: translateY(2px); /* Slight downward movement to simulate press */
+  background: color-mix(in srgb, var(--p-primary-color) 50%, transparent);
+  transform: translateY(1px); /* Slight downward movement to simulate press */
 }
 
+:deep(.ol-zoom .ol-zoom-out):hover,
 :deep(.ol-zoom .ol-zoom-in):hover {
-  background-color: rgba(60, 60, 60, 1); /* Change color on hover */
+  background: rgba(255, 255, 255, 0.5);
 }
 
 :deep(.ol-zoom .ol-zoom-out):before {
@@ -1329,7 +1329,7 @@ function handleSaveTooltip() {
   top: 0px;
   left: 25%; /* Adjust this value to control where the border starts */
   right: 25%; /* Adjust this value to control where the border ends */
-  border-top: 1px dashed rgb(200, 200, 200);
+  border-top: 1px dashed var(--p-primary-color);
 }
 
 :deep(.ol-control.sr-baselayer-control) {
