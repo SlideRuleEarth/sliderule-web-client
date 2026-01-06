@@ -82,9 +82,11 @@ export interface DeployClusterResult {
 
 export interface DeployClusterOptions {
   cluster: string
-  nodes?: number
-  ttl?: number
-  is_public?: boolean
+  is_public: boolean
+  node_capacity: number
+  ttl: number
+  version?: string
+  region?: string
 }
 
 /**
@@ -289,9 +291,11 @@ export async function deployCluster(options: DeployClusterOptions): Promise<Depl
       },
       body: JSON.stringify({
         cluster: options.cluster,
-        nodes: options.nodes,
+        is_public: options.is_public,
+        node_capacity: options.node_capacity,
         ttl: options.ttl,
-        is_public: options.is_public
+        ...(options.version && { version: options.version }),
+        ...(options.region && { region: options.region })
       })
     })
   }

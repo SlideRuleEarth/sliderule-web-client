@@ -97,9 +97,10 @@ async function executeDeploy() {
   try {
     const result = await deployCluster({
       cluster: clusterName.value,
-      nodes: numberOfNodes.value,
+      is_public: isPublic.value,
+      node_capacity: numberOfNodes.value,
       ttl: ttl.value,
-      is_public: isPublic.value
+      version: desiredVersion.value || undefined
     })
     if (result.success && result.data?.status) {
       deployedCluster.value = clusterName.value
@@ -150,7 +151,7 @@ function handleDeploy() {
       />
     </div>
     <div class="sr-deploy-field">
-      <label for="deploy-cluster" class="sr-deploy-label">Cluster</label>
+      <label for="deploy-cluster" class="sr-deploy-label">cluster</label>
       <Select
         id="deploy-cluster"
         v-model="clusterName"
@@ -172,7 +173,11 @@ function handleDeploy() {
       />
     </div>
     <div class="sr-deploy-field">
-      <label for="deploy-nodes" class="sr-deploy-label">Nodes</label>
+      <label for="deploy-public" class="sr-deploy-label">is_public</label>
+      <Checkbox id="deploy-public" v-model="isPublic" :binary="true" />
+    </div>
+    <div class="sr-deploy-field">
+      <label for="deploy-nodes" class="sr-deploy-label">node_capacity</label>
       <InputNumber
         id="deploy-nodes"
         v-model="numberOfNodes"
@@ -183,19 +188,15 @@ function handleDeploy() {
       />
     </div>
     <div class="sr-deploy-field">
-      <label for="deploy-ttl" class="sr-deploy-label">TTL (hours)</label>
+      <label for="deploy-ttl" class="sr-deploy-label">ttl (minutes)</label>
       <InputNumber
         id="deploy-ttl"
         v-model="ttl"
-        :min="1"
+        :min="15"
         :max="maxTTL"
         showButtons
         class="sr-deploy-input-number"
       />
-    </div>
-    <div class="sr-deploy-field">
-      <label for="deploy-public" class="sr-deploy-label">Public</label>
-      <Checkbox id="deploy-public" v-model="isPublic" :binary="true" />
     </div>
     <div class="sr-deploy-actions">
       <Button
