@@ -80,6 +80,13 @@ export interface DeployClusterResult {
   error?: string
 }
 
+export interface DeployClusterOptions {
+  cluster: string
+  nodes?: number
+  ttl?: number
+  is_public?: boolean
+}
+
 /**
  * Fetch server version info from the SlideRule API.
  * Returns version data that can be used by any store.
@@ -251,19 +258,21 @@ export async function fetchClusterStatus(cluster: string): Promise<ClusterStatus
 /**
  * Deploy a cluster via the provisioner API.
  * Requires GitHub OAuth authentication.
+ * Includes a single retry with backoff for 401 errors (handles JWKS latency).
  *
- * @param clusterName - The cluster name to deploy
+ * @param options - Deploy options including cluster name, nodes, ttl, and is_public
  * @returns Deploy result with response data
  */
-export async function deployCluster(clusterName: string): Promise<DeployClusterResult> {
+export async function deployCluster(options: DeployClusterOptions): Promise<DeployClusterResult> {
   const url = 'https://provisioner.slideruleearth.io/deploy'
+  const RETRY_DELAY_MS = 1000
 
   // Get GitHub auth token - provisioner only accepts GitHub JWT
   const githubAuthStore = useGitHubAuthStore()
   const githubToken = githubAuthStore.authToken
 
   if (!githubToken) {
-    logger.info('No GitHub token available for provisioner API', { cluster: clusterName })
+    logger.info('No GitHub token available for provisioner API', { cluster: options.cluster })
     return {
       success: false,
       data: null,
@@ -271,19 +280,35 @@ export async function deployCluster(clusterName: string): Promise<DeployClusterR
     }
   }
 
-  try {
-    const response = await fetch(url, {
+  const makeRequest = async (): Promise<Response> => {
+    return fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${githubToken}`
       },
-      body: JSON.stringify({ cluster: clusterName })
+      body: JSON.stringify({
+        cluster: options.cluster,
+        nodes: options.nodes,
+        ttl: options.ttl,
+        is_public: options.is_public
+      })
     })
+  }
+
+  try {
+    let response = await makeRequest()
+
+    // Retry once on 401 with backoff (handles JWKS latency issue)
+    if (response.status === 401) {
+      logger.info('Got 401, retrying after backoff', { cluster: options.cluster })
+      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS))
+      response = await makeRequest()
+    }
 
     if (!response.ok) {
       logger.error('Non-OK HTTP response deploying cluster', {
-        cluster: clusterName,
+        cluster: options.cluster,
         status: response.status
       })
       throw new Error(`HTTP error: ${response.status}`)
@@ -296,7 +321,7 @@ export async function deployCluster(clusterName: string): Promise<DeployClusterR
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error)
-    logger.info('Error deploying cluster', { cluster: clusterName, error: errorMessage })
+    logger.info('Error deploying cluster', { cluster: options.cluster, error: errorMessage })
     return {
       success: false,
       data: null,

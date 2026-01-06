@@ -72,7 +72,7 @@ const statusMessage = computed(() => {
             <TabList>
               <Tab value="sysconfig">Current Connection</Tab>
               <Tab v-if="canAccessMemberFeatures" value="deployconfig">Deploy</Tab>
-              <Tab v-if="canAccessMemberFeatures" value="clusterstatus">Stack Status</Tab>
+              <Tab v-if="canAccessMemberFeatures" value="clusterstatus">Cluster Status</Tab>
             </TabList>
             <TabPanels>
               <TabPanel value="sysconfig">

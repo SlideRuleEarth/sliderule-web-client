@@ -26,7 +26,9 @@ export const useDeployConfigStore = defineStore(
     const clusterName = ref('')
     const desiredVersion = ref('latest')
     const version = ref('')
-    const numberOfNodes = ref(1)
+    const numberOfNodes = ref(7)
+    const ttl = ref(1)
+    const isPublic = ref(false)
     const currentNodes = ref(-1)
     const canConnectVersion = ref<CanConnectStatus>('unknown')
     const canConnectNodes = ref<CanConnectStatus>('unknown')
@@ -98,6 +100,8 @@ export const useDeployConfigStore = defineStore(
       desiredVersion,
       version,
       numberOfNodes,
+      ttl,
+      isPublic,
       currentNodes,
       canConnectVersion,
       canConnectNodes,
@@ -112,7 +116,7 @@ export const useDeployConfigStore = defineStore(
   {
     persist: {
       storage: localStorage,
-      pick: ['domain', 'clusterName', 'desiredVersion', 'numberOfNodes']
+      pick: ['domain', 'clusterName', 'desiredVersion', 'numberOfNodes', 'ttl', 'isPublic']
     }
   }
 )

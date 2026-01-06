@@ -2,7 +2,11 @@
 import { computed, watch, onMounted, ref } from 'vue'
 import Select from 'primevue/select'
 import InputText from 'primevue/inputtext'
+import InputNumber from 'primevue/inputnumber'
+import Checkbox from 'primevue/checkbox'
 import Button from 'primevue/button'
+import ConfirmDialog from 'primevue/confirmdialog'
+import { useConfirm } from 'primevue/useconfirm'
 import SrClusterStackStatus from '@/components/SrClusterStackStatus.vue'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 import { useDeployConfigStore } from '@/stores/deployConfigStore'
@@ -11,9 +15,18 @@ import { storeToRefs } from 'pinia'
 
 const githubAuthStore = useGitHubAuthStore()
 const deployConfigStore = useDeployConfigStore()
+const confirm = useConfirm()
+
+// Threshold for large cluster confirmation
+const LARGE_CLUSTER_THRESHOLD = 10
 
 // Use storeToRefs for reactive two-way binding
-const { domain, clusterName, desiredVersion } = storeToRefs(deployConfigStore)
+const { domain, clusterName, desiredVersion, numberOfNodes, ttl, isPublic } =
+  storeToRefs(deployConfigStore)
+
+// Max values from GitHub auth token
+const maxNodes = computed(() => githubAuthStore.maxNodes ?? 10)
+const maxTTL = computed(() => githubAuthStore.maxTTL ?? 24)
 
 // Use deployableClusters directly from the store (exclude "*" wildcard from dropdown)
 const clusterList = computed(() =>
@@ -76,15 +89,18 @@ const deploying = ref(false)
 const deployedCluster = ref<string | null>(null)
 const deployError = ref<string | null>(null)
 
-async function handleDeploy() {
-  if (!clusterName.value) return
-
+async function executeDeploy() {
   deploying.value = true
   deployError.value = null
   deployedCluster.value = null
 
   try {
-    const result = await deployCluster(clusterName.value)
+    const result = await deployCluster({
+      cluster: clusterName.value,
+      nodes: numberOfNodes.value,
+      ttl: ttl.value,
+      is_public: isPublic.value
+    })
     if (result.success && result.data?.status) {
       deployedCluster.value = clusterName.value
     } else {
@@ -96,9 +112,32 @@ async function handleDeploy() {
     deploying.value = false
   }
 }
+
+function handleDeploy() {
+  if (!clusterName.value) return
+
+  // Show confirmation for large clusters
+  if (numberOfNodes.value > LARGE_CLUSTER_THRESHOLD) {
+    confirm.require({
+      message: `You are about to deploy a large cluster with ${numberOfNodes.value} nodes. This may incur significant costs. Are you sure you want to proceed?`,
+      header: 'Large Cluster Deployment',
+      icon: 'pi pi-exclamation-triangle',
+      rejectLabel: 'Cancel',
+      acceptLabel: 'Deploy',
+      rejectClass: 'p-button-secondary',
+      acceptClass: 'p-button-warning',
+      accept: () => {
+        void executeDeploy()
+      }
+    })
+  } else {
+    void executeDeploy()
+  }
+}
 </script>
 
 <template>
+  <ConfirmDialog />
   <div class="sr-deploy-config">
     <div class="sr-deploy-field">
       <label for="deploy-domain" class="sr-deploy-label">Domain</label>
@@ -131,6 +170,32 @@ async function handleDeploy() {
         placeholder="latest"
         class="sr-deploy-input"
       />
+    </div>
+    <div class="sr-deploy-field">
+      <label for="deploy-nodes" class="sr-deploy-label">Nodes</label>
+      <InputNumber
+        id="deploy-nodes"
+        v-model="numberOfNodes"
+        :min="1"
+        :max="maxNodes"
+        showButtons
+        class="sr-deploy-input-number"
+      />
+    </div>
+    <div class="sr-deploy-field">
+      <label for="deploy-ttl" class="sr-deploy-label">TTL (hours)</label>
+      <InputNumber
+        id="deploy-ttl"
+        v-model="ttl"
+        :min="1"
+        :max="maxTTL"
+        showButtons
+        class="sr-deploy-input-number"
+      />
+    </div>
+    <div class="sr-deploy-field">
+      <label for="deploy-public" class="sr-deploy-label">Public</label>
+      <Checkbox id="deploy-public" v-model="isPublic" :binary="true" />
     </div>
     <div class="sr-deploy-actions">
       <Button
@@ -179,6 +244,10 @@ async function handleDeploy() {
 }
 
 .sr-deploy-input {
+  width: 15em;
+}
+
+.sr-deploy-input-number {
   width: 15em;
 }
 
