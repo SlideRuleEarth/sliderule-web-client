@@ -297,7 +297,7 @@ function handleExtend() {
           icon="pi pi-refresh"
           size="small"
           :loading="extending"
-          :disabled="!clusterName"
+          :disabled="!clusterName || stackStatusStore.isClusterNotUpdatable(clusterName)"
           class="sr-deploy-ttl-btn"
           @click="handleExtend"
         />
@@ -316,7 +316,7 @@ function handleExtend() {
         label="Deploy"
         icon="pi pi-cloud-upload"
         :loading="deploying"
-        :disabled="!clusterName"
+        :disabled="!clusterName || stackStatusStore.isClusterUndeployable(clusterName)"
         @click="handleDeploy"
       />
     </div>

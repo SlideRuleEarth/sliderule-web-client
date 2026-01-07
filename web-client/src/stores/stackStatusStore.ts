@@ -37,6 +37,30 @@ const UNDESTROYABLE_STACK_STATUSES: StackStatus[] = [
   'NOT_FOUND'
 ]
 
+/**
+ * Status values that indicate a cluster cannot be updated (e.g., TTL extension).
+ * Only running clusters (CREATE_COMPLETE, UPDATE_COMPLETE) can be updated.
+ */
+const NOT_UPDATABLE_STACK_STATUSES: StackStatus[] = [
+  'CREATE_IN_PROGRESS',
+  'CREATE_FAILED',
+  'UPDATE_IN_PROGRESS',
+  'UPDATE_COMPLETE_CLEANUP_IN_PROGRESS',
+  'UPDATE_FAILED',
+  'UPDATE_ROLLBACK_IN_PROGRESS',
+  'UPDATE_ROLLBACK_COMPLETE',
+  'UPDATE_ROLLBACK_FAILED',
+  'ROLLBACK_IN_PROGRESS',
+  'ROLLBACK_COMPLETE',
+  'ROLLBACK_FAILED',
+  'DELETE_IN_PROGRESS',
+  'DELETE_COMPLETE',
+  'DELETE_FAILED',
+  'NOT_FOUND',
+  'UNKNOWN',
+  'FAILED'
+]
+
 // Default refresh interval for status polling (5 seconds)
 const DEFAULT_REFRESH_INTERVAL = 5000
 
@@ -177,6 +201,15 @@ export const useStackStatusStore = defineStore('stackStatus', () => {
   }
 
   /**
+   * Check if a cluster cannot be updated (e.g., TTL extension) based on its stack status.
+   */
+  function isClusterNotUpdatable(cluster: string): boolean {
+    const status = getStackStatus(cluster)
+    if (!status) return true // Unknown status = don't allow update
+    return NOT_UPDATABLE_STACK_STATUSES.includes(status)
+  }
+
+  /**
    * Get a human-readable label for the stack status.
    */
   function getStackStatusLabel(cluster: string): string {
@@ -252,6 +285,7 @@ export const useStackStatusStore = defineStore('stackStatus', () => {
     getError,
     isClusterUndeployable,
     isClusterUndestroyable,
+    isClusterNotUpdatable,
     getStackStatusLabel,
     invalidate,
     invalidateAll
