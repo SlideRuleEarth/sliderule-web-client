@@ -320,17 +320,28 @@ function handleExtend() {
         @click="handleDeploy"
       />
     </div>
-    <div v-if="deployError" class="sr-deploy-error" v-tooltip.bottom="deployErrorDetails">
-      <i class="pi pi-exclamation-triangle"></i>
-      <span>{{ deployError }}</span>
+    <div v-if="deployError" class="sr-deploy-error">
+      <div class="sr-deploy-error-header">
+        <i class="pi pi-exclamation-triangle"></i>
+        <span>{{ deployError }}</span>
+      </div>
+      <div v-if="deployErrorDetails" class="sr-deploy-error-details">{{ deployErrorDetails }}</div>
     </div>
-    <div v-if="destroyError" class="sr-deploy-error" v-tooltip.bottom="destroyErrorDetails">
-      <i class="pi pi-exclamation-triangle"></i>
-      <span>{{ destroyError }}</span>
+    <div v-if="destroyError" class="sr-deploy-error">
+      <div class="sr-deploy-error-header">
+        <i class="pi pi-exclamation-triangle"></i>
+        <span>{{ destroyError }}</span>
+      </div>
+      <div v-if="destroyErrorDetails" class="sr-deploy-error-details">
+        {{ destroyErrorDetails }}
+      </div>
     </div>
-    <div v-if="extendError" class="sr-deploy-error" v-tooltip.bottom="extendErrorDetails">
-      <i class="pi pi-exclamation-triangle"></i>
-      <span>{{ extendError }}</span>
+    <div v-if="extendError" class="sr-deploy-error">
+      <div class="sr-deploy-error-header">
+        <i class="pi pi-exclamation-triangle"></i>
+        <span>{{ extendError }}</span>
+      </div>
+      <div v-if="extendErrorDetails" class="sr-deploy-error-details">{{ extendErrorDetails }}</div>
     </div>
     <SrClusterStackStatus v-if="clusterName" :cluster="clusterName" />
   </div>
@@ -392,10 +403,23 @@ function handleExtend() {
 
 .sr-deploy-error {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  flex-direction: column;
+  gap: 0.25rem;
   color: var(--p-red-500);
   font-size: 0.85rem;
   margin-top: 0.5rem;
+}
+
+.sr-deploy-error-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sr-deploy-error-details {
+  font-size: 0.75rem;
+  color: var(--p-text-muted-color);
+  margin-left: 1.25rem;
+  word-break: break-word;
 }
 </style>

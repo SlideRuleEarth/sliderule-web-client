@@ -280,6 +280,19 @@ watch(isInProgress, () => {
   }
 })
 
+// Disable auto-refresh when cluster no longer exists (e.g., after Destroy)
+watch(
+  () => clusterExists(statusData.value),
+  (exists, previousExists) => {
+    if (previousExists === true && exists === false && autoRefreshEnabled.value) {
+      logger.info('Cluster no longer exists, disabling auto-refresh', {
+        cluster: effectiveCluster.value
+      })
+      toggleAutoRefresh(false)
+    }
+  }
+)
+
 onMounted(() => {
   void refresh()
   if (autoRefreshEnabled.value) {
