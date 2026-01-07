@@ -4,27 +4,17 @@ import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
 import ProgressSpinner from 'primevue/progressspinner'
 import AutoComplete from 'primevue/autocomplete'
-import { fetchClusterStatus, type ClusterStatusResponse } from '@/utils/fetchUtils'
+import { type ClusterStatusResponse } from '@/utils/fetchUtils'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 import { useSysConfigStore } from '@/stores/sysConfigStore'
+import { useStackStatusStore } from '@/stores/stackStatusStore'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('SrClusterStackStatus')
 
-const props = withDefaults(
-  defineProps<{
-    cluster?: string
-    autoRefresh?: boolean
-    refreshInterval?: number
-    progressRefreshInterval?: number
-  }>(),
-  {
-    cluster: undefined,
-    autoRefresh: false,
-    refreshInterval: 30000,
-    progressRefreshInterval: 5000
-  }
-)
+const props = defineProps<{
+  cluster?: string
+}>()
 
 // Human-readable status descriptions
 const STATUS_DESCRIPTIONS: Record<string, { label: string; description: string }> = {
@@ -62,6 +52,7 @@ const emit = defineEmits<{
 
 const githubAuthStore = useGitHubAuthStore()
 const sysConfigStore = useSysConfigStore()
+const stackStatusStore = useStackStatusStore()
 
 // Cluster selector state
 const selectedCluster = ref<string>('')
@@ -115,8 +106,22 @@ function searchClusters(event: { query: string }) {
 const loading = ref(false)
 const error = ref<string | null>(null)
 const statusData = ref<ClusterStatusResponse | null>(null)
-const autoRefreshEnabled = ref(props.autoRefresh)
 let refreshTimer: number | null = null
+
+// Auto-refresh is controlled by the store per-cluster
+const autoRefreshEnabled = computed(() => {
+  if (!effectiveCluster.value) return false
+  return stackStatusStore.isAutoRefreshEnabled(effectiveCluster.value)
+})
+
+function toggleAutoRefresh(enabled: boolean) {
+  if (!effectiveCluster.value) return
+  if (enabled) {
+    stackStatusStore.enableAutoRefresh(effectiveCluster.value)
+  } else {
+    stackStatusStore.disableAutoRefresh(effectiveCluster.value)
+  }
+}
 
 // Helper functions for extracting status info from data
 function getStackStatus(data: ClusterStatusResponse | null): string {
@@ -188,9 +193,10 @@ const isInProgress = computed(() => {
   return isClusterInProgress(statusData.value)
 })
 
-// Compute effective refresh interval based on stack state
+// Compute effective refresh interval from store
 const effectiveRefreshInterval = computed(() => {
-  return isInProgress.value ? props.progressRefreshInterval : props.refreshInterval
+  if (!effectiveCluster.value) return 5000
+  return stackStatusStore.getRefreshInterval(effectiveCluster.value)
 })
 
 // Disable controls when no cluster is selected
@@ -207,33 +213,26 @@ async function refresh() {
   loading.value = true
   error.value = null
 
-  try {
-    // Fetch cluster status for the selected cluster
-    const result = await fetchClusterStatus(effectiveCluster.value)
+  // Use store to fetch status (force refresh)
+  const data = await stackStatusStore.fetchStatus(effectiveCluster.value, true)
 
-    if (result.success) {
-      statusData.value = result.data
-      emit('status-updated', result.data)
-      logger.debug('Cluster status fetched', { cluster: effectiveCluster.value, data: result.data })
-    } else {
-      error.value = result.error ?? 'Failed to fetch status'
-      emit('error', error.value)
-      logger.error('Failed to fetch cluster status', {
-        cluster: effectiveCluster.value,
-        error: result.error
-      })
-    }
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e)
-    error.value = msg
-    emit('error', msg)
-    logger.error('Exception fetching cluster status', {
+  // Get error from store if fetch failed
+  const storeError = stackStatusStore.getError(effectiveCluster.value)
+
+  if (data) {
+    statusData.value = data
+    emit('status-updated', data)
+    logger.debug('Cluster status fetched', { cluster: effectiveCluster.value, data })
+  } else if (storeError) {
+    error.value = storeError
+    emit('error', storeError)
+    logger.error('Failed to fetch cluster status', {
       cluster: effectiveCluster.value,
-      error: msg
+      error: storeError
     })
-  } finally {
-    loading.value = false
   }
+
+  loading.value = false
 }
 
 function startAutoRefresh() {
@@ -329,10 +328,11 @@ defineExpose({ refresh })
       <div class="sr-server-status-controls">
         <div class="sr-auto-refresh-control">
           <Checkbox
-            v-model="autoRefreshEnabled"
+            :modelValue="autoRefreshEnabled"
             inputId="autoRefresh"
             :binary="true"
             :disabled="controlsDisabled"
+            @update:modelValue="toggleAutoRefresh"
           />
           <label for="autoRefresh" class="sr-auto-refresh-label">Auto</label>
         </div>

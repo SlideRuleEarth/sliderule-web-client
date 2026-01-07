@@ -10,11 +10,16 @@ import { useConfirm } from 'primevue/useconfirm'
 import SrClusterStackStatus from '@/components/SrClusterStackStatus.vue'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 import { useDeployConfigStore } from '@/stores/deployConfigStore'
-import { deployCluster } from '@/utils/fetchUtils'
+import { useStackStatusStore } from '@/stores/stackStatusStore'
+import { deployCluster, destroyCluster, extendCluster } from '@/utils/fetchUtils'
 import { storeToRefs } from 'pinia'
+import { createLogger } from '@/utils/logger'
+
+const logger = createLogger('SrDeployConfig')
 
 const githubAuthStore = useGitHubAuthStore()
 const deployConfigStore = useDeployConfigStore()
+const stackStatusStore = useStackStatusStore()
 const confirm = useConfirm()
 
 // Threshold for large cluster confirmation
@@ -48,11 +53,11 @@ async function refreshStatus() {
 // Transform cluster options to include disabled state and status label
 const clusterOptionsWithStatus = computed(() => {
   return clusterList.value.map((c) => {
-    const statusLabel = deployConfigStore.getStackStatusLabel(c)
+    const statusLabel = stackStatusStore.getStackStatusLabel(c)
     return {
       label: statusLabel ? `${c} (${statusLabel})` : c,
       value: c,
-      disabled: deployConfigStore.isClusterDisabled(c)
+      disabled: stackStatusStore.isClusterUndeployable(c)
     }
   })
 })
@@ -79,20 +84,22 @@ onMounted(() => {
 })
 
 // Available domain options
-const domainOptions = ['testsliderule.org', 'slideruleearth.io']
+const domainOptions = ['slideruleearth.io'] //, 'testsliderule.org'] // until support is added by backend
 
 // Only owners can change domain
 const isDomainDisabled = computed(() => !githubAuthStore.isOwner)
 
 // Deploy state
 const deploying = ref(false)
-const deployedCluster = ref<string | null>(null)
 const deployError = ref<string | null>(null)
+
+// Destroy state
+const destroying = ref(false)
+const destroyError = ref<string | null>(null)
 
 async function executeDeploy() {
   deploying.value = true
   deployError.value = null
-  deployedCluster.value = null
 
   try {
     const result = await deployCluster({
@@ -103,12 +110,14 @@ async function executeDeploy() {
       version: desiredVersion.value || undefined
     })
     if (result.success && result.data?.status) {
-      deployedCluster.value = clusterName.value
+      stackStatusStore.enableAutoRefresh(clusterName.value)
     } else {
       deployError.value = result.error ?? 'Deploy failed'
+      logger.warn('Deploy failed', { cluster: clusterName.value, error: deployError.value })
     }
   } catch (e) {
     deployError.value = e instanceof Error ? e.message : String(e)
+    logger.warn('Deploy exception', { cluster: clusterName.value, error: deployError.value })
   } finally {
     deploying.value = false
   }
@@ -134,6 +143,82 @@ function handleDeploy() {
   } else {
     void executeDeploy()
   }
+}
+
+async function executeDestroy() {
+  destroying.value = true
+  destroyError.value = null
+
+  try {
+    const result = await destroyCluster(clusterName.value)
+    if (result.success && result.data?.status) {
+      stackStatusStore.enableAutoRefresh(clusterName.value)
+    } else {
+      destroyError.value = result.error ?? 'Destroy failed'
+    }
+  } catch (e) {
+    destroyError.value = e instanceof Error ? e.message : String(e)
+  } finally {
+    destroying.value = false
+  }
+}
+
+function handleDestroy() {
+  if (!clusterName.value) return
+
+  confirm.require({
+    message: `Are you sure you want to destroy the cluster "${clusterName.value}"? This action cannot be undone.`,
+    header: 'Destroy Cluster',
+    icon: 'pi pi-exclamation-triangle',
+    rejectLabel: 'Cancel',
+    acceptLabel: 'Destroy',
+    rejectClass: 'p-button-secondary',
+    acceptClass: 'p-button-danger',
+    accept: () => {
+      void executeDestroy()
+    }
+  })
+}
+
+// Extend state
+const extending = ref(false)
+const extendError = ref<string | null>(null)
+
+async function executeExtend() {
+  extending.value = true
+  extendError.value = null
+
+  try {
+    const result = await extendCluster(clusterName.value, ttl.value)
+    if (result.success && result.data?.status) {
+      stackStatusStore.enableAutoRefresh(clusterName.value)
+      logger.info('Cluster TTL extended', { cluster: clusterName.value, ttl: ttl.value })
+    } else {
+      extendError.value = result.error ?? 'Extend failed'
+      logger.warn('Extend failed', { cluster: clusterName.value, error: extendError.value })
+    }
+  } catch (e) {
+    extendError.value = e instanceof Error ? e.message : String(e)
+    logger.warn('Extend exception', { cluster: clusterName.value, error: extendError.value })
+  } finally {
+    extending.value = false
+  }
+}
+
+function handleExtend() {
+  if (!clusterName.value) return
+
+  confirm.require({
+    message: `Extend the TTL for cluster "${clusterName.value}" to ${ttl.value} minutes?`,
+    header: 'Extend Cluster TTL',
+    icon: 'pi pi-clock',
+    rejectLabel: 'Cancel',
+    acceptLabel: 'Extend',
+    rejectClass: 'p-button-secondary',
+    accept: () => {
+      void executeExtend()
+    }
+  })
 }
 </script>
 
@@ -189,16 +274,35 @@ function handleDeploy() {
     </div>
     <div class="sr-deploy-field">
       <label for="deploy-ttl" class="sr-deploy-label">ttl (minutes)</label>
-      <InputNumber
-        id="deploy-ttl"
-        v-model="ttl"
-        :min="15"
-        :max="maxTTL"
-        showButtons
-        class="sr-deploy-input-number"
-      />
+      <div class="sr-ttl-group">
+        <InputNumber
+          id="deploy-ttl"
+          v-model="ttl"
+          :min="15"
+          :max="maxTTL"
+          showButtons
+          class="sr-deploy-ttl-input"
+        />
+        <Button
+          label="Update"
+          icon="pi pi-refresh"
+          size="small"
+          :loading="extending"
+          :disabled="!clusterName"
+          class="sr-deploy-ttl-btn"
+          @click="handleExtend"
+        />
+      </div>
     </div>
     <div class="sr-deploy-actions">
+      <Button
+        label="Destroy"
+        icon="pi pi-trash"
+        severity="danger"
+        :loading="destroying"
+        :disabled="!clusterName || stackStatusStore.isClusterUndestroyable(clusterName)"
+        @click="handleDestroy"
+      />
       <Button
         label="Deploy"
         icon="pi pi-cloud-upload"
@@ -211,12 +315,15 @@ function handleDeploy() {
       <i class="pi pi-exclamation-triangle"></i>
       <span>{{ deployError }}</span>
     </div>
-    <SrClusterStackStatus
-      v-if="deployedCluster"
-      :cluster="deployedCluster"
-      :autoRefresh="true"
-      :progressRefreshInterval="5000"
-    />
+    <div v-if="destroyError" class="sr-deploy-error">
+      <i class="pi pi-exclamation-triangle"></i>
+      <span>{{ destroyError }}</span>
+    </div>
+    <div v-if="extendError" class="sr-deploy-error">
+      <i class="pi pi-exclamation-triangle"></i>
+      <span>{{ extendError }}</span>
+    </div>
+    <SrClusterStackStatus v-if="clusterName" :cluster="clusterName" />
   </div>
 </template>
 
@@ -252,9 +359,25 @@ function handleDeploy() {
   width: 15em;
 }
 
+.sr-ttl-group {
+  display: flex;
+  gap: 0.25rem;
+  width: 15em;
+}
+
+.sr-deploy-ttl-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.sr-deploy-ttl-btn {
+  flex-shrink: 0;
+}
+
 .sr-deploy-actions {
   display: flex;
   justify-content: flex-end;
+  gap: 0.5rem;
   margin-top: 0.5rem;
 }
 
