@@ -24,14 +24,25 @@ export interface CurrentNodesResult {
  * Used to determine if a cluster can be selected for deployment.
  */
 export type StackStatus =
-  | 'NOT_FOUND' // Stack doesn't exist - can deploy
-  | 'CREATE_IN_PROGRESS' // Starting - disable
-  | 'CREATE_COMPLETE' // Up - disable
-  | 'UPDATE_IN_PROGRESS' // Updating - disable
-  | 'DELETE_IN_PROGRESS' // Deleting - disable
-  | 'DELETE_COMPLETE' // Deleted - can deploy
-  | 'FAILED' // Failed state - can deploy (retry)
-  | 'UNKNOWN' // Error fetching - allow with warning
+  | 'CREATE_IN_PROGRESS'
+  | 'CREATE_COMPLETE'
+  | 'CREATE_FAILED'
+  | 'UPDATE_IN_PROGRESS'
+  | 'UPDATE_COMPLETE'
+  | 'UPDATE_COMPLETE_CLEANUP_IN_PROGRESS'
+  | 'UPDATE_FAILED'
+  | 'UPDATE_ROLLBACK_IN_PROGRESS'
+  | 'UPDATE_ROLLBACK_COMPLETE'
+  | 'UPDATE_ROLLBACK_FAILED'
+  | 'DELETE_IN_PROGRESS'
+  | 'DELETE_COMPLETE'
+  | 'DELETE_FAILED'
+  | 'ROLLBACK_IN_PROGRESS'
+  | 'ROLLBACK_COMPLETE'
+  | 'ROLLBACK_FAILED'
+  | 'NOT_FOUND'
+  | 'UNKNOWN'
+  | 'FAILED'
 
 export interface StackStatusResult {
   success: boolean

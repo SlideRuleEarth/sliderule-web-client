@@ -9,13 +9,15 @@ import {
 type CanConnectStatus = 'unknown' | 'yes' | 'no'
 
 /**
- * Status values that indicate a cluster should be disabled for selection.
+ * Status values that indicate a cluster cannot be deployed to.
  * These states mean the cluster is either starting, running, or in transition.
  */
-const DISABLED_STACK_STATUSES: StackStatus[] = [
+const UNDEPLOYABLE_STACK_STATUSES: StackStatus[] = [
   'CREATE_IN_PROGRESS',
   'CREATE_COMPLETE',
   'UPDATE_IN_PROGRESS',
+  'UPDATE_ROLLBACK_IN_PROGRESS',
+  'ROLLBACK_IN_PROGRESS',
   'DELETE_IN_PROGRESS'
 ]
 
@@ -65,7 +67,7 @@ export const useDeployConfigStore = defineStore(
     function isClusterDisabled(cluster: string): boolean {
       const status = clusterStackStatus.value[cluster]
       if (!status) return false // Unknown status = allow selection
-      return DISABLED_STACK_STATUSES.includes(status)
+      return UNDEPLOYABLE_STACK_STATUSES.includes(status)
     }
 
     /**
@@ -77,13 +79,30 @@ export const useDeployConfigStore = defineStore(
         case 'CREATE_IN_PROGRESS':
           return 'Starting...'
         case 'CREATE_COMPLETE':
+        case 'UPDATE_COMPLETE':
           return 'Running'
+        case 'CREATE_FAILED':
+          return 'Create Failed'
         case 'UPDATE_IN_PROGRESS':
+        case 'UPDATE_COMPLETE_CLEANUP_IN_PROGRESS':
           return 'Updating...'
+        case 'UPDATE_FAILED':
+          return 'Update Failed'
+        case 'UPDATE_ROLLBACK_IN_PROGRESS':
+        case 'ROLLBACK_IN_PROGRESS':
+          return 'Rolling Back...'
+        case 'UPDATE_ROLLBACK_COMPLETE':
+        case 'ROLLBACK_COMPLETE':
+          return 'Rolled Back'
+        case 'UPDATE_ROLLBACK_FAILED':
+        case 'ROLLBACK_FAILED':
+          return 'Rollback Failed'
         case 'DELETE_IN_PROGRESS':
           return 'Stopping...'
         case 'DELETE_COMPLETE':
           return 'Stopped'
+        case 'DELETE_FAILED':
+          return 'Delete Failed'
         case 'NOT_FOUND':
           return 'Not deployed'
         case 'FAILED':
