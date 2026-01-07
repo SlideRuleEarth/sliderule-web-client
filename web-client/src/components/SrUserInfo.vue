@@ -10,7 +10,6 @@ const username = computed(() => githubAuthStore.username)
 const org = computed(() => githubAuthStore.org)
 const isOrgMember = computed(() => githubAuthStore.isOrgMember)
 const isOrgOwner = computed(() => githubAuthStore.isOrgOwner)
-const teams = computed(() => githubAuthStore.teams)
 const orgRoles = computed(() => githubAuthStore.orgRoles)
 const knownClusters = computed(() => githubAuthStore.knownClusters)
 const deployableClusters = computed(() => githubAuthStore.deployableClusters)
@@ -46,13 +45,6 @@ const isAuthenticated = computed(() => githubAuthStore.authStatus === 'authentic
           <tr>
             <td class="sr-user-label">Org Owner:</td>
             <td class="sr-user-value">{{ isOrgOwner ? 'Yes' : 'No' }}</td>
-          </tr>
-          <tr>
-            <td class="sr-user-label">Teams:</td>
-            <td class="sr-user-value">
-              <span v-if="teams.length === 0" class="sr-no-value">None</span>
-              <span v-else>{{ teams.join(', ') }}</span>
-            </td>
           </tr>
           <tr>
             <td class="sr-user-label">Org Roles:</td>

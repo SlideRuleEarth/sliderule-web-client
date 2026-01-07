@@ -95,10 +95,12 @@ async function provisionerFetch<T>(
 
     // Provide user-friendly error messages while preserving raw error for tooltips
     let userMessage: string
+    const clusterName = body.cluster as string | undefined
     if (rawError.toLowerCase().includes('failed to fetch')) {
       userMessage = 'Unable to connect to server. Please check your network connection.'
       const toastStore = useSrToastStore()
-      toastStore.warn('Network Error', userMessage)
+      const toastTitle = clusterName ? `Network Error (${clusterName})` : 'Network Error'
+      toastStore.warn(toastTitle, userMessage)
     } else if (rawError.includes('HTTP error: 401')) {
       userMessage = 'Authentication failed. Please log in again.'
     } else if (rawError.includes('HTTP error: 403')) {

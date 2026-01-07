@@ -54,14 +54,6 @@ const clusterSuggestions = computed(() => {
     }
   }
 
-  if (githubAuthStore.teams?.length > 0) {
-    for (const team of githubAuthStore.teams) {
-      if (!suggestions.includes(team)) {
-        suggestions.push(team)
-      }
-    }
-  }
-
   return suggestions.sort()
 })
 

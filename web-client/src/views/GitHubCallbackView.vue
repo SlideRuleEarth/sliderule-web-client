@@ -28,8 +28,6 @@ function processCallback() {
     username: route.query.username as string | undefined,
     isOrgMember: route.query.isOrgMember as string | undefined,
     isOrgOwner: route.query.isOrgOwner as string | undefined,
-    teams: route.query.teams as string | undefined,
-    teamRoles: route.query.teamRoles as string | undefined,
     orgRoles: route.query.orgRoles as string | undefined,
     knownClusters: route.query.knownClusters as string | undefined,
     deployableClusters: route.query.deployableClusters as string | undefined,

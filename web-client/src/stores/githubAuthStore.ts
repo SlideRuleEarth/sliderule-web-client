@@ -15,8 +15,6 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
     isOrgMember: false,
     isOrgOwner: false,
     username: null as string | null,
-    teams: [] as string[],
-    teamRoles: {} as Record<string, string>,
     orgRoles: [] as string[],
     knownSubdomains: [] as string[],
     knownClusters: [] as string[],
@@ -42,8 +40,6 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
       'isOrgMember',
       'isOrgOwner',
       'username',
-      'teams',
-      'teamRoles',
       'orgRoles',
       'knownSubdomains',
       'knownClusters',
@@ -98,16 +94,6 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
       if (!this.hasValidAuth) return null
       return this.token
     },
-
-    /**
-     * Get the user's team memberships
-     */
-    userTeams: (state) => state.teams,
-
-    /**
-     * Check if user belongs to a specific team
-     */
-    isInTeam: (state) => (teamSlug: string) => state.teams.includes(teamSlug),
 
     /**
      * Check if this is a known cluster and should be shown in the UI
@@ -197,8 +183,6 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
       username?: string
       isOrgMember?: string
       isOrgOwner?: string
-      teams?: string
-      teamRoles?: string
       orgRoles?: string
       knownClusters?: string
       deployableClusters?: string
@@ -233,8 +217,6 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
       this.username = params.username || null
       this.isOrgMember = params.isOrgMember === 'true'
       this.isOrgOwner = params.isOrgOwner === 'true'
-      this.teams = params.teams ? params.teams.split(',').filter((t) => t) : []
-      this.teamRoles = params.teamRoles ? JSON.parse(params.teamRoles) : {}
       this.orgRoles = params.orgRoles ? params.orgRoles.split(',').filter((r) => r) : []
       // Store all subdomains (includes 'sliderule')
       this.knownSubdomains = params.knownClusters
@@ -265,8 +247,6 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
         username: this.username,
         isOrgMember: this.isOrgMember,
         isOrgOwner: this.isOrgOwner,
-        teams: this.teams,
-        teamRoles: this.teamRoles,
         orgRoles: this.orgRoles,
         knownClusters: this.knownClusters,
         deployableClusters: this.deployableClusters,
@@ -286,8 +266,6 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
       this.isOrgMember = false
       this.isOrgOwner = false
       this.username = null
-      this.teams = []
-      this.teamRoles = {}
       this.orgRoles = []
       this.knownSubdomains = []
       this.knownClusters = []
