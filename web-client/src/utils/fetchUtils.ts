@@ -199,6 +199,7 @@ export interface DeployClusterResponse {
   status: boolean
   stack_name?: string
   response?: Record<string, unknown>
+  exception?: string
 }
 
 export interface DeployClusterResult {
@@ -374,6 +375,7 @@ export interface DestroyClusterResponse {
   status: boolean
   stack_name?: string
   response?: Record<string, unknown>
+  exception?: string
 }
 
 /**
@@ -409,6 +411,7 @@ export interface ExtendClusterResponse {
   status: boolean
   stack_name?: string
   response?: Record<string, unknown>
+  exception?: string
 }
 
 /**

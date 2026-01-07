@@ -115,7 +115,9 @@ async function executeDeploy() {
     if (result.success && result.data?.status) {
       stackStatusStore.enableAutoRefresh(clusterName.value)
     } else {
-      deployError.value = result.error ?? 'Deploy failed'
+      // Extract error from response exception field if available
+      const exception = result.data?.exception
+      deployError.value = exception ?? result.error ?? 'Deploy failed'
       deployErrorDetails.value = result.errorDetails ?? null
       logger.warn('Deploy failed', { cluster: clusterName.value, error: deployError.value })
     }
@@ -159,7 +161,9 @@ async function executeDestroy() {
     if (result.success && result.data?.status) {
       stackStatusStore.enableAutoRefresh(clusterName.value)
     } else {
-      destroyError.value = result.error ?? 'Destroy failed'
+      // Extract error from response exception field if available
+      const exception = result.data?.exception
+      destroyError.value = exception ?? result.error ?? 'Destroy failed'
       destroyErrorDetails.value = result.errorDetails ?? null
     }
   } catch (e) {
@@ -202,7 +206,9 @@ async function executeExtend() {
       stackStatusStore.enableAutoRefresh(clusterName.value)
       logger.info('Cluster TTL extended', { cluster: clusterName.value, ttl: ttl.value })
     } else {
-      extendError.value = result.error ?? 'Extend failed'
+      // Extract error from response exception field if available
+      const exception = result.data?.exception
+      extendError.value = exception ?? result.error ?? 'Extend failed'
       extendErrorDetails.value = result.errorDetails ?? null
       logger.warn('Extend failed', { cluster: clusterName.value, error: extendError.value })
     }
