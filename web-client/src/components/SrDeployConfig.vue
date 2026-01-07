@@ -92,14 +92,17 @@ const isDomainDisabled = computed(() => !githubAuthStore.isOwner)
 // Deploy state
 const deploying = ref(false)
 const deployError = ref<string | null>(null)
+const deployErrorDetails = ref<string | null>(null)
 
 // Destroy state
 const destroying = ref(false)
 const destroyError = ref<string | null>(null)
+const destroyErrorDetails = ref<string | null>(null)
 
 async function executeDeploy() {
   deploying.value = true
   deployError.value = null
+  deployErrorDetails.value = null
 
   try {
     const result = await deployCluster({
@@ -113,6 +116,7 @@ async function executeDeploy() {
       stackStatusStore.enableAutoRefresh(clusterName.value)
     } else {
       deployError.value = result.error ?? 'Deploy failed'
+      deployErrorDetails.value = result.errorDetails ?? null
       logger.warn('Deploy failed', { cluster: clusterName.value, error: deployError.value })
     }
   } catch (e) {
@@ -148,6 +152,7 @@ function handleDeploy() {
 async function executeDestroy() {
   destroying.value = true
   destroyError.value = null
+  destroyErrorDetails.value = null
 
   try {
     const result = await destroyCluster(clusterName.value)
@@ -155,6 +160,7 @@ async function executeDestroy() {
       stackStatusStore.enableAutoRefresh(clusterName.value)
     } else {
       destroyError.value = result.error ?? 'Destroy failed'
+      destroyErrorDetails.value = result.errorDetails ?? null
     }
   } catch (e) {
     destroyError.value = e instanceof Error ? e.message : String(e)
@@ -183,10 +189,12 @@ function handleDestroy() {
 // Extend state
 const extending = ref(false)
 const extendError = ref<string | null>(null)
+const extendErrorDetails = ref<string | null>(null)
 
 async function executeExtend() {
   extending.value = true
   extendError.value = null
+  extendErrorDetails.value = null
 
   try {
     const result = await extendCluster(clusterName.value, ttl.value)
@@ -195,6 +203,7 @@ async function executeExtend() {
       logger.info('Cluster TTL extended', { cluster: clusterName.value, ttl: ttl.value })
     } else {
       extendError.value = result.error ?? 'Extend failed'
+      extendErrorDetails.value = result.errorDetails ?? null
       logger.warn('Extend failed', { cluster: clusterName.value, error: extendError.value })
     }
   } catch (e) {
@@ -311,15 +320,15 @@ function handleExtend() {
         @click="handleDeploy"
       />
     </div>
-    <div v-if="deployError" class="sr-deploy-error">
+    <div v-if="deployError" class="sr-deploy-error" v-tooltip.bottom="deployErrorDetails">
       <i class="pi pi-exclamation-triangle"></i>
       <span>{{ deployError }}</span>
     </div>
-    <div v-if="destroyError" class="sr-deploy-error">
+    <div v-if="destroyError" class="sr-deploy-error" v-tooltip.bottom="destroyErrorDetails">
       <i class="pi pi-exclamation-triangle"></i>
       <span>{{ destroyError }}</span>
     </div>
-    <div v-if="extendError" class="sr-deploy-error">
+    <div v-if="extendError" class="sr-deploy-error" v-tooltip.bottom="extendErrorDetails">
       <i class="pi pi-exclamation-triangle"></i>
       <span>{{ extendError }}</span>
     </div>

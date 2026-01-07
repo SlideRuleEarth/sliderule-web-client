@@ -2,6 +2,7 @@ import { db } from '@/db/SlideRuleDb'
 import { useSysConfigStore } from '@/stores/sysConfigStore'
 import { useLegacyJwtStore } from '@/stores/SrLegacyJwtStore'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
+import { useSrToastStore } from '@/stores/srToastStore'
 import { Buffer } from 'buffer/'
 import { createLogger } from '@/utils/logger'
 
@@ -26,6 +27,7 @@ interface ProvisionerFetchResult<T> {
   success: boolean
   data: T | null
   error?: string
+  errorDetails?: string // Raw error for tooltips
 }
 
 /**
@@ -88,12 +90,32 @@ async function provisionerFetch<T>(
       data
     }
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error)
-    logger.info(`Error ${context}`, { ...body, error: errorMessage })
+    const rawError = error instanceof Error ? error.message : String(error)
+    logger.info(`Error ${context}`, { ...body, error: rawError })
+
+    // Provide user-friendly error messages while preserving raw error for tooltips
+    let userMessage: string
+    if (rawError.toLowerCase().includes('failed to fetch')) {
+      userMessage = 'Unable to connect to server. Please check your network connection.'
+      const toastStore = useSrToastStore()
+      toastStore.warn('Network Error', userMessage)
+    } else if (rawError.includes('HTTP error: 401')) {
+      userMessage = 'Authentication failed. Please log in again.'
+    } else if (rawError.includes('HTTP error: 403')) {
+      userMessage = 'Access denied. You may not have permission for this operation.'
+    } else if (rawError.includes('HTTP error: 404')) {
+      userMessage = 'Resource not found.'
+    } else if (rawError.includes('HTTP error: 5')) {
+      userMessage = 'Server error. Please try again later.'
+    } else {
+      userMessage = rawError
+    }
+
     return {
       success: false,
       data: null,
-      error: errorMessage
+      error: userMessage,
+      errorDetails: rawError !== userMessage ? rawError : undefined
     }
   }
 }
@@ -165,6 +187,7 @@ export interface ClusterStatusResult {
   success: boolean
   data: ClusterStatusResponse | null
   error?: string
+  errorDetails?: string
 }
 
 /**
@@ -180,6 +203,7 @@ export interface DeployClusterResult {
   success: boolean
   data: DeployClusterResponse | null
   error?: string
+  errorDetails?: string
 }
 
 export interface DeployClusterOptions {
@@ -357,6 +381,7 @@ export interface DestroyClusterResult {
   success: boolean
   data: DestroyClusterResponse | null
   error?: string
+  errorDetails?: string
 }
 
 /**
@@ -391,6 +416,7 @@ export interface ExtendClusterResult {
   success: boolean
   data: ExtendClusterResponse | null
   error?: string
+  errorDetails?: string
 }
 
 /**
@@ -438,6 +464,7 @@ export interface ClusterEventsResult {
   success: boolean
   data: ClusterEventsResponse | null
   error?: string
+  errorDetails?: string
 }
 
 /**
