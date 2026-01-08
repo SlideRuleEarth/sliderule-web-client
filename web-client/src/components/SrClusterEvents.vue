@@ -7,9 +7,10 @@ import AutoComplete from 'primevue/autocomplete'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Sidebar from 'primevue/sidebar'
-import { fetchClusterEvents, type StackEvent } from '@/utils/fetchUtils'
+import { type StackEvent } from '@/utils/fetchUtils'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 import { useSysConfigStore } from '@/stores/sysConfigStore'
+import { useClusterEventsStore } from '@/stores/clusterEventsStore'
 import SrJsonDisplayDialog from '@/components/SrJsonDisplayDialog.vue'
 import { createLogger } from '@/utils/logger'
 
@@ -35,6 +36,7 @@ const emit = defineEmits<{
 
 const githubAuthStore = useGitHubAuthStore()
 const sysConfigStore = useSysConfigStore()
+const clusterEventsStore = useClusterEventsStore()
 
 // Authorization checks
 const canAccessMemberFeatures = computed(() => githubAuthStore.canAccessMemberFeatures)
@@ -78,6 +80,8 @@ function searchClusters(event: { query: string }) {
 const loading = ref(false)
 const error = ref<string | null>(null)
 const events = ref<StackEvent[]>([])
+const showingCachedData = ref(false)
+const cachedDataTimestamp = ref<Date | null>(null)
 const autoRefreshEnabled = ref(props.autoRefresh)
 let refreshTimer: number | null = null
 
@@ -195,36 +199,35 @@ async function refresh() {
 
   loading.value = true
   error.value = null
+  showingCachedData.value = false
 
   try {
     logger.info('Fetching cluster events', { cluster: effectiveCluster.value })
-    const result = await fetchClusterEvents(effectiveCluster.value)
-    logger.info('fetchClusterEvents result', { result })
+    const result = await clusterEventsStore.fetchEvents(effectiveCluster.value, true)
+    logger.info('fetchEvents result', { result })
 
-    if (result.success && result.data) {
-      if (result.data.status === false) {
-        // API returned an error (e.g., stack doesn't exist)
-        error.value = result.data.exception ?? result.data.error ?? 'Failed to fetch events'
-        emit('error', error.value)
-        logger.error('Cluster events API error', {
-          cluster: effectiveCluster.value,
-          exception: result.data.exception
-        })
-      } else {
-        events.value = result.data.response ?? []
-        emit('events-updated', events.value)
-        logger.info('Cluster events fetched', {
-          cluster: effectiveCluster.value,
-          count: events.value.length
-        })
-      }
-    } else {
-      error.value = result.error ?? 'Failed to fetch events'
-      emit('error', error.value)
-      logger.error('Failed to fetch cluster events', {
+    events.value = result.events
+    error.value = result.error
+    showingCachedData.value = result.fromCache
+
+    if (result.fromCache) {
+      // Get the cached timestamp
+      const cached = clusterEventsStore.getCachedEvents(effectiveCluster.value)
+      cachedDataTimestamp.value = cached?.fetchedAt ?? null
+      logger.info('Showing cached events', {
         cluster: effectiveCluster.value,
-        error: result.error
+        count: events.value.length,
+        cachedAt: cachedDataTimestamp.value
       })
+    } else {
+      cachedDataTimestamp.value = null
+    }
+
+    if (result.events.length > 0) {
+      emit('events-updated', result.events)
+    }
+    if (result.error) {
+      emit('error', result.error)
     }
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
@@ -355,6 +358,16 @@ defineExpose({ refresh })
     <div v-else-if="error && events.length === 0" class="sr-cluster-events-error">
       <i class="pi pi-exclamation-triangle"></i>
       <span>{{ error }}</span>
+    </div>
+
+    <!-- Warning banner when showing cached data due to error -->
+    <div v-if="showingCachedData && error" class="sr-cached-data-banner">
+      <i class="pi pi-history"></i>
+      <span>
+        Showing cached data from
+        {{ cachedDataTimestamp ? formatTimestamp(cachedDataTimestamp.toISOString()) : 'earlier' }}
+        <span class="sr-cached-error">({{ error }})</span>
+      </span>
     </div>
 
     <div v-else-if="events.length === 0 && effectiveCluster" class="sr-cluster-events-empty">
@@ -594,6 +607,27 @@ defineExpose({ refresh })
 
 .sr-cluster-events-error {
   color: var(--p-red-500);
+}
+
+.sr-cached-data-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: var(--p-yellow-900);
+  border: 1px solid var(--p-yellow-700);
+  border-radius: 4px;
+  font-size: 0.8rem;
+  color: var(--p-yellow-200);
+}
+
+.sr-cached-data-banner i {
+  color: var(--p-yellow-400);
+}
+
+.sr-cached-error {
+  opacity: 0.8;
+  font-style: italic;
 }
 
 .sr-cluster-events-empty {

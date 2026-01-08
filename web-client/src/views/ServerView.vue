@@ -12,6 +12,7 @@ import SrSysConfig from '@/components/SrSysConfig.vue'
 import SrDeployConfig from '@/components/SrDeployConfig.vue'
 import SrClusterStackStatus from '@/components/SrClusterStackStatus.vue'
 import SrClusterEvents from '@/components/SrClusterEvents.vue'
+import SrReport from '@/components/SrReport.vue'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 
 const githubAuthStore = useGitHubAuthStore()
@@ -71,10 +72,11 @@ const statusMessage = computed(() => {
         <template #content>
           <Tabs v-model:value="activeTab">
             <TabList>
-              <Tab value="sysconfig">Current Connection</Tab>
+              <Tab value="sysconfig">Connection</Tab>
               <Tab v-if="canAccessMemberFeatures" value="deployconfig">Deploy</Tab>
-              <Tab v-if="canAccessMemberFeatures" value="clusterstatus">Cluster Status</Tab>
+              <Tab v-if="canAccessMemberFeatures" value="clusterstatus">Status</Tab>
               <Tab v-if="canAccessMemberFeatures" value="clusterevents">Events</Tab>
+              <Tab v-if="canAccessMemberFeatures" value="report">Report</Tab>
             </TabList>
             <TabPanels>
               <TabPanel value="sysconfig">
@@ -88,6 +90,9 @@ const statusMessage = computed(() => {
               </TabPanel>
               <TabPanel v-if="canAccessMemberFeatures" value="clusterevents">
                 <SrClusterEvents />
+              </TabPanel>
+              <TabPanel v-if="canAccessMemberFeatures" value="report">
+                <SrReport />
               </TabPanel>
             </TabPanels>
           </Tabs>

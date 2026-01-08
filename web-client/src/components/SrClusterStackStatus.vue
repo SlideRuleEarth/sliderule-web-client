@@ -4,6 +4,7 @@ import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
 import ProgressSpinner from 'primevue/progressspinner'
 import AutoComplete from 'primevue/autocomplete'
+import Panel from 'primevue/panel'
 import { type ClusterStatusResponse } from '@/utils/fetchUtils'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 import { useSysConfigStore } from '@/stores/sysConfigStore'
@@ -133,9 +134,10 @@ function getStackStatusClass(data: ClusterStatusResponse | null): string {
 }
 
 function clusterExists(data: ClusterStatusResponse | null): boolean {
+  logger.debug('Checking if cluster exists', { data })
   if (!data) return false
-  // Cluster exists if we get a 200 response and exception is not "Not found"
-  return data.exception !== 'Not found'
+  // Cluster exists if StackStatus is not NOT_FOUND (uses normalized response from store)
+  return data.response?.StackStatus !== 'NOT_FOUND'
 }
 
 function isClusterInProgress(data: ClusterStatusResponse | null): boolean {
@@ -178,6 +180,15 @@ function getCreationTime(data: ClusterStatusResponse | null): string {
     return new Date(val).toLocaleString()
   } catch {
     return val
+  }
+}
+
+function getResponseDetails(data: ClusterStatusResponse | null): string {
+  if (!data?.response) return '{}'
+  try {
+    return JSON.stringify(data.response, null, 2)
+  } catch {
+    return '{}'
   }
 }
 
@@ -426,6 +437,10 @@ defineExpose({ refresh })
           <label class="sr-server-status-label">Created</label>
           <span class="sr-server-status-value">{{ getCreationTime(statusData) }}</span>
         </div>
+
+        <Panel header="Details" toggleable collapsed class="sr-details-panel">
+          <pre class="sr-json-details">{{ getResponseDetails(statusData) }}</pre>
+        </Panel>
       </template>
     </template>
   </div>
@@ -568,5 +583,32 @@ defineExpose({ refresh })
 
 .sr-status-unknown {
   color: var(--p-text-muted-color);
+}
+
+.sr-details-panel {
+  margin-top: 0.5rem;
+}
+
+.sr-details-panel :deep(.p-panel-header) {
+  padding: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.sr-details-panel :deep(.p-panel-content) {
+  padding: 0.5rem;
+}
+
+.sr-json-details {
+  margin: 0;
+  padding: 0.5rem;
+  background-color: var(--p-surface-900);
+  color: var(--p-text-color);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  overflow-x: auto;
+  max-height: 300px;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 </style>

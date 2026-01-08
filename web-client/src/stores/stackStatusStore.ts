@@ -129,12 +129,12 @@ export const useStackStatusStore = defineStore('stackStatus', () => {
 
     try {
       const result = await fetchClusterStatus(cluster)
-
+      logger.debug('Cluster status fetch result', { cluster, result })
       if (result.success && result.data) {
         if (result.data.status === false) {
           // Check if stack simply doesn't exist (not a real error)
           const exception = result.data.exception ?? ''
-          if (exception.includes('does not exist')) {
+          if (exception.includes('Not found')) {
             // Stack not found - create synthetic NOT_FOUND response
             const notFoundResponse: ClusterStatusResponse = {
               status: true,

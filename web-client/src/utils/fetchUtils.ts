@@ -513,6 +513,39 @@ export async function fetchClusterEvents(cluster: string): Promise<ClusterEvents
 }
 
 /**
+ * Response from the provisioner report API.
+ */
+export interface ProvisionerReportResponse {
+  status: boolean
+  [key: string]: unknown
+}
+
+/**
+ * Result from fetchProvisionerReport function.
+ */
+export interface ProvisionerReportResult {
+  success: boolean
+  data: ProvisionerReportResponse | null
+  error?: string
+  errorDetails?: string
+}
+
+/**
+ * Fetch report from the provisioner API.
+ * Requires GitHub OAuth authentication.
+ * Includes a single retry with backoff for 401 errors (handles JWKS latency).
+ *
+ * @returns Report result with response data
+ */
+export async function fetchProvisionerReport(): Promise<ProvisionerReportResult> {
+  return provisionerFetch<ProvisionerReportResponse>({
+    url: 'https://provisioner.slideruleearth.io/report',
+    body: {},
+    context: 'fetching provisioner report'
+  })
+}
+
+/**
  * Authenticated fetch wrapper with automatic 401 retry.
  * Authentication priority:
  * 1. New GitHub OAuth JWT (if available and valid)
