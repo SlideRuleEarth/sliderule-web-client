@@ -300,9 +300,7 @@ watch(
 
 onMounted(() => {
   void refresh()
-  if (autoRefreshEnabled.value) {
-    startAutoRefresh()
-  }
+  toggleAutoRefresh(false) // Ensure auto-refresh is disabled initially
 })
 
 onUnmounted(() => {
