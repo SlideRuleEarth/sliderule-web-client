@@ -462,12 +462,16 @@ export async function extendCluster(cluster: string, ttl: number): Promise<Exten
  * CloudFormation stack event from the events API.
  */
 export interface StackEvent {
-  Timestamp: string
+  StackId: string
+  EventId: string
+  StackName: string
   LogicalResourceId: string
+  PhysicalResourceId: string
+  ResourceType: string
+  Timestamp: string
   ResourceStatus: string
   ResourceStatusReason?: string
-  ResourceType?: string
-  PhysicalResourceId?: string
+  ResourceProperties?: string // JSON string containing resource configuration
 }
 
 /**
@@ -475,7 +479,8 @@ export interface StackEvent {
  */
 export interface ClusterEventsResponse {
   status: boolean
-  events?: StackEvent[]
+  stack_name?: string
+  response?: StackEvent[] // API returns events in 'response' field
   error?: string
   exception?: string
 }

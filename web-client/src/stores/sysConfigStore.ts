@@ -24,6 +24,7 @@ export const useSysConfigStore = defineStore(
 
     function resetStatus() {
       version.value = 'v?.?.?'
+      cluster.value = 'unknown'
       current_nodes.value = -1
       canConnectVersion.value = 'unknown'
       canConnectNodes.value = 'unknown'
@@ -80,7 +81,7 @@ export const useSysConfigStore = defineStore(
   {
     persist: {
       storage: localStorage,
-      pick: ['domain', 'cluster', 'desired_nodes', 'time_to_live']
+      pick: ['domain', 'subdomain', 'cluster', 'desired_nodes', 'time_to_live']
     }
   }
 )
