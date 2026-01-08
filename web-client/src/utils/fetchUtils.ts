@@ -170,6 +170,7 @@ export interface StackStatusResult {
 export interface ClusterStatusResponse {
   status: boolean
   stack_name?: string
+  exception?: string
   response?: {
     StackId?: string
     StackName?: string
@@ -460,6 +461,7 @@ export interface ClusterEventsResponse {
   status: boolean
   events?: StackEvent[]
   error?: string
+  exception?: string
 }
 
 /**

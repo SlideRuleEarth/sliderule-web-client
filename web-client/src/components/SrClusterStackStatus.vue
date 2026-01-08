@@ -18,16 +18,16 @@ const props = defineProps<{
 
 // Human-readable status descriptions
 const STATUS_DESCRIPTIONS: Record<string, { label: string; description: string }> = {
-  CREATE_IN_PROGRESS: { label: 'Creating', description: 'Stack is being created...' },
-  CREATE_COMPLETE: { label: 'Running', description: 'Stack is up and running' },
-  CREATE_FAILED: { label: 'Create Failed', description: 'Stack creation failed' },
-  UPDATE_IN_PROGRESS: { label: 'Updating', description: 'Stack is being updated...' },
-  UPDATE_COMPLETE: { label: 'Running', description: 'Stack is up and running' },
+  CREATE_IN_PROGRESS: { label: 'Creating', description: 'Cluster is being created...' },
+  CREATE_COMPLETE: { label: 'Running', description: 'Cluster is up and running' },
+  CREATE_FAILED: { label: 'Create Failed', description: 'Cluster creation failed' },
+  UPDATE_IN_PROGRESS: { label: 'Updating', description: 'Cluster is being updated...' },
+  UPDATE_COMPLETE: { label: 'Running', description: 'Cluster is up and running' },
   UPDATE_COMPLETE_CLEANUP_IN_PROGRESS: {
     label: 'Updating',
     description: 'Cleaning up after update...'
   },
-  UPDATE_FAILED: { label: 'Update Failed', description: 'Stack update failed' },
+  UPDATE_FAILED: { label: 'Update Failed', description: 'Cluster update failed' },
   UPDATE_ROLLBACK_IN_PROGRESS: {
     label: 'Rolling Back',
     description: 'Update failed, rolling back...'
@@ -37,12 +37,12 @@ const STATUS_DESCRIPTIONS: Record<string, { label: string; description: string }
     description: 'Update rolled back successfully'
   },
   UPDATE_ROLLBACK_FAILED: { label: 'Rollback Failed', description: 'Update rollback failed' },
-  DELETE_IN_PROGRESS: { label: 'Deleting', description: 'Stack is being deleted...' },
-  DELETE_COMPLETE: { label: 'Deleted', description: 'Stack has been deleted' },
-  DELETE_FAILED: { label: 'Delete Failed', description: 'Stack deletion failed' },
-  ROLLBACK_IN_PROGRESS: { label: 'Rolling Back', description: 'Stack is rolling back...' },
-  ROLLBACK_COMPLETE: { label: 'Rolled Back', description: 'Stack rolled back' },
-  ROLLBACK_FAILED: { label: 'Rollback Failed', description: 'Stack rollback failed' }
+  DELETE_IN_PROGRESS: { label: 'Deleting', description: 'Cluster is being deleted...' },
+  DELETE_COMPLETE: { label: 'Deleted', description: 'Cluster has been deleted' },
+  DELETE_FAILED: { label: 'Delete Failed', description: 'Cluster deletion failed' },
+  ROLLBACK_IN_PROGRESS: { label: 'Rolling Back', description: 'Cluster is rolling back...' },
+  ROLLBACK_COMPLETE: { label: 'Rolled Back', description: 'Cluster rolled back' },
+  ROLLBACK_FAILED: { label: 'Rollback Failed', description: 'Cluster rollback failed' }
 }
 
 const emit = defineEmits<{
@@ -383,7 +383,7 @@ defineExpose({ refresh })
 
       <template v-if="clusterExists(statusData)">
         <div class="sr-server-status-field">
-          <label class="sr-server-status-label">Stack Status</label>
+          <label class="sr-server-status-label">Cluster Status</label>
           <div class="sr-server-status-value-wrapper">
             <ProgressSpinner
               v-if="isClusterInProgress(statusData)"

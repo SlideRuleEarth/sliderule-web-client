@@ -130,7 +130,14 @@ export const useStackStatusStore = defineStore('stackStatus', () => {
     try {
       const result = await fetchClusterStatus(cluster)
 
-      if (result.success) {
+      if (result.success && result.data) {
+        if (result.data.status === false) {
+          // API returned an error (e.g., permission denied)
+          errors.value[cluster] = result.data.exception ?? 'Failed to fetch status'
+          statusCache.value[cluster] = null
+          logger.warn('Cluster status API error', { cluster, exception: result.data.exception })
+          return null
+        }
         statusCache.value[cluster] = result.data
         logger.debug('Fetched cluster status', { cluster, status: getStackStatus(cluster) })
         return result.data

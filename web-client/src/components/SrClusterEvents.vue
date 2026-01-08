@@ -101,7 +101,14 @@ const controlsDisabled = computed(() => {
 })
 
 async function refresh() {
+  logger.info('refresh() called', {
+    effectiveCluster: effectiveCluster.value,
+    propsCluster: props.cluster,
+    selectedCluster: selectedCluster.value
+  })
+
   if (!effectiveCluster.value || effectiveCluster.value.trim() === '') {
+    logger.info('refresh() skipped - no cluster selected')
     return
   }
 
@@ -109,15 +116,27 @@ async function refresh() {
   error.value = null
 
   try {
+    logger.info('Fetching cluster events', { cluster: effectiveCluster.value })
     const result = await fetchClusterEvents(effectiveCluster.value)
+    logger.info('fetchClusterEvents result', { result })
 
     if (result.success && result.data) {
-      events.value = result.data.events ?? []
-      emit('events-updated', events.value)
-      logger.debug('Cluster events fetched', {
-        cluster: effectiveCluster.value,
-        count: events.value.length
-      })
+      if (result.data.status === false) {
+        // API returned an error (e.g., stack doesn't exist)
+        error.value = result.data.exception ?? result.data.error ?? 'Failed to fetch events'
+        emit('error', error.value)
+        logger.error('Cluster events API error', {
+          cluster: effectiveCluster.value,
+          exception: result.data.exception
+        })
+      } else {
+        events.value = result.data.events ?? []
+        emit('events-updated', events.value)
+        logger.info('Cluster events fetched', {
+          cluster: effectiveCluster.value,
+          count: events.value.length
+        })
+      }
     } else {
       error.value = result.error ?? 'Failed to fetch events'
       emit('error', error.value)
@@ -142,7 +161,7 @@ async function refresh() {
 function startAutoRefresh() {
   stopAutoRefresh()
   if (autoRefreshEnabled.value && props.refreshInterval > 0) {
-    logger.debug('Starting auto-refresh', { interval: props.refreshInterval })
+    logger.info('Starting auto-refresh', { interval: props.refreshInterval })
     refreshTimer = window.setInterval(() => {
       void refresh()
     }, props.refreshInterval)
@@ -182,6 +201,12 @@ watch(autoRefreshEnabled, (enabled) => {
 })
 
 onMounted(() => {
+  logger.info('SrClusterEvents mounted', {
+    propsCluster: props.cluster,
+    selectedCluster: selectedCluster.value,
+    effectiveCluster: effectiveCluster.value,
+    autoRefresh: props.autoRefresh
+  })
   void refresh()
   if (autoRefreshEnabled.value) {
     startAutoRefresh()
