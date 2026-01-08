@@ -133,7 +133,12 @@ function getStackStatusClass(data: ClusterStatusResponse | null): string {
 }
 
 function clusterExists(data: ClusterStatusResponse | null): boolean {
-  return data?.status === true
+  if (!data) return false
+  const stackStatus = data.response?.StackStatus
+  // Cluster exists if we have a response AND it's not in a "doesn't exist" state
+  return (
+    stackStatus !== undefined && stackStatus !== 'NOT_FOUND' && stackStatus !== 'DELETE_COMPLETE'
+  )
 }
 
 function isClusterInProgress(data: ClusterStatusResponse | null): boolean {
