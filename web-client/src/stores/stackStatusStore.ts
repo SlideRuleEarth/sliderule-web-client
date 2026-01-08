@@ -132,10 +132,26 @@ export const useStackStatusStore = defineStore('stackStatus', () => {
 
       if (result.success && result.data) {
         if (result.data.status === false) {
-          // API returned an error (e.g., permission denied)
-          errors.value[cluster] = result.data.exception ?? 'Failed to fetch status'
+          // Check if stack simply doesn't exist (not a real error)
+          const exception = result.data.exception ?? ''
+          if (exception.includes('does not exist')) {
+            // Stack not found - create synthetic NOT_FOUND response
+            const notFoundResponse: ClusterStatusResponse = {
+              status: true,
+              stack_name: cluster,
+              response: {
+                StackStatus: 'NOT_FOUND'
+              }
+            }
+            statusCache.value[cluster] = notFoundResponse
+            errors.value[cluster] = null
+            logger.debug('Cluster stack not found', { cluster })
+            return notFoundResponse
+          }
+          // API returned an actual error (e.g., permission denied)
+          errors.value[cluster] = exception || 'Failed to fetch status'
           statusCache.value[cluster] = null
-          logger.warn('Cluster status API error', { cluster, exception: result.data.exception })
+          logger.warn('Cluster status API error', { cluster, exception })
           return null
         }
         statusCache.value[cluster] = result.data
