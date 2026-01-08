@@ -102,7 +102,23 @@ async function provisionerFetch<T>(
       const toastTitle = clusterName ? `Network Error (${clusterName})` : 'Network Error'
       toastStore.warn(toastTitle, userMessage)
     } else if (rawError.includes('HTTP error: 401')) {
-      userMessage = 'Authentication failed. Please log in again.'
+      // Check if token is expired
+      const currentTimestamp = Math.floor(Date.now() / 1000)
+      const tokenExpiry = githubAuthStore.tokenExpiresAtTimestamp
+
+      if (tokenExpiry !== null && currentTimestamp >= tokenExpiry) {
+        // Token is expired - show specific message and logout
+        const toastStore = useSrToastStore()
+        toastStore.warn(
+          'Session Expired',
+          'Your authentication token has expired. Please log in again to continue.'
+        )
+        githubAuthStore.logout()
+        userMessage = 'Your session has expired. Please log in again.'
+      } else {
+        // Token not expired or no expiry info - generic auth failure
+        userMessage = 'Authentication failed. Please log in again.'
+      }
     } else if (rawError.includes('HTTP error: 403')) {
       userMessage = 'Access denied. You may not have permission for this operation.'
     } else if (rawError.includes('HTTP error: 404')) {
