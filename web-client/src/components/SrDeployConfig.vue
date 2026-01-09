@@ -126,6 +126,11 @@ const destroying = ref(false)
 const destroyError = ref<string | null>(null)
 const destroyErrorDetails = ref<string | null>(null)
 
+// Non-reactive locks to prevent double-clicks (synchronous check)
+let _deployLock = false
+let _destroyLock = false
+let _extendLock = false
+
 async function executeDeploy() {
   deploying.value = true
   deployError.value = null
@@ -158,7 +163,14 @@ async function executeDeploy() {
 }
 
 function handleDeploy() {
-  if (!clusterName.value || actionInProgress.value) return
+  // Synchronous lock check - prevents double-clicks even if Vue reactivity lags
+  if (_deployLock) return
+  _deployLock = true
+
+  if (!clusterName.value || actionInProgress.value) {
+    _deployLock = false
+    return
+  }
 
   // Set deploying immediately to prevent double-clicks
   deploying.value = true
@@ -174,14 +186,19 @@ function handleDeploy() {
       rejectClass: 'p-button-secondary',
       acceptClass: 'p-button-warning',
       accept: () => {
-        void executeDeploy()
+        void executeDeploy().finally(() => {
+          _deployLock = false
+        })
       },
       reject: () => {
         deploying.value = false
+        _deployLock = false
       }
     })
   } else {
-    void executeDeploy()
+    void executeDeploy().finally(() => {
+      _deployLock = false
+    })
   }
 }
 
@@ -209,7 +226,14 @@ async function executeDestroy() {
 }
 
 function handleDestroy() {
-  if (!clusterName.value || actionInProgress.value) return
+  // Synchronous lock check - prevents double-clicks even if Vue reactivity lags
+  if (_destroyLock) return
+  _destroyLock = true
+
+  if (!clusterName.value || actionInProgress.value) {
+    _destroyLock = false
+    return
+  }
 
   // Set destroying immediately to prevent double-clicks
   destroying.value = true
@@ -223,10 +247,13 @@ function handleDestroy() {
     rejectClass: 'p-button-secondary',
     acceptClass: 'p-button-danger',
     accept: () => {
-      void executeDestroy()
+      void executeDestroy().finally(() => {
+        _destroyLock = false
+      })
     },
     reject: () => {
       destroying.value = false
+      _destroyLock = false
     }
   })
 }
@@ -266,7 +293,14 @@ async function executeExtend() {
 }
 
 function handleExtend() {
-  if (!clusterName.value || actionInProgress.value) return
+  // Synchronous lock check - prevents double-clicks even if Vue reactivity lags
+  if (_extendLock) return
+  _extendLock = true
+
+  if (!clusterName.value || actionInProgress.value) {
+    _extendLock = false
+    return
+  }
 
   // Set extending immediately to prevent double-clicks
   extending.value = true
@@ -279,10 +313,13 @@ function handleExtend() {
     acceptLabel: 'Extend',
     rejectClass: 'p-button-secondary',
     accept: () => {
-      void executeExtend()
+      void executeExtend().finally(() => {
+        _extendLock = false
+      })
     },
     reject: () => {
       extending.value = false
+      _extendLock = false
     }
   })
 }
