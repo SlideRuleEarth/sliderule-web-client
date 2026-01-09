@@ -160,6 +160,9 @@ async function executeDeploy() {
 function handleDeploy() {
   if (!clusterName.value || actionInProgress.value) return
 
+  // Set deploying immediately to prevent double-clicks
+  deploying.value = true
+
   // Show confirmation for large clusters
   if (numberOfNodes.value > LARGE_CLUSTER_THRESHOLD) {
     confirm.require({
@@ -172,6 +175,9 @@ function handleDeploy() {
       acceptClass: 'p-button-warning',
       accept: () => {
         void executeDeploy()
+      },
+      reject: () => {
+        deploying.value = false
       }
     })
   } else {
@@ -205,6 +211,9 @@ async function executeDestroy() {
 function handleDestroy() {
   if (!clusterName.value || actionInProgress.value) return
 
+  // Set destroying immediately to prevent double-clicks
+  destroying.value = true
+
   confirm.require({
     message: `Are you sure you want to destroy the cluster "${clusterName.value}"? This action cannot be undone.`,
     header: 'Destroy Cluster',
@@ -215,6 +224,9 @@ function handleDestroy() {
     acceptClass: 'p-button-danger',
     accept: () => {
       void executeDestroy()
+    },
+    reject: () => {
+      destroying.value = false
     }
   })
 }
@@ -256,6 +268,9 @@ async function executeExtend() {
 function handleExtend() {
   if (!clusterName.value || actionInProgress.value) return
 
+  // Set extending immediately to prevent double-clicks
+  extending.value = true
+
   confirm.require({
     message: `Extend the TTL for cluster "${clusterName.value}" to ${ttl.value} minutes?`,
     header: 'Extend Cluster TTL',
@@ -265,6 +280,9 @@ function handleExtend() {
     rejectClass: 'p-button-secondary',
     accept: () => {
       void executeExtend()
+    },
+    reject: () => {
+      extending.value = false
     }
   })
 }
