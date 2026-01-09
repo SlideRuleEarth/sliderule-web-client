@@ -319,6 +319,8 @@ watch(
         cluster: effectiveCluster.value
       })
       autoRefreshEnabled.value = false
+      // Final refresh to ensure UI shows the deleted state
+      void refresh()
     }
   }
 )
