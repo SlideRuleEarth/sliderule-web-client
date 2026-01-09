@@ -64,253 +64,262 @@ const NOT_UPDATABLE_STACK_STATUSES: StackStatus[] = [
 // Default refresh interval for status polling (5 seconds)
 const DEFAULT_REFRESH_INTERVAL = 5000
 
-export const useStackStatusStore = defineStore('stackStatus', () => {
-  // State: cluster -> ClusterStatusResponse
-  const statusCache = ref<Record<string, ClusterStatusResponse | null>>({})
-  const loadingClusters = ref<Set<string>>(new Set())
-  const errors = ref<Record<string, string | null>>({})
+export const useStackStatusStore = defineStore(
+  'stackStatus',
+  () => {
+    // State: cluster -> ClusterStatusResponse
+    const statusCache = ref<Record<string, ClusterStatusResponse | null>>({})
+    const loadingClusters = ref<Set<string>>(new Set())
+    const errors = ref<Record<string, string | null>>({})
 
-  // Per-cluster auto-refresh settings (disabled by default, enabled after operations)
-  const autoRefreshClusters = ref<Record<string, boolean>>({})
-  const refreshIntervals = ref<Record<string, number>>({})
+    // Per-cluster auto-refresh settings (disabled by default, enabled after operations)
+    const autoRefreshClusters = ref<Record<string, boolean>>({})
+    const refreshIntervals = ref<Record<string, number>>({})
 
-  /**
-   * Enable auto-refresh for a cluster (called after successful deploy/destroy/extend).
-   */
-  function enableAutoRefresh(cluster: string, interval: number = DEFAULT_REFRESH_INTERVAL): void {
-    autoRefreshClusters.value[cluster] = true
-    refreshIntervals.value[cluster] = interval
-  }
-
-  /**
-   * Disable auto-refresh for a cluster.
-   */
-  function disableAutoRefresh(cluster: string): void {
-    autoRefreshClusters.value[cluster] = false
-  }
-
-  /**
-   * Check if auto-refresh is enabled for a cluster.
-   */
-  function isAutoRefreshEnabled(cluster: string): boolean {
-    return autoRefreshClusters.value[cluster] ?? false
-  }
-
-  /**
-   * Get the refresh interval for a cluster.
-   */
-  function getRefreshInterval(cluster: string): number {
-    return refreshIntervals.value[cluster] ?? DEFAULT_REFRESH_INTERVAL
-  }
-
-  /**
-   * Fetch status for a cluster, optionally forcing a refresh.
-   */
-  async function fetchStatus(
-    cluster: string,
-    force = false
-  ): Promise<ClusterStatusResponse | null> {
-    if (!cluster || cluster.trim() === '') {
-      return null
+    /**
+     * Enable auto-refresh for a cluster (called after successful deploy/destroy/extend).
+     */
+    function enableAutoRefresh(cluster: string, interval: number = DEFAULT_REFRESH_INTERVAL): void {
+      autoRefreshClusters.value[cluster] = true
+      refreshIntervals.value[cluster] = interval
     }
 
-    // Return cached if available and not forcing refresh
-    if (!force && statusCache.value[cluster] !== undefined) {
-      return statusCache.value[cluster]
+    /**
+     * Disable auto-refresh for a cluster.
+     */
+    function disableAutoRefresh(cluster: string): void {
+      autoRefreshClusters.value[cluster] = false
     }
 
-    // Skip if already loading
-    if (loadingClusters.value.has(cluster)) {
+    /**
+     * Check if auto-refresh is enabled for a cluster.
+     */
+    function isAutoRefreshEnabled(cluster: string): boolean {
+      return autoRefreshClusters.value[cluster] ?? false
+    }
+
+    /**
+     * Get the refresh interval for a cluster.
+     */
+    function getRefreshInterval(cluster: string): number {
+      return refreshIntervals.value[cluster] ?? DEFAULT_REFRESH_INTERVAL
+    }
+
+    /**
+     * Fetch status for a cluster, optionally forcing a refresh.
+     */
+    async function fetchStatus(
+      cluster: string,
+      force = false
+    ): Promise<ClusterStatusResponse | null> {
+      if (!cluster || cluster.trim() === '') {
+        return null
+      }
+
+      // Return cached if available and not forcing refresh
+      if (!force && statusCache.value[cluster] !== undefined) {
+        return statusCache.value[cluster]
+      }
+
+      // Skip if already loading
+      if (loadingClusters.value.has(cluster)) {
+        return statusCache.value[cluster] ?? null
+      }
+
+      loadingClusters.value.add(cluster)
+      errors.value[cluster] = null
+
+      try {
+        const result = await fetchClusterStatus(cluster)
+        logger.debug('Cluster status fetch result', { cluster, result })
+        if (result.success && result.data) {
+          if (result.data.status === false) {
+            // Check if stack simply doesn't exist (not a real error)
+            const exception = result.data.exception ?? ''
+            if (exception.includes('Not found')) {
+              // Stack not found - create synthetic NOT_FOUND response
+              const notFoundResponse: ClusterStatusResponse = {
+                status: true,
+                stack_name: cluster,
+                response: {
+                  StackStatus: 'NOT_FOUND'
+                }
+              }
+              statusCache.value[cluster] = notFoundResponse
+              errors.value[cluster] = null
+              logger.debug('Cluster stack not found', { cluster })
+              return notFoundResponse
+            }
+            // API returned an actual error (e.g., permission denied)
+            errors.value[cluster] = exception || 'Failed to fetch status'
+            statusCache.value[cluster] = null
+            logger.warn('Cluster status API error', { cluster, exception })
+            return null
+          }
+          statusCache.value[cluster] = result.data
+          logger.debug('Fetched cluster status', { cluster, status: getStackStatus(cluster) })
+          return result.data
+        } else {
+          errors.value[cluster] = result.error ?? 'Failed to fetch status'
+          statusCache.value[cluster] = null
+          logger.warn('Failed to fetch cluster status', { cluster, error: result.error })
+          return null
+        }
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e)
+        errors.value[cluster] = msg
+        statusCache.value[cluster] = null
+        logger.error('Exception fetching cluster status', { cluster, error: msg })
+        return null
+      } finally {
+        loadingClusters.value.delete(cluster)
+      }
+    }
+
+    /**
+     * Get cached status for a cluster.
+     */
+    function getStatus(cluster: string): ClusterStatusResponse | null {
       return statusCache.value[cluster] ?? null
     }
 
-    loadingClusters.value.add(cluster)
-    errors.value[cluster] = null
+    /**
+     * Get the StackStatus string from cached data.
+     */
+    function getStackStatus(cluster: string): StackStatus | null {
+      const data = statusCache.value[cluster]
+      if (!data) return null
+      const status = data.response?.StackStatus
+      return (status as StackStatus) ?? null
+    }
 
-    try {
-      const result = await fetchClusterStatus(cluster)
-      logger.debug('Cluster status fetch result', { cluster, result })
-      if (result.success && result.data) {
-        if (result.data.status === false) {
-          // Check if stack simply doesn't exist (not a real error)
-          const exception = result.data.exception ?? ''
-          if (exception.includes('Not found')) {
-            // Stack not found - create synthetic NOT_FOUND response
-            const notFoundResponse: ClusterStatusResponse = {
-              status: true,
-              stack_name: cluster,
-              response: {
-                StackStatus: 'NOT_FOUND'
-              }
-            }
-            statusCache.value[cluster] = notFoundResponse
-            errors.value[cluster] = null
-            logger.debug('Cluster stack not found', { cluster })
-            return notFoundResponse
-          }
-          // API returned an actual error (e.g., permission denied)
-          errors.value[cluster] = exception || 'Failed to fetch status'
-          statusCache.value[cluster] = null
-          logger.warn('Cluster status API error', { cluster, exception })
-          return null
-        }
-        statusCache.value[cluster] = result.data
-        logger.debug('Fetched cluster status', { cluster, status: getStackStatus(cluster) })
-        return result.data
-      } else {
-        errors.value[cluster] = result.error ?? 'Failed to fetch status'
-        statusCache.value[cluster] = null
-        logger.warn('Failed to fetch cluster status', { cluster, error: result.error })
-        return null
+    /**
+     * Check if a cluster is loading.
+     */
+    function isLoading(cluster: string): boolean {
+      return loadingClusters.value.has(cluster)
+    }
+
+    /**
+     * Get error for a cluster.
+     */
+    function getError(cluster: string): string | null {
+      return errors.value[cluster] ?? null
+    }
+
+    /**
+     * Check if a cluster cannot be deployed to based on its stack status.
+     */
+    function isClusterUndeployable(cluster: string): boolean {
+      const status = getStackStatus(cluster)
+      if (!status) return false // Unknown status = allow selection
+      return UNDEPLOYABLE_STACK_STATUSES.includes(status)
+    }
+
+    /**
+     * Check if a cluster cannot be destroyed based on its stack status.
+     */
+    function isClusterUndestroyable(cluster: string): boolean {
+      const status = getStackStatus(cluster)
+      if (!status) return true // Unknown status = don't allow destroy
+      return UNDESTROYABLE_STACK_STATUSES.includes(status)
+    }
+
+    /**
+     * Check if a cluster cannot be updated (e.g., TTL extension) based on its stack status.
+     */
+    function isClusterNotUpdatable(cluster: string): boolean {
+      const status = getStackStatus(cluster)
+      if (!status) return true // Unknown status = don't allow update
+      return NOT_UPDATABLE_STACK_STATUSES.includes(status)
+    }
+
+    /**
+     * Get a human-readable label for the stack status.
+     */
+    function getStackStatusLabel(cluster: string): string {
+      const status = getStackStatus(cluster)
+      switch (status) {
+        case 'CREATE_IN_PROGRESS':
+          return 'Starting...'
+        case 'CREATE_COMPLETE':
+        case 'UPDATE_COMPLETE':
+          return 'Running'
+        case 'CREATE_FAILED':
+          return 'Create Failed'
+        case 'UPDATE_IN_PROGRESS':
+        case 'UPDATE_COMPLETE_CLEANUP_IN_PROGRESS':
+          return 'Updating...'
+        case 'UPDATE_FAILED':
+          return 'Update Failed'
+        case 'UPDATE_ROLLBACK_IN_PROGRESS':
+        case 'ROLLBACK_IN_PROGRESS':
+          return 'Rolling Back...'
+        case 'UPDATE_ROLLBACK_COMPLETE':
+        case 'ROLLBACK_COMPLETE':
+          return 'Rolled Back'
+        case 'UPDATE_ROLLBACK_FAILED':
+        case 'ROLLBACK_FAILED':
+          return 'Rollback Failed'
+        case 'DELETE_IN_PROGRESS':
+          return 'Stopping...'
+        case 'DELETE_COMPLETE':
+          return 'Stopped'
+        case 'DELETE_FAILED':
+          return 'Delete Failed'
+        case 'NOT_FOUND':
+          return 'Not deployed'
+        case 'FAILED':
+          return 'Failed'
+        case 'UNKNOWN':
+        default:
+          return ''
       }
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e)
-      errors.value[cluster] = msg
-      statusCache.value[cluster] = null
-      logger.error('Exception fetching cluster status', { cluster, error: msg })
-      return null
-    } finally {
-      loadingClusters.value.delete(cluster)
+    }
+
+    /**
+     * Clear cache for a specific cluster.
+     */
+    function invalidate(cluster: string): void {
+      delete statusCache.value[cluster]
+      delete errors.value[cluster]
+    }
+
+    /**
+     * Clear all cached data.
+     */
+    function invalidateAll(): void {
+      statusCache.value = {}
+      errors.value = {}
+    }
+
+    return {
+      statusCache,
+      loadingClusters,
+      errors,
+      autoRefreshClusters,
+      refreshIntervals,
+      enableAutoRefresh,
+      disableAutoRefresh,
+      isAutoRefreshEnabled,
+      getRefreshInterval,
+      fetchStatus,
+      getStatus,
+      getStackStatus,
+      isLoading,
+      getError,
+      isClusterUndeployable,
+      isClusterUndestroyable,
+      isClusterNotUpdatable,
+      getStackStatusLabel,
+      invalidate,
+      invalidateAll
+    }
+  },
+  {
+    persist: {
+      storage: localStorage,
+      pick: ['statusCache']
     }
   }
-
-  /**
-   * Get cached status for a cluster.
-   */
-  function getStatus(cluster: string): ClusterStatusResponse | null {
-    return statusCache.value[cluster] ?? null
-  }
-
-  /**
-   * Get the StackStatus string from cached data.
-   */
-  function getStackStatus(cluster: string): StackStatus | null {
-    const data = statusCache.value[cluster]
-    if (!data) return null
-    const status = data.response?.StackStatus
-    return (status as StackStatus) ?? null
-  }
-
-  /**
-   * Check if a cluster is loading.
-   */
-  function isLoading(cluster: string): boolean {
-    return loadingClusters.value.has(cluster)
-  }
-
-  /**
-   * Get error for a cluster.
-   */
-  function getError(cluster: string): string | null {
-    return errors.value[cluster] ?? null
-  }
-
-  /**
-   * Check if a cluster cannot be deployed to based on its stack status.
-   */
-  function isClusterUndeployable(cluster: string): boolean {
-    const status = getStackStatus(cluster)
-    if (!status) return false // Unknown status = allow selection
-    return UNDEPLOYABLE_STACK_STATUSES.includes(status)
-  }
-
-  /**
-   * Check if a cluster cannot be destroyed based on its stack status.
-   */
-  function isClusterUndestroyable(cluster: string): boolean {
-    const status = getStackStatus(cluster)
-    if (!status) return true // Unknown status = don't allow destroy
-    return UNDESTROYABLE_STACK_STATUSES.includes(status)
-  }
-
-  /**
-   * Check if a cluster cannot be updated (e.g., TTL extension) based on its stack status.
-   */
-  function isClusterNotUpdatable(cluster: string): boolean {
-    const status = getStackStatus(cluster)
-    if (!status) return true // Unknown status = don't allow update
-    return NOT_UPDATABLE_STACK_STATUSES.includes(status)
-  }
-
-  /**
-   * Get a human-readable label for the stack status.
-   */
-  function getStackStatusLabel(cluster: string): string {
-    const status = getStackStatus(cluster)
-    switch (status) {
-      case 'CREATE_IN_PROGRESS':
-        return 'Starting...'
-      case 'CREATE_COMPLETE':
-      case 'UPDATE_COMPLETE':
-        return 'Running'
-      case 'CREATE_FAILED':
-        return 'Create Failed'
-      case 'UPDATE_IN_PROGRESS':
-      case 'UPDATE_COMPLETE_CLEANUP_IN_PROGRESS':
-        return 'Updating...'
-      case 'UPDATE_FAILED':
-        return 'Update Failed'
-      case 'UPDATE_ROLLBACK_IN_PROGRESS':
-      case 'ROLLBACK_IN_PROGRESS':
-        return 'Rolling Back...'
-      case 'UPDATE_ROLLBACK_COMPLETE':
-      case 'ROLLBACK_COMPLETE':
-        return 'Rolled Back'
-      case 'UPDATE_ROLLBACK_FAILED':
-      case 'ROLLBACK_FAILED':
-        return 'Rollback Failed'
-      case 'DELETE_IN_PROGRESS':
-        return 'Stopping...'
-      case 'DELETE_COMPLETE':
-        return 'Stopped'
-      case 'DELETE_FAILED':
-        return 'Delete Failed'
-      case 'NOT_FOUND':
-        return 'Not deployed'
-      case 'FAILED':
-        return 'Failed'
-      case 'UNKNOWN':
-      default:
-        return ''
-    }
-  }
-
-  /**
-   * Clear cache for a specific cluster.
-   */
-  function invalidate(cluster: string): void {
-    delete statusCache.value[cluster]
-    delete errors.value[cluster]
-  }
-
-  /**
-   * Clear all cached data.
-   */
-  function invalidateAll(): void {
-    statusCache.value = {}
-    errors.value = {}
-  }
-
-  return {
-    statusCache,
-    loadingClusters,
-    errors,
-    autoRefreshClusters,
-    refreshIntervals,
-    enableAutoRefresh,
-    disableAutoRefresh,
-    isAutoRefreshEnabled,
-    getRefreshInterval,
-    fetchStatus,
-    getStatus,
-    getStackStatus,
-    isLoading,
-    getError,
-    isClusterUndeployable,
-    isClusterUndestroyable,
-    isClusterNotUpdatable,
-    getStackStatusLabel,
-    invalidate,
-    invalidateAll
-  }
-})
+)

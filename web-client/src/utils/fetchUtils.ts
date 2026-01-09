@@ -102,23 +102,24 @@ async function provisionerFetch<T>(
       const toastTitle = clusterName ? `Network Error (${clusterName})` : 'Network Error'
       toastStore.warn(toastTitle, userMessage)
     } else if (rawError.includes('HTTP error: 401')) {
-      // Check if token is expired
+      // Check if token is expired based on local timestamp
       const currentTimestamp = Math.floor(Date.now() / 1000)
       const tokenExpiry = githubAuthStore.tokenExpiresAtTimestamp
 
       if (tokenExpiry !== null && currentTimestamp >= tokenExpiry) {
-        // Token is expired - show specific message and logout
+        // Token is expired - show specific message
         const toastStore = useSrToastStore()
         toastStore.warn(
           'Session Expired',
           'Your authentication token has expired. Please log in again to continue.'
         )
-        githubAuthStore.logout()
         userMessage = 'Your session has expired. Please log in again.'
       } else {
-        // Token not expired or no expiry info - generic auth failure
+        // Token not expired locally but server rejected it - could be revoked, race condition, etc.
         userMessage = 'Authentication failed. Please log in again.'
       }
+      // Always logout on 401 to sync UI state with server state
+      githubAuthStore.logout()
     } else if (rawError.includes('HTTP error: 403')) {
       userMessage = 'Access denied. You may not have permission for this operation.'
     } else if (rawError.includes('HTTP error: 404')) {
@@ -245,7 +246,11 @@ export async function fetchServerVersionInfo(
 ): Promise<ServerVersionResult> {
   const url = `https://${cluster}.${domain}/source/version`
   try {
-    const response = await fetch(url)
+    // =====================================================================
+    // TEMPORARY HACK: Use vanilla fetch for 'sliderule' cluster
+    // Remove this when sliderule cluster is upgraded to latest server code
+    // =====================================================================
+    const response = cluster === 'sliderule' ? await fetch(url) : await authenticatedFetch(url)
     if (!response.ok) throw new Error(`HTTP error: ${response.status}`)
 
     const data = await response.json()
@@ -282,11 +287,19 @@ export async function fetchCurrentNodes(
 ): Promise<CurrentNodesResult> {
   const url = `https://${cluster}.${domain}/discovery/status`
   try {
-    const response = await fetch(url, {
+    // =====================================================================
+    // TEMPORARY HACK: Use vanilla fetch for 'sliderule' cluster
+    // Remove this when sliderule cluster is upgraded to latest server code
+    // =====================================================================
+    const fetchOptions = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ service: 'sliderule' })
-    })
+    }
+    const response =
+      cluster === 'sliderule'
+        ? await fetch(url, fetchOptions)
+        : await authenticatedFetch(url, fetchOptions)
 
     if (!response.ok) throw new Error(`HTTP error: ${response.status}`)
 
@@ -309,40 +322,6 @@ export async function fetchCurrentNodes(
       nodes: -1
     }
   }
-}
-
-/**
- * Fetch CloudFormation stack status for a cluster.
- * Used to determine if a cluster can be selected for deployment.
- *
- * TODO: Wire to actual endpoint when available.
- * Expected endpoint: GET https://deploy.{domain}/stack/{cluster}/status
- *
- * @param cluster - The cluster name
- * @param domain - The domain (e.g., 'slideruleearth.io')
- * @returns Stack status result
- */
-export async function fetchStackStatus(
-  cluster: string,
-  domain: string
-): Promise<StackStatusResult> {
-  // TODO: Wire to actual endpoint when available
-  // Expected: GET https://deploy.{domain}/stack/{cluster}/status
-  //
-  // const url = `https://deploy.${domain}/stack/${cluster}/status`
-  // try {
-  //   const response = await fetch(url)
-  //   if (!response.ok) throw new Error(`HTTP error: ${response.status}`)
-  //   const data = await response.json()
-  //   return { success: true, status: data.status }
-  // } catch (error) {
-  //   logger.info('Error fetching stack status', { cluster, domain, error })
-  //   return { success: false, status: 'UNKNOWN' }
-  // }
-
-  // For now, return UNKNOWN to allow all selections until the endpoint is available
-  logger.debug('fetchStackStatus placeholder called', { cluster, domain })
-  return await Promise.resolve({ success: false, status: 'UNKNOWN' })
 }
 
 /**
@@ -578,14 +557,14 @@ export async function authenticatedFetch(
       ...options.headers,
       Authorization: `Bearer ${githubToken}`
     }
-    logger.debug('authenticatedFetch using GitHub OAuth JWT', { url, isRetry })
+    logger.info('authenticatedFetch using GitHub OAuth JWT', { url, isRetry })
   } else if (legacyJwt) {
     // Fall back to legacy JWT
     options.headers = {
       ...options.headers,
       Authorization: `Bearer ${legacyJwt.accessToken}`
     }
-    logger.debug('authenticatedFetch using legacy JWT', { url, isRetry })
+    logger.info('authenticatedFetch using legacy JWT', { url, isRetry })
   } else {
     logger.debug('authenticatedFetch without auth', { url, isRetry })
   }

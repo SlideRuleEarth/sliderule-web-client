@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onActivated } from 'vue'
 import Button from 'primevue/button'
 import ProgressSpinner from 'primevue/progressspinner'
 import DataTable from 'primevue/datatable'
@@ -21,6 +21,12 @@ interface ClusterReportEntry {
 const loading = ref(false)
 const error = ref<string | null>(null)
 const reportData = ref<ClusterReportEntry[]>([])
+const lastRefreshTime = ref<Date | null>(null)
+
+const formattedLastRefreshTime = computed(() => {
+  if (!lastRefreshTime.value) return null
+  return lastRefreshTime.value.toLocaleTimeString()
+})
 
 function formatAutoShutdown(val: string | null): string {
   if (!val) return '-'
@@ -61,6 +67,7 @@ async function fetchReport() {
 
   if (result.success && result.data) {
     logger.info('Report fetched successfully', result.data)
+    lastRefreshTime.value = new Date()
 
     // Transform report object into array for DataTable
     const report = (result.data as { status: boolean; report?: Record<string, unknown> }).report
@@ -91,21 +98,32 @@ async function fetchReport() {
 onMounted(() => {
   void fetchReport()
 })
+
+onActivated(() => {
+  void fetchReport()
+})
+
+defineExpose({ refresh: fetchReport })
 </script>
 
 <template>
   <div class="sr-report">
     <div class="sr-report-header">
       <span class="sr-report-title">Provisioner Report</span>
-      <Button
-        icon="pi pi-refresh"
-        class="sr-glow-button sr-refresh-btn"
-        variant="text"
-        rounded
-        size="small"
-        :loading="loading"
-        @click="fetchReport"
-      />
+      <div class="sr-report-controls">
+        <span v-if="formattedLastRefreshTime" class="sr-last-refresh-time">
+          {{ formattedLastRefreshTime }}
+        </span>
+        <Button
+          icon="pi pi-refresh"
+          class="sr-glow-button sr-refresh-btn"
+          variant="text"
+          rounded
+          size="small"
+          :loading="loading"
+          @click="fetchReport"
+        />
+      </div>
     </div>
 
     <div v-if="loading" class="sr-report-loading">
@@ -160,6 +178,18 @@ onMounted(() => {
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--p-text-color);
+}
+
+.sr-report-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sr-last-refresh-time {
+  font-size: 0.7rem;
+  color: var(--p-text-muted-color);
+  white-space: nowrap;
 }
 
 .sr-refresh-btn {

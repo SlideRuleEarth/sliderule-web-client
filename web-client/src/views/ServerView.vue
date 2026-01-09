@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import SingleColumnLayout from '@/layouts/SingleColumnLayout.vue'
 import Card from 'primevue/card'
 import Tabs from 'primevue/tabs'
@@ -17,6 +17,22 @@ import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 
 const githubAuthStore = useGitHubAuthStore()
 const activeTab = ref('sysconfig')
+
+// Template refs for child components that need refresh on tab activation
+const clusterStatusRef = ref<{ refresh: () => void } | null>(null)
+const clusterEventsRef = ref<{ refresh: () => void } | null>(null)
+const reportRef = ref<{ refresh: () => void } | null>(null)
+
+// Refresh data when switching to certain tabs
+watch(activeTab, (newTab) => {
+  if (newTab === 'clusterstatus') {
+    clusterStatusRef.value?.refresh()
+  } else if (newTab === 'clusterevents') {
+    clusterEventsRef.value?.refresh()
+  } else if (newTab === 'report') {
+    reportRef.value?.refresh()
+  }
+})
 
 // Auth state computed properties
 const isAuthenticated = computed(() => {
@@ -86,13 +102,13 @@ const statusMessage = computed(() => {
                 <SrDeployConfig />
               </TabPanel>
               <TabPanel v-if="canAccessMemberFeatures" value="clusterstatus">
-                <SrClusterStackStatus />
+                <SrClusterStackStatus ref="clusterStatusRef" />
               </TabPanel>
               <TabPanel v-if="canAccessMemberFeatures" value="clusterevents">
-                <SrClusterEvents />
+                <SrClusterEvents ref="clusterEventsRef" />
               </TabPanel>
               <TabPanel v-if="canAccessMemberFeatures" value="report">
-                <SrReport />
+                <SrReport ref="reportRef" />
               </TabPanel>
             </TabPanels>
           </Tabs>

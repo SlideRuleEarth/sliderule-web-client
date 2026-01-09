@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, watch, onMounted, ref } from 'vue'
+import { computed, watch, onMounted, onActivated, ref } from 'vue'
 import Select from 'primevue/select'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
@@ -11,6 +11,7 @@ import SrClusterStackStatus from '@/components/SrClusterStackStatus.vue'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 import { useDeployConfigStore } from '@/stores/deployConfigStore'
 import { useStackStatusStore } from '@/stores/stackStatusStore'
+import { useClusterSelectionStore } from '@/stores/clusterSelectionStore'
 import { deployCluster, destroyCluster, extendCluster } from '@/utils/fetchUtils'
 import { storeToRefs } from 'pinia'
 import { createLogger } from '@/utils/logger'
@@ -20,6 +21,7 @@ const logger = createLogger('SrDeployConfig')
 const githubAuthStore = useGitHubAuthStore()
 const deployConfigStore = useDeployConfigStore()
 const stackStatusStore = useStackStatusStore()
+const clusterSelectionStore = useClusterSelectionStore()
 const confirm = useConfirm()
 
 // Threshold for large cluster confirmation
@@ -31,7 +33,7 @@ const { domain, clusterName, desiredVersion, numberOfNodes, ttl, isPublic } =
 
 // Max values from GitHub auth token
 const maxNodes = computed(() => githubAuthStore.maxNodes ?? 10)
-const maxTTL = computed(() => githubAuthStore.maxTTL ?? 24)
+const maxTTL = computed(() => githubAuthStore.maxTTL ?? 24 * 60)
 
 // Use deployableClusters directly from the store (exclude "*" wildcard from dropdown)
 const clusterList = computed(() =>
@@ -53,22 +55,32 @@ async function refreshStatus() {
 // Transform cluster options to include disabled state and status label
 const clusterOptionsWithStatus = computed(() => {
   return clusterList.value.map((c) => {
-    const statusLabel = stackStatusStore.getStackStatusLabel(c)
+    const disabled = stackStatusStore.isClusterUndeployable(c)
+    const statusLabel = disabled ? stackStatusStore.getStackStatusLabel(c) : null
     return {
       label: statusLabel ? `${c} (${statusLabel})` : c,
       value: c,
-      disabled: stackStatusStore.isClusterUndeployable(c)
+      disabled
     }
   })
 })
 
-// Set default cluster name when options become available
+// Fetch status for all deployable clusters to populate dropdown states
+async function fetchAllClusterStatuses() {
+  const clusters = clusterList.value
+  if (clusters.length > 0) {
+    await Promise.all(clusters.map(async (c) => stackStatusStore.fetchStatus(c)))
+  }
+}
+
+// Set default cluster name when options become available and fetch their statuses
 watch(
   clusterList,
   (options) => {
     if (!clusterName.value && options.length > 0) {
       clusterName.value = options[0]
     }
+    void fetchAllClusterStatuses()
   },
   { immediate: true }
 )
@@ -78,8 +90,23 @@ watch([domain, clusterName], () => {
   void refreshStatus()
 })
 
-// Fetch status on mount
+// Sync clusterName to shared selection store (one-way: deploy -> others)
+watch(
+  clusterName,
+  (name) => {
+    if (name) {
+      clusterSelectionStore.setSelectedCluster(name)
+    }
+  },
+  { immediate: true }
+)
+
+// Fetch status on mount and when tab is activated
 onMounted(() => {
+  void refreshStatus()
+})
+
+onActivated(() => {
   void refreshStatus()
 })
 
@@ -103,6 +130,7 @@ async function executeDeploy() {
   deploying.value = true
   deployError.value = null
   deployErrorDetails.value = null
+  clusterSelectionStore.setAutoRefreshEnabled(true)
 
   try {
     const result = await deployCluster({
@@ -130,7 +158,7 @@ async function executeDeploy() {
 }
 
 function handleDeploy() {
-  if (!clusterName.value) return
+  if (!clusterName.value || actionInProgress.value) return
 
   // Show confirmation for large clusters
   if (numberOfNodes.value > LARGE_CLUSTER_THRESHOLD) {
@@ -155,6 +183,7 @@ async function executeDestroy() {
   destroying.value = true
   destroyError.value = null
   destroyErrorDetails.value = null
+  clusterSelectionStore.setAutoRefreshEnabled(true)
 
   try {
     const result = await destroyCluster(clusterName.value)
@@ -174,7 +203,7 @@ async function executeDestroy() {
 }
 
 function handleDestroy() {
-  if (!clusterName.value) return
+  if (!clusterName.value || actionInProgress.value) return
 
   confirm.require({
     message: `Are you sure you want to destroy the cluster "${clusterName.value}"? This action cannot be undone.`,
@@ -195,10 +224,14 @@ const extending = ref(false)
 const extendError = ref<string | null>(null)
 const extendErrorDetails = ref<string | null>(null)
 
+// Prevent double-clicks by checking if any action is in progress
+const actionInProgress = computed(() => deploying.value || destroying.value || extending.value)
+
 async function executeExtend() {
   extending.value = true
   extendError.value = null
   extendErrorDetails.value = null
+  clusterSelectionStore.setAutoRefreshEnabled(true)
 
   try {
     const result = await extendCluster(clusterName.value, ttl.value)
@@ -221,7 +254,7 @@ async function executeExtend() {
 }
 
 function handleExtend() {
-  if (!clusterName.value) return
+  if (!clusterName.value || actionInProgress.value) return
 
   confirm.require({
     message: `Extend the TTL for cluster "${clusterName.value}" to ${ttl.value} minutes?`,
@@ -303,7 +336,9 @@ function handleExtend() {
           icon="pi pi-refresh"
           size="small"
           :loading="extending"
-          :disabled="!clusterName || stackStatusStore.isClusterNotUpdatable(clusterName)"
+          :disabled="
+            !clusterName || actionInProgress || stackStatusStore.isClusterNotUpdatable(clusterName)
+          "
           class="sr-deploy-ttl-btn"
           @click="handleExtend"
         />
@@ -315,14 +350,18 @@ function handleExtend() {
         icon="pi pi-trash"
         severity="danger"
         :loading="destroying"
-        :disabled="!clusterName || stackStatusStore.isClusterUndestroyable(clusterName)"
+        :disabled="
+          !clusterName || actionInProgress || stackStatusStore.isClusterUndestroyable(clusterName)
+        "
         @click="handleDestroy"
       />
       <Button
         label="Deploy"
         icon="pi pi-cloud-upload"
         :loading="deploying"
-        :disabled="!clusterName || stackStatusStore.isClusterUndeployable(clusterName)"
+        :disabled="
+          !clusterName || actionInProgress || stackStatusStore.isClusterUndeployable(clusterName)
+        "
         @click="handleDeploy"
       />
     </div>

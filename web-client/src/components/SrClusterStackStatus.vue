@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, onActivated } from 'vue'
 import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
 import ProgressSpinner from 'primevue/progressspinner'
@@ -9,6 +9,7 @@ import { type ClusterStatusResponse } from '@/utils/fetchUtils'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 import { useSysConfigStore } from '@/stores/sysConfigStore'
 import { useStackStatusStore } from '@/stores/stackStatusStore'
+import { useClusterSelectionStore } from '@/stores/clusterSelectionStore'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('SrClusterStackStatus')
@@ -54,9 +55,13 @@ const emit = defineEmits<{
 const githubAuthStore = useGitHubAuthStore()
 const sysConfigStore = useSysConfigStore()
 const stackStatusStore = useStackStatusStore()
+const clusterSelectionStore = useClusterSelectionStore()
 
-// Cluster selector state
-const selectedCluster = ref<string>('')
+// Cluster selector state - use shared store
+const selectedCluster = computed({
+  get: () => clusterSelectionStore.selectedCluster,
+  set: (value: string) => clusterSelectionStore.setSelectedCluster(value)
+})
 const filteredClusters = ref<string[]>([])
 
 // Build list of available cluster suggestions
@@ -100,20 +105,18 @@ const error = ref<string | null>(null)
 const statusData = ref<ClusterStatusResponse | null>(null)
 let refreshTimer: number | null = null
 
-// Auto-refresh is controlled by the store per-cluster
-const autoRefreshEnabled = computed(() => {
-  if (!effectiveCluster.value) return false
-  return stackStatusStore.isAutoRefreshEnabled(effectiveCluster.value)
+// Auto-refresh - use shared store
+const autoRefreshEnabled = computed({
+  get: () => clusterSelectionStore.autoRefreshEnabled,
+  set: (value: boolean) => clusterSelectionStore.setAutoRefreshEnabled(value)
 })
 
-function toggleAutoRefresh(enabled: boolean) {
-  if (!effectiveCluster.value) return
-  if (enabled) {
-    stackStatusStore.enableAutoRefresh(effectiveCluster.value)
-  } else {
-    stackStatusStore.disableAutoRefresh(effectiveCluster.value)
-  }
-}
+// Format last refresh time for display
+const formattedLastRefreshTime = computed(() => {
+  const time = clusterSelectionStore.lastRefreshTime
+  if (!time) return null
+  return time.toLocaleTimeString()
+})
 
 // Helper functions for extracting status info from data
 function getStackStatus(data: ClusterStatusResponse | null): string {
@@ -225,6 +228,7 @@ async function refresh() {
 
   if (data) {
     statusData.value = data
+    clusterSelectionStore.updateLastRefreshTime()
     emit('status-updated', data)
     logger.debug('Cluster status fetched', { cluster: effectiveCluster.value, data })
   } else if (storeError) {
@@ -287,9 +291,20 @@ watch(autoRefreshEnabled, (enabled) => {
 
 // Restart auto-refresh when status changes between in-progress and stable
 // This enables adaptive polling (faster during transitions)
-watch(isInProgress, () => {
+watch(isInProgress, (inProgress, wasInProgress) => {
   if (autoRefreshEnabled.value) {
     startAutoRefresh()
+  }
+  // Disable auto-refresh when cluster transitions to stable running state
+  if (wasInProgress && !inProgress && clusterExists(statusData.value)) {
+    const status = getStackStatus(statusData.value)
+    if (status === 'CREATE_COMPLETE' || status === 'UPDATE_COMPLETE') {
+      logger.info('Cluster is now running, disabling auto-refresh', {
+        cluster: effectiveCluster.value,
+        status
+      })
+      autoRefreshEnabled.value = false
+    }
   }
 })
 
@@ -301,14 +316,18 @@ watch(
       logger.info('Cluster no longer exists, disabling auto-refresh', {
         cluster: effectiveCluster.value
       })
-      toggleAutoRefresh(false)
+      autoRefreshEnabled.value = false
     }
   }
 )
 
 onMounted(() => {
   void refresh()
-  toggleAutoRefresh(false) // Ensure auto-refresh is disabled initially
+  autoRefreshEnabled.value = false // Ensure auto-refresh is disabled initially
+})
+
+onActivated(() => {
+  void refresh()
 })
 
 onUnmounted(() => {
@@ -341,13 +360,15 @@ defineExpose({ refresh })
         />
       </div>
       <div class="sr-server-status-controls">
+        <span v-if="formattedLastRefreshTime" class="sr-last-refresh-time">
+          {{ formattedLastRefreshTime }}
+        </span>
         <div class="sr-auto-refresh-control">
           <Checkbox
-            :modelValue="autoRefreshEnabled"
+            v-model="autoRefreshEnabled"
             inputId="autoRefresh"
             :binary="true"
             :disabled="controlsDisabled"
-            @update:modelValue="toggleAutoRefresh"
           />
           <label for="autoRefresh" class="sr-auto-refresh-label">Auto</label>
         </div>
@@ -519,6 +540,12 @@ defineExpose({ refresh })
 
 .sr-refresh-btn {
   padding: 0.25rem;
+}
+
+.sr-last-refresh-time {
+  font-size: 0.7rem;
+  color: var(--p-text-muted-color);
+  white-space: nowrap;
 }
 
 .sr-server-status-loading,

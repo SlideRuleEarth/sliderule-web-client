@@ -72,15 +72,38 @@ export const useClusterEventsStore = defineStore('clusterEvents', () => {
           return { events: [], fromCache: false, error: errorMsg }
         }
 
-        // Success - cache the events
+        // Success - cache the events (but preserve existing cache if new events are empty)
         const events = result.data.response ?? []
-        eventsCache.value[cluster] = {
-          events,
-          fetchedAt: new Date()
+        const existingCache = eventsCache.value[cluster]
+
+        if (events.length > 0) {
+          // Got events - cache them
+          eventsCache.value[cluster] = {
+            events,
+            fetchedAt: new Date()
+          }
+          errors.value[cluster] = null
+          logger.debug('Fetched and cached cluster events', { cluster, count: events.length })
+          return { events, fromCache: false, error: null }
+        } else if (existingCache && existingCache.events.length > 0) {
+          // Got 0 events but have cached events - keep the cache ("sticky" events)
+          logger.info('Preserving cached events (API returned 0 events)', {
+            cluster,
+            cachedCount: existingCache.events.length,
+            cachedAt: existingCache.fetchedAt
+          })
+          errors.value[cluster] = null
+          return { events: existingCache.events, fromCache: true, error: null }
+        } else {
+          // No events and no cached events - cache the empty result
+          eventsCache.value[cluster] = {
+            events: [],
+            fetchedAt: new Date()
+          }
+          errors.value[cluster] = null
+          logger.debug('No events found for cluster', { cluster })
+          return { events: [], fromCache: false, error: null }
         }
-        errors.value[cluster] = null
-        logger.debug('Fetched and cached cluster events', { cluster, count: events.length })
-        return { events, fromCache: false, error: null }
       } else {
         // Fetch failed (network error, etc.)
         const errorMsg = result.error ?? 'Failed to fetch events'

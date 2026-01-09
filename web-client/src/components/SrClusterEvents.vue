@@ -1,16 +1,17 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, onActivated } from 'vue'
 import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
 import ProgressSpinner from 'primevue/progressspinner'
 import AutoComplete from 'primevue/autocomplete'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
-import Sidebar from 'primevue/sidebar'
+import Drawer from 'primevue/drawer'
 import { type StackEvent } from '@/utils/fetchUtils'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 import { useSysConfigStore } from '@/stores/sysConfigStore'
 import { useClusterEventsStore } from '@/stores/clusterEventsStore'
+import { useClusterSelectionStore } from '@/stores/clusterSelectionStore'
 import SrJsonDisplayDialog from '@/components/SrJsonDisplayDialog.vue'
 import { createLogger } from '@/utils/logger'
 
@@ -37,13 +38,17 @@ const emit = defineEmits<{
 const githubAuthStore = useGitHubAuthStore()
 const sysConfigStore = useSysConfigStore()
 const clusterEventsStore = useClusterEventsStore()
+const clusterSelectionStore = useClusterSelectionStore()
 
 // Authorization checks
 const canAccessMemberFeatures = computed(() => githubAuthStore.canAccessMemberFeatures)
 const isOwner = computed(() => githubAuthStore.isOrgOwner)
 
-// Cluster selector state
-const selectedCluster = ref<string>('')
+// Cluster selector state - use shared store
+const selectedCluster = computed({
+  get: () => clusterSelectionStore.selectedCluster,
+  set: (value: string) => clusterSelectionStore.setSelectedCluster(value)
+})
 const filteredClusters = ref<string[]>([])
 
 // Build list of available cluster suggestions
@@ -82,7 +87,19 @@ const error = ref<string | null>(null)
 const events = ref<StackEvent[]>([])
 const showingCachedData = ref(false)
 const cachedDataTimestamp = ref<Date | null>(null)
-const autoRefreshEnabled = ref(props.autoRefresh)
+
+// Auto-refresh - use shared store
+const autoRefreshEnabled = computed({
+  get: () => clusterSelectionStore.autoRefreshEnabled,
+  set: (value: boolean) => clusterSelectionStore.setAutoRefreshEnabled(value)
+})
+
+// Format last refresh time for display
+const formattedLastRefreshTime = computed(() => {
+  const time = clusterSelectionStore.lastRefreshTime
+  if (!time) return null
+  return time.toLocaleTimeString()
+})
 let refreshTimer: number | null = null
 
 // Row expansion state
@@ -209,6 +226,7 @@ async function refresh() {
     events.value = result.events
     error.value = result.error
     showingCachedData.value = result.fromCache
+    clusterSelectionStore.updateLastRefreshTime()
 
     if (result.fromCache) {
       // Get the cached timestamp
@@ -284,6 +302,13 @@ watch(autoRefreshEnabled, (enabled) => {
   }
 })
 
+watch(drawerVisible, (visible) => {
+  if (!visible) {
+    // Reset auto-refresh to default when drawer is closed
+    autoRefreshEnabled.value = props.autoRefresh
+  }
+})
+
 onMounted(() => {
   logger.info('SrClusterEvents mounted', {
     propsCluster: props.cluster,
@@ -295,6 +320,10 @@ onMounted(() => {
   if (autoRefreshEnabled.value) {
     startAutoRefresh()
   }
+})
+
+onActivated(() => {
+  void refresh()
 })
 
 onUnmounted(() => {
@@ -327,6 +356,9 @@ defineExpose({ refresh })
         />
       </div>
       <div class="sr-cluster-events-controls">
+        <span v-if="formattedLastRefreshTime" class="sr-last-refresh-time">
+          {{ formattedLastRefreshTime }}
+        </span>
         <div class="sr-auto-refresh-control">
           <Checkbox
             v-model="autoRefreshEnabled"
@@ -360,21 +392,29 @@ defineExpose({ refresh })
       <span>{{ error }}</span>
     </div>
 
-    <!-- Warning banner when showing cached data due to error -->
-    <div v-if="showingCachedData && error" class="sr-cached-data-banner">
+    <!-- Info banner when showing cached/historical data -->
+    <div
+      v-if="showingCachedData && events.length > 0"
+      class="sr-cached-data-banner"
+      :class="{ 'sr-cached-data-error': error }"
+    >
       <i class="pi pi-history"></i>
       <span>
-        Showing cached data from
+        Showing historical events from
         {{ cachedDataTimestamp ? formatTimestamp(cachedDataTimestamp.toISOString()) : 'earlier' }}
-        <span class="sr-cached-error">({{ error }})</span>
+        <span v-if="error" class="sr-cached-error">({{ error }})</span>
       </span>
     </div>
 
-    <div v-else-if="events.length === 0 && effectiveCluster" class="sr-cluster-events-empty">
-      <span>No events found</span>
+    <!-- Show "No events" or events summary independent of cached banner -->
+    <div
+      v-if="!loading && events.length === 0 && effectiveCluster && !(error && !showingCachedData)"
+      class="sr-cluster-events-empty"
+    >
+      <span>No events found{{ showingCachedData ? ' in cache' : '' }}</span>
     </div>
 
-    <div v-else-if="events.length > 0" class="sr-events-summary">
+    <div v-if="events.length > 0" class="sr-events-summary">
       <div class="sr-events-summary-stats">
         <div class="sr-events-stat">
           <span class="sr-events-stat-value">{{ eventCount }}</span>
@@ -406,7 +446,7 @@ defineExpose({ refresh })
     </div>
 
     <!-- Slide-out Drawer with Full Events Table -->
-    <Sidebar v-model:visible="drawerVisible" position="left" class="sr-events-drawer">
+    <Drawer v-model:visible="drawerVisible" position="left" class="sr-events-drawer">
       <template #header>
         <div class="sr-drawer-header">
           <span class="sr-drawer-title">Stack Events: {{ effectiveCluster }}</span>
@@ -499,7 +539,7 @@ defineExpose({ refresh })
           </div>
         </template>
       </DataTable>
-    </Sidebar>
+    </Drawer>
 
     <!-- Event Detail Dialog (owner-only) -->
     <SrJsonDisplayDialog
@@ -595,6 +635,12 @@ defineExpose({ refresh })
   padding: 0.25rem;
 }
 
+.sr-last-refresh-time {
+  font-size: 0.7rem;
+  color: var(--p-text-muted-color);
+  white-space: nowrap;
+}
+
 .sr-cluster-events-loading,
 .sr-cluster-events-error,
 .sr-cluster-events-empty {
@@ -614,14 +660,24 @@ defineExpose({ refresh })
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background-color: var(--p-yellow-900);
-  border: 1px solid var(--p-yellow-700);
+  background-color: var(--p-surface-100);
+  border: 1px solid var(--p-surface-300);
   border-radius: 4px;
   font-size: 0.8rem;
-  color: var(--p-yellow-200);
+  color: var(--p-text-muted-color);
 }
 
 .sr-cached-data-banner i {
+  color: var(--p-primary-400);
+}
+
+.sr-cached-data-banner.sr-cached-data-error {
+  background-color: var(--p-yellow-900);
+  border-color: var(--p-yellow-700);
+  color: var(--p-yellow-200);
+}
+
+.sr-cached-data-banner.sr-cached-data-error i {
   color: var(--p-yellow-400);
 }
 
@@ -791,7 +847,7 @@ defineExpose({ refresh })
 }
 </style>
 
-<!-- Non-scoped styles for PrimeVue Sidebar (renders outside component via portal) -->
+<!-- Non-scoped styles for PrimeVue Drawer (renders outside component via portal) -->
 <style>
 .sr-events-drawer.p-drawer {
   width: 90vw !important;
