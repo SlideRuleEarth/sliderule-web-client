@@ -304,6 +304,8 @@ watch(isInProgress, (inProgress, wasInProgress) => {
         status
       })
       autoRefreshEnabled.value = false
+      // Final refresh to ensure UI shows the stable state
+      void refresh()
     }
   }
 })
