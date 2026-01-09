@@ -66,7 +66,7 @@ async function fetchReport() {
   const result = await fetchProvisionerReport()
 
   if (result.success && result.data) {
-    logger.info('Report fetched successfully', result.data)
+    logger.debug('Report fetched successfully', result.data)
     lastRefreshTime.value = new Date()
 
     // Transform report object into array for DataTable

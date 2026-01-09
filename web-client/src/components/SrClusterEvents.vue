@@ -203,14 +203,14 @@ const controlsDisabled = computed(() => {
 })
 
 async function refresh() {
-  logger.info('refresh() called', {
+  logger.debug('refresh() called', {
     effectiveCluster: effectiveCluster.value,
     propsCluster: props.cluster,
     selectedCluster: selectedCluster.value
   })
 
   if (!effectiveCluster.value || effectiveCluster.value.trim() === '') {
-    logger.info('refresh() skipped - no cluster selected')
+    logger.debug('refresh() skipped - no cluster selected')
     return
   }
 
@@ -219,9 +219,9 @@ async function refresh() {
   showingCachedData.value = false
 
   try {
-    logger.info('Fetching cluster events', { cluster: effectiveCluster.value })
+    logger.debug('Fetching cluster events', { cluster: effectiveCluster.value })
     const result = await clusterEventsStore.fetchEvents(effectiveCluster.value, true)
-    logger.info('fetchEvents result', { result })
+    logger.debug('fetchEvents result', { result })
 
     events.value = result.events
     error.value = result.error
@@ -232,7 +232,7 @@ async function refresh() {
       // Get the cached timestamp
       const cached = clusterEventsStore.getCachedEvents(effectiveCluster.value)
       cachedDataTimestamp.value = cached?.fetchedAt ?? null
-      logger.info('Showing cached events', {
+      logger.debug('Showing cached events', {
         cluster: effectiveCluster.value,
         count: events.value.length,
         cachedAt: cachedDataTimestamp.value
@@ -263,7 +263,7 @@ async function refresh() {
 function startAutoRefresh() {
   stopAutoRefresh()
   if (autoRefreshEnabled.value && props.refreshInterval > 0) {
-    logger.info('Starting auto-refresh', { interval: props.refreshInterval })
+    logger.debug('Starting auto-refresh', { interval: props.refreshInterval })
     refreshTimer = window.setInterval(() => {
       void refresh()
     }, props.refreshInterval)
@@ -310,7 +310,7 @@ watch(drawerVisible, (visible) => {
 })
 
 onMounted(() => {
-  logger.info('SrClusterEvents mounted', {
+  logger.debug('SrClusterEvents mounted', {
     propsCluster: props.cluster,
     selectedCluster: selectedCluster.value,
     effectiveCluster: effectiveCluster.value,

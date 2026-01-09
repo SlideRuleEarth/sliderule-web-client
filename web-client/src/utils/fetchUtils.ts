@@ -47,7 +47,7 @@ async function provisionerFetch<T>(
   const githubToken = githubAuthStore.authToken
 
   if (!githubToken) {
-    logger.info(`No GitHub token available for ${context}`, body)
+    logger.debug(`No GitHub token available for ${context}`, body)
     return {
       success: false,
       data: null,
@@ -71,7 +71,7 @@ async function provisionerFetch<T>(
 
     // Retry once on 401 with backoff (handles JWKS latency issue)
     if (response.status === 401) {
-      logger.info('Got 401, retrying after backoff', body)
+      logger.debug('Got 401, retrying after backoff', body)
       await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS))
       response = await makeRequest()
     }
@@ -91,7 +91,7 @@ async function provisionerFetch<T>(
     }
   } catch (error) {
     const rawError = error instanceof Error ? error.message : String(error)
-    logger.info(`Error ${context}`, { ...body, error: rawError })
+    logger.debug(`Error ${context}`, { ...body, error: rawError })
 
     // Provide user-friendly error messages while preserving raw error for tooltips
     let userMessage: string
@@ -265,7 +265,7 @@ export async function fetchServerVersionInfo(
       data
     }
   } catch (error) {
-    logger.info('Error fetching server version', {
+    logger.debug('Error fetching server version', {
       error: error instanceof Error ? error.message : String(error)
     })
     return {
@@ -314,7 +314,7 @@ export async function fetchCurrentNodes(
       throw new Error('Invalid response format')
     }
   } catch (error) {
-    logger.info('Error fetching current nodes', {
+    logger.debug('Error fetching current nodes', {
       error: error instanceof Error ? error.message : String(error)
     })
     return {
@@ -557,14 +557,14 @@ export async function authenticatedFetch(
       ...options.headers,
       Authorization: `Bearer ${githubToken}`
     }
-    logger.info('authenticatedFetch using GitHub OAuth JWT', { url, isRetry })
+    logger.debug('authenticatedFetch using GitHub OAuth JWT', { url, isRetry })
   } else if (legacyJwt) {
     // Fall back to legacy JWT
     options.headers = {
       ...options.headers,
       Authorization: `Bearer ${legacyJwt.accessToken}`
     }
-    logger.info('authenticatedFetch using legacy JWT', { url, isRetry })
+    logger.debug('authenticatedFetch using legacy JWT', { url, isRetry })
   } else {
     logger.debug('authenticatedFetch without auth', { url, isRetry })
   }
