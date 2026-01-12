@@ -13,11 +13,95 @@ interface CachedClusterEvents {
   fetchedAt: Date
 }
 
+// Default refresh interval for events polling (30 seconds - events update less frequently)
+const DEFAULT_EVENTS_REFRESH_INTERVAL = 30000
+
 export const useClusterEventsStore = defineStore('clusterEvents', () => {
   // State: cluster -> cached events data
   const eventsCache = ref<Record<string, CachedClusterEvents | null>>({})
   const loadingClusters = ref<Set<string>>(new Set())
   const errors = ref<Record<string, string | null>>({})
+
+  // Per-cluster auto-refresh settings (in-memory only, not persisted)
+  const autoRefreshClusters = ref<Record<string, boolean>>({})
+  const refreshIntervals = ref<Record<string, number>>({})
+
+  // Per-cluster polling timers for background events updates (in-memory only, not persisted)
+  const pollingTimers = ref<Record<string, number>>({})
+
+  /**
+   * Start background polling for a cluster's events.
+   * Called internally when enableAutoRefresh is called.
+   */
+  function startPolling(cluster: string): void {
+    stopPolling(cluster) // Clear any existing timer
+
+    const interval = refreshIntervals.value[cluster] ?? DEFAULT_EVENTS_REFRESH_INTERVAL
+    logger.debug('Starting background events polling', { cluster, interval })
+
+    pollingTimers.value[cluster] = window.setInterval(() => {
+      void fetchEvents(cluster, true)
+    }, interval)
+  }
+
+  /**
+   * Stop background polling for a cluster.
+   * Called internally when disableAutoRefresh is called.
+   */
+  function stopPolling(cluster: string): void {
+    const timer = pollingTimers.value[cluster]
+    if (timer) {
+      clearInterval(timer)
+      delete pollingTimers.value[cluster]
+      logger.debug('Stopped background events polling', { cluster })
+    }
+  }
+
+  /**
+   * Stop all polling (e.g., on logout or cleanup).
+   */
+  function stopAllPolling(): void {
+    for (const cluster of Object.keys(pollingTimers.value)) {
+      clearInterval(pollingTimers.value[cluster])
+    }
+    pollingTimers.value = {}
+  }
+
+  /**
+   * Enable auto-refresh for a cluster's events.
+   * Starts background polling that runs regardless of which cluster is displayed.
+   */
+  function enableAutoRefresh(
+    cluster: string,
+    interval: number = DEFAULT_EVENTS_REFRESH_INTERVAL
+  ): void {
+    autoRefreshClusters.value[cluster] = true
+    refreshIntervals.value[cluster] = interval
+    startPolling(cluster)
+  }
+
+  /**
+   * Disable auto-refresh for a cluster's events.
+   * Stops background polling for this cluster.
+   */
+  function disableAutoRefresh(cluster: string): void {
+    autoRefreshClusters.value[cluster] = false
+    stopPolling(cluster)
+  }
+
+  /**
+   * Check if auto-refresh is enabled for a cluster.
+   */
+  function isAutoRefreshEnabled(cluster: string): boolean {
+    return autoRefreshClusters.value[cluster] ?? false
+  }
+
+  /**
+   * Get the refresh interval for a cluster.
+   */
+  function getRefreshInterval(cluster: string): number {
+    return refreshIntervals.value[cluster] ?? DEFAULT_EVENTS_REFRESH_INTERVAL
+  }
 
   /**
    * Fetch events for a cluster, optionally forcing a refresh.
@@ -179,6 +263,14 @@ export const useClusterEventsStore = defineStore('clusterEvents', () => {
     eventsCache,
     loadingClusters,
     errors,
+    autoRefreshClusters,
+    refreshIntervals,
+    pollingTimers,
+    enableAutoRefresh,
+    disableAutoRefresh,
+    isAutoRefreshEnabled,
+    getRefreshInterval,
+    stopAllPolling,
     fetchEvents,
     getCachedEvents,
     isLoading,

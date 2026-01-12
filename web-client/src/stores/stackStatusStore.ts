@@ -98,19 +98,68 @@ export const useStackStatusStore = defineStore(
     // Prevents double-clicks by tracking user intent until status confirms operation started
     const pendingOperations = ref<Record<string, PendingOperation | null>>({})
 
+    // Per-cluster shutdown timers (in-memory only, not persisted)
+    // Each cluster maintains its own independent timer for auto shutdown
+    const shutdownTimers = ref<Record<string, number>>({})
+
+    // Per-cluster polling timers for background status updates (in-memory only, not persisted)
+    const pollingTimers = ref<Record<string, number>>({})
+
+    /**
+     * Start background polling for a cluster's status.
+     * Called internally when enableAutoRefresh is called.
+     */
+    function startPolling(cluster: string): void {
+      stopPolling(cluster) // Clear any existing timer
+
+      const interval = refreshIntervals.value[cluster] ?? DEFAULT_REFRESH_INTERVAL
+      logger.debug('Starting background status polling', { cluster, interval })
+
+      pollingTimers.value[cluster] = window.setInterval(() => {
+        void fetchStatus(cluster, true)
+      }, interval)
+    }
+
+    /**
+     * Stop background polling for a cluster.
+     * Called internally when disableAutoRefresh is called.
+     */
+    function stopPolling(cluster: string): void {
+      const timer = pollingTimers.value[cluster]
+      if (timer) {
+        clearInterval(timer)
+        delete pollingTimers.value[cluster]
+        logger.debug('Stopped background status polling', { cluster })
+      }
+    }
+
+    /**
+     * Stop all polling (e.g., on logout or cleanup).
+     */
+    function stopAllPolling(): void {
+      for (const cluster of Object.keys(pollingTimers.value)) {
+        clearInterval(pollingTimers.value[cluster])
+      }
+      pollingTimers.value = {}
+    }
+
     /**
      * Enable auto-refresh for a cluster (called after successful deploy/destroy/extend).
+     * Starts background polling that runs regardless of which cluster is displayed.
      */
     function enableAutoRefresh(cluster: string, interval: number = DEFAULT_REFRESH_INTERVAL): void {
       autoRefreshClusters.value[cluster] = true
       refreshIntervals.value[cluster] = interval
+      startPolling(cluster)
     }
 
     /**
      * Disable auto-refresh for a cluster.
+     * Stops background polling for this cluster.
      */
     function disableAutoRefresh(cluster: string): void {
       autoRefreshClusters.value[cluster] = false
+      stopPolling(cluster)
     }
 
     /**
@@ -182,6 +231,72 @@ export const useStackStatusStore = defineStore(
     }
 
     /**
+     * Schedule a shutdown timer for a cluster.
+     * When the timer fires, sets pending 'shutdown' operation and enables auto-refresh.
+     * This is called automatically by fetchStatus() when auto_shutdown is present.
+     */
+    function scheduleShutdownTimer(
+      cluster: string,
+      autoShutdownTime: string | null | undefined
+    ): void {
+      // Clear any existing timer for this cluster
+      clearShutdownTimer(cluster)
+
+      if (!autoShutdownTime) return
+
+      try {
+        const shutdownDate = new Date(autoShutdownTime)
+        const now = new Date()
+        const msUntilShutdown = shutdownDate.getTime() - now.getTime()
+
+        if (msUntilShutdown > 1000) {
+          // Schedule for future
+          logger.debug('Scheduling shutdown timer', { cluster, autoShutdownTime, msUntilShutdown })
+          shutdownTimers.value[cluster] = window.setTimeout(() => {
+            logger.info('Auto shutdown time reached', { cluster })
+            setPendingOperation(cluster, 'shutdown')
+            enableAutoRefresh(cluster)
+            // Trigger immediate status fetch
+            void fetchStatus(cluster, true)
+          }, msUntilShutdown)
+        } else {
+          // Already passed - set pending and trigger refresh
+          logger.debug('Auto shutdown time already passed', { cluster, autoShutdownTime })
+          setPendingOperation(cluster, 'shutdown')
+          enableAutoRefresh(cluster)
+          void fetchStatus(cluster, true)
+        }
+      } catch (e) {
+        logger.warn('Failed to parse auto shutdown time', {
+          cluster,
+          autoShutdownTime,
+          error: e instanceof Error ? e.message : String(e)
+        })
+      }
+    }
+
+    /**
+     * Clear the shutdown timer for a cluster.
+     */
+    function clearShutdownTimer(cluster: string): void {
+      const timer = shutdownTimers.value[cluster]
+      if (timer) {
+        clearTimeout(timer)
+        delete shutdownTimers.value[cluster]
+      }
+    }
+
+    /**
+     * Clear all shutdown timers (e.g., on logout or cleanup).
+     */
+    function clearAllShutdownTimers(): void {
+      for (const cluster of Object.keys(shutdownTimers.value)) {
+        clearTimeout(shutdownTimers.value[cluster])
+      }
+      shutdownTimers.value = {}
+    }
+
+    /**
      * Fetch status for a cluster, optionally forcing a refresh.
      */
     async function fetchStatus(
@@ -224,6 +339,8 @@ export const useStackStatusStore = defineStore(
               statusCache.value[cluster] = notFoundResponse
               errors.value[cluster] = null
               checkAndClearPendingOperation(cluster, 'NOT_FOUND')
+              // Clear any shutdown timer since cluster doesn't exist
+              clearShutdownTimer(cluster)
               logger.debug('Cluster stack not found', { cluster })
               return notFoundResponse
             }
@@ -237,6 +354,12 @@ export const useStackStatusStore = defineStore(
           const stackStatus = result.data.response?.StackStatus as StackStatus
           if (stackStatus) {
             checkAndClearPendingOperation(cluster, stackStatus)
+          }
+          // Schedule shutdown timer if auto_shutdown is present, otherwise clear any existing timer
+          if (result.data.auto_shutdown) {
+            scheduleShutdownTimer(cluster, result.data.auto_shutdown)
+          } else {
+            clearShutdownTimer(cluster)
           }
           logger.debug('Fetched cluster status', { cluster, status: stackStatus })
           return result.data
@@ -381,14 +504,20 @@ export const useStackStatusStore = defineStore(
       autoRefreshClusters,
       refreshIntervals,
       pendingOperations,
+      shutdownTimers,
+      pollingTimers,
       enableAutoRefresh,
       disableAutoRefresh,
       isAutoRefreshEnabled,
       getRefreshInterval,
+      stopAllPolling,
       setPendingOperation,
       clearPendingOperation,
       hasPendingOperation,
       getPendingOperation,
+      scheduleShutdownTimer,
+      clearShutdownTimer,
+      clearAllShutdownTimers,
       fetchStatus,
       getStatus,
       getStackStatus,

@@ -19,13 +19,16 @@ const githubAuthStore = useGitHubAuthStore()
 const activeTab = ref('sysconfig')
 
 // Template refs for child components that need refresh on tab activation
+const deployConfigRef = ref<{ refresh: () => void } | null>(null)
 const clusterStatusRef = ref<{ refresh: () => void } | null>(null)
 const clusterEventsRef = ref<{ refresh: () => void } | null>(null)
 const reportRef = ref<{ refresh: () => void } | null>(null)
 
 // Refresh data when switching to certain tabs
 watch(activeTab, (newTab) => {
-  if (newTab === 'clusterstatus') {
+  if (newTab === 'deployconfig') {
+    deployConfigRef.value?.refresh()
+  } else if (newTab === 'clusterstatus') {
     clusterStatusRef.value?.refresh()
   } else if (newTab === 'clusterevents') {
     clusterEventsRef.value?.refresh()
@@ -99,7 +102,7 @@ const statusMessage = computed(() => {
                 <SrSysConfig :disabled="!isAuthenticated" />
               </TabPanel>
               <TabPanel v-if="canAccessMemberFeatures" value="deployconfig">
-                <SrDeployConfig />
+                <SrDeployConfig ref="deployConfigRef" />
               </TabPanel>
               <TabPanel v-if="canAccessMemberFeatures" value="clusterstatus">
                 <SrClusterStackStatus ref="clusterStatusRef" />

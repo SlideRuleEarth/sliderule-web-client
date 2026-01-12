@@ -12,6 +12,7 @@ import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 import { useDeployConfigStore } from '@/stores/deployConfigStore'
 import { useStackStatusStore } from '@/stores/stackStatusStore'
 import { useClusterSelectionStore } from '@/stores/clusterSelectionStore'
+import { useClusterEventsStore } from '@/stores/clusterEventsStore'
 import { deployCluster, destroyCluster, extendCluster } from '@/utils/fetchUtils'
 import { storeToRefs } from 'pinia'
 import { createLogger } from '@/utils/logger'
@@ -22,6 +23,7 @@ const githubAuthStore = useGitHubAuthStore()
 const deployConfigStore = useDeployConfigStore()
 const stackStatusStore = useStackStatusStore()
 const clusterSelectionStore = useClusterSelectionStore()
+const clusterEventsStore = useClusterEventsStore()
 const confirm = useConfirm()
 
 // Threshold for large cluster confirmation
@@ -152,8 +154,9 @@ async function executeDeploy() {
       version: desiredVersion.value || undefined
     })
     if (result.success && result.data?.status) {
-      // Success: enable auto-refresh, pending operation will be cleared when status confirms
+      // Success: enable auto-refresh for both status and events
       stackStatusStore.enableAutoRefresh(clusterName.value)
+      clusterEventsStore.enableAutoRefresh(clusterName.value)
       // Force immediate status refresh to get updated state
       void stackStatusStore.fetchStatus(clusterName.value, true)
     } else {
@@ -217,8 +220,9 @@ async function executeDestroy() {
   try {
     const result = await destroyCluster(clusterName.value)
     if (result.success && result.data?.status) {
-      // Success: enable auto-refresh, pending operation will be cleared when status confirms
+      // Success: enable auto-refresh for both status and events
       stackStatusStore.enableAutoRefresh(clusterName.value)
+      clusterEventsStore.enableAutoRefresh(clusterName.value)
       // Force immediate status refresh to get updated state
       void stackStatusStore.fetchStatus(clusterName.value, true)
     } else {
@@ -275,8 +279,9 @@ async function executeExtend() {
   try {
     const result = await extendCluster(clusterName.value, ttl.value)
     if (result.success && result.data?.status) {
-      // Success: enable auto-refresh, pending operation will be cleared when status confirms
+      // Success: enable auto-refresh for both status and events, pending operation will be cleared when status confirms
       stackStatusStore.enableAutoRefresh(clusterName.value)
+      clusterEventsStore.enableAutoRefresh(clusterName.value)
       // Force immediate status refresh to get updated state
       void stackStatusStore.fetchStatus(clusterName.value, true)
       logger.info('Cluster TTL extended', { cluster: clusterName.value, ttl: ttl.value })
@@ -327,6 +332,18 @@ function handleExtend() {
     }
   })
 }
+
+/**
+ * Refresh function for tab activation - refreshes both deploy config and stack status
+ */
+async function refresh() {
+  await refreshStatus()
+  if (clusterName.value) {
+    await stackStatusStore.fetchStatus(clusterName.value, true)
+  }
+}
+
+defineExpose({ refresh })
 </script>
 
 <template>

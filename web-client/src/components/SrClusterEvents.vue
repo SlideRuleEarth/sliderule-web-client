@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted, onActivated } from 'vue'
+import { ref, computed, watch, onMounted, onActivated } from 'vue'
 import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
 import ProgressSpinner from 'primevue/progressspinner'
@@ -100,7 +100,6 @@ const formattedLastRefreshTime = computed(() => {
   if (!time) return null
   return time.toLocaleTimeString()
 })
-let refreshTimer: number | null = null
 
 // Row expansion state
 const expandedRows = ref<Record<string, boolean>>({})
@@ -260,23 +259,6 @@ async function refresh() {
   }
 }
 
-function startAutoRefresh() {
-  stopAutoRefresh()
-  if (autoRefreshEnabled.value && props.refreshInterval > 0) {
-    logger.debug('Starting auto-refresh', { interval: props.refreshInterval })
-    refreshTimer = window.setInterval(() => {
-      void refresh()
-    }, props.refreshInterval)
-  }
-}
-
-function stopAutoRefresh() {
-  if (refreshTimer !== null) {
-    clearInterval(refreshTimer)
-    refreshTimer = null
-  }
-}
-
 function onClusterKeydown(event: KeyboardEvent) {
   if (event.key === 'Enter') {
     events.value = []
@@ -294,11 +276,14 @@ function onClusterItemSelect() {
   void refresh()
 }
 
+// Sync auto-refresh checkbox to store's background polling
 watch(autoRefreshEnabled, (enabled) => {
-  if (enabled) {
-    startAutoRefresh()
-  } else {
-    stopAutoRefresh()
+  if (effectiveCluster.value) {
+    if (enabled) {
+      clusterEventsStore.enableAutoRefresh(effectiveCluster.value, props.refreshInterval)
+    } else {
+      clusterEventsStore.disableAutoRefresh(effectiveCluster.value)
+    }
   }
 })
 
@@ -317,8 +302,9 @@ onMounted(() => {
     autoRefresh: props.autoRefresh
   })
   void refresh()
-  if (autoRefreshEnabled.value) {
-    startAutoRefresh()
+  // Start background polling in store if auto-refresh is enabled
+  if (autoRefreshEnabled.value && effectiveCluster.value) {
+    clusterEventsStore.enableAutoRefresh(effectiveCluster.value, props.refreshInterval)
   }
 })
 
@@ -326,9 +312,8 @@ onActivated(() => {
   void refresh()
 })
 
-onUnmounted(() => {
-  stopAutoRefresh()
-})
+// Note: We don't stop polling on unmount - the store manages background polling
+// and it should continue even when this component is not displayed
 
 defineExpose({ refresh })
 </script>

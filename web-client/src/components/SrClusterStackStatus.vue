@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted, onActivated } from 'vue'
+import { ref, computed, watch, onMounted, onActivated } from 'vue'
 import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
 import ProgressSpinner from 'primevue/progressspinner'
@@ -103,8 +103,6 @@ function searchClusters(event: { query: string }) {
 const loading = ref(false)
 const error = ref<string | null>(null)
 const statusData = ref<ClusterStatusResponse | null>(null)
-let refreshTimer: number | null = null
-let shutdownTimer: number | null = null
 
 // Auto-refresh - use shared store
 const autoRefreshEnabled = computed({
@@ -142,6 +140,15 @@ function clusterExists(data: ClusterStatusResponse | null): boolean {
   if (!data) return false
   // Cluster exists if StackStatus is not NOT_FOUND (uses normalized response from store)
   return data.response?.StackStatus !== 'NOT_FOUND'
+}
+
+/**
+ * Check if we have a definitive NOT_FOUND status (not just unknown/error).
+ * Use this to avoid treating fetch errors as "cluster doesn't exist".
+ */
+function isDefinitelyNotFound(data: ClusterStatusResponse | null): boolean {
+  if (!data) return false // null means unknown, not "doesn't exist"
+  return data.response?.StackStatus === 'NOT_FOUND'
 }
 
 function isClusterInProgress(data: ClusterStatusResponse | null): boolean {
@@ -201,12 +208,6 @@ const isInProgress = computed(() => {
   return isClusterInProgress(statusData.value)
 })
 
-// Compute effective refresh interval from store
-const effectiveRefreshInterval = computed(() => {
-  if (!effectiveCluster.value) return 5000
-  return stackStatusStore.getRefreshInterval(effectiveCluster.value)
-})
-
 // Disable controls when no cluster is selected
 const controlsDisabled = computed(() => {
   return !effectiveCluster.value || effectiveCluster.value.trim() === ''
@@ -244,94 +245,6 @@ async function refresh() {
   loading.value = false
 }
 
-function startAutoRefresh() {
-  stopAutoRefresh()
-  if (autoRefreshEnabled.value && effectiveRefreshInterval.value > 0) {
-    logger.debug('Starting auto-refresh', {
-      interval: effectiveRefreshInterval.value,
-      isInProgress: isInProgress.value
-    })
-    refreshTimer = window.setInterval(() => {
-      void refresh()
-    }, effectiveRefreshInterval.value)
-  }
-}
-
-function stopAutoRefresh() {
-  if (refreshTimer !== null) {
-    clearInterval(refreshTimer)
-    refreshTimer = null
-  }
-}
-
-/**
- * Schedule a refresh when the auto shutdown time is reached.
- * This captures the cluster transitioning to DELETE_IN_PROGRESS.
- */
-function scheduleShutdownRefresh(autoShutdownTime: string | null | undefined) {
-  // Clear any existing shutdown timer
-  if (shutdownTimer !== null) {
-    clearTimeout(shutdownTimer)
-    shutdownTimer = null
-  }
-
-  if (!autoShutdownTime) return
-
-  try {
-    const shutdownDate = new Date(autoShutdownTime)
-    const now = new Date()
-    const msUntilShutdown = shutdownDate.getTime() - now.getTime()
-
-    // Only schedule if shutdown is in the future (with a small buffer)
-    if (msUntilShutdown > 1000) {
-      logger.debug('Scheduling shutdown refresh', {
-        cluster: effectiveCluster.value,
-        shutdownTime: autoShutdownTime,
-        msUntilShutdown
-      })
-
-      shutdownTimer = window.setTimeout(() => {
-        logger.info('Auto shutdown time reached, enabling auto-refresh', {
-          cluster: effectiveCluster.value
-        })
-        // Set pending shutdown to lock buttons immediately
-        if (effectiveCluster.value) {
-          stackStatusStore.setPendingOperation(effectiveCluster.value, 'shutdown')
-        }
-        // Enable auto-refresh to capture the DELETE transition
-        autoRefreshEnabled.value = true
-        startAutoRefresh()
-        void refresh()
-      }, msUntilShutdown)
-    } else {
-      logger.debug('Auto shutdown time already passed', {
-        cluster: effectiveCluster.value,
-        shutdownTime: autoShutdownTime,
-        msUntilShutdown
-      })
-      // Shutdown time already passed - set pending and refresh to get current state
-      if (effectiveCluster.value) {
-        stackStatusStore.setPendingOperation(effectiveCluster.value, 'shutdown')
-      }
-      autoRefreshEnabled.value = true
-      startAutoRefresh()
-      void refresh() // Will clear pending when status confirms
-    }
-  } catch (e) {
-    logger.warn('Failed to parse auto shutdown time', {
-      autoShutdownTime,
-      error: e instanceof Error ? e.message : String(e)
-    })
-  }
-}
-
-function stopShutdownTimer() {
-  if (shutdownTimer !== null) {
-    clearTimeout(shutdownTimer)
-    shutdownTimer = null
-  }
-}
-
 // Handle Enter key or blur to trigger refresh
 function onClusterKeydown(event: KeyboardEvent) {
   if (event.key === 'Enter') {
@@ -350,21 +263,19 @@ function onClusterItemSelect() {
   void refresh()
 }
 
+// Sync auto-refresh checkbox to store's background polling
 watch(autoRefreshEnabled, (enabled) => {
-  if (enabled) {
-    startAutoRefresh()
-  } else {
-    stopAutoRefresh()
+  if (effectiveCluster.value) {
+    if (enabled) {
+      stackStatusStore.enableAutoRefresh(effectiveCluster.value)
+    } else {
+      stackStatusStore.disableAutoRefresh(effectiveCluster.value)
+    }
   }
 })
 
-// Restart auto-refresh when status changes between in-progress and stable
-// This enables adaptive polling (faster during transitions)
+// Disable auto-refresh when cluster transitions to stable running state
 watch(isInProgress, async (inProgress, wasInProgress) => {
-  if (autoRefreshEnabled.value) {
-    startAutoRefresh()
-  }
-  // Disable auto-refresh when cluster transitions to stable running state
   if (wasInProgress && !inProgress && clusterExists(statusData.value)) {
     const status = getStackStatus(statusData.value)
     if (status === 'CREATE_COMPLETE' || status === 'UPDATE_COMPLETE') {
@@ -380,11 +291,12 @@ watch(isInProgress, async (inProgress, wasInProgress) => {
   }
 })
 
-// Disable auto-refresh when cluster no longer exists (e.g., after Destroy)
+// Disable auto-refresh when cluster is definitively NOT_FOUND (e.g., after Destroy)
+// Uses isDefinitelyNotFound to avoid treating fetch errors as "cluster doesn't exist"
 watch(
-  () => clusterExists(statusData.value),
-  async (exists, previousExists) => {
-    if (previousExists === true && exists === false && autoRefreshEnabled.value) {
+  () => isDefinitelyNotFound(statusData.value),
+  async (notFound, wasNotFound) => {
+    if (wasNotFound === false && notFound === true && autoRefreshEnabled.value) {
       logger.info('Cluster no longer exists, disabling auto-refresh', {
         cluster: effectiveCluster.value
       })
@@ -394,15 +306,6 @@ watch(
       autoRefreshEnabled.value = false
     }
   }
-)
-
-// Schedule a refresh when the auto shutdown time changes
-watch(
-  () => statusData.value?.auto_shutdown,
-  (autoShutdown) => {
-    scheduleShutdownRefresh(autoShutdown)
-  },
-  { immediate: true }
 )
 
 onMounted(async () => {
@@ -419,10 +322,8 @@ onActivated(() => {
   void refresh()
 })
 
-onUnmounted(() => {
-  stopAutoRefresh()
-  stopShutdownTimer()
-})
+// Note: We don't stop polling on unmount - the store manages background polling
+// and it should continue even when this component is not displayed
 
 defineExpose({ refresh })
 </script>
