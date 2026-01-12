@@ -67,8 +67,9 @@ const DEFAULT_REFRESH_INTERVAL = 5000
 /**
  * Pending operation type for intent-based locking.
  * Used to prevent double-clicks while waiting for status to confirm operation started.
+ * 'shutdown' is set when auto shutdown timer fires, before status confirms deletion.
  */
-export type PendingOperation = 'deploy' | 'destroy' | 'extend'
+export type PendingOperation = 'deploy' | 'destroy' | 'extend' | 'shutdown'
 
 /**
  * Maps pending operations to the status values that confirm they started.
@@ -77,7 +78,8 @@ export type PendingOperation = 'deploy' | 'destroy' | 'extend'
 const PENDING_CONFIRMATION_STATUSES: Record<PendingOperation, StackStatus[]> = {
   deploy: ['CREATE_IN_PROGRESS', 'CREATE_COMPLETE', 'CREATE_FAILED'],
   destroy: ['DELETE_IN_PROGRESS', 'DELETE_COMPLETE', 'DELETE_FAILED', 'NOT_FOUND'],
-  extend: ['UPDATE_IN_PROGRESS', 'UPDATE_COMPLETE', 'UPDATE_FAILED']
+  extend: ['UPDATE_IN_PROGRESS', 'UPDATE_COMPLETE', 'UPDATE_FAILED'],
+  shutdown: ['DELETE_IN_PROGRESS', 'DELETE_COMPLETE', 'DELETE_FAILED', 'NOT_FOUND']
 }
 
 export const useStackStatusStore = defineStore(

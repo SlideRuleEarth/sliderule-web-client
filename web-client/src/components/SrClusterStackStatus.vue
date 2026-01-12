@@ -104,6 +104,7 @@ const loading = ref(false)
 const error = ref<string | null>(null)
 const statusData = ref<ClusterStatusResponse | null>(null)
 let refreshTimer: number | null = null
+let shutdownTimer: number | null = null
 
 // Auto-refresh - use shared store
 const autoRefreshEnabled = computed({
@@ -263,6 +264,74 @@ function stopAutoRefresh() {
   }
 }
 
+/**
+ * Schedule a refresh when the auto shutdown time is reached.
+ * This captures the cluster transitioning to DELETE_IN_PROGRESS.
+ */
+function scheduleShutdownRefresh(autoShutdownTime: string | null | undefined) {
+  // Clear any existing shutdown timer
+  if (shutdownTimer !== null) {
+    clearTimeout(shutdownTimer)
+    shutdownTimer = null
+  }
+
+  if (!autoShutdownTime) return
+
+  try {
+    const shutdownDate = new Date(autoShutdownTime)
+    const now = new Date()
+    const msUntilShutdown = shutdownDate.getTime() - now.getTime()
+
+    // Only schedule if shutdown is in the future (with a small buffer)
+    if (msUntilShutdown > 1000) {
+      logger.debug('Scheduling shutdown refresh', {
+        cluster: effectiveCluster.value,
+        shutdownTime: autoShutdownTime,
+        msUntilShutdown
+      })
+
+      shutdownTimer = window.setTimeout(() => {
+        logger.info('Auto shutdown time reached, enabling auto-refresh', {
+          cluster: effectiveCluster.value
+        })
+        // Set pending shutdown to lock buttons immediately
+        if (effectiveCluster.value) {
+          stackStatusStore.setPendingOperation(effectiveCluster.value, 'shutdown')
+        }
+        // Enable auto-refresh to capture the DELETE transition
+        autoRefreshEnabled.value = true
+        startAutoRefresh()
+        void refresh()
+      }, msUntilShutdown)
+    } else {
+      logger.debug('Auto shutdown time already passed', {
+        cluster: effectiveCluster.value,
+        shutdownTime: autoShutdownTime,
+        msUntilShutdown
+      })
+      // Shutdown time already passed - set pending and refresh to get current state
+      if (effectiveCluster.value) {
+        stackStatusStore.setPendingOperation(effectiveCluster.value, 'shutdown')
+      }
+      autoRefreshEnabled.value = true
+      startAutoRefresh()
+      void refresh() // Will clear pending when status confirms
+    }
+  } catch (e) {
+    logger.warn('Failed to parse auto shutdown time', {
+      autoShutdownTime,
+      error: e instanceof Error ? e.message : String(e)
+    })
+  }
+}
+
+function stopShutdownTimer() {
+  if (shutdownTimer !== null) {
+    clearTimeout(shutdownTimer)
+    shutdownTimer = null
+  }
+}
+
 // Handle Enter key or blur to trigger refresh
 function onClusterKeydown(event: KeyboardEvent) {
   if (event.key === 'Enter') {
@@ -327,6 +396,15 @@ watch(
   }
 )
 
+// Schedule a refresh when the auto shutdown time changes
+watch(
+  () => statusData.value?.auto_shutdown,
+  (autoShutdown) => {
+    scheduleShutdownRefresh(autoShutdown)
+  },
+  { immediate: true }
+)
+
 onMounted(async () => {
   await refresh()
   // Only disable auto-refresh if cluster is in a stable state
@@ -343,6 +421,7 @@ onActivated(() => {
 
 onUnmounted(() => {
   stopAutoRefresh()
+  stopShutdownTimer()
 })
 
 defineExpose({ refresh })
