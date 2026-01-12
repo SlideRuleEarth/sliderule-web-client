@@ -5,6 +5,7 @@ import {
   type ClusterStatusResponse,
   type StackStatus
 } from '@/utils/fetchUtils'
+import { useClusterSelectionStore } from '@/stores/clusterSelectionStore'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('StackStatusStore')
@@ -59,6 +60,24 @@ const NOT_UPDATABLE_STACK_STATUSES: StackStatus[] = [
   'NOT_FOUND',
   'UNKNOWN',
   'FAILED'
+]
+
+/**
+ * Stable/terminal states where polling should automatically stop.
+ * These states indicate an operation has completed (successfully or with failure).
+ */
+const STABLE_STACK_STATUSES: StackStatus[] = [
+  'CREATE_COMPLETE',
+  'UPDATE_COMPLETE',
+  'DELETE_COMPLETE',
+  'NOT_FOUND',
+  'CREATE_FAILED',
+  'UPDATE_FAILED',
+  'DELETE_FAILED',
+  'ROLLBACK_COMPLETE',
+  'UPDATE_ROLLBACK_COMPLETE',
+  'ROLLBACK_FAILED',
+  'UPDATE_ROLLBACK_FAILED'
 ]
 
 // Default refresh interval for status polling (5 seconds)
@@ -341,6 +360,13 @@ export const useStackStatusStore = defineStore(
               checkAndClearPendingOperation(cluster, 'NOT_FOUND')
               // Clear any shutdown timer since cluster doesn't exist
               clearShutdownTimer(cluster)
+              // Auto-stop polling since NOT_FOUND is a stable state
+              if (isAutoRefreshEnabled(cluster)) {
+                logger.debug('Cluster not found, stopping auto-refresh', { cluster })
+                disableAutoRefresh(cluster)
+              }
+              // Update last refresh time for UI
+              useClusterSelectionStore().updateLastRefreshTime()
               logger.debug('Cluster stack not found', { cluster })
               return notFoundResponse
             }
@@ -354,6 +380,14 @@ export const useStackStatusStore = defineStore(
           const stackStatus = result.data.response?.StackStatus as StackStatus
           if (stackStatus) {
             checkAndClearPendingOperation(cluster, stackStatus)
+            // Auto-stop polling when cluster reaches stable state
+            if (STABLE_STACK_STATUSES.includes(stackStatus) && isAutoRefreshEnabled(cluster)) {
+              logger.debug('Cluster reached stable state, stopping auto-refresh', {
+                cluster,
+                status: stackStatus
+              })
+              disableAutoRefresh(cluster)
+            }
           }
           // Schedule shutdown timer if auto_shutdown is present, otherwise clear any existing timer
           if (result.data.auto_shutdown) {
@@ -361,6 +395,8 @@ export const useStackStatusStore = defineStore(
           } else {
             clearShutdownTimer(cluster)
           }
+          // Update last refresh time for UI
+          useClusterSelectionStore().updateLastRefreshTime()
           logger.debug('Fetched cluster status', { cluster, status: stackStatus })
           return result.data
         } else {

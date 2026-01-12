@@ -263,6 +263,28 @@ function onClusterItemSelect() {
   void refresh()
 }
 
+// Clear status and refresh when cluster changes
+watch(effectiveCluster, (newCluster, oldCluster) => {
+  if (newCluster !== oldCluster) {
+    // Clear stale status data from previous cluster
+    statusData.value = null
+    error.value = null
+    if (newCluster) {
+      void refresh()
+    }
+  }
+})
+
+// Sync statusData from store cache when background polling updates it
+watch(
+  () => effectiveCluster.value && stackStatusStore.statusCache[effectiveCluster.value],
+  (cachedData) => {
+    if (cachedData && effectiveCluster.value) {
+      statusData.value = cachedData
+    }
+  }
+)
+
 // Sync auto-refresh checkbox to store's background polling
 watch(autoRefreshEnabled, (enabled) => {
   if (effectiveCluster.value) {

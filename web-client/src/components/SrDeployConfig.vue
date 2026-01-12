@@ -69,17 +69,12 @@ async function refreshStatus() {
   }
 }
 
-// Transform cluster options to include disabled state and status label
-const clusterOptionsWithStatus = computed(() => {
-  return clusterList.value.map((c) => {
-    const disabled = stackStatusStore.isClusterUndeployable(c)
-    const statusLabel = disabled ? stackStatusStore.getStackStatusLabel(c) : null
-    return {
-      label: statusLabel ? `${c} (${statusLabel})` : c,
-      value: c,
-      disabled
-    }
-  })
+// Transform cluster options for the dropdown
+const clusterOptions = computed(() => {
+  return clusterList.value.map((c) => ({
+    label: c,
+    value: c
+  }))
 })
 
 // Fetch status for all deployable clusters to populate dropdown states
@@ -108,12 +103,17 @@ watch([domain, clusterName], () => {
 })
 
 // Sync clusterName to shared selection store (one-way: deploy -> others)
-// Also clear errors when cluster changes
+// Also clear errors and refresh state when cluster changes
 watch(
   clusterName,
-  (name) => {
+  (name, oldName) => {
     if (name) {
       clusterSelectionStore.setSelectedCluster(name)
+      // Force refresh status and events for the new cluster
+      if (name !== oldName) {
+        void stackStatusStore.fetchStatus(name, true)
+        clusterEventsStore.invalidate(name)
+      }
     }
     // Clear all errors when cluster selection changes
     deployError.value = null
@@ -365,10 +365,9 @@ defineExpose({ refresh })
         id="deploy-cluster"
         v-model="clusterName"
         :editable="allowCustomCluster"
-        :options="clusterOptionsWithStatus"
+        :options="clusterOptions"
         optionLabel="label"
         optionValue="value"
-        optionDisabled="disabled"
         class="sr-deploy-select"
       />
     </div>
