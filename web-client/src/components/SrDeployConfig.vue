@@ -45,6 +45,21 @@ const allowCustomCluster = computed(
   () => githubAuthStore.deployableClusters?.includes('*') ?? false
 )
 
+// Deploy state - defined early so watchers can reference them
+const deploying = ref(false)
+const deployError = ref<string | null>(null)
+const deployErrorDetails = ref<string | null>(null)
+
+// Destroy state
+const destroying = ref(false)
+const destroyError = ref<string | null>(null)
+const destroyErrorDetails = ref<string | null>(null)
+
+// Extend state
+const extending = ref(false)
+const extendError = ref<string | null>(null)
+const extendErrorDetails = ref<string | null>(null)
+
 async function refreshStatus() {
   deployConfigStore.resetStatus()
   if (clusterName.value) {
@@ -91,12 +106,20 @@ watch([domain, clusterName], () => {
 })
 
 // Sync clusterName to shared selection store (one-way: deploy -> others)
+// Also clear errors when cluster changes
 watch(
   clusterName,
   (name) => {
     if (name) {
       clusterSelectionStore.setSelectedCluster(name)
     }
+    // Clear all errors when cluster selection changes
+    deployError.value = null
+    deployErrorDetails.value = null
+    destroyError.value = null
+    destroyErrorDetails.value = null
+    extendError.value = null
+    extendErrorDetails.value = null
   },
   { immediate: true }
 )
@@ -116,25 +139,8 @@ const domainOptions = ['slideruleearth.io'] //, 'testsliderule.org'] // until su
 // Only owners can change domain
 const isDomainDisabled = computed(() => !githubAuthStore.isOwner)
 
-// Deploy state
-const deploying = ref(false)
-const deployError = ref<string | null>(null)
-const deployErrorDetails = ref<string | null>(null)
-
-// Destroy state
-const destroying = ref(false)
-const destroyError = ref<string | null>(null)
-const destroyErrorDetails = ref<string | null>(null)
-
-// Non-reactive locks to prevent double-clicks (synchronous check)
-let _deployLock = false
-let _destroyLock = false
-let _extendLock = false
-
 async function executeDeploy() {
   deploying.value = true
-  deployError.value = null
-  deployErrorDetails.value = null
   clusterSelectionStore.setAutoRefreshEnabled(true)
 
   try {
@@ -146,15 +152,21 @@ async function executeDeploy() {
       version: desiredVersion.value || undefined
     })
     if (result.success && result.data?.status) {
+      // Success: enable auto-refresh, pending operation will be cleared when status confirms
       stackStatusStore.enableAutoRefresh(clusterName.value)
+      // Force immediate status refresh to get updated state
+      void stackStatusStore.fetchStatus(clusterName.value, true)
     } else {
-      // Extract error from response exception field if available
+      // Failure: clear pending operation and show error
+      stackStatusStore.clearPendingOperation(clusterName.value)
       const exception = result.data?.exception
       deployError.value = exception ?? result.error ?? 'Deploy failed'
       deployErrorDetails.value = result.errorDetails ?? null
       logger.warn('Deploy failed', { cluster: clusterName.value, error: deployError.value })
     }
   } catch (e) {
+    // Exception: clear pending operation and show error
+    stackStatusStore.clearPendingOperation(clusterName.value)
     deployError.value = e instanceof Error ? e.message : String(e)
     logger.warn('Deploy exception', { cluster: clusterName.value, error: deployError.value })
   } finally {
@@ -163,16 +175,16 @@ async function executeDeploy() {
 }
 
 function handleDeploy() {
-  // Synchronous lock check - prevents double-clicks even if Vue reactivity lags
-  if (_deployLock) return
-  _deployLock = true
+  if (!clusterName.value) return
+  if (stackStatusStore.hasPendingOperation(clusterName.value)) return
+  if (stackStatusStore.isClusterUndeployable(clusterName.value)) return
 
-  if (!clusterName.value || actionInProgress.value) {
-    _deployLock = false
-    return
-  }
+  // Clear any previous error immediately
+  deployError.value = null
+  deployErrorDetails.value = null
 
-  // Set deploying immediately to prevent double-clicks
+  // Set pending operation (persists until status confirms)
+  stackStatusStore.setPendingOperation(clusterName.value, 'deploy')
   deploying.value = true
 
   // Show confirmation for large clusters
@@ -186,39 +198,39 @@ function handleDeploy() {
       rejectClass: 'p-button-secondary',
       acceptClass: 'p-button-warning',
       accept: () => {
-        void executeDeploy().finally(() => {
-          _deployLock = false
-        })
+        void executeDeploy()
       },
       reject: () => {
         deploying.value = false
-        _deployLock = false
+        stackStatusStore.clearPendingOperation(clusterName.value)
       }
     })
   } else {
-    void executeDeploy().finally(() => {
-      _deployLock = false
-    })
+    void executeDeploy()
   }
 }
 
 async function executeDestroy() {
   destroying.value = true
-  destroyError.value = null
-  destroyErrorDetails.value = null
   clusterSelectionStore.setAutoRefreshEnabled(true)
 
   try {
     const result = await destroyCluster(clusterName.value)
     if (result.success && result.data?.status) {
+      // Success: enable auto-refresh, pending operation will be cleared when status confirms
       stackStatusStore.enableAutoRefresh(clusterName.value)
+      // Force immediate status refresh to get updated state
+      void stackStatusStore.fetchStatus(clusterName.value, true)
     } else {
-      // Extract error from response exception field if available
+      // Failure: clear pending operation and show error
+      stackStatusStore.clearPendingOperation(clusterName.value)
       const exception = result.data?.exception
       destroyError.value = exception ?? result.error ?? 'Destroy failed'
       destroyErrorDetails.value = result.errorDetails ?? null
     }
   } catch (e) {
+    // Exception: clear pending operation and show error
+    stackStatusStore.clearPendingOperation(clusterName.value)
     destroyError.value = e instanceof Error ? e.message : String(e)
   } finally {
     destroying.value = false
@@ -226,16 +238,16 @@ async function executeDestroy() {
 }
 
 function handleDestroy() {
-  // Synchronous lock check - prevents double-clicks even if Vue reactivity lags
-  if (_destroyLock) return
-  _destroyLock = true
+  if (!clusterName.value) return
+  if (stackStatusStore.hasPendingOperation(clusterName.value)) return
+  if (stackStatusStore.isClusterUndestroyable(clusterName.value)) return
 
-  if (!clusterName.value || actionInProgress.value) {
-    _destroyLock = false
-    return
-  }
+  // Clear any previous error immediately
+  destroyError.value = null
+  destroyErrorDetails.value = null
 
-  // Set destroying immediately to prevent double-clicks
+  // Set pending operation (persists until status confirms)
+  stackStatusStore.setPendingOperation(clusterName.value, 'destroy')
   destroying.value = true
 
   confirm.require({
@@ -247,44 +259,38 @@ function handleDestroy() {
     rejectClass: 'p-button-secondary',
     acceptClass: 'p-button-danger',
     accept: () => {
-      void executeDestroy().finally(() => {
-        _destroyLock = false
-      })
+      void executeDestroy()
     },
     reject: () => {
       destroying.value = false
-      _destroyLock = false
+      stackStatusStore.clearPendingOperation(clusterName.value)
     }
   })
 }
 
-// Extend state
-const extending = ref(false)
-const extendError = ref<string | null>(null)
-const extendErrorDetails = ref<string | null>(null)
-
-// Prevent double-clicks by checking if any action is in progress
-const actionInProgress = computed(() => deploying.value || destroying.value || extending.value)
-
 async function executeExtend() {
   extending.value = true
-  extendError.value = null
-  extendErrorDetails.value = null
   clusterSelectionStore.setAutoRefreshEnabled(true)
 
   try {
     const result = await extendCluster(clusterName.value, ttl.value)
     if (result.success && result.data?.status) {
+      // Success: enable auto-refresh, pending operation will be cleared when status confirms
       stackStatusStore.enableAutoRefresh(clusterName.value)
+      // Force immediate status refresh to get updated state
+      void stackStatusStore.fetchStatus(clusterName.value, true)
       logger.info('Cluster TTL extended', { cluster: clusterName.value, ttl: ttl.value })
     } else {
-      // Extract error from response exception field if available
+      // Failure: clear pending operation and show error
+      stackStatusStore.clearPendingOperation(clusterName.value)
       const exception = result.data?.exception
       extendError.value = exception ?? result.error ?? 'Extend failed'
       extendErrorDetails.value = result.errorDetails ?? null
       logger.warn('Extend failed', { cluster: clusterName.value, error: extendError.value })
     }
   } catch (e) {
+    // Exception: clear pending operation and show error
+    stackStatusStore.clearPendingOperation(clusterName.value)
     extendError.value = e instanceof Error ? e.message : String(e)
     logger.warn('Extend exception', { cluster: clusterName.value, error: extendError.value })
   } finally {
@@ -293,16 +299,16 @@ async function executeExtend() {
 }
 
 function handleExtend() {
-  // Synchronous lock check - prevents double-clicks even if Vue reactivity lags
-  if (_extendLock) return
-  _extendLock = true
+  if (!clusterName.value) return
+  if (stackStatusStore.hasPendingOperation(clusterName.value)) return
+  if (stackStatusStore.isClusterNotUpdatable(clusterName.value)) return
 
-  if (!clusterName.value || actionInProgress.value) {
-    _extendLock = false
-    return
-  }
+  // Clear any previous error immediately
+  extendError.value = null
+  extendErrorDetails.value = null
 
-  // Set extending immediately to prevent double-clicks
+  // Set pending operation (persists until status confirms)
+  stackStatusStore.setPendingOperation(clusterName.value, 'extend')
   extending.value = true
 
   confirm.require({
@@ -313,13 +319,11 @@ function handleExtend() {
     acceptLabel: 'Extend',
     rejectClass: 'p-button-secondary',
     accept: () => {
-      void executeExtend().finally(() => {
-        _extendLock = false
-      })
+      void executeExtend()
     },
     reject: () => {
       extending.value = false
-      _extendLock = false
+      stackStatusStore.clearPendingOperation(clusterName.value)
     }
   })
 }
@@ -392,7 +396,9 @@ function handleExtend() {
           size="small"
           :loading="extending"
           :disabled="
-            !clusterName || actionInProgress || stackStatusStore.isClusterNotUpdatable(clusterName)
+            !clusterName ||
+            stackStatusStore.hasPendingOperation(clusterName) ||
+            stackStatusStore.isClusterNotUpdatable(clusterName)
           "
           class="sr-deploy-ttl-btn"
           @click="handleExtend"
@@ -406,7 +412,9 @@ function handleExtend() {
         severity="danger"
         :loading="destroying"
         :disabled="
-          !clusterName || actionInProgress || stackStatusStore.isClusterUndestroyable(clusterName)
+          !clusterName ||
+          stackStatusStore.hasPendingOperation(clusterName) ||
+          stackStatusStore.isClusterUndestroyable(clusterName)
         "
         @click="handleDestroy"
       />
@@ -415,7 +423,9 @@ function handleExtend() {
         icon="pi pi-cloud-upload"
         :loading="deploying"
         :disabled="
-          !clusterName || actionInProgress || stackStatusStore.isClusterUndeployable(clusterName)
+          !clusterName ||
+          stackStatusStore.hasPendingOperation(clusterName) ||
+          stackStatusStore.isClusterUndeployable(clusterName)
         "
         @click="handleDeploy"
       />

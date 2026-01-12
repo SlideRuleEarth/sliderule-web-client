@@ -64,6 +64,22 @@ const NOT_UPDATABLE_STACK_STATUSES: StackStatus[] = [
 // Default refresh interval for status polling (5 seconds)
 const DEFAULT_REFRESH_INTERVAL = 5000
 
+/**
+ * Pending operation type for intent-based locking.
+ * Used to prevent double-clicks while waiting for status to confirm operation started.
+ */
+export type PendingOperation = 'deploy' | 'destroy' | 'extend'
+
+/**
+ * Maps pending operations to the status values that confirm they started.
+ * When status matches any of these, the pending operation is auto-cleared.
+ */
+const PENDING_CONFIRMATION_STATUSES: Record<PendingOperation, StackStatus[]> = {
+  deploy: ['CREATE_IN_PROGRESS', 'CREATE_COMPLETE', 'CREATE_FAILED'],
+  destroy: ['DELETE_IN_PROGRESS', 'DELETE_COMPLETE', 'DELETE_FAILED', 'NOT_FOUND'],
+  extend: ['UPDATE_IN_PROGRESS', 'UPDATE_COMPLETE', 'UPDATE_FAILED']
+}
+
 export const useStackStatusStore = defineStore(
   'stackStatus',
   () => {
@@ -75,6 +91,10 @@ export const useStackStatusStore = defineStore(
     // Per-cluster auto-refresh settings (disabled by default, enabled after operations)
     const autoRefreshClusters = ref<Record<string, boolean>>({})
     const refreshIntervals = ref<Record<string, number>>({})
+
+    // Pending operations for intent-based locking (in-memory only, not persisted)
+    // Prevents double-clicks by tracking user intent until status confirms operation started
+    const pendingOperations = ref<Record<string, PendingOperation | null>>({})
 
     /**
      * Enable auto-refresh for a cluster (called after successful deploy/destroy/extend).
@@ -103,6 +123,60 @@ export const useStackStatusStore = defineStore(
      */
     function getRefreshInterval(cluster: string): number {
       return refreshIntervals.value[cluster] ?? DEFAULT_REFRESH_INTERVAL
+    }
+
+    /**
+     * Set a pending operation for a cluster (intent-based locking).
+     * Call this when user initiates an action, before the API call.
+     * The pending state will be auto-cleared when status confirms the operation started.
+     */
+    function setPendingOperation(cluster: string, operation: PendingOperation): void {
+      pendingOperations.value[cluster] = operation
+      logger.debug('Set pending operation', { cluster, operation })
+    }
+
+    /**
+     * Clear a pending operation for a cluster.
+     * Call this on API error, or it will be auto-cleared when status confirms.
+     */
+    function clearPendingOperation(cluster: string): void {
+      if (pendingOperations.value[cluster]) {
+        logger.debug('Cleared pending operation', {
+          cluster,
+          operation: pendingOperations.value[cluster]
+        })
+        pendingOperations.value[cluster] = null
+      }
+    }
+
+    /**
+     * Check if a cluster has a pending operation.
+     * Used to disable buttons while waiting for status confirmation.
+     */
+    function hasPendingOperation(cluster: string): boolean {
+      return pendingOperations.value[cluster] != null
+    }
+
+    /**
+     * Get the pending operation type for a cluster.
+     */
+    function getPendingOperation(cluster: string): PendingOperation | null {
+      return pendingOperations.value[cluster] ?? null
+    }
+
+    /**
+     * Check if the current status confirms a pending operation started.
+     * If so, auto-clear the pending operation.
+     */
+    function checkAndClearPendingOperation(cluster: string, status: StackStatus): void {
+      const pending = pendingOperations.value[cluster]
+      if (!pending) return
+
+      const confirmationStatuses = PENDING_CONFIRMATION_STATUSES[pending]
+      if (confirmationStatuses.includes(status)) {
+        logger.debug('Pending operation confirmed by status', { cluster, pending, status })
+        pendingOperations.value[cluster] = null
+      }
     }
 
     /**
@@ -147,6 +221,7 @@ export const useStackStatusStore = defineStore(
               }
               statusCache.value[cluster] = notFoundResponse
               errors.value[cluster] = null
+              checkAndClearPendingOperation(cluster, 'NOT_FOUND')
               logger.debug('Cluster stack not found', { cluster })
               return notFoundResponse
             }
@@ -157,7 +232,11 @@ export const useStackStatusStore = defineStore(
             return null
           }
           statusCache.value[cluster] = result.data
-          logger.debug('Fetched cluster status', { cluster, status: getStackStatus(cluster) })
+          const stackStatus = result.data.response?.StackStatus as StackStatus
+          if (stackStatus) {
+            checkAndClearPendingOperation(cluster, stackStatus)
+          }
+          logger.debug('Fetched cluster status', { cluster, status: stackStatus })
           return result.data
         } else {
           errors.value[cluster] = result.error ?? 'Failed to fetch status'
@@ -299,10 +378,15 @@ export const useStackStatusStore = defineStore(
       errors,
       autoRefreshClusters,
       refreshIntervals,
+      pendingOperations,
       enableAutoRefresh,
       disableAutoRefresh,
       isAutoRefreshEnabled,
       getRefreshInterval,
+      setPendingOperation,
+      clearPendingOperation,
+      hasPendingOperation,
+      getPendingOperation,
       fetchStatus,
       getStatus,
       getStackStatus,

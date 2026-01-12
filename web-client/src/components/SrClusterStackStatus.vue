@@ -291,7 +291,7 @@ watch(autoRefreshEnabled, (enabled) => {
 
 // Restart auto-refresh when status changes between in-progress and stable
 // This enables adaptive polling (faster during transitions)
-watch(isInProgress, (inProgress, wasInProgress) => {
+watch(isInProgress, async (inProgress, wasInProgress) => {
   if (autoRefreshEnabled.value) {
     startAutoRefresh()
   }
@@ -303,9 +303,10 @@ watch(isInProgress, (inProgress, wasInProgress) => {
         cluster: effectiveCluster.value,
         status
       })
+      // Do final refresh FIRST, then disable auto-refresh
+      // This ensures UI shows the stable state before we stop polling
+      await refresh()
       autoRefreshEnabled.value = false
-      // Final refresh to ensure UI shows the stable state
-      void refresh()
     }
   }
 })
@@ -313,21 +314,27 @@ watch(isInProgress, (inProgress, wasInProgress) => {
 // Disable auto-refresh when cluster no longer exists (e.g., after Destroy)
 watch(
   () => clusterExists(statusData.value),
-  (exists, previousExists) => {
+  async (exists, previousExists) => {
     if (previousExists === true && exists === false && autoRefreshEnabled.value) {
       logger.info('Cluster no longer exists, disabling auto-refresh', {
         cluster: effectiveCluster.value
       })
+      // Do final refresh FIRST, then disable auto-refresh
+      // This ensures UI shows the deleted state before we stop polling
+      await refresh()
       autoRefreshEnabled.value = false
-      // Final refresh to ensure UI shows the deleted state
-      void refresh()
     }
   }
 )
 
-onMounted(() => {
-  void refresh()
-  autoRefreshEnabled.value = false // Ensure auto-refresh is disabled initially
+onMounted(async () => {
+  await refresh()
+  // Only disable auto-refresh if cluster is in a stable state
+  // If in transition (CREATE_IN_PROGRESS, DELETE_IN_PROGRESS, etc.), preserve the
+  // auto-refresh setting so user can watch the operation complete after tab switches
+  if (!isInProgress.value) {
+    autoRefreshEnabled.value = false
+  }
 })
 
 onActivated(() => {
