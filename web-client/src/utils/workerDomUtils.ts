@@ -18,6 +18,7 @@ import {
 } from '@/utils/SrDuckDbUtils'
 import { findSrViewKey } from '@/composables/SrViews'
 import { useLegacyJwtStore } from '@/stores/SrLegacyJwtStore'
+import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 import router from '@/router/index.js'
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore'
 import { useChartStore } from '@/stores/chartStore'
@@ -378,9 +379,12 @@ async function runFetchToFileWorker(srReqRec: SrRequestRecord): Promise<void> {
           requestsStore.setSvrMsg('')
         }
       }
-      // Ensure token is fresh before starting long-running worker job
-      // Refreshes proactively if token expires within 9 minutes
-      const accessToken = (await useLegacyJwtStore().ensureFreshToken()) ?? ''
+      // Get auth token - priority: GitHub OAuth JWT > Legacy JWT > None
+      // GitHub OAuth is required for private clusters
+      const githubAuthStore = useGitHubAuthStore()
+      const githubToken = githubAuthStore.authToken
+      // Fall back to legacy JWT if GitHub token not available (refreshes proactively if expires within 9 minutes)
+      const accessToken = githubToken ?? (await useLegacyJwtStore().ensureFreshToken()) ?? ''
 
       const cmd = {
         type: 'run',
