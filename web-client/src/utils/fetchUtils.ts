@@ -265,7 +265,9 @@ export async function fetchServerVersionInfo(
       data
     }
   } catch (error) {
-    logger.debug('Error fetching server version', {
+    logger.warn('Error fetching server version', {
+      cluster,
+      url,
       error: error instanceof Error ? error.message : String(error)
     })
     return {
@@ -314,7 +316,9 @@ export async function fetchCurrentNodes(
       throw new Error('Invalid response format')
     }
   } catch (error) {
-    logger.debug('Error fetching current nodes', {
+    logger.warn('Error fetching current nodes', {
+      cluster,
+      url,
       error: error instanceof Error ? error.message : String(error)
     })
     return {

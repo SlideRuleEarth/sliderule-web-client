@@ -65,7 +65,11 @@ const extendErrorDetails = ref<string | null>(null)
 async function refreshStatus() {
   deployConfigStore.resetStatus()
   if (clusterName.value) {
-    await deployConfigStore.fetchServerVersionInfo()
+    // Only fetch version info if cluster is running (avoid CORS errors for non-deployed clusters)
+    const status = stackStatusStore.getStackStatus(clusterName.value)
+    if (status === 'CREATE_COMPLETE' || status === 'UPDATE_COMPLETE') {
+      await deployConfigStore.fetchServerVersionInfo()
+    }
   }
 }
 
