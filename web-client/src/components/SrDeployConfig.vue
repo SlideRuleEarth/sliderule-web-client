@@ -17,6 +17,7 @@ import { useSysConfigStore } from '@/stores/sysConfigStore'
 import { deployCluster, destroyCluster, extendCluster } from '@/utils/fetchUtils'
 import { storeToRefs } from 'pinia'
 import { createLogger } from '@/utils/logger'
+import { useSrToastStore } from '@/stores/srToastStore'
 
 const logger = createLogger('SrDeployConfig')
 
@@ -26,6 +27,7 @@ const stackStatusStore = useStackStatusStore()
 const clusterSelectionStore = useClusterSelectionStore()
 const clusterEventsStore = useClusterEventsStore()
 const sysConfigStore = useSysConfigStore()
+const toastStore = useSrToastStore()
 const confirm = useConfirm()
 
 // Threshold for large cluster confirmation
@@ -64,9 +66,6 @@ const extending = ref(false)
 const extendError = ref<string | null>(null)
 const extendErrorDetails = ref<string | null>(null)
 
-// Cluster name validation hint
-const clusterNameHint = ref<string | null>(null)
-
 // Confirmed cluster name - only updated when user accepts input (blur/enter/select)
 // Used for SrClusterStackStatus to avoid fetching on every keystroke
 const confirmedClusterName = ref<string>('')
@@ -74,31 +73,16 @@ const confirmedClusterName = ref<string>('')
 // Track last accepted cluster to prevent duplicate fetches (blur + hide can both fire)
 const lastAcceptedCluster = ref<string>('')
 
-// Sanitize cluster name to valid subdomain format
-function sanitizeClusterName(value: string): string {
-  if (!value) return value
-  return value
-    .toLowerCase() // Convert to lowercase
-    .replace(/[^a-z0-9-]/g, '') // Remove invalid characters
-    .replace(/^-+/, '') // Remove leading hyphens
-    .replace(/-+$/, '') // Remove trailing hyphens
-    .slice(0, 63) // Max 63 characters
+// Validate cluster name as valid subdomain format
+// Returns error message if invalid, null if valid
+function validateClusterName(value: string): string | null {
+  if (!value) return null
+  if (value.length > 63) return 'Must be 63 characters or less'
+  if (!/^[a-z0-9]/.test(value)) return 'Must start with a lowercase letter or number'
+  if (!/[a-z0-9]$/.test(value)) return 'Must end with a lowercase letter or number'
+  if (!/^[a-z0-9-]+$/.test(value)) return 'Can only contain lowercase letters, numbers, and hyphens'
+  return null
 }
-
-// Watch for custom cluster input and sanitize to valid subdomain
-watch(clusterName, (newVal) => {
-  if (allowCustomCluster.value && newVal) {
-    const sanitized = sanitizeClusterName(newVal)
-    if (sanitized !== newVal) {
-      clusterName.value = sanitized
-      clusterNameHint.value = 'Cluster name adjusted (lowercase, alphanumeric, hyphens only)'
-      // Clear hint after 3 seconds
-      setTimeout(() => {
-        clusterNameHint.value = null
-      }, 3000)
-    }
-  }
-})
 
 async function refreshStatus() {
   deployConfigStore.resetStatus()
@@ -150,16 +134,29 @@ watch(domain, () => {
 
 // Called when user accepts a cluster name (blur or dropdown selection)
 function onClusterAccepted() {
-  // Deduplicate - both @blur and @hide can fire for the same selection
-  if (clusterName.value && clusterName.value !== lastAcceptedCluster.value) {
-    lastAcceptedCluster.value = clusterName.value
-    confirmedClusterName.value = clusterName.value
-    // Only sync to shared selection store when user accepts (not on every keystroke)
-    clusterSelectionStore.setSelectedCluster(clusterName.value)
-    void stackStatusStore.fetchStatus(clusterName.value, true)
-    clusterEventsStore.invalidate(clusterName.value)
-    void refreshStatus()
+  if (!clusterName.value) return
+  if (clusterName.value === lastAcceptedCluster.value) return
+
+  // Track this name to prevent duplicate processing (blur + hide can both fire)
+  lastAcceptedCluster.value = clusterName.value
+
+  // Validate custom cluster names
+  if (allowCustomCluster.value) {
+    const error = validateClusterName(clusterName.value)
+    if (error) {
+      toastStore.warn(
+        'Invalid Cluster Name',
+        `${error}.\n\nCluster name rules:\n• Lowercase letters, numbers, and hyphens only\n• Must start with a letter or number\n• Must end with a letter or number\n• Maximum 63 characters`
+      )
+      return // Don't proceed with invalid name
+    }
   }
+  confirmedClusterName.value = clusterName.value
+  // Only sync to shared selection store when user accepts (not on every keystroke)
+  clusterSelectionStore.setSelectedCluster(clusterName.value)
+  void stackStatusStore.fetchStatus(clusterName.value, true)
+  clusterEventsStore.invalidate(clusterName.value)
+  void refreshStatus()
 }
 
 // Called when dropdown panel closes - triggers fetch if user selected from dropdown
@@ -418,20 +415,17 @@ defineExpose({ refresh })
     </div>
     <div class="sr-deploy-field">
       <label for="deploy-cluster" class="sr-deploy-label">cluster</label>
-      <div class="sr-cluster-input-wrapper">
-        <Select
-          id="deploy-cluster"
-          v-model="clusterName"
-          :editable="allowCustomCluster"
-          :options="clusterOptions"
-          optionLabel="label"
-          optionValue="value"
-          class="sr-deploy-select"
-          @blur="onClusterAccepted"
-          @hide="onDropdownHide"
-        />
-        <small v-if="clusterNameHint" class="sr-cluster-hint">{{ clusterNameHint }}</small>
-      </div>
+      <Select
+        id="deploy-cluster"
+        v-model="clusterName"
+        :editable="allowCustomCluster"
+        :options="clusterOptions"
+        optionLabel="label"
+        optionValue="value"
+        class="sr-deploy-select"
+        @blur="onClusterAccepted"
+        @hide="onDropdownHide"
+      />
     </div>
     <div class="sr-deploy-field">
       <label for="deploy-version" class="sr-deploy-label">Version</label>
@@ -557,17 +551,6 @@ defineExpose({ refresh })
 
 .sr-deploy-select {
   width: 15em;
-}
-
-.sr-cluster-input-wrapper {
-  display: flex;
-  flex-direction: column;
-}
-
-.sr-cluster-hint {
-  color: var(--p-text-muted-color);
-  font-size: 0.75rem;
-  margin-top: 0.25rem;
 }
 
 .sr-deploy-input {
