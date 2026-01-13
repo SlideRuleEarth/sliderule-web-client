@@ -62,6 +62,35 @@ const extending = ref(false)
 const extendError = ref<string | null>(null)
 const extendErrorDetails = ref<string | null>(null)
 
+// Cluster name validation hint
+const clusterNameHint = ref<string | null>(null)
+
+// Sanitize cluster name to valid subdomain format
+function sanitizeClusterName(value: string): string {
+  if (!value) return value
+  return value
+    .toLowerCase() // Convert to lowercase
+    .replace(/[^a-z0-9-]/g, '') // Remove invalid characters
+    .replace(/^-+/, '') // Remove leading hyphens
+    .replace(/-+$/, '') // Remove trailing hyphens
+    .slice(0, 63) // Max 63 characters
+}
+
+// Watch for custom cluster input and sanitize to valid subdomain
+watch(clusterName, (newVal) => {
+  if (allowCustomCluster.value && newVal) {
+    const sanitized = sanitizeClusterName(newVal)
+    if (sanitized !== newVal) {
+      clusterName.value = sanitized
+      clusterNameHint.value = 'Cluster name adjusted (lowercase, alphanumeric, hyphens only)'
+      // Clear hint after 3 seconds
+      setTimeout(() => {
+        clusterNameHint.value = null
+      }, 3000)
+    }
+  }
+})
+
 async function refreshStatus() {
   deployConfigStore.resetStatus()
   if (clusterName.value) {
@@ -73,9 +102,9 @@ async function refreshStatus() {
   }
 }
 
-// Transform cluster options for the dropdown
+// Transform cluster options for the dropdown (use centralized list)
 const clusterOptions = computed(() => {
-  return clusterList.value.map((c) => ({
+  return clusterSelectionStore.allClusters.map((c) => ({
     label: c,
     value: c
   }))
@@ -158,6 +187,10 @@ async function executeDeploy() {
       version: desiredVersion.value || undefined
     })
     if (result.success && result.data?.status) {
+      // Add custom name to dropdown lists if not already present
+      if (!clusterList.value.includes(clusterName.value)) {
+        clusterSelectionStore.addCustomName(clusterName.value)
+      }
       // Success: enable auto-refresh for both status and events via central coordinator
       void clusterSelectionStore.enableAutoRefresh(clusterName.value, 'Deploying cluster')
       // Force immediate status refresh to get updated state
@@ -362,15 +395,18 @@ defineExpose({ refresh })
     </div>
     <div class="sr-deploy-field">
       <label for="deploy-cluster" class="sr-deploy-label">cluster</label>
-      <Select
-        id="deploy-cluster"
-        v-model="clusterName"
-        :editable="allowCustomCluster"
-        :options="clusterOptions"
-        optionLabel="label"
-        optionValue="value"
-        class="sr-deploy-select"
-      />
+      <div class="sr-cluster-input-wrapper">
+        <Select
+          id="deploy-cluster"
+          v-model="clusterName"
+          :editable="allowCustomCluster"
+          :options="clusterOptions"
+          optionLabel="label"
+          optionValue="value"
+          class="sr-deploy-select"
+        />
+        <small v-if="clusterNameHint" class="sr-cluster-hint">{{ clusterNameHint }}</small>
+      </div>
     </div>
     <div class="sr-deploy-field">
       <label for="deploy-version" class="sr-deploy-label">Version</label>
@@ -496,6 +532,17 @@ defineExpose({ refresh })
 
 .sr-deploy-select {
   width: 15em;
+}
+
+.sr-cluster-input-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.sr-cluster-hint {
+  color: var(--p-text-muted-color);
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
 }
 
 .sr-deploy-input {

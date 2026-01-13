@@ -17,8 +17,8 @@ import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 
 const githubAuthStore = useGitHubAuthStore()
 
-// Default tab based on auth: 'report' for members, 'sysConfig' for others
-const activeTab = ref(githubAuthStore.canAccessMemberFeatures ? 'report' : 'sysConfig')
+// Default tab based on auth: 'report' for members, 'sysconfig' (Connection) for others
+const activeTab = ref(githubAuthStore.canAccessMemberFeatures ? 'report' : 'sysconfig')
 
 // Update default tab when auth state becomes known (handles async auth resolution)
 const hasSetInitialTab = ref(false)
@@ -26,7 +26,7 @@ watch(
   () => githubAuthStore.canAccessMemberFeatures,
   (canAccess) => {
     if (!hasSetInitialTab.value) {
-      activeTab.value = canAccess ? 'report' : 'sysConfig'
+      activeTab.value = canAccess ? 'report' : 'sysconfig'
       hasSetInitialTab.value = true
     }
   },

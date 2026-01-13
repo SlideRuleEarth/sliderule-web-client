@@ -6,8 +6,6 @@ import ProgressSpinner from 'primevue/progressspinner'
 import AutoComplete from 'primevue/autocomplete'
 import Panel from 'primevue/panel'
 import { type ClusterStatusResponse } from '@/utils/fetchUtils'
-import { useGitHubAuthStore } from '@/stores/githubAuthStore'
-import { useSysConfigStore } from '@/stores/sysConfigStore'
 import { useStackStatusStore } from '@/stores/stackStatusStore'
 import { useClusterSelectionStore } from '@/stores/clusterSelectionStore'
 import { createLogger } from '@/utils/logger'
@@ -52,8 +50,6 @@ const emit = defineEmits<{
   (_e: 'error', _message: string): void
 }>()
 
-const githubAuthStore = useGitHubAuthStore()
-const sysConfigStore = useSysConfigStore()
 const stackStatusStore = useStackStatusStore()
 const clusterSelectionStore = useClusterSelectionStore()
 
@@ -64,26 +60,8 @@ const selectedCluster = computed({
 })
 const filteredClusters = ref<string[]>([])
 
-// Build list of available cluster suggestions
-const clusterSuggestions = computed(() => {
-  const suggestions: string[] = []
-
-  // Add current cluster from sysConfigStore (the connected cluster)
-  if (sysConfigStore.cluster && sysConfigStore.cluster !== 'unknown') {
-    suggestions.push(sysConfigStore.cluster)
-  }
-
-  // Add known clusters from GitHub auth (includes 'sliderule' public cluster)
-  if (githubAuthStore.knownClusters?.length > 0) {
-    for (const cluster of githubAuthStore.knownClusters) {
-      if (!suggestions.includes(cluster)) {
-        suggestions.push(cluster)
-      }
-    }
-  }
-
-  return suggestions.sort()
-})
+// Use centralized cluster list from store (includes known, deployable, and custom clusters)
+const clusterSuggestions = computed(() => clusterSelectionStore.allClusters)
 
 // Fixed cluster mode - when cluster prop is provided
 const isClusterFixed = computed(() => !!props.cluster)

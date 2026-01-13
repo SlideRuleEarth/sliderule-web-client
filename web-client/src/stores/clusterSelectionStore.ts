@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { useGitHubAuthStore } from '@/stores/githubAuthStore'
+import { useSysConfigStore } from '@/stores/sysConfigStore'
 
 // Consolidated polling intervals (used by stackStatusStore and clusterEventsStore)
 export const DEFAULT_STATUS_REFRESH_INTERVAL = 5000
@@ -8,6 +10,9 @@ export const DEFAULT_EVENTS_REFRESH_INTERVAL = 30000
 export const useClusterSelectionStore = defineStore('clusterSelection', () => {
   // Selected cluster
   const selectedCluster = ref<string>('')
+
+  // Custom names entered by users (used for both cluster and subdomain lists)
+  const customNames = ref<string[]>([])
 
   // Per-cluster auto-refresh state (single source of truth)
   const autoRefreshClusters = ref<Record<string, boolean>>({})
@@ -28,6 +33,59 @@ export const useClusterSelectionStore = defineStore('clusterSelection', () => {
   const autoRefreshMessage = computed(() => {
     if (!selectedCluster.value) return null
     return autoRefreshMessages.value[selectedCluster.value] ?? null
+  })
+
+  // Centralized list of all available clusters (for all cluster selection menus)
+  const allClusters = computed(() => {
+    const githubAuthStore = useGitHubAuthStore()
+    const sysConfigStore = useSysConfigStore()
+    const clusters = new Set<string>()
+
+    // Add current connected cluster
+    if (sysConfigStore.cluster && sysConfigStore.cluster !== 'unknown') {
+      clusters.add(sysConfigStore.cluster)
+    }
+
+    // Add known clusters (includes public 'sliderule')
+    for (const c of githubAuthStore.knownClusters ?? []) {
+      clusters.add(c)
+    }
+
+    // Add deployable clusters (exclude wildcard)
+    for (const c of githubAuthStore.deployableClusters ?? []) {
+      if (c !== '*') clusters.add(c)
+    }
+
+    // Add custom names
+    for (const c of customNames.value) {
+      clusters.add(c)
+    }
+
+    return Array.from(clusters).sort()
+  })
+
+  // Centralized list of all subdomains (for Connection interface)
+  const allSubdomains = computed(() => {
+    const githubAuthStore = useGitHubAuthStore()
+    const sysConfigStore = useSysConfigStore()
+    const subdomains = new Set<string>()
+
+    // Add current connected subdomain
+    if (sysConfigStore.subdomain && sysConfigStore.subdomain !== 'unknown') {
+      subdomains.add(sysConfigStore.subdomain)
+    }
+
+    // Add known clusters as subdomains
+    for (const c of githubAuthStore.knownClusters ?? []) {
+      subdomains.add(c)
+    }
+
+    // Add custom names (same for both clusters and subdomains)
+    for (const n of customNames.value) {
+      subdomains.add(n)
+    }
+
+    return Array.from(subdomains).sort()
   })
 
   function setSelectedCluster(cluster: string) {
@@ -98,8 +156,26 @@ export const useClusterSelectionStore = defineStore('clusterSelection', () => {
     lastRefreshTime.value = new Date()
   }
 
+  // Add a custom name to the list (if not already present)
+  function addCustomName(name: string) {
+    if (name && !customNames.value.includes(name)) {
+      customNames.value.push(name)
+    }
+  }
+
+  // Remove a custom name from the list
+  function removeCustomName(name: string) {
+    const index = customNames.value.indexOf(name)
+    if (index !== -1) {
+      customNames.value.splice(index, 1)
+    }
+  }
+
   return {
     selectedCluster,
+    customNames,
+    allClusters,
+    allSubdomains,
     autoRefreshEnabled,
     autoRefreshMessage,
     autoRefreshClusters,
@@ -112,6 +188,8 @@ export const useClusterSelectionStore = defineStore('clusterSelection', () => {
     enableAutoRefresh,
     disableAutoRefresh,
     clearAutoRefreshMessage,
-    updateLastRefreshTime
+    updateLastRefreshTime,
+    addCustomName,
+    removeCustomName
   }
 })

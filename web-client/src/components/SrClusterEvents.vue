@@ -9,7 +9,6 @@ import Column from 'primevue/column'
 import Drawer from 'primevue/drawer'
 import { type StackEvent } from '@/utils/fetchUtils'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
-import { useSysConfigStore } from '@/stores/sysConfigStore'
 import { useClusterEventsStore } from '@/stores/clusterEventsStore'
 import { useClusterSelectionStore } from '@/stores/clusterSelectionStore'
 import SrJsonDisplayDialog from '@/components/SrJsonDisplayDialog.vue'
@@ -36,7 +35,6 @@ const emit = defineEmits<{
 }>()
 
 const githubAuthStore = useGitHubAuthStore()
-const sysConfigStore = useSysConfigStore()
 const clusterEventsStore = useClusterEventsStore()
 const clusterSelectionStore = useClusterSelectionStore()
 
@@ -51,24 +49,8 @@ const selectedCluster = computed({
 })
 const filteredClusters = ref<string[]>([])
 
-// Build list of available cluster suggestions
-const clusterSuggestions = computed(() => {
-  const suggestions: string[] = []
-
-  if (sysConfigStore.cluster && sysConfigStore.cluster !== 'unknown') {
-    suggestions.push(sysConfigStore.cluster)
-  }
-
-  if (githubAuthStore.knownClusters?.length > 0) {
-    for (const cluster of githubAuthStore.knownClusters) {
-      if (!suggestions.includes(cluster)) {
-        suggestions.push(cluster)
-      }
-    }
-  }
-
-  return suggestions.sort()
-})
+// Use centralized cluster list from store (includes known, deployable, and custom clusters)
+const clusterSuggestions = computed(() => clusterSelectionStore.allClusters)
 
 const isClusterFixed = computed(() => !!props.cluster)
 const effectiveCluster = computed(() => props.cluster ?? selectedCluster.value)
@@ -91,7 +73,7 @@ const cachedDataTimestamp = ref<Date | null>(null)
 // Auto-refresh - use shared store
 const autoRefreshEnabled = computed({
   get: () => clusterSelectionStore.autoRefreshEnabled,
-  set: (value: boolean) => clusterSelectionStore.setAutoRefreshEnabled(value)
+  set: async (value: boolean) => clusterSelectionStore.setAutoRefreshEnabled(value)
 })
 
 // Format last refresh time for display
