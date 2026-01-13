@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { fetchClusterEvents, type StackEvent } from '@/utils/fetchUtils'
+import { useClusterSelectionStore } from '@/stores/clusterSelectionStore'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('ClusterEventsStore')
@@ -22,8 +23,7 @@ export const useClusterEventsStore = defineStore('clusterEvents', () => {
   const loadingClusters = ref<Set<string>>(new Set())
   const errors = ref<Record<string, string | null>>({})
 
-  // Per-cluster auto-refresh settings (in-memory only, not persisted)
-  const autoRefreshClusters = ref<Record<string, boolean>>({})
+  // Per-cluster refresh intervals (auto-refresh state is in clusterSelectionStore)
   const refreshIntervals = ref<Record<string, number>>({})
 
   // Per-cluster polling timers for background events updates (in-memory only, not persisted)
@@ -75,7 +75,7 @@ export const useClusterEventsStore = defineStore('clusterEvents', () => {
     cluster: string,
     interval: number = DEFAULT_EVENTS_REFRESH_INTERVAL
   ): void {
-    autoRefreshClusters.value[cluster] = true
+    useClusterSelectionStore().setAutoRefreshForCluster(cluster, true)
     refreshIntervals.value[cluster] = interval
     startPolling(cluster)
   }
@@ -85,7 +85,7 @@ export const useClusterEventsStore = defineStore('clusterEvents', () => {
    * Stops background polling for this cluster.
    */
   function disableAutoRefresh(cluster: string): void {
-    autoRefreshClusters.value[cluster] = false
+    useClusterSelectionStore().setAutoRefreshForCluster(cluster, false)
     stopPolling(cluster)
   }
 
@@ -93,7 +93,7 @@ export const useClusterEventsStore = defineStore('clusterEvents', () => {
    * Check if auto-refresh is enabled for a cluster.
    */
   function isAutoRefreshEnabled(cluster: string): boolean {
-    return autoRefreshClusters.value[cluster] ?? false
+    return useClusterSelectionStore().isAutoRefreshEnabledForCluster(cluster)
   }
 
   /**
@@ -263,7 +263,6 @@ export const useClusterEventsStore = defineStore('clusterEvents', () => {
     eventsCache,
     loadingClusters,
     errors,
-    autoRefreshClusters,
     refreshIntervals,
     pollingTimers,
     enableAutoRefresh,

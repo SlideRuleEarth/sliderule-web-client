@@ -285,17 +285,6 @@ watch(
   }
 )
 
-// Sync auto-refresh checkbox to store's background polling
-watch(autoRefreshEnabled, (enabled) => {
-  if (effectiveCluster.value) {
-    if (enabled) {
-      stackStatusStore.enableAutoRefresh(effectiveCluster.value)
-    } else {
-      stackStatusStore.disableAutoRefresh(effectiveCluster.value)
-    }
-  }
-})
-
 // Disable auto-refresh when cluster transitions to stable running state
 watch(isInProgress, async (inProgress, wasInProgress) => {
   if (wasInProgress && !inProgress && clusterExists(statusData.value)) {
@@ -318,6 +307,14 @@ watch(isInProgress, async (inProgress, wasInProgress) => {
 watch(
   () => isDefinitelyNotFound(statusData.value),
   async (notFound, wasNotFound) => {
+    // Don't disable if we have a pending deploy - the cluster doesn't exist YET
+    const pendingOp = effectiveCluster.value
+      ? stackStatusStore.getPendingOperation(effectiveCluster.value)
+      : null
+    if (pendingOp === 'deploy') {
+      return
+    }
+
     if (wasNotFound === false && notFound === true && autoRefreshEnabled.value) {
       logger.info('Cluster no longer exists, disabling auto-refresh', {
         cluster: effectiveCluster.value

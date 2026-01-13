@@ -6,6 +6,7 @@ import {
   type StackStatus
 } from '@/utils/fetchUtils'
 import { useClusterSelectionStore } from '@/stores/clusterSelectionStore'
+import { useClusterEventsStore } from '@/stores/clusterEventsStore'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('StackStatusStore')
@@ -109,8 +110,7 @@ export const useStackStatusStore = defineStore(
     const loadingClusters = ref<Set<string>>(new Set())
     const errors = ref<Record<string, string | null>>({})
 
-    // Per-cluster auto-refresh settings (disabled by default, enabled after operations)
-    const autoRefreshClusters = ref<Record<string, boolean>>({})
+    // Per-cluster refresh intervals (auto-refresh state is in clusterSelectionStore)
     const refreshIntervals = ref<Record<string, number>>({})
 
     // Pending operations for intent-based locking (in-memory only, not persisted)
@@ -167,7 +167,7 @@ export const useStackStatusStore = defineStore(
      * Starts background polling that runs regardless of which cluster is displayed.
      */
     function enableAutoRefresh(cluster: string, interval: number = DEFAULT_REFRESH_INTERVAL): void {
-      autoRefreshClusters.value[cluster] = true
+      useClusterSelectionStore().setAutoRefreshForCluster(cluster, true)
       refreshIntervals.value[cluster] = interval
       startPolling(cluster)
     }
@@ -177,7 +177,7 @@ export const useStackStatusStore = defineStore(
      * Stops background polling for this cluster.
      */
     function disableAutoRefresh(cluster: string): void {
-      autoRefreshClusters.value[cluster] = false
+      useClusterSelectionStore().setAutoRefreshForCluster(cluster, false)
       stopPolling(cluster)
     }
 
@@ -185,7 +185,7 @@ export const useStackStatusStore = defineStore(
      * Check if auto-refresh is enabled for a cluster.
      */
     function isAutoRefreshEnabled(cluster: string): boolean {
-      return autoRefreshClusters.value[cluster] ?? false
+      return useClusterSelectionStore().isAutoRefreshEnabledForCluster(cluster)
     }
 
     /**
@@ -274,7 +274,9 @@ export const useStackStatusStore = defineStore(
           shutdownTimers.value[cluster] = window.setTimeout(() => {
             logger.info('Auto shutdown time reached', { cluster })
             setPendingOperation(cluster, 'shutdown')
+            // Enable both status and events polling (UI checkbox updates automatically via computed)
             enableAutoRefresh(cluster)
+            useClusterEventsStore().enableAutoRefresh(cluster)
             // Trigger immediate status fetch
             void fetchStatus(cluster, true)
           }, msUntilShutdown)
@@ -282,7 +284,9 @@ export const useStackStatusStore = defineStore(
           // Already passed - set pending and trigger refresh
           logger.debug('Auto shutdown time already passed', { cluster, autoShutdownTime })
           setPendingOperation(cluster, 'shutdown')
+          // Enable both status and events polling (UI checkbox updates automatically via computed)
           enableAutoRefresh(cluster)
+          useClusterEventsStore().enableAutoRefresh(cluster)
           void fetchStatus(cluster, true)
         }
       } catch (e) {
@@ -362,12 +366,12 @@ export const useStackStatusStore = defineStore(
               clearShutdownTimer(cluster)
               // Auto-stop polling since NOT_FOUND is a stable state
               if (isAutoRefreshEnabled(cluster)) {
-                logger.debug('Cluster not found, stopping auto-refresh', { cluster })
+                logger.info('Cluster not found, stopping auto-refresh', { cluster })
                 disableAutoRefresh(cluster)
               }
               // Update last refresh time for UI
               useClusterSelectionStore().updateLastRefreshTime()
-              logger.debug('Cluster stack not found', { cluster })
+              logger.info('Cluster stack not found', { cluster })
               return notFoundResponse
             }
             // API returned an actual error (e.g., permission denied)
@@ -537,7 +541,6 @@ export const useStackStatusStore = defineStore(
       statusCache,
       loadingClusters,
       errors,
-      autoRefreshClusters,
       refreshIntervals,
       pendingOperations,
       shutdownTimers,

@@ -92,14 +92,17 @@ const statusMessage = computed(() => {
           <Tabs v-model:value="activeTab">
             <TabList>
               <Tab value="sysconfig">Connection</Tab>
+              <Tab v-if="canAccessMemberFeatures" value="report">Report</Tab>
               <Tab v-if="canAccessMemberFeatures" value="deployconfig">Deploy</Tab>
               <Tab v-if="canAccessMemberFeatures" value="clusterstatus">Status</Tab>
               <Tab v-if="canAccessMemberFeatures" value="clusterevents">Events</Tab>
-              <Tab v-if="canAccessMemberFeatures" value="report">Report</Tab>
             </TabList>
             <TabPanels>
               <TabPanel value="sysconfig">
                 <SrSysConfig :disabled="!isAuthenticated" />
+              </TabPanel>
+              <TabPanel v-if="canAccessMemberFeatures" value="report">
+                <SrReport ref="reportRef" />
               </TabPanel>
               <TabPanel v-if="canAccessMemberFeatures" value="deployconfig">
                 <SrDeployConfig ref="deployConfigRef" />
@@ -109,9 +112,6 @@ const statusMessage = computed(() => {
               </TabPanel>
               <TabPanel v-if="canAccessMemberFeatures" value="clusterevents">
                 <SrClusterEvents ref="clusterEventsRef" />
-              </TabPanel>
-              <TabPanel v-if="canAccessMemberFeatures" value="report">
-                <SrReport ref="reportRef" />
               </TabPanel>
             </TabPanels>
           </Tabs>

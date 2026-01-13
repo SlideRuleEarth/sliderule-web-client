@@ -276,17 +276,6 @@ function onClusterItemSelect() {
   void refresh()
 }
 
-// Sync auto-refresh checkbox to store's background polling
-watch(autoRefreshEnabled, (enabled) => {
-  if (effectiveCluster.value) {
-    if (enabled) {
-      clusterEventsStore.enableAutoRefresh(effectiveCluster.value, props.refreshInterval)
-    } else {
-      clusterEventsStore.disableAutoRefresh(effectiveCluster.value)
-    }
-  }
-})
-
 watch(drawerVisible, (visible) => {
   if (!visible) {
     // Reset auto-refresh to default when drawer is closed
