@@ -130,23 +130,27 @@ watch(
   { immediate: true }
 )
 
-// Refresh status when domain or clusterName changes
-watch([domain, clusterName], () => {
+// Refresh status when domain changes
+watch(domain, () => {
   void refreshStatus()
 })
 
+// Called when user accepts a cluster name (blur, Enter, or dropdown selection)
+function onClusterAccepted() {
+  if (clusterName.value) {
+    void stackStatusStore.fetchStatus(clusterName.value, true)
+    clusterEventsStore.invalidate(clusterName.value)
+    void refreshStatus()
+  }
+}
+
 // Sync clusterName to shared selection store (one-way: deploy -> others)
-// Also clear errors and refresh state when cluster changes
+// Clear errors when cluster changes, but DON'T fetch status (wait for user to accept)
 watch(
   clusterName,
-  (name, oldName) => {
+  (name) => {
     if (name) {
       clusterSelectionStore.setSelectedCluster(name)
-      // Force refresh status and events for the new cluster
-      if (name !== oldName) {
-        void stackStatusStore.fetchStatus(name, true)
-        clusterEventsStore.invalidate(name)
-      }
     }
     // Clear all errors when cluster selection changes
     deployError.value = null
@@ -404,6 +408,8 @@ defineExpose({ refresh })
           optionLabel="label"
           optionValue="value"
           class="sr-deploy-select"
+          @change="onClusterAccepted"
+          @blur="onClusterAccepted"
         />
         <small v-if="clusterNameHint" class="sr-cluster-hint">{{ clusterNameHint }}</small>
       </div>
