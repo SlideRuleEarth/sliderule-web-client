@@ -16,7 +16,22 @@ import SrReport from '@/components/SrReport.vue'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 
 const githubAuthStore = useGitHubAuthStore()
-const activeTab = ref('sysconfig')
+
+// Default tab based on auth: 'report' for members, 'sysConfig' for others
+const activeTab = ref(githubAuthStore.canAccessMemberFeatures ? 'report' : 'sysConfig')
+
+// Update default tab when auth state becomes known (handles async auth resolution)
+const hasSetInitialTab = ref(false)
+watch(
+  () => githubAuthStore.canAccessMemberFeatures,
+  (canAccess) => {
+    if (!hasSetInitialTab.value) {
+      activeTab.value = canAccess ? 'report' : 'sysConfig'
+      hasSetInitialTab.value = true
+    }
+  },
+  { immediate: true }
+)
 
 // Template refs for child components that need refresh on tab activation
 const deployConfigRef = ref<{ refresh: () => void } | null>(null)
@@ -91,18 +106,18 @@ const statusMessage = computed(() => {
         <template #content>
           <Tabs v-model:value="activeTab">
             <TabList>
-              <Tab value="sysconfig">Connection</Tab>
               <Tab v-if="canAccessMemberFeatures" value="report">Report</Tab>
+              <Tab value="sysconfig">Connection</Tab>
               <Tab v-if="canAccessMemberFeatures" value="deployconfig">Deploy</Tab>
               <Tab v-if="canAccessMemberFeatures" value="clusterstatus">Status</Tab>
               <Tab v-if="canAccessMemberFeatures" value="clusterevents">Events</Tab>
             </TabList>
             <TabPanels>
-              <TabPanel value="sysconfig">
-                <SrSysConfig :disabled="!isAuthenticated" />
-              </TabPanel>
               <TabPanel v-if="canAccessMemberFeatures" value="report">
                 <SrReport ref="reportRef" />
+              </TabPanel>
+              <TabPanel value="sysconfig">
+                <SrSysConfig :disabled="!isAuthenticated" />
               </TabPanel>
               <TabPanel v-if="canAccessMemberFeatures" value="deployconfig">
                 <SrDeployConfig ref="deployConfigRef" />

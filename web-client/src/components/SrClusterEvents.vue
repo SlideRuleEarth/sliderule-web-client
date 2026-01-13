@@ -291,9 +291,9 @@ onMounted(() => {
     autoRefresh: props.autoRefresh
   })
   void refresh()
-  // Start background polling in store if auto-refresh is enabled
+  // Start background polling in store if auto-refresh is enabled (state is already set)
   if (autoRefreshEnabled.value && effectiveCluster.value) {
-    clusterEventsStore.enableAutoRefresh(effectiveCluster.value, props.refreshInterval)
+    clusterEventsStore.startPolling(effectiveCluster.value)
   }
 })
 
@@ -330,6 +330,9 @@ defineExpose({ refresh })
         />
       </div>
       <div class="sr-cluster-events-controls">
+        <span v-if="clusterSelectionStore.autoRefreshMessage" class="sr-auto-refresh-message">
+          {{ clusterSelectionStore.autoRefreshMessage }}
+        </span>
         <span v-if="formattedLastRefreshTime" class="sr-last-refresh-time">
           {{ formattedLastRefreshTime }}
         </span>
@@ -428,6 +431,9 @@ defineExpose({ refresh })
       </template>
 
       <div class="sr-drawer-controls">
+        <span v-if="clusterSelectionStore.autoRefreshMessage" class="sr-auto-refresh-message">
+          {{ clusterSelectionStore.autoRefreshMessage }}
+        </span>
         <div class="sr-auto-refresh-control">
           <Checkbox v-model="autoRefreshEnabled" inputId="autoRefreshEventsDrawer" :binary="true" />
           <label for="autoRefreshEventsDrawer" class="sr-auto-refresh-label">Auto-refresh</label>
@@ -603,6 +609,13 @@ defineExpose({ refresh })
   font-size: 0.75rem;
   color: var(--p-text-muted-color);
   cursor: pointer;
+}
+
+.sr-auto-refresh-message {
+  font-size: 0.7rem;
+  color: var(--p-text-muted-color);
+  font-style: italic;
+  margin-right: 0.5rem;
 }
 
 .sr-refresh-btn {

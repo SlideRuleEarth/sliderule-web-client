@@ -1,7 +1,10 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { fetchClusterEvents, type StackEvent } from '@/utils/fetchUtils'
-import { useClusterSelectionStore } from '@/stores/clusterSelectionStore'
+import {
+  useClusterSelectionStore,
+  DEFAULT_EVENTS_REFRESH_INTERVAL
+} from '@/stores/clusterSelectionStore'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('ClusterEventsStore')
@@ -14,8 +17,7 @@ interface CachedClusterEvents {
   fetchedAt: Date
 }
 
-// Default refresh interval for events polling (30 seconds - events update less frequently)
-const DEFAULT_EVENTS_REFRESH_INTERVAL = 30000
+// Use DEFAULT_EVENTS_REFRESH_INTERVAL from clusterSelectionStore
 
 export const useClusterEventsStore = defineStore('clusterEvents', () => {
   // State: cluster -> cached events data
@@ -67,27 +69,7 @@ export const useClusterEventsStore = defineStore('clusterEvents', () => {
     pollingTimers.value = {}
   }
 
-  /**
-   * Enable auto-refresh for a cluster's events.
-   * Starts background polling that runs regardless of which cluster is displayed.
-   */
-  function enableAutoRefresh(
-    cluster: string,
-    interval: number = DEFAULT_EVENTS_REFRESH_INTERVAL
-  ): void {
-    useClusterSelectionStore().setAutoRefreshForCluster(cluster, true)
-    refreshIntervals.value[cluster] = interval
-    startPolling(cluster)
-  }
-
-  /**
-   * Disable auto-refresh for a cluster's events.
-   * Stops background polling for this cluster.
-   */
-  function disableAutoRefresh(cluster: string): void {
-    useClusterSelectionStore().setAutoRefreshForCluster(cluster, false)
-    stopPolling(cluster)
-  }
+  // enableAutoRefresh and disableAutoRefresh are now in clusterSelectionStore
 
   /**
    * Check if auto-refresh is enabled for a cluster.
@@ -265,8 +247,8 @@ export const useClusterEventsStore = defineStore('clusterEvents', () => {
     errors,
     refreshIntervals,
     pollingTimers,
-    enableAutoRefresh,
-    disableAutoRefresh,
+    startPolling,
+    stopPolling,
     isAutoRefreshEnabled,
     getRefreshInterval,
     stopAllPolling,

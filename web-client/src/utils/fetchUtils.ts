@@ -8,8 +8,9 @@ import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('FetchUtils')
 
-// Retry delay for 401 errors (handles JWKS latency)
+// Retry configuration for 401 errors (handles JWKS latency)
 const RETRY_DELAY_MS = 1000
+const MAX_401_RETRIES = 2
 
 /**
  * Options for provisioner API fetch requests.
@@ -69,9 +70,11 @@ async function provisionerFetch<T>(
   try {
     let response = await makeRequest()
 
-    // Retry once on 401 with backoff (handles JWKS latency issue)
-    if (response.status === 401) {
-      logger.debug('Got 401, retrying after backoff', body)
+    // Retry on 401 with backoff (handles JWKS latency issue)
+    let retryCount = 0
+    while (response.status === 401 && retryCount < MAX_401_RETRIES) {
+      retryCount++
+      logger.debug(`Got 401, retry ${retryCount}/${MAX_401_RETRIES} after backoff`, body)
       await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS))
       response = await makeRequest()
     }
@@ -107,19 +110,20 @@ async function provisionerFetch<T>(
       const tokenExpiry = githubAuthStore.tokenExpiresAtTimestamp
 
       if (tokenExpiry !== null && currentTimestamp >= tokenExpiry) {
-        // Token is expired - show specific message
+        // Token is actually expired - logout and show message
         const toastStore = useSrToastStore()
         toastStore.warn(
           'Session Expired',
           'Your authentication token has expired. Please log in again to continue.'
         )
         userMessage = 'Your session has expired. Please log in again.'
+        githubAuthStore.logout()
       } else {
-        // Token not expired locally but server rejected it - could be revoked, race condition, etc.
-        userMessage = 'Authentication failed. Please log in again.'
+        // Token still valid locally - likely JWKS latency, don't logout
+        // Next polling cycle will retry
+        userMessage = 'Authentication pending. Retrying...'
+        logger.debug('401 with valid local token - likely JWKS latency, not logging out')
       }
-      // Always logout on 401 to sync UI state with server state
-      githubAuthStore.logout()
     } else if (rawError.includes('HTTP error: 403')) {
       userMessage = 'Access denied. You may not have permission for this operation.'
     } else if (rawError.includes('HTTP error: 404')) {

@@ -158,9 +158,8 @@ async function executeDeploy() {
       version: desiredVersion.value || undefined
     })
     if (result.success && result.data?.status) {
-      // Success: enable auto-refresh for both status and events
-      stackStatusStore.enableAutoRefresh(clusterName.value)
-      clusterEventsStore.enableAutoRefresh(clusterName.value)
+      // Success: enable auto-refresh for both status and events via central coordinator
+      void clusterSelectionStore.enableAutoRefresh(clusterName.value, 'Deploying cluster')
       // Force immediate status refresh to get updated state
       void stackStatusStore.fetchStatus(clusterName.value, true)
     } else {
@@ -224,9 +223,8 @@ async function executeDestroy() {
   try {
     const result = await destroyCluster(clusterName.value)
     if (result.success && result.data?.status) {
-      // Success: enable auto-refresh for both status and events
-      stackStatusStore.enableAutoRefresh(clusterName.value)
-      clusterEventsStore.enableAutoRefresh(clusterName.value)
+      // Success: enable auto-refresh for both status and events via central coordinator
+      void clusterSelectionStore.enableAutoRefresh(clusterName.value, 'Stopping cluster')
       // Force immediate status refresh to get updated state
       void stackStatusStore.fetchStatus(clusterName.value, true)
     } else {
@@ -283,9 +281,8 @@ async function executeExtend() {
   try {
     const result = await extendCluster(clusterName.value, ttl.value)
     if (result.success && result.data?.status) {
-      // Success: enable auto-refresh for both status and events, pending operation will be cleared when status confirms
-      stackStatusStore.enableAutoRefresh(clusterName.value)
-      clusterEventsStore.enableAutoRefresh(clusterName.value)
+      // Success: enable auto-refresh for both status and events via central coordinator
+      void clusterSelectionStore.enableAutoRefresh(clusterName.value, 'Extending cluster TTL')
       // Force immediate status refresh to get updated state
       void stackStatusStore.fetchStatus(clusterName.value, true)
       logger.info('Cluster TTL extended', { cluster: clusterName.value, ttl: ttl.value })

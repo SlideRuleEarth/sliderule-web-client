@@ -370,6 +370,9 @@ defineExpose({ refresh })
         />
       </div>
       <div class="sr-server-status-controls">
+        <span v-if="clusterSelectionStore.autoRefreshMessage" class="sr-auto-refresh-message">
+          {{ clusterSelectionStore.autoRefreshMessage }}
+        </span>
         <span v-if="formattedLastRefreshTime" class="sr-last-refresh-time">
           {{ formattedLastRefreshTime }}
         </span>
@@ -546,6 +549,13 @@ defineExpose({ refresh })
   font-size: 0.75rem;
   color: var(--p-text-muted-color);
   cursor: pointer;
+}
+
+.sr-auto-refresh-message {
+  font-size: 0.7rem;
+  color: var(--p-text-muted-color);
+  font-style: italic;
+  margin-left: 0.25rem;
 }
 
 .sr-refresh-btn {

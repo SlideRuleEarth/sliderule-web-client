@@ -5,8 +5,10 @@ import {
   type ClusterStatusResponse,
   type StackStatus
 } from '@/utils/fetchUtils'
-import { useClusterSelectionStore } from '@/stores/clusterSelectionStore'
-import { useClusterEventsStore } from '@/stores/clusterEventsStore'
+import {
+  useClusterSelectionStore,
+  DEFAULT_STATUS_REFRESH_INTERVAL
+} from '@/stores/clusterSelectionStore'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('StackStatusStore')
@@ -81,8 +83,7 @@ const STABLE_STACK_STATUSES: StackStatus[] = [
   'UPDATE_ROLLBACK_FAILED'
 ]
 
-// Default refresh interval for status polling (5 seconds)
-const DEFAULT_REFRESH_INTERVAL = 5000
+// Use DEFAULT_STATUS_REFRESH_INTERVAL from clusterSelectionStore
 
 /**
  * Pending operation type for intent-based locking.
@@ -131,7 +132,7 @@ export const useStackStatusStore = defineStore(
     function startPolling(cluster: string): void {
       stopPolling(cluster) // Clear any existing timer
 
-      const interval = refreshIntervals.value[cluster] ?? DEFAULT_REFRESH_INTERVAL
+      const interval = refreshIntervals.value[cluster] ?? DEFAULT_STATUS_REFRESH_INTERVAL
       logger.debug('Starting background status polling', { cluster, interval })
 
       pollingTimers.value[cluster] = window.setInterval(() => {
@@ -162,24 +163,7 @@ export const useStackStatusStore = defineStore(
       pollingTimers.value = {}
     }
 
-    /**
-     * Enable auto-refresh for a cluster (called after successful deploy/destroy/extend).
-     * Starts background polling that runs regardless of which cluster is displayed.
-     */
-    function enableAutoRefresh(cluster: string, interval: number = DEFAULT_REFRESH_INTERVAL): void {
-      useClusterSelectionStore().setAutoRefreshForCluster(cluster, true)
-      refreshIntervals.value[cluster] = interval
-      startPolling(cluster)
-    }
-
-    /**
-     * Disable auto-refresh for a cluster.
-     * Stops background polling for this cluster.
-     */
-    function disableAutoRefresh(cluster: string): void {
-      useClusterSelectionStore().setAutoRefreshForCluster(cluster, false)
-      stopPolling(cluster)
-    }
+    // enableAutoRefresh and disableAutoRefresh are now in clusterSelectionStore
 
     /**
      * Check if auto-refresh is enabled for a cluster.
@@ -192,7 +176,7 @@ export const useStackStatusStore = defineStore(
      * Get the refresh interval for a cluster.
      */
     function getRefreshInterval(cluster: string): number {
-      return refreshIntervals.value[cluster] ?? DEFAULT_REFRESH_INTERVAL
+      return refreshIntervals.value[cluster] ?? DEFAULT_STATUS_REFRESH_INTERVAL
     }
 
     /**
@@ -274,9 +258,8 @@ export const useStackStatusStore = defineStore(
           shutdownTimers.value[cluster] = window.setTimeout(() => {
             logger.info('Auto shutdown time reached', { cluster })
             setPendingOperation(cluster, 'shutdown')
-            // Enable both status and events polling (UI checkbox updates automatically via computed)
-            enableAutoRefresh(cluster)
-            useClusterEventsStore().enableAutoRefresh(cluster)
+            // Enable both status and events polling via central coordinator
+            void useClusterSelectionStore().enableAutoRefresh(cluster, 'Shutdown time reached')
             // Trigger immediate status fetch
             void fetchStatus(cluster, true)
           }, msUntilShutdown)
@@ -284,9 +267,8 @@ export const useStackStatusStore = defineStore(
           // Already passed - set pending and trigger refresh
           logger.debug('Auto shutdown time already passed', { cluster, autoShutdownTime })
           setPendingOperation(cluster, 'shutdown')
-          // Enable both status and events polling (UI checkbox updates automatically via computed)
-          enableAutoRefresh(cluster)
-          useClusterEventsStore().enableAutoRefresh(cluster)
+          // Enable both status and events polling via central coordinator
+          void useClusterSelectionStore().enableAutoRefresh(cluster, 'Shutdown time reached')
           void fetchStatus(cluster, true)
         }
       } catch (e) {
@@ -367,7 +349,7 @@ export const useStackStatusStore = defineStore(
               // Auto-stop polling since NOT_FOUND is a stable state
               if (isAutoRefreshEnabled(cluster)) {
                 logger.info('Cluster not found, stopping auto-refresh', { cluster })
-                disableAutoRefresh(cluster)
+                void useClusterSelectionStore().disableAutoRefresh(cluster, 'Cluster not found')
               }
               // Update last refresh time for UI
               useClusterSelectionStore().updateLastRefreshTime()
@@ -390,7 +372,14 @@ export const useStackStatusStore = defineStore(
                 cluster,
                 status: stackStatus
               })
-              disableAutoRefresh(cluster)
+              // Use appropriate message based on the final state
+              const message =
+                stackStatus === 'CREATE_COMPLETE' || stackStatus === 'UPDATE_COMPLETE'
+                  ? 'Cluster is now running'
+                  : stackStatus === 'DELETE_COMPLETE' || stackStatus === 'NOT_FOUND'
+                    ? 'Cluster stopped'
+                    : 'Operation complete'
+              void useClusterSelectionStore().disableAutoRefresh(cluster, message)
             }
           }
           // Schedule shutdown timer if auto_shutdown is present, otherwise clear any existing timer
@@ -545,8 +534,8 @@ export const useStackStatusStore = defineStore(
       pendingOperations,
       shutdownTimers,
       pollingTimers,
-      enableAutoRefresh,
-      disableAutoRefresh,
+      startPolling,
+      stopPolling,
       isAutoRefreshEnabled,
       getRefreshInterval,
       stopAllPolling,
