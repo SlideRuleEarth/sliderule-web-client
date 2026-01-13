@@ -147,7 +147,7 @@ const isDomainDisabled = computed(() => !githubAuthStore.isOwner)
 
 async function executeDeploy() {
   deploying.value = true
-  clusterSelectionStore.setAutoRefreshEnabled(true)
+  void clusterSelectionStore.setAutoRefreshEnabled(true)
 
   try {
     const result = await deployCluster({
@@ -218,7 +218,7 @@ function handleDeploy() {
 
 async function executeDestroy() {
   destroying.value = true
-  clusterSelectionStore.setAutoRefreshEnabled(true)
+  void clusterSelectionStore.setAutoRefreshEnabled(true)
 
   try {
     const result = await destroyCluster(clusterName.value)
@@ -276,7 +276,7 @@ function handleDestroy() {
 
 async function executeExtend() {
   extending.value = true
-  clusterSelectionStore.setAutoRefreshEnabled(true)
+  void clusterSelectionStore.setAutoRefreshEnabled(true)
 
   try {
     const result = await extendCluster(clusterName.value, ttl.value)

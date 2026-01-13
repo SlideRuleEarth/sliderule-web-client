@@ -107,7 +107,7 @@ const statusData = ref<ClusterStatusResponse | null>(null)
 // Auto-refresh - use shared store
 const autoRefreshEnabled = computed({
   get: () => clusterSelectionStore.autoRefreshEnabled,
-  set: (value: boolean) => clusterSelectionStore.setAutoRefreshEnabled(value)
+  set: async (value: boolean) => clusterSelectionStore.setAutoRefreshEnabled(value)
 })
 
 // Format last refresh time for display
@@ -218,6 +218,9 @@ async function refresh() {
   if (!effectiveCluster.value || effectiveCluster.value.trim() === '') {
     return
   }
+
+  // Clear status message on manual refresh
+  clusterSelectionStore.clearAutoRefreshMessage(effectiveCluster.value)
 
   loading.value = true
   error.value = null

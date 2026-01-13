@@ -38,12 +38,21 @@ export const useClusterSelectionStore = defineStore('clusterSelection', () => {
     selectedCluster.value = ''
   }
 
-  // Set auto-refresh for current selected cluster (used by UI checkbox - clears message)
-  function setAutoRefreshEnabled(enabled: boolean) {
+  // Set auto-refresh for current selected cluster (used by UI checkbox)
+  // This actually starts/stops polling, not just setting state
+  async function setAutoRefreshEnabled(enabled: boolean): Promise<void> {
     if (!selectedCluster.value) return
-    autoRefreshClusters.value[selectedCluster.value] = enabled
-    // Clear any status message when user manually toggles
-    autoRefreshMessages.value[selectedCluster.value] = null
+    if (enabled) {
+      // Use enableAutoRefresh to also start polling
+      await enableAutoRefresh(selectedCluster.value, '')
+      // Clear message since this is manual toggle
+      autoRefreshMessages.value[selectedCluster.value] = null
+    } else {
+      // Use disableAutoRefresh to also stop polling
+      await disableAutoRefresh(selectedCluster.value, '')
+      // Clear message since this is manual toggle
+      autoRefreshMessages.value[selectedCluster.value] = null
+    }
   }
 
   // Get auto-refresh state for any cluster (used by other stores)

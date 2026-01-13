@@ -367,7 +367,17 @@ export const useStackStatusStore = defineStore(
           if (stackStatus) {
             checkAndClearPendingOperation(cluster, stackStatus)
             // Auto-stop polling when cluster reaches stable state
-            if (STABLE_STACK_STATUSES.includes(stackStatus) && isAutoRefreshEnabled(cluster)) {
+            // But DON'T stop if we're waiting for shutdown and cluster is still running
+            const pendingOp = getPendingOperation(cluster)
+            const waitingForShutdown =
+              pendingOp === 'shutdown' &&
+              (stackStatus === 'CREATE_COMPLETE' || stackStatus === 'UPDATE_COMPLETE')
+
+            if (
+              STABLE_STACK_STATUSES.includes(stackStatus) &&
+              isAutoRefreshEnabled(cluster) &&
+              !waitingForShutdown
+            ) {
               logger.debug('Cluster reached stable state, stopping auto-refresh', {
                 cluster,
                 status: stackStatus
