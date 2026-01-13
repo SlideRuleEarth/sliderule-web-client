@@ -67,6 +67,13 @@ const extendErrorDetails = ref<string | null>(null)
 // Cluster name validation hint
 const clusterNameHint = ref<string | null>(null)
 
+// Confirmed cluster name - only updated when user accepts input (blur/enter/select)
+// Used for SrClusterStackStatus to avoid fetching on every keystroke
+const confirmedClusterName = ref<string>('')
+
+// Track last accepted cluster to prevent duplicate fetches (blur + hide can both fire)
+const lastAcceptedCluster = ref<string>('')
+
 // Sanitize cluster name to valid subdomain format
 function sanitizeClusterName(value: string): string {
   if (!value) return value
@@ -129,6 +136,7 @@ watch(
   (options) => {
     if (!clusterName.value && options.length > 0) {
       clusterName.value = options[0]
+      confirmedClusterName.value = options[0]
     }
     void fetchAllClusterStatuses()
   },
@@ -140,23 +148,29 @@ watch(domain, () => {
   void refreshStatus()
 })
 
-// Called when user accepts a cluster name (blur, Enter, or dropdown selection)
+// Called when user accepts a cluster name (blur or dropdown selection)
 function onClusterAccepted() {
-  if (clusterName.value) {
+  // Deduplicate - both @blur and @hide can fire for the same selection
+  if (clusterName.value && clusterName.value !== lastAcceptedCluster.value) {
+    lastAcceptedCluster.value = clusterName.value
+    confirmedClusterName.value = clusterName.value
+    // Only sync to shared selection store when user accepts (not on every keystroke)
+    clusterSelectionStore.setSelectedCluster(clusterName.value)
     void stackStatusStore.fetchStatus(clusterName.value, true)
     clusterEventsStore.invalidate(clusterName.value)
     void refreshStatus()
   }
 }
 
-// Sync clusterName to shared selection store (one-way: deploy -> others)
-// Clear errors when cluster changes, but DON'T fetch status (wait for user to accept)
+// Called when dropdown panel closes - triggers fetch if user selected from dropdown
+function onDropdownHide() {
+  onClusterAccepted()
+}
+
+// Clear errors when cluster changes (but DON'T sync to selection store - wait for user to accept)
 watch(
   clusterName,
-  (name) => {
-    if (name) {
-      clusterSelectionStore.setSelectedCluster(name)
-    }
+  () => {
     // Clear all errors when cluster selection changes
     deployError.value = null
     deployErrorDetails.value = null
@@ -413,8 +427,8 @@ defineExpose({ refresh })
           optionLabel="label"
           optionValue="value"
           class="sr-deploy-select"
-          @change="onClusterAccepted"
           @blur="onClusterAccepted"
+          @hide="onDropdownHide"
         />
         <small v-if="clusterNameHint" class="sr-cluster-hint">{{ clusterNameHint }}</small>
       </div>
@@ -517,7 +531,7 @@ defineExpose({ refresh })
       </div>
       <div v-if="extendErrorDetails" class="sr-deploy-error-details">{{ extendErrorDetails }}</div>
     </div>
-    <SrClusterStackStatus v-if="clusterName" :cluster="clusterName" />
+    <SrClusterStackStatus v-if="confirmedClusterName" :cluster="confirmedClusterName" />
   </div>
 </template>
 
