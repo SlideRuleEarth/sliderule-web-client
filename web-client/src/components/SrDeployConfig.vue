@@ -13,6 +13,7 @@ import { useDeployConfigStore } from '@/stores/deployConfigStore'
 import { useStackStatusStore } from '@/stores/stackStatusStore'
 import { useClusterSelectionStore } from '@/stores/clusterSelectionStore'
 import { useClusterEventsStore } from '@/stores/clusterEventsStore'
+import { useSysConfigStore } from '@/stores/sysConfigStore'
 import { deployCluster, destroyCluster, extendCluster } from '@/utils/fetchUtils'
 import { storeToRefs } from 'pinia'
 import { createLogger } from '@/utils/logger'
@@ -24,6 +25,7 @@ const deployConfigStore = useDeployConfigStore()
 const stackStatusStore = useStackStatusStore()
 const clusterSelectionStore = useClusterSelectionStore()
 const clusterEventsStore = useClusterEventsStore()
+const sysConfigStore = useSysConfigStore()
 const confirm = useConfirm()
 
 // Threshold for large cluster confirmation
@@ -102,12 +104,15 @@ async function refreshStatus() {
   }
 }
 
-// Transform cluster options for the dropdown (use centralized list)
+// Transform cluster options for the dropdown (use centralized list, exclude connected cluster)
 const clusterOptions = computed(() => {
-  return clusterSelectionStore.allClusters.map((c) => ({
-    label: c,
-    value: c
-  }))
+  const connectedCluster = sysConfigStore.cluster
+  return clusterSelectionStore.allClusters
+    .filter((c) => connectedCluster === 'unknown' || c !== connectedCluster)
+    .map((c) => ({
+      label: c,
+      value: c
+    }))
 })
 
 // Fetch status for all deployable clusters to populate dropdown states
