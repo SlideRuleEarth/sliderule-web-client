@@ -9,8 +9,8 @@ import { useSrToastStore } from '@/stores/srToastStore'
 import { useSysConfigStore } from '@/stores/sysConfigStore'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 import { useStackStatusStore } from '@/stores/stackStatusStore'
-import { useDeployConfigStore } from '@/stores/deployConfigStore'
 import { useClusterSelectionStore } from '@/stores/clusterSelectionStore'
+import { useDeployConfigStore } from '@/stores/deployConfigStore'
 import { useRoute, useRouter } from 'vue-router'
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue'
 import SrUserUtilsDialog from '@/components/SrUserUtilsDialog.vue'
@@ -25,8 +25,8 @@ const banner_text = import.meta.env.VITE_BANNER_TEXT
 const sysConfigStore = useSysConfigStore()
 const githubAuthStore = useGitHubAuthStore()
 const stackStatusStore = useStackStatusStore()
-const deployConfigStore = useDeployConfigStore()
 const clusterSelectionStore = useClusterSelectionStore()
+const deployConfigStore = useDeployConfigStore()
 const route = useRoute()
 const router = useRouter()
 const tooltipRef = ref()
@@ -372,7 +372,7 @@ const subDomainMenuItems = computed(() => {
   ]
 
   // Add Destroy Cluster option if enabled
-  if (canDestroyCluster.value) {
+  if (canDestroyConnectedCluster.value) {
     items.push({
       separator: true
     })
@@ -413,20 +413,22 @@ async function resetToPublicDomain() {
   })
 }
 
-// Computed property for destroy button enabled state
-const canDestroyCluster = computed(() => {
-  const clusterName = deployConfigStore.clusterName
-  if (!clusterName) return false
+// Computed property for destroy button enabled state (uses connected cluster)
+const canDestroyConnectedCluster = computed(() => {
+  const clusterName = sysConfigStore.cluster
+  if (!clusterName || clusterName === 'unknown') return false
   if (stackStatusStore.hasPendingOperation(clusterName)) return false
   if (stackStatusStore.isClusterUndestroyable(clusterName)) return false
   return true
 })
 
 async function executeDestroyCluster() {
-  const clusterName = deployConfigStore.clusterName
-  if (!clusterName) return
+  const clusterName = sysConfigStore.cluster
+  if (!clusterName || clusterName === 'unknown') return
 
   destroying.value = true
+  clusterSelectionStore.setSelectedCluster(clusterName)
+  deployConfigStore.clusterName = clusterName
   void clusterSelectionStore.setAutoRefreshEnabled(true)
 
   try {
@@ -436,10 +438,12 @@ async function executeDestroyCluster() {
       void clusterSelectionStore.enableAutoRefresh(clusterName, 'Stopping cluster')
       // Force immediate status refresh to get updated state
       void stackStatusStore.fetchStatus(clusterName, true)
+      // Reset to public cluster after initiating destroy
+      await sysConfigStore.resetToPublicDomain()
       toast.add({
         severity: 'info',
         summary: 'Cluster Destruction Started',
-        detail: `Destroying cluster "${clusterName}"`,
+        detail: `Destroying cluster "${clusterName}" and resetting to public cluster`,
         life: srToastStore.getLife()
       })
     } else {
@@ -456,8 +460,8 @@ async function executeDestroyCluster() {
     }
   } catch (e) {
     // Exception: clear pending operation and show error
-    const clusterName = deployConfigStore.clusterName
-    if (clusterName) {
+    const clusterName = sysConfigStore.cluster
+    if (clusterName && clusterName !== 'unknown') {
       stackStatusStore.clearPendingOperation(clusterName)
     }
     toast.add({
@@ -472,10 +476,46 @@ async function executeDestroyCluster() {
 }
 
 function handleDestroyCluster() {
-  const clusterName = deployConfigStore.clusterName
-  if (!clusterName) return
-  if (stackStatusStore.hasPendingOperation(clusterName)) return
-  if (stackStatusStore.isClusterUndestroyable(clusterName)) return
+  const clusterName = sysConfigStore.cluster
+  if (!clusterName || clusterName === 'unknown') {
+    toast.add({
+      severity: 'warn',
+      summary: 'No Cluster Connected',
+      detail: 'Cannot destroy cluster - no cluster is currently connected',
+      life: srToastStore.getLife()
+    })
+    return
+  }
+  if (stackStatusStore.hasPendingOperation(clusterName)) {
+    toast.add({
+      severity: 'warn',
+      summary: 'Operation In Progress',
+      detail: `Cannot destroy cluster "${clusterName}" - an operation is already in progress`,
+      life: srToastStore.getLife()
+    })
+    return
+  }
+  if (stackStatusStore.isClusterUndestroyable(clusterName)) {
+    toast.add({
+      severity: 'warn',
+      summary: 'Cannot Destroy Cluster',
+      detail: `Cluster "${clusterName}" cannot be destroyed in its current state`,
+      life: srToastStore.getLife()
+    })
+    return
+  }
+  if (
+    sysConfigStore.currentSlideRuleCluster &&
+    clusterName === sysConfigStore.currentSlideRuleCluster
+  ) {
+    toast.add({
+      severity: 'warn',
+      summary: 'Cannot Destroy Public Cluster',
+      detail: `Cluster "${clusterName}" is the current public SlideRule cluster and cannot be destroyed`,
+      life: srToastStore.getLife()
+    })
+    return
+  }
 
   // Set pending operation (persists until status confirms)
   stackStatusStore.setPendingOperation(clusterName, 'destroy')
@@ -492,6 +532,8 @@ function handleDestroyCluster() {
     acceptClass: 'p-button-danger',
     accept: () => {
       void executeDestroyCluster()
+      // Navigate to server view deploy tab to show progress
+      void router.push({ path: '/server', query: { tab: 'deployconfig' } })
     },
     reject: () => {
       destroying.value = false

@@ -14,8 +14,14 @@ import SrClusterStackStatus from '@/components/SrClusterStackStatus.vue'
 import SrClusterEvents from '@/components/SrClusterEvents.vue'
 import SrReport from '@/components/SrReport.vue'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
+import { useRoute, useRouter } from 'vue-router'
 
 const githubAuthStore = useGitHubAuthStore()
+const route = useRoute()
+const router = useRouter()
+
+// Valid tab values for validation
+const validTabs = ['report', 'sysconfig', 'deployconfig', 'clusterstatus', 'clusterevents']
 
 // Default tab based on auth: 'report' for members, 'sysconfig' (Connection) for others
 const activeTab = ref(githubAuthStore.canAccessMemberFeatures ? 'report' : 'sysconfig')
@@ -33,14 +39,35 @@ watch(
   { immediate: true }
 )
 
+// Watch for route query parameter to switch tabs (e.g., /server?tab=deployconfig)
+watch(
+  () => route.query.tab,
+  (tab) => {
+    if (typeof tab === 'string' && validTabs.includes(tab)) {
+      // Only switch to member tabs if user has access
+      const memberTabs = ['report', 'deployconfig', 'clusterstatus', 'clusterevents']
+      if (memberTabs.includes(tab) && !githubAuthStore.canAccessMemberFeatures) {
+        return
+      }
+      activeTab.value = tab
+    }
+  },
+  { immediate: true }
+)
+
 // Template refs for child components that need refresh on tab activation
 const deployConfigRef = ref<{ refresh: () => void } | null>(null)
 const clusterStatusRef = ref<{ refresh: () => void } | null>(null)
 const clusterEventsRef = ref<{ refresh: () => void } | null>(null)
 const reportRef = ref<{ refresh: () => void } | null>(null)
 
-// Refresh data when switching to certain tabs
+// Refresh data when switching to certain tabs and clear query param
 watch(activeTab, (newTab) => {
+  // Clear the tab query param when tab changes (keeps URL clean)
+  if (route.query.tab) {
+    void router.replace({ path: '/server', query: {} })
+  }
+
   if (newTab === 'deployconfig') {
     deployConfigRef.value?.refresh()
   } else if (newTab === 'clusterstatus') {
