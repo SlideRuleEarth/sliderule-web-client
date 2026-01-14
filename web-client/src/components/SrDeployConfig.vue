@@ -181,10 +181,22 @@ watch(
 
 // Fetch status on mount and when tab is activated
 onMounted(() => {
+  // Initialize confirmedClusterName if clusterName already has a value from the store
+  if (clusterName.value && !confirmedClusterName.value) {
+    confirmedClusterName.value = clusterName.value
+    lastAcceptedCluster.value = clusterName.value
+    void stackStatusStore.fetchStatus(clusterName.value, true)
+  }
   void refreshStatus()
 })
 
 onActivated(() => {
+  // Ensure confirmedClusterName is set when tab is activated
+  if (clusterName.value && !confirmedClusterName.value) {
+    confirmedClusterName.value = clusterName.value
+    lastAcceptedCluster.value = clusterName.value
+    void stackStatusStore.fetchStatus(clusterName.value, true)
+  }
   void refreshStatus()
 })
 
