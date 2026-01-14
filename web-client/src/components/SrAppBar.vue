@@ -46,7 +46,8 @@ const _isGitHubAuthenticating = computed(() => githubAuthStore.authStatus === 'a
 const githubUsername = computed(() => githubAuthStore.username)
 const githubIsMember = computed(() => githubAuthStore.isMember)
 const githubIsOwner = computed(() => githubAuthStore.isOwner)
-function handleGitHubLogin() {
+// TODO: Re-enable when GitHub login button is restored
+function _handleGitHubLogin() {
   githubAuthStore.initiateLogin()
 }
 
@@ -598,13 +599,18 @@ const mobileMenuItems = computed(() => {
       icon: 'pi pi-user',
       items: userMenuItems.value
     })
-  } else {
-    items.push({
-      label: 'Login',
-      icon: 'pi pi-github',
-      command: handleGitHubLogin
-    })
   }
+  // ╔══════════════════════════════════════════════════════════════════╗
+  // ║   🚧🚧🚧 TEMPORARILY HIDDEN - GITHUB LOGIN (MOBILE) 🚧🚧🚧      ║
+  // ║   TODO: Re-enable when GitHub auth is ready                     ║
+  // ╚══════════════════════════════════════════════════════════════════╝
+  // else {
+  //   items.push({
+  //     label: 'Login',
+  //     icon: 'pi pi-github',
+  //     command: handleGitHubLogin
+  //   })
+  // }
 
   return items
 })
