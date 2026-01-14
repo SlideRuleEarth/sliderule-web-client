@@ -1,43 +1,33 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onActivated } from 'vue'
 import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
 import ProgressSpinner from 'primevue/progressspinner'
 import AutoComplete from 'primevue/autocomplete'
-import { fetchClusterStatus, type ClusterStatusResponse } from '@/utils/fetchUtils'
-import { useGitHubAuthStore } from '@/stores/githubAuthStore'
-import { useSysConfigStore } from '@/stores/sysConfigStore'
+import Panel from 'primevue/panel'
+import { type ClusterStatusResponse } from '@/utils/fetchUtils'
+import { useStackStatusStore } from '@/stores/stackStatusStore'
+import { useClusterSelectionStore } from '@/stores/clusterSelectionStore'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('SrClusterStackStatus')
 
-const props = withDefaults(
-  defineProps<{
-    cluster?: string
-    autoRefresh?: boolean
-    refreshInterval?: number
-    progressRefreshInterval?: number
-  }>(),
-  {
-    cluster: undefined,
-    autoRefresh: false,
-    refreshInterval: 30000,
-    progressRefreshInterval: 5000
-  }
-)
+const props = defineProps<{
+  cluster?: string
+}>()
 
 // Human-readable status descriptions
 const STATUS_DESCRIPTIONS: Record<string, { label: string; description: string }> = {
-  CREATE_IN_PROGRESS: { label: 'Creating', description: 'Stack is being created...' },
-  CREATE_COMPLETE: { label: 'Running', description: 'Stack is up and running' },
-  CREATE_FAILED: { label: 'Create Failed', description: 'Stack creation failed' },
-  UPDATE_IN_PROGRESS: { label: 'Updating', description: 'Stack is being updated...' },
-  UPDATE_COMPLETE: { label: 'Running', description: 'Stack is up and running' },
+  CREATE_IN_PROGRESS: { label: 'Creating', description: 'Cluster is being created...' },
+  CREATE_COMPLETE: { label: 'Running', description: 'Cluster is up and running' },
+  CREATE_FAILED: { label: 'Create Failed', description: 'Cluster creation failed' },
+  UPDATE_IN_PROGRESS: { label: 'Updating', description: 'Cluster is being updated...' },
+  UPDATE_COMPLETE: { label: 'Running', description: 'Cluster is up and running' },
   UPDATE_COMPLETE_CLEANUP_IN_PROGRESS: {
     label: 'Updating',
     description: 'Cleaning up after update...'
   },
-  UPDATE_FAILED: { label: 'Update Failed', description: 'Stack update failed' },
+  UPDATE_FAILED: { label: 'Update Failed', description: 'Cluster update failed' },
   UPDATE_ROLLBACK_IN_PROGRESS: {
     label: 'Rolling Back',
     description: 'Update failed, rolling back...'
@@ -47,12 +37,12 @@ const STATUS_DESCRIPTIONS: Record<string, { label: string; description: string }
     description: 'Update rolled back successfully'
   },
   UPDATE_ROLLBACK_FAILED: { label: 'Rollback Failed', description: 'Update rollback failed' },
-  DELETE_IN_PROGRESS: { label: 'Deleting', description: 'Stack is being deleted...' },
-  DELETE_COMPLETE: { label: 'Deleted', description: 'Stack has been deleted' },
-  DELETE_FAILED: { label: 'Delete Failed', description: 'Stack deletion failed' },
-  ROLLBACK_IN_PROGRESS: { label: 'Rolling Back', description: 'Stack is rolling back...' },
-  ROLLBACK_COMPLETE: { label: 'Rolled Back', description: 'Stack rolled back' },
-  ROLLBACK_FAILED: { label: 'Rollback Failed', description: 'Stack rollback failed' }
+  DELETE_IN_PROGRESS: { label: 'Deleting', description: 'Cluster is being deleted...' },
+  DELETE_COMPLETE: { label: 'Deleted', description: 'Cluster has been deleted' },
+  DELETE_FAILED: { label: 'Delete Failed', description: 'Cluster deletion failed' },
+  ROLLBACK_IN_PROGRESS: { label: 'Rolling Back', description: 'Cluster is rolling back...' },
+  ROLLBACK_COMPLETE: { label: 'Rolled Back', description: 'Cluster rolled back' },
+  ROLLBACK_FAILED: { label: 'Rollback Failed', description: 'Cluster rollback failed' }
 }
 
 const emit = defineEmits<{
@@ -60,42 +50,18 @@ const emit = defineEmits<{
   (_e: 'error', _message: string): void
 }>()
 
-const githubAuthStore = useGitHubAuthStore()
-const sysConfigStore = useSysConfigStore()
+const stackStatusStore = useStackStatusStore()
+const clusterSelectionStore = useClusterSelectionStore()
 
-// Cluster selector state
-const selectedCluster = ref<string>('')
+// Cluster selector state - use shared store
+const selectedCluster = computed({
+  get: () => clusterSelectionStore.selectedCluster,
+  set: (value: string) => clusterSelectionStore.setSelectedCluster(value)
+})
 const filteredClusters = ref<string[]>([])
 
-// Build list of available cluster suggestions
-const clusterSuggestions = computed(() => {
-  const suggestions: string[] = []
-
-  // Add current cluster from sysConfigStore (the connected cluster)
-  if (sysConfigStore.cluster && sysConfigStore.cluster !== 'unknown') {
-    suggestions.push(sysConfigStore.cluster)
-  }
-
-  // Add known clusters from GitHub auth (includes 'sliderule' public cluster)
-  if (githubAuthStore.knownClusters?.length > 0) {
-    for (const cluster of githubAuthStore.knownClusters) {
-      if (!suggestions.includes(cluster)) {
-        suggestions.push(cluster)
-      }
-    }
-  }
-
-  // Add team-based clusters
-  if (githubAuthStore.teams?.length > 0) {
-    for (const team of githubAuthStore.teams) {
-      if (!suggestions.includes(team)) {
-        suggestions.push(team)
-      }
-    }
-  }
-
-  return suggestions.sort()
-})
+// Use centralized cluster list from store (includes known, deployable, and custom clusters)
+const clusterSuggestions = computed(() => clusterSelectionStore.allClusters)
 
 // Fixed cluster mode - when cluster prop is provided
 const isClusterFixed = computed(() => !!props.cluster)
@@ -115,8 +81,36 @@ function searchClusters(event: { query: string }) {
 const loading = ref(false)
 const error = ref<string | null>(null)
 const statusData = ref<ClusterStatusResponse | null>(null)
-const autoRefreshEnabled = ref(props.autoRefresh)
-let refreshTimer: number | null = null
+
+// Auto-refresh - use effectiveCluster directly (not selectedCluster) to avoid cross-cluster interference
+const autoRefreshEnabled = computed({
+  get: () => {
+    if (!effectiveCluster.value) return false
+    return clusterSelectionStore.isAutoRefreshEnabledForCluster(effectiveCluster.value)
+  },
+  set: async (value: boolean) => {
+    if (!effectiveCluster.value) return
+    if (value) {
+      await clusterSelectionStore.enableAutoRefresh(effectiveCluster.value, '')
+    } else {
+      await clusterSelectionStore.disableAutoRefresh(effectiveCluster.value, '')
+    }
+  }
+})
+
+// Auto-refresh message - use effectiveCluster directly
+const autoRefreshMessage = computed(() => {
+  if (!effectiveCluster.value) return null
+  return clusterSelectionStore.autoRefreshMessages[effectiveCluster.value] ?? null
+})
+
+// Format last refresh time for display - per-cluster
+const formattedLastRefreshTime = computed(() => {
+  if (!effectiveCluster.value) return null
+  const time = clusterSelectionStore.getLastRefreshTime(effectiveCluster.value)
+  if (!time) return null
+  return time.toLocaleTimeString()
+})
 
 // Helper functions for extracting status info from data
 function getStackStatus(data: ClusterStatusResponse | null): string {
@@ -137,7 +131,19 @@ function getStackStatusClass(data: ClusterStatusResponse | null): string {
 }
 
 function clusterExists(data: ClusterStatusResponse | null): boolean {
-  return data?.status === true
+  logger.debug('Checking if cluster exists', { data })
+  if (!data) return false
+  // Cluster exists if StackStatus is not NOT_FOUND (uses normalized response from store)
+  return data.response?.StackStatus !== 'NOT_FOUND'
+}
+
+/**
+ * Check if we have a definitive NOT_FOUND status (not just unknown/error).
+ * Use this to avoid treating fetch errors as "cluster doesn't exist".
+ */
+function isDefinitelyNotFound(data: ClusterStatusResponse | null): boolean {
+  if (!data) return false // null means unknown, not "doesn't exist"
+  return data.response?.StackStatus === 'NOT_FOUND'
 }
 
 function isClusterInProgress(data: ClusterStatusResponse | null): boolean {
@@ -183,14 +189,18 @@ function getCreationTime(data: ClusterStatusResponse | null): string {
   }
 }
 
+function getResponseDetails(data: ClusterStatusResponse | null): string {
+  if (!data?.response) return '{}'
+  try {
+    return JSON.stringify(data.response, null, 2)
+  } catch {
+    return '{}'
+  }
+}
+
 // Check if cluster is in progress (for adaptive polling)
 const isInProgress = computed(() => {
   return isClusterInProgress(statusData.value)
-})
-
-// Compute effective refresh interval based on stack state
-const effectiveRefreshInterval = computed(() => {
-  return isInProgress.value ? props.progressRefreshInterval : props.refreshInterval
 })
 
 // Disable controls when no cluster is selected
@@ -204,56 +214,33 @@ async function refresh() {
     return
   }
 
+  // Clear status message on manual refresh
+  clusterSelectionStore.clearAutoRefreshMessage(effectiveCluster.value)
+
   loading.value = true
   error.value = null
 
-  try {
-    // Fetch cluster status for the selected cluster
-    const result = await fetchClusterStatus(effectiveCluster.value)
+  // Use store to fetch status (force refresh)
+  const data = await stackStatusStore.fetchStatus(effectiveCluster.value, true)
 
-    if (result.success) {
-      statusData.value = result.data
-      emit('status-updated', result.data)
-      logger.debug('Cluster status fetched', { cluster: effectiveCluster.value, data: result.data })
-    } else {
-      error.value = result.error ?? 'Failed to fetch status'
-      emit('error', error.value)
-      logger.error('Failed to fetch cluster status', {
-        cluster: effectiveCluster.value,
-        error: result.error
-      })
-    }
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e)
-    error.value = msg
-    emit('error', msg)
-    logger.error('Exception fetching cluster status', {
+  // Get error from store if fetch failed
+  const storeError = stackStatusStore.getError(effectiveCluster.value)
+
+  if (data) {
+    statusData.value = data
+    clusterSelectionStore.updateLastRefreshTime(effectiveCluster.value)
+    emit('status-updated', data)
+    logger.debug('Cluster status fetched', { cluster: effectiveCluster.value, data })
+  } else if (storeError) {
+    error.value = storeError
+    emit('error', storeError)
+    logger.error('Failed to fetch cluster status', {
       cluster: effectiveCluster.value,
-      error: msg
+      error: storeError
     })
-  } finally {
-    loading.value = false
   }
-}
 
-function startAutoRefresh() {
-  stopAutoRefresh()
-  if (autoRefreshEnabled.value && effectiveRefreshInterval.value > 0) {
-    logger.debug('Starting auto-refresh', {
-      interval: effectiveRefreshInterval.value,
-      isInProgress: isInProgress.value
-    })
-    refreshTimer = window.setInterval(() => {
-      void refresh()
-    }, effectiveRefreshInterval.value)
-  }
-}
-
-function stopAutoRefresh() {
-  if (refreshTimer !== null) {
-    clearInterval(refreshTimer)
-    refreshTimer = null
-  }
+  loading.value = false
 }
 
 // Handle Enter key or blur to trigger refresh
@@ -274,32 +261,86 @@ function onClusterItemSelect() {
   void refresh()
 }
 
-watch(autoRefreshEnabled, (enabled) => {
-  if (enabled) {
-    startAutoRefresh()
-  } else {
-    stopAutoRefresh()
+// Clear status and refresh when cluster changes
+watch(effectiveCluster, (newCluster, oldCluster) => {
+  if (newCluster !== oldCluster) {
+    // Clear stale status data from previous cluster
+    statusData.value = null
+    error.value = null
+    if (newCluster) {
+      void refresh()
+    }
   }
 })
 
-// Restart auto-refresh when status changes between in-progress and stable
-// This enables adaptive polling (faster during transitions)
-watch(isInProgress, () => {
-  if (autoRefreshEnabled.value) {
-    startAutoRefresh()
+// Sync statusData from store cache when background polling updates it
+watch(
+  () => effectiveCluster.value && stackStatusStore.statusCache[effectiveCluster.value],
+  (cachedData) => {
+    if (cachedData && effectiveCluster.value) {
+      statusData.value = cachedData
+    }
+  }
+)
+
+// Disable auto-refresh when cluster transitions to stable running state
+watch(isInProgress, async (inProgress, wasInProgress) => {
+  if (wasInProgress && !inProgress && clusterExists(statusData.value)) {
+    const status = getStackStatus(statusData.value)
+    if (status === 'CREATE_COMPLETE' || status === 'UPDATE_COMPLETE') {
+      logger.info('Cluster is now running, disabling auto-refresh', {
+        cluster: effectiveCluster.value,
+        status
+      })
+      // Do final refresh FIRST, then disable auto-refresh
+      // This ensures UI shows the stable state before we stop polling
+      await refresh()
+      autoRefreshEnabled.value = false
+    }
   }
 })
 
-onMounted(() => {
+// Disable auto-refresh when cluster is definitively NOT_FOUND (e.g., after Destroy)
+// Uses isDefinitelyNotFound to avoid treating fetch errors as "cluster doesn't exist"
+watch(
+  () => isDefinitelyNotFound(statusData.value),
+  async (notFound, wasNotFound) => {
+    // Don't disable if we have a pending deploy - the cluster doesn't exist YET
+    const pendingOp = effectiveCluster.value
+      ? stackStatusStore.getPendingOperation(effectiveCluster.value)
+      : null
+    if (pendingOp === 'deploy') {
+      return
+    }
+
+    if (wasNotFound === false && notFound === true && autoRefreshEnabled.value) {
+      logger.info('Cluster no longer exists, disabling auto-refresh', {
+        cluster: effectiveCluster.value
+      })
+      // Do final refresh FIRST, then disable auto-refresh
+      // This ensures UI shows the deleted state before we stop polling
+      await refresh()
+      autoRefreshEnabled.value = false
+    }
+  }
+)
+
+onMounted(async () => {
+  await refresh()
+  // Only disable auto-refresh if cluster is in a stable state
+  // If in transition (CREATE_IN_PROGRESS, DELETE_IN_PROGRESS, etc.), preserve the
+  // auto-refresh setting so user can watch the operation complete after tab switches
+  if (!isInProgress.value) {
+    autoRefreshEnabled.value = false
+  }
+})
+
+onActivated(() => {
   void refresh()
-  if (autoRefreshEnabled.value) {
-    startAutoRefresh()
-  }
 })
 
-onUnmounted(() => {
-  stopAutoRefresh()
-})
+// Note: We don't stop polling on unmount - the store manages background polling
+// and it should continue even when this component is not displayed
 
 defineExpose({ refresh })
 </script>
@@ -327,6 +368,12 @@ defineExpose({ refresh })
         />
       </div>
       <div class="sr-server-status-controls">
+        <span v-if="autoRefreshMessage" class="sr-auto-refresh-message">
+          {{ autoRefreshMessage }}
+        </span>
+        <span v-if="formattedLastRefreshTime" class="sr-last-refresh-time">
+          {{ formattedLastRefreshTime }}
+        </span>
         <div class="sr-auto-refresh-control">
           <Checkbox
             v-model="autoRefreshEnabled"
@@ -379,7 +426,7 @@ defineExpose({ refresh })
 
       <template v-if="clusterExists(statusData)">
         <div class="sr-server-status-field">
-          <label class="sr-server-status-label">Stack Status</label>
+          <label class="sr-server-status-label">Cluster Status</label>
           <div class="sr-server-status-value-wrapper">
             <ProgressSpinner
               v-if="isClusterInProgress(statusData)"
@@ -422,6 +469,10 @@ defineExpose({ refresh })
           <label class="sr-server-status-label">Created</label>
           <span class="sr-server-status-value">{{ getCreationTime(statusData) }}</span>
         </div>
+
+        <Panel header="Details" toggleable collapsed class="sr-details-panel">
+          <pre class="sr-json-details">{{ getResponseDetails(statusData) }}</pre>
+        </Panel>
       </template>
     </template>
   </div>
@@ -498,8 +549,21 @@ defineExpose({ refresh })
   cursor: pointer;
 }
 
+.sr-auto-refresh-message {
+  font-size: 0.7rem;
+  color: var(--p-text-muted-color);
+  font-style: italic;
+  margin-left: 0.25rem;
+}
+
 .sr-refresh-btn {
   padding: 0.25rem;
+}
+
+.sr-last-refresh-time {
+  font-size: 0.7rem;
+  color: var(--p-text-muted-color);
+  white-space: nowrap;
 }
 
 .sr-server-status-loading,
@@ -564,5 +628,32 @@ defineExpose({ refresh })
 
 .sr-status-unknown {
   color: var(--p-text-muted-color);
+}
+
+.sr-details-panel {
+  margin-top: 0.5rem;
+}
+
+.sr-details-panel :deep(.p-panel-header) {
+  padding: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.sr-details-panel :deep(.p-panel-content) {
+  padding: 0.5rem;
+}
+
+.sr-json-details {
+  margin: 0;
+  padding: 0.5rem;
+  background-color: var(--p-surface-900);
+  color: var(--p-text-color);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  overflow-x: auto;
+  max-height: 300px;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 </style>

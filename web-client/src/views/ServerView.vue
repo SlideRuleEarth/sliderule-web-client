@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import SingleColumnLayout from '@/layouts/SingleColumnLayout.vue'
 import Card from 'primevue/card'
 import Tabs from 'primevue/tabs'
@@ -11,10 +11,46 @@ import Message from 'primevue/message'
 import SrSysConfig from '@/components/SrSysConfig.vue'
 import SrDeployConfig from '@/components/SrDeployConfig.vue'
 import SrClusterStackStatus from '@/components/SrClusterStackStatus.vue'
+import SrClusterEvents from '@/components/SrClusterEvents.vue'
+import SrReport from '@/components/SrReport.vue'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 
 const githubAuthStore = useGitHubAuthStore()
-const activeTab = ref('sysconfig')
+
+// Default tab based on auth: 'report' for members, 'sysconfig' (Connection) for others
+const activeTab = ref(githubAuthStore.canAccessMemberFeatures ? 'report' : 'sysconfig')
+
+// Update default tab when auth state becomes known (handles async auth resolution)
+const hasSetInitialTab = ref(false)
+watch(
+  () => githubAuthStore.canAccessMemberFeatures,
+  (canAccess) => {
+    if (!hasSetInitialTab.value) {
+      activeTab.value = canAccess ? 'report' : 'sysconfig'
+      hasSetInitialTab.value = true
+    }
+  },
+  { immediate: true }
+)
+
+// Template refs for child components that need refresh on tab activation
+const deployConfigRef = ref<{ refresh: () => void } | null>(null)
+const clusterStatusRef = ref<{ refresh: () => void } | null>(null)
+const clusterEventsRef = ref<{ refresh: () => void } | null>(null)
+const reportRef = ref<{ refresh: () => void } | null>(null)
+
+// Refresh data when switching to certain tabs
+watch(activeTab, (newTab) => {
+  if (newTab === 'deployconfig') {
+    deployConfigRef.value?.refresh()
+  } else if (newTab === 'clusterstatus') {
+    clusterStatusRef.value?.refresh()
+  } else if (newTab === 'clusterevents') {
+    clusterEventsRef.value?.refresh()
+  } else if (newTab === 'report') {
+    reportRef.value?.refresh()
+  }
+})
 
 // Auth state computed properties
 const isAuthenticated = computed(() => {
@@ -70,19 +106,27 @@ const statusMessage = computed(() => {
         <template #content>
           <Tabs v-model:value="activeTab">
             <TabList>
-              <Tab value="sysconfig">Current Connection</Tab>
+              <Tab v-if="canAccessMemberFeatures" value="report">Report</Tab>
+              <Tab value="sysconfig">Connection</Tab>
               <Tab v-if="canAccessMemberFeatures" value="deployconfig">Deploy</Tab>
-              <Tab v-if="canAccessMemberFeatures" value="clusterstatus">Stack Status</Tab>
+              <Tab v-if="canAccessMemberFeatures" value="clusterstatus">Status</Tab>
+              <Tab v-if="canAccessMemberFeatures" value="clusterevents">Events</Tab>
             </TabList>
             <TabPanels>
+              <TabPanel v-if="canAccessMemberFeatures" value="report">
+                <SrReport ref="reportRef" />
+              </TabPanel>
               <TabPanel value="sysconfig">
                 <SrSysConfig :disabled="!isAuthenticated" />
               </TabPanel>
               <TabPanel v-if="canAccessMemberFeatures" value="deployconfig">
-                <SrDeployConfig />
+                <SrDeployConfig ref="deployConfigRef" />
               </TabPanel>
               <TabPanel v-if="canAccessMemberFeatures" value="clusterstatus">
-                <SrClusterStackStatus />
+                <SrClusterStackStatus ref="clusterStatusRef" />
+              </TabPanel>
+              <TabPanel v-if="canAccessMemberFeatures" value="clusterevents">
+                <SrClusterEvents ref="clusterEventsRef" />
               </TabPanel>
             </TabPanels>
           </Tabs>

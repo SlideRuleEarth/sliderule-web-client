@@ -6,6 +6,7 @@ import Button from 'primevue/button'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 import { useSysConfigStore } from '@/stores/sysConfigStore'
 import { useLegacyJwtStore } from '@/stores/SrLegacyJwtStore'
+import { useClusterSelectionStore } from '@/stores/clusterSelectionStore'
 import { storeToRefs } from 'pinia'
 
 const props = defineProps<{
@@ -15,6 +16,7 @@ const props = defineProps<{
 const githubAuthStore = useGitHubAuthStore()
 const sysConfigStore = useSysConfigStore()
 const legacyJwtStore = useLegacyJwtStore()
+const clusterSelectionStore = useClusterSelectionStore()
 
 const { domain, subdomain, version, cluster, current_nodes, canConnectVersion, canConnectNodes } =
   storeToRefs(sysConfigStore)
@@ -32,11 +34,12 @@ onMounted(() => {
   void refreshStatus()
 })
 
-// Subdomain options from auth (includes 'sliderule' public subdomain)
+// Subdomain options from centralized store (includes known subdomains + custom names)
 const subDomainOptions = computed(() => {
-  // If authenticated, use knownSubdomains (which includes 'sliderule')
-  if (githubAuthStore.knownSubdomains?.length > 0) {
-    return githubAuthStore.knownSubdomains
+  const allSubdomains = clusterSelectionStore.allSubdomains
+  // If we have subdomains from the store, use them
+  if (allSubdomains.length > 0) {
+    return allSubdomains
   }
   // Fallback for non-authenticated users
   return ['sliderule']

@@ -2,10 +2,146 @@ import { db } from '@/db/SlideRuleDb'
 import { useSysConfigStore } from '@/stores/sysConfigStore'
 import { useLegacyJwtStore } from '@/stores/SrLegacyJwtStore'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
+import { useSrToastStore } from '@/stores/srToastStore'
 import { Buffer } from 'buffer/'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('FetchUtils')
+
+// Retry configuration for 401 errors (handles JWKS latency)
+const RETRY_DELAY_MS = 1000
+const MAX_401_RETRIES = 2
+
+/**
+ * Options for provisioner API fetch requests.
+ */
+interface ProvisionerFetchOptions {
+  url: string
+  body: Record<string, unknown>
+  context: string // For logging (e.g., 'fetching cluster status', 'deploying cluster')
+}
+
+/**
+ * Result from provisionerFetch utility.
+ */
+interface ProvisionerFetchResult<T> {
+  success: boolean
+  data: T | null
+  error?: string
+  errorDetails?: string // Raw error for tooltips
+}
+
+/**
+ * Make an authenticated request to the provisioner API.
+ * Handles GitHub OAuth authentication and 401 retry with backoff.
+ *
+ * @param options - Fetch options including URL, body, and context for logging
+ * @returns Result with parsed JSON data or error
+ */
+async function provisionerFetch<T>(
+  options: ProvisionerFetchOptions
+): Promise<ProvisionerFetchResult<T>> {
+  const { url, body, context } = options
+
+  // Get GitHub auth token - provisioner only accepts GitHub JWT
+  const githubAuthStore = useGitHubAuthStore()
+  const githubToken = githubAuthStore.authToken
+
+  if (!githubToken) {
+    logger.debug(`No GitHub token available for ${context}`, body)
+    return {
+      success: false,
+      data: null,
+      error: 'GitHub authentication required'
+    }
+  }
+
+  const makeRequest = async (): Promise<Response> => {
+    return fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${githubToken}`
+      },
+      body: JSON.stringify(body)
+    })
+  }
+
+  try {
+    let response = await makeRequest()
+
+    // Retry on 401 with backoff (handles JWKS latency issue)
+    let retryCount = 0
+    while (response.status === 401 && retryCount < MAX_401_RETRIES) {
+      retryCount++
+      logger.debug(`Got 401, retry ${retryCount}/${MAX_401_RETRIES} after backoff`, body)
+      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS))
+      response = await makeRequest()
+    }
+
+    if (!response.ok) {
+      logger.error(`Non-OK HTTP response ${context}`, {
+        ...body,
+        status: response.status
+      })
+      throw new Error(`HTTP error: ${response.status}`)
+    }
+
+    const data: T = await response.json()
+    return {
+      success: true,
+      data
+    }
+  } catch (error) {
+    const rawError = error instanceof Error ? error.message : String(error)
+    logger.debug(`Error ${context}`, { ...body, error: rawError })
+
+    // Provide user-friendly error messages while preserving raw error for tooltips
+    let userMessage: string
+    const clusterName = body.cluster as string | undefined
+    if (rawError.toLowerCase().includes('failed to fetch')) {
+      userMessage = 'Unable to connect to server. Please check your network connection.'
+      const toastStore = useSrToastStore()
+      const toastTitle = clusterName ? `Network Error (${clusterName})` : 'Network Error'
+      toastStore.warn(toastTitle, userMessage)
+    } else if (rawError.includes('HTTP error: 401')) {
+      // Check if token is expired based on local timestamp
+      const currentTimestamp = Math.floor(Date.now() / 1000)
+      const tokenExpiry = githubAuthStore.tokenExpiresAtTimestamp
+
+      if (tokenExpiry !== null && currentTimestamp >= tokenExpiry) {
+        // Token is actually expired - logout and show message
+        const toastStore = useSrToastStore()
+        toastStore.warn(
+          'Session Expired',
+          'Your authentication token has expired. Please log in again to continue.'
+        )
+        userMessage = 'Your session has expired. Please log in again.'
+        githubAuthStore.logout()
+      } else {
+        // Token still valid locally - likely JWKS latency, don't logout
+        // Next polling cycle will retry
+        userMessage = 'Authentication pending. Retrying...'
+        logger.debug('401 with valid local token - likely JWKS latency, not logging out')
+      }
+    } else if (rawError.includes('HTTP error: 403')) {
+      userMessage = 'Access denied. You may not have permission for this operation.'
+    } else if (rawError.includes('HTTP error: 404')) {
+      userMessage = 'Resource not found.'
+    } else if (rawError.includes('HTTP error: 5')) {
+      userMessage = 'Server error. Please try again later.'
+    } else {
+      userMessage = rawError
+    }
+
+    return {
+      success: false,
+      data: null,
+      error: userMessage,
+      errorDetails: rawError !== userMessage ? rawError : undefined
+    }
+  }
+}
 
 export interface ServerVersionResult {
   success: boolean
@@ -24,14 +160,25 @@ export interface CurrentNodesResult {
  * Used to determine if a cluster can be selected for deployment.
  */
 export type StackStatus =
-  | 'NOT_FOUND' // Stack doesn't exist - can deploy
-  | 'CREATE_IN_PROGRESS' // Starting - disable
-  | 'CREATE_COMPLETE' // Up - disable
-  | 'UPDATE_IN_PROGRESS' // Updating - disable
-  | 'DELETE_IN_PROGRESS' // Deleting - disable
-  | 'DELETE_COMPLETE' // Deleted - can deploy
-  | 'FAILED' // Failed state - can deploy (retry)
-  | 'UNKNOWN' // Error fetching - allow with warning
+  | 'CREATE_IN_PROGRESS'
+  | 'CREATE_COMPLETE'
+  | 'CREATE_FAILED'
+  | 'UPDATE_IN_PROGRESS'
+  | 'UPDATE_COMPLETE'
+  | 'UPDATE_COMPLETE_CLEANUP_IN_PROGRESS'
+  | 'UPDATE_FAILED'
+  | 'UPDATE_ROLLBACK_IN_PROGRESS'
+  | 'UPDATE_ROLLBACK_COMPLETE'
+  | 'UPDATE_ROLLBACK_FAILED'
+  | 'DELETE_IN_PROGRESS'
+  | 'DELETE_COMPLETE'
+  | 'DELETE_FAILED'
+  | 'ROLLBACK_IN_PROGRESS'
+  | 'ROLLBACK_COMPLETE'
+  | 'ROLLBACK_FAILED'
+  | 'NOT_FOUND'
+  | 'UNKNOWN'
+  | 'FAILED'
 
 export interface StackStatusResult {
   success: boolean
@@ -44,6 +191,7 @@ export interface StackStatusResult {
 export interface ClusterStatusResponse {
   status: boolean
   stack_name?: string
+  exception?: string
   response?: {
     StackId?: string
     StackName?: string
@@ -63,6 +211,7 @@ export interface ClusterStatusResult {
   success: boolean
   data: ClusterStatusResponse | null
   error?: string
+  errorDetails?: string
 }
 
 /**
@@ -72,12 +221,23 @@ export interface DeployClusterResponse {
   status: boolean
   stack_name?: string
   response?: Record<string, unknown>
+  exception?: string
 }
 
 export interface DeployClusterResult {
   success: boolean
   data: DeployClusterResponse | null
   error?: string
+  errorDetails?: string
+}
+
+export interface DeployClusterOptions {
+  cluster: string
+  is_public: boolean
+  node_capacity: number
+  ttl: number
+  version?: string
+  region?: string
 }
 
 /**
@@ -90,7 +250,11 @@ export async function fetchServerVersionInfo(
 ): Promise<ServerVersionResult> {
   const url = `https://${cluster}.${domain}/source/version`
   try {
-    const response = await fetch(url)
+    // =====================================================================
+    // TEMPORARY HACK: Use vanilla fetch for 'sliderule' cluster
+    // Remove this when sliderule cluster is upgraded to latest server code
+    // =====================================================================
+    const response = cluster === 'sliderule' ? await fetch(url) : await authenticatedFetch(url)
     if (!response.ok) throw new Error(`HTTP error: ${response.status}`)
 
     const data = await response.json()
@@ -105,7 +269,9 @@ export async function fetchServerVersionInfo(
       data
     }
   } catch (error) {
-    logger.info('Error fetching server version', {
+    logger.warn('Error fetching server version', {
+      cluster,
+      url,
       error: error instanceof Error ? error.message : String(error)
     })
     return {
@@ -127,11 +293,19 @@ export async function fetchCurrentNodes(
 ): Promise<CurrentNodesResult> {
   const url = `https://${cluster}.${domain}/discovery/status`
   try {
-    const response = await fetch(url, {
+    // =====================================================================
+    // TEMPORARY HACK: Use vanilla fetch for 'sliderule' cluster
+    // Remove this when sliderule cluster is upgraded to latest server code
+    // =====================================================================
+    const fetchOptions = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ service: 'sliderule' })
-    })
+    }
+    const response =
+      cluster === 'sliderule'
+        ? await fetch(url, fetchOptions)
+        : await authenticatedFetch(url, fetchOptions)
 
     if (!response.ok) throw new Error(`HTTP error: ${response.status}`)
 
@@ -146,7 +320,9 @@ export async function fetchCurrentNodes(
       throw new Error('Invalid response format')
     }
   } catch (error) {
-    logger.info('Error fetching current nodes', {
+    logger.warn('Error fetching current nodes', {
+      cluster,
+      url,
       error: error instanceof Error ? error.message : String(error)
     })
     return {
@@ -157,152 +333,203 @@ export async function fetchCurrentNodes(
 }
 
 /**
- * Fetch CloudFormation stack status for a cluster.
- * Used to determine if a cluster can be selected for deployment.
- *
- * TODO: Wire to actual endpoint when available.
- * Expected endpoint: GET https://deploy.{domain}/stack/{cluster}/status
- *
- * @param cluster - The cluster name
- * @param domain - The domain (e.g., 'slideruleearth.io')
- * @returns Stack status result
- */
-export async function fetchStackStatus(
-  cluster: string,
-  domain: string
-): Promise<StackStatusResult> {
-  // TODO: Wire to actual endpoint when available
-  // Expected: GET https://deploy.{domain}/stack/{cluster}/status
-  //
-  // const url = `https://deploy.${domain}/stack/${cluster}/status`
-  // try {
-  //   const response = await fetch(url)
-  //   if (!response.ok) throw new Error(`HTTP error: ${response.status}`)
-  //   const data = await response.json()
-  //   return { success: true, status: data.status }
-  // } catch (error) {
-  //   logger.info('Error fetching stack status', { cluster, domain, error })
-  //   return { success: false, status: 'UNKNOWN' }
-  // }
-
-  // For now, return UNKNOWN to allow all selections until the endpoint is available
-  logger.debug('fetchStackStatus placeholder called', { cluster, domain })
-  return await Promise.resolve({ success: false, status: 'UNKNOWN' })
-}
-
-/**
  * Fetch cluster status from the provisioner API.
  * Returns comprehensive status including CloudFormation state, nodes, version, etc.
  * Requires GitHub OAuth authentication.
+ * Includes a single retry with backoff for 401 errors (handles JWKS latency).
  *
  * @param cluster - The cluster name
  * @returns Cluster status result with full response data
  */
 export async function fetchClusterStatus(cluster: string): Promise<ClusterStatusResult> {
-  const url = 'https://provisioner.slideruleearth.io/status'
-
-  // Get GitHub auth token - provisioner only accepts GitHub JWT
-  const githubAuthStore = useGitHubAuthStore()
-  const githubToken = githubAuthStore.authToken
-
-  if (!githubToken) {
-    logger.info('No GitHub token available for provisioner API', { cluster })
-    return {
-      success: false,
-      data: null,
-      error: 'GitHub authentication required'
-    }
-  }
-
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${githubToken}`
-      },
-      body: JSON.stringify({ cluster })
-    })
-
-    if (!response.ok) {
-      logger.error('Non-OK HTTP response fetching cluster status', {
-        cluster,
-        status: response.status
-      })
-      throw new Error(`HTTP error: ${response.status}`)
-    }
-
-    const data: ClusterStatusResponse = await response.json()
-    return {
-      success: true,
-      data
-    }
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error)
-    logger.info('Error fetching cluster status', { cluster, error: errorMessage })
-    return {
-      success: false,
-      data: null,
-      error: errorMessage
-    }
-  }
+  return provisionerFetch<ClusterStatusResponse>({
+    url: 'https://provisioner.slideruleearth.io/status',
+    body: { cluster },
+    context: 'fetching cluster status'
+  })
 }
 
 /**
  * Deploy a cluster via the provisioner API.
  * Requires GitHub OAuth authentication.
+ * Includes a single retry with backoff for 401 errors (handles JWKS latency).
  *
- * @param clusterName - The cluster name to deploy
+ * @param options - Deploy options including cluster name, nodes, ttl, and is_public
  * @returns Deploy result with response data
  */
-export async function deployCluster(clusterName: string): Promise<DeployClusterResult> {
-  const url = 'https://provisioner.slideruleearth.io/deploy'
+export async function deployCluster(options: DeployClusterOptions): Promise<DeployClusterResult> {
+  return provisionerFetch<DeployClusterResponse>({
+    url: 'https://provisioner.slideruleearth.io/deploy',
+    body: {
+      cluster: options.cluster,
+      is_public: options.is_public,
+      node_capacity: options.node_capacity,
+      ttl: options.ttl,
+      ...(options.version && { version: options.version }),
+      ...(options.region && { region: options.region })
+    },
+    context: 'deploying cluster'
+  })
+}
 
-  // Get GitHub auth token - provisioner only accepts GitHub JWT
-  const githubAuthStore = useGitHubAuthStore()
-  const githubToken = githubAuthStore.authToken
+/**
+ * Response from the destroy cluster API.
+ */
+export interface DestroyClusterResponse {
+  status: boolean
+  stack_name?: string
+  response?: Record<string, unknown>
+  exception?: string
+}
 
-  if (!githubToken) {
-    logger.info('No GitHub token available for provisioner API', { cluster: clusterName })
-    return {
-      success: false,
-      data: null,
-      error: 'GitHub authentication required'
-    }
-  }
+/**
+ * Result from destroyCluster function.
+ */
+export interface DestroyClusterResult {
+  success: boolean
+  data: DestroyClusterResponse | null
+  error?: string
+  errorDetails?: string
+}
 
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${githubToken}`
-      },
-      body: JSON.stringify({ cluster: clusterName })
-    })
+/**
+ * Destroy a cluster via the provisioner API.
+ * Requires GitHub OAuth authentication.
+ * Includes a single retry with backoff for 401 errors (handles JWKS latency).
+ *
+ * @param cluster - The cluster name to destroy
+ * @returns Destroy result with response data
+ */
+export async function destroyCluster(cluster: string): Promise<DestroyClusterResult> {
+  return provisionerFetch<DestroyClusterResponse>({
+    url: 'https://provisioner.slideruleearth.io/destroy',
+    body: { cluster },
+    context: 'destroying cluster'
+  })
+}
 
-    if (!response.ok) {
-      logger.error('Non-OK HTTP response deploying cluster', {
-        cluster: clusterName,
-        status: response.status
-      })
-      throw new Error(`HTTP error: ${response.status}`)
-    }
+/**
+ * Response from the cluster extend API.
+ */
+export interface ExtendClusterResponse {
+  status: boolean
+  stack_name?: string
+  response?: Record<string, unknown>
+  exception?: string
+}
 
-    const data: DeployClusterResponse = await response.json()
-    return {
-      success: true,
-      data
-    }
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error)
-    logger.info('Error deploying cluster', { cluster: clusterName, error: errorMessage })
-    return {
-      success: false,
-      data: null,
-      error: errorMessage
-    }
-  }
+/**
+ * Result from extendCluster function.
+ */
+export interface ExtendClusterResult {
+  success: boolean
+  data: ExtendClusterResponse | null
+  error?: string
+  errorDetails?: string
+}
+
+/**
+ * Extend a cluster's TTL via the provisioner API.
+ * Requires GitHub OAuth authentication.
+ * Includes a single retry with backoff for 401 errors (handles JWKS latency).
+ *
+ * @param cluster - The cluster name to extend
+ * @param ttl - The new TTL in minutes
+ * @returns Extend result with response data
+ */
+export async function extendCluster(cluster: string, ttl: number): Promise<ExtendClusterResult> {
+  return provisionerFetch<ExtendClusterResponse>({
+    url: 'https://provisioner.slideruleearth.io/extend',
+    body: { cluster, ttl },
+    context: 'extending cluster TTL'
+  })
+}
+
+/**
+ * CloudFormation stack event from the events API.
+ */
+export interface StackEvent {
+  StackId: string
+  EventId: string
+  StackName: string
+  LogicalResourceId: string
+  PhysicalResourceId: string
+  ResourceType: string
+  Timestamp: string
+  ResourceStatus: string
+  ResourceStatusReason?: string
+  ResourceProperties?: string // JSON string containing resource configuration
+}
+
+/**
+ * Response from the cluster events API.
+ */
+export interface ClusterEventsResponse {
+  status: boolean
+  stack_name?: string
+  response?: StackEvent[] // API returns events in 'response' field
+  error?: string
+  exception?: string
+}
+
+/**
+ * Result from fetchClusterEvents function.
+ */
+export interface ClusterEventsResult {
+  success: boolean
+  data: ClusterEventsResponse | null
+  error?: string
+  errorDetails?: string
+}
+
+/**
+ * Fetch cluster events from the provisioner API.
+ * Returns CloudFormation stack events for the cluster.
+ * Requires GitHub OAuth authentication.
+ * Includes a single retry with backoff for 401 errors (handles JWKS latency).
+ *
+ * @param cluster - The cluster name
+ * @returns Cluster events result with stack events
+ */
+export async function fetchClusterEvents(cluster: string): Promise<ClusterEventsResult> {
+  return provisionerFetch<ClusterEventsResponse>({
+    url: 'https://provisioner.slideruleearth.io/events',
+    body: { cluster },
+    context: 'fetching cluster events'
+  })
+}
+
+/**
+ * Response from the provisioner report API.
+ */
+export interface ProvisionerReportResponse {
+  status: boolean
+  [key: string]: unknown
+}
+
+/**
+ * Result from fetchProvisionerReport function.
+ */
+export interface ProvisionerReportResult {
+  success: boolean
+  data: ProvisionerReportResponse | null
+  error?: string
+  errorDetails?: string
+}
+
+/**
+ * Fetch report from the provisioner API.
+ * Requires GitHub OAuth authentication.
+ * Includes a single retry with backoff for 401 errors (handles JWKS latency).
+ *
+ * @returns Report result with response data
+ */
+export async function fetchProvisionerReport(): Promise<ProvisionerReportResult> {
+  return provisionerFetch<ProvisionerReportResponse>({
+    url: 'https://provisioner.slideruleearth.io/report',
+    body: {},
+    context: 'fetching provisioner report'
+  })
 }
 
 /**
