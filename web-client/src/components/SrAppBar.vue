@@ -1,16 +1,22 @@
 <script setup lang="ts">
 import Button from 'primevue/button'
 import Menu from 'primevue/menu'
+import ConfirmDialog from 'primevue/confirmdialog'
 import { ref, computed, onMounted } from 'vue'
 import { useToast } from 'primevue/usetoast'
+import { useConfirm } from 'primevue/useconfirm'
 import { useSrToastStore } from '@/stores/srToastStore'
 import { useSysConfigStore } from '@/stores/sysConfigStore'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
+import { useStackStatusStore } from '@/stores/stackStatusStore'
+import { useDeployConfigStore } from '@/stores/deployConfigStore'
+import { useClusterSelectionStore } from '@/stores/clusterSelectionStore'
 import { useRoute, useRouter } from 'vue-router'
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue'
 import SrUserUtilsDialog from '@/components/SrUserUtilsDialog.vue'
 import SrTokenUtilsDialog from '@/components/SrTokenUtilsDialog.vue'
 import { createLogger } from '@/utils/logger'
+import { destroyCluster } from '@/utils/fetchUtils'
 
 const logger = createLogger('SrAppBar')
 
@@ -18,11 +24,18 @@ const build_env = import.meta.env.VITE_BUILD_ENV
 const banner_text = import.meta.env.VITE_BANNER_TEXT
 const sysConfigStore = useSysConfigStore()
 const githubAuthStore = useGitHubAuthStore()
+const stackStatusStore = useStackStatusStore()
+const deployConfigStore = useDeployConfigStore()
+const clusterSelectionStore = useClusterSelectionStore()
 const route = useRoute()
 const router = useRouter()
 const tooltipRef = ref()
 const toast = useToast()
+const confirm = useConfirm()
 const srToastStore = useSrToastStore()
+
+// Destroy cluster state
+const destroying = ref(false)
 
 // Org menu and dialog state
 const subDomainMenu = ref<InstanceType<typeof Menu> | null>(null)
@@ -332,7 +345,13 @@ const subDomainBadgeSeverity = computed(() => {
 })
 
 const subDomainMenuItems = computed(() => {
-  return [
+  const items: Array<{
+    label?: string
+    icon?: string
+    command?: () => void
+    separator?: boolean
+    disabled?: boolean
+  }> = [
     {
       label: 'Log Out',
       icon: 'pi pi-sign-out',
@@ -351,6 +370,22 @@ const subDomainMenuItems = computed(() => {
       }
     }
   ]
+
+  // Add Destroy Cluster option if enabled
+  if (canDestroyCluster.value) {
+    items.push({
+      separator: true
+    })
+    items.push({
+      label: 'Destroy Cluster',
+      icon: 'pi pi-trash',
+      command: () => {
+        handleDestroyCluster()
+      }
+    })
+  }
+
+  return items
 })
 
 const toggleSubDomainMenu = (event: Event) => {
@@ -375,6 +410,92 @@ async function resetToPublicDomain() {
     summary: 'Reset Complete',
     detail: 'Configuration has been reset to defaults',
     life: srToastStore.getLife()
+  })
+}
+
+// Computed property for destroy button enabled state
+const canDestroyCluster = computed(() => {
+  const clusterName = deployConfigStore.clusterName
+  if (!clusterName) return false
+  if (stackStatusStore.hasPendingOperation(clusterName)) return false
+  if (stackStatusStore.isClusterUndestroyable(clusterName)) return false
+  return true
+})
+
+async function executeDestroyCluster() {
+  const clusterName = deployConfigStore.clusterName
+  if (!clusterName) return
+
+  destroying.value = true
+  void clusterSelectionStore.setAutoRefreshEnabled(true)
+
+  try {
+    const result = await destroyCluster(clusterName)
+    if (result.success && result.data?.status) {
+      // Success: enable auto-refresh for both status and events via central coordinator
+      void clusterSelectionStore.enableAutoRefresh(clusterName, 'Stopping cluster')
+      // Force immediate status refresh to get updated state
+      void stackStatusStore.fetchStatus(clusterName, true)
+      toast.add({
+        severity: 'info',
+        summary: 'Cluster Destruction Started',
+        detail: `Destroying cluster "${clusterName}"`,
+        life: srToastStore.getLife()
+      })
+    } else {
+      // Failure: clear pending operation and show error
+      stackStatusStore.clearPendingOperation(clusterName)
+      const exception = result.data?.exception
+      const errorMsg = exception ?? result.error ?? 'Destroy failed'
+      toast.add({
+        severity: 'error',
+        summary: 'Destroy Failed',
+        detail: errorMsg,
+        life: srToastStore.getLife()
+      })
+    }
+  } catch (e) {
+    // Exception: clear pending operation and show error
+    const clusterName = deployConfigStore.clusterName
+    if (clusterName) {
+      stackStatusStore.clearPendingOperation(clusterName)
+    }
+    toast.add({
+      severity: 'error',
+      summary: 'Destroy Failed',
+      detail: e instanceof Error ? e.message : String(e),
+      life: srToastStore.getLife()
+    })
+  } finally {
+    destroying.value = false
+  }
+}
+
+function handleDestroyCluster() {
+  const clusterName = deployConfigStore.clusterName
+  if (!clusterName) return
+  if (stackStatusStore.hasPendingOperation(clusterName)) return
+  if (stackStatusStore.isClusterUndestroyable(clusterName)) return
+
+  // Set pending operation (persists until status confirms)
+  stackStatusStore.setPendingOperation(clusterName, 'destroy')
+  destroying.value = true
+
+  confirm.require({
+    message: `Are you sure you want to destroy the cluster "${clusterName}"? This action cannot be undone.`,
+    header: 'Destroy Cluster',
+    icon: 'pi pi-exclamation-triangle',
+    rejectLabel: 'Cancel',
+    acceptLabel: 'Destroy',
+    rejectClass: 'p-button-secondary',
+    acceptClass: 'p-button-danger',
+    accept: () => {
+      void executeDestroyCluster()
+    },
+    reject: () => {
+      destroying.value = false
+      stackStatusStore.clearPendingOperation(clusterName)
+    }
   })
 }
 
@@ -504,6 +625,7 @@ function hideTooltip() {
 </script>
 
 <template>
+  <ConfirmDialog />
   <div class="sr-nav-container" id="sr-nav-container">
     <div class="left-content">
       <Button
