@@ -20,8 +20,8 @@ export const useClusterSelectionStore = defineStore('clusterSelection', () => {
   // Per-cluster status message (explains why auto-refresh was changed)
   const autoRefreshMessages = ref<Record<string, string | null>>({})
 
-  // Last refresh timestamp
-  const lastRefreshTime = ref<Date | null>(null)
+  // Per-cluster last refresh timestamps
+  const lastRefreshTimes = ref<Record<string, Date | null>>({})
 
   // Computed for current cluster's auto-refresh state
   const autoRefreshEnabled = computed(() => {
@@ -152,8 +152,12 @@ export const useClusterSelectionStore = defineStore('clusterSelection', () => {
     if (c) autoRefreshMessages.value[c] = null
   }
 
-  function updateLastRefreshTime() {
-    lastRefreshTime.value = new Date()
+  function updateLastRefreshTime(cluster: string) {
+    lastRefreshTimes.value[cluster] = new Date()
+  }
+
+  function getLastRefreshTime(cluster: string): Date | null {
+    return lastRefreshTimes.value[cluster] ?? null
   }
 
   // Add a custom name to the list (if not already present)
@@ -180,7 +184,7 @@ export const useClusterSelectionStore = defineStore('clusterSelection', () => {
     autoRefreshMessage,
     autoRefreshClusters,
     autoRefreshMessages,
-    lastRefreshTime,
+    lastRefreshTimes,
     setSelectedCluster,
     clearSelectedCluster,
     setAutoRefreshEnabled,
@@ -189,6 +193,7 @@ export const useClusterSelectionStore = defineStore('clusterSelection', () => {
     disableAutoRefresh,
     clearAutoRefreshMessage,
     updateLastRefreshTime,
+    getLastRefreshTime,
     addCustomName,
     removeCustomName
   }

@@ -18,12 +18,10 @@ const logger = createLogger('SrClusterEvents')
 
 const props = withDefaults(
   defineProps<{
-    cluster?: string
     autoRefresh?: boolean
     refreshInterval?: number
   }>(),
   {
-    cluster: undefined,
     autoRefresh: false,
     refreshInterval: 30000
   }
@@ -52,9 +50,6 @@ const filteredClusters = ref<string[]>([])
 // Use centralized cluster list from store (includes known, deployable, and custom clusters)
 const clusterSuggestions = computed(() => clusterSelectionStore.allClusters)
 
-const isClusterFixed = computed(() => !!props.cluster)
-const effectiveCluster = computed(() => props.cluster ?? selectedCluster.value)
-
 function searchClusters(event: { query: string }) {
   const query = event.query.toLowerCase()
   if (!query) {
@@ -76,9 +71,10 @@ const autoRefreshEnabled = computed({
   set: async (value: boolean) => clusterSelectionStore.setAutoRefreshEnabled(value)
 })
 
-// Format last refresh time for display
+// Format last refresh time for display - per-cluster
 const formattedLastRefreshTime = computed(() => {
-  const time = clusterSelectionStore.lastRefreshTime
+  if (!selectedCluster.value) return null
+  const time = clusterSelectionStore.getLastRefreshTime(selectedCluster.value)
   if (!time) return null
   return time.toLocaleTimeString()
 })
@@ -180,17 +176,15 @@ function openPropertiesDialog(event: StackEvent) {
 }
 
 const controlsDisabled = computed(() => {
-  return !effectiveCluster.value || effectiveCluster.value.trim() === ''
+  return !selectedCluster.value || selectedCluster.value.trim() === ''
 })
 
 async function refresh() {
   logger.debug('refresh() called', {
-    effectiveCluster: effectiveCluster.value,
-    propsCluster: props.cluster,
     selectedCluster: selectedCluster.value
   })
 
-  if (!effectiveCluster.value || effectiveCluster.value.trim() === '') {
+  if (!selectedCluster.value || selectedCluster.value.trim() === '') {
     logger.debug('refresh() skipped - no cluster selected')
     return
   }
@@ -200,21 +194,21 @@ async function refresh() {
   showingCachedData.value = false
 
   try {
-    logger.debug('Fetching cluster events', { cluster: effectiveCluster.value })
-    const result = await clusterEventsStore.fetchEvents(effectiveCluster.value, true)
+    logger.debug('Fetching cluster events', { cluster: selectedCluster.value })
+    const result = await clusterEventsStore.fetchEvents(selectedCluster.value, true)
     logger.debug('fetchEvents result', { result })
 
     events.value = result.events
     error.value = result.error
     showingCachedData.value = result.fromCache
-    clusterSelectionStore.updateLastRefreshTime()
+    clusterSelectionStore.updateLastRefreshTime(selectedCluster.value)
 
     if (result.fromCache) {
       // Get the cached timestamp
-      const cached = clusterEventsStore.getCachedEvents(effectiveCluster.value)
+      const cached = clusterEventsStore.getCachedEvents(selectedCluster.value)
       cachedDataTimestamp.value = cached?.fetchedAt ?? null
       logger.debug('Showing cached events', {
-        cluster: effectiveCluster.value,
+        cluster: selectedCluster.value,
         count: events.value.length,
         cachedAt: cachedDataTimestamp.value
       })
@@ -233,7 +227,7 @@ async function refresh() {
     error.value = msg
     emit('error', msg)
     logger.error('Exception fetching cluster events', {
-      cluster: effectiveCluster.value,
+      cluster: selectedCluster.value,
       error: msg
     })
   } finally {
@@ -267,15 +261,13 @@ watch(drawerVisible, (visible) => {
 
 onMounted(() => {
   logger.debug('SrClusterEvents mounted', {
-    propsCluster: props.cluster,
     selectedCluster: selectedCluster.value,
-    effectiveCluster: effectiveCluster.value,
     autoRefresh: props.autoRefresh
   })
   void refresh()
   // Start background polling in store if auto-refresh is enabled (state is already set)
-  if (autoRefreshEnabled.value && effectiveCluster.value) {
-    clusterEventsStore.startPolling(effectiveCluster.value)
+  if (autoRefreshEnabled.value && selectedCluster.value) {
+    clusterEventsStore.startPolling(selectedCluster.value)
   }
 })
 
@@ -294,11 +286,7 @@ defineExpose({ refresh })
     <div class="sr-cluster-events-header">
       <div class="sr-cluster-selector-container">
         <label class="sr-cluster-label">Cluster</label>
-        <span v-if="isClusterFixed" class="sr-cluster-fixed">
-          {{ cluster }}
-        </span>
         <AutoComplete
-          v-else
           v-model="selectedCluster"
           :suggestions="filteredClusters"
           :dropdown="true"
@@ -367,7 +355,7 @@ defineExpose({ refresh })
 
     <!-- Show "No events" or events summary independent of cached banner -->
     <div
-      v-if="!loading && events.length === 0 && effectiveCluster && !(error && !showingCachedData)"
+      v-if="!loading && events.length === 0 && selectedCluster && !(error && !showingCachedData)"
       class="sr-cluster-events-empty"
     >
       <span>No events found{{ showingCachedData ? ' in cache' : '' }}</span>
@@ -408,7 +396,7 @@ defineExpose({ refresh })
     <Drawer v-model:visible="drawerVisible" position="left" class="sr-events-drawer">
       <template #header>
         <div class="sr-drawer-header">
-          <span class="sr-drawer-title">Stack Events: {{ effectiveCluster }}</span>
+          <span class="sr-drawer-title">Stack Events: {{ selectedCluster }}</span>
         </div>
       </template>
 
@@ -567,12 +555,6 @@ defineExpose({ refresh })
   text-align: center;
   font-weight: 600;
   font-size: 0.9rem;
-}
-
-.sr-cluster-fixed {
-  font-weight: 600;
-  font-size: 0.9rem;
-  color: var(--p-text-color);
 }
 
 .sr-cluster-events-controls {

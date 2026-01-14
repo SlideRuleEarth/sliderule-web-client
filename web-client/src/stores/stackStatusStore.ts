@@ -352,7 +352,7 @@ export const useStackStatusStore = defineStore(
                 void useClusterSelectionStore().disableAutoRefresh(cluster, 'Cluster not found')
               }
               // Update last refresh time for UI
-              useClusterSelectionStore().updateLastRefreshTime()
+              useClusterSelectionStore().updateLastRefreshTime(cluster)
               logger.info('Cluster stack not found', { cluster })
               return notFoundResponse
             }
@@ -399,7 +399,7 @@ export const useStackStatusStore = defineStore(
             clearShutdownTimer(cluster)
           }
           // Update last refresh time for UI
-          useClusterSelectionStore().updateLastRefreshTime()
+          useClusterSelectionStore().updateLastRefreshTime(cluster)
           logger.debug('Fetched cluster status', { cluster, status: stackStatus })
           return result.data
         } else {

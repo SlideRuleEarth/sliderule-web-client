@@ -82,15 +82,32 @@ const loading = ref(false)
 const error = ref<string | null>(null)
 const statusData = ref<ClusterStatusResponse | null>(null)
 
-// Auto-refresh - use shared store
+// Auto-refresh - use effectiveCluster directly (not selectedCluster) to avoid cross-cluster interference
 const autoRefreshEnabled = computed({
-  get: () => clusterSelectionStore.autoRefreshEnabled,
-  set: async (value: boolean) => clusterSelectionStore.setAutoRefreshEnabled(value)
+  get: () => {
+    if (!effectiveCluster.value) return false
+    return clusterSelectionStore.isAutoRefreshEnabledForCluster(effectiveCluster.value)
+  },
+  set: async (value: boolean) => {
+    if (!effectiveCluster.value) return
+    if (value) {
+      await clusterSelectionStore.enableAutoRefresh(effectiveCluster.value, '')
+    } else {
+      await clusterSelectionStore.disableAutoRefresh(effectiveCluster.value, '')
+    }
+  }
 })
 
-// Format last refresh time for display
+// Auto-refresh message - use effectiveCluster directly
+const autoRefreshMessage = computed(() => {
+  if (!effectiveCluster.value) return null
+  return clusterSelectionStore.autoRefreshMessages[effectiveCluster.value] ?? null
+})
+
+// Format last refresh time for display - per-cluster
 const formattedLastRefreshTime = computed(() => {
-  const time = clusterSelectionStore.lastRefreshTime
+  if (!effectiveCluster.value) return null
+  const time = clusterSelectionStore.getLastRefreshTime(effectiveCluster.value)
   if (!time) return null
   return time.toLocaleTimeString()
 })
@@ -211,7 +228,7 @@ async function refresh() {
 
   if (data) {
     statusData.value = data
-    clusterSelectionStore.updateLastRefreshTime()
+    clusterSelectionStore.updateLastRefreshTime(effectiveCluster.value)
     emit('status-updated', data)
     logger.debug('Cluster status fetched', { cluster: effectiveCluster.value, data })
   } else if (storeError) {
@@ -351,8 +368,8 @@ defineExpose({ refresh })
         />
       </div>
       <div class="sr-server-status-controls">
-        <span v-if="clusterSelectionStore.autoRefreshMessage" class="sr-auto-refresh-message">
-          {{ clusterSelectionStore.autoRefreshMessage }}
+        <span v-if="autoRefreshMessage" class="sr-auto-refresh-message">
+          {{ autoRefreshMessage }}
         </span>
         <span v-if="formattedLastRefreshTime" class="sr-last-refresh-time">
           {{ formattedLastRefreshTime }}

@@ -36,6 +36,10 @@ export const useSysConfigStore = defineStore(
       if (result.success) {
         version.value = result.version
         cluster.value = result.cluster
+      } else {
+        // Explicitly clear stale values on failure to prevent showing old cluster info in red
+        version.value = 'v?.?.?'
+        cluster.value = 'unknown'
       }
       return result.success ? result.data : 'Unknown'
     }
@@ -81,7 +85,7 @@ export const useSysConfigStore = defineStore(
   {
     persist: {
       storage: localStorage,
-      pick: ['domain', 'subdomain', 'cluster', 'desired_nodes', 'time_to_live']
+      pick: ['domain', 'subdomain', 'desired_nodes', 'time_to_live']
     }
   }
 )
