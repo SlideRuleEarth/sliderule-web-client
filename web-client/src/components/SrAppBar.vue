@@ -41,7 +41,8 @@ const ttl = ref(720)
 const isGitHubAuthenticated = computed(() => {
   return githubAuthStore.authStatus === 'authenticated' && githubAuthStore.hasValidAuth
 })
-const isGitHubAuthenticating = computed(() => githubAuthStore.authStatus === 'authenticating')
+// TODO: Re-enable when GitHub login button is restored
+const _isGitHubAuthenticating = computed(() => githubAuthStore.authStatus === 'authenticating')
 const githubUsername = computed(() => githubAuthStore.username)
 const githubIsMember = computed(() => githubAuthStore.isMember)
 const githubIsOwner = computed(() => githubAuthStore.isOwner)
@@ -845,7 +846,14 @@ function hideTooltip() {
       >
       </Button>
       <Menu :model="aboutMenuItems" popup ref="aboutMenu" />
-      <Button
+      <!-- ╔══════════════════════════════════════════════════════════════════╗ -->
+      <!-- ║                                                                  ║ -->
+      <!-- ║   🚧🚧🚧 TEMPORARILY HIDDEN - GITHUB LOGIN BUTTON 🚧🚧🚧        ║ -->
+      <!-- ║                                                                  ║ -->
+      <!-- ║   TODO: Re-enable this button when GitHub auth is ready         ║ -->
+      <!-- ║                                                                  ║ -->
+      <!-- ╚══════════════════════════════════════════════════════════════════╝ -->
+      <!-- <Button
         v-if="!isGitHubAuthenticated"
         icon="pi pi-github"
         id="sr-login-button"
@@ -856,7 +864,7 @@ function hideTooltip() {
         :disabled="isGitHubAuthenticating"
         @click="handleGitHubLogin"
       >
-      </Button>
+      </Button> -->
       <Button
         v-if="isGitHubAuthenticated"
         id="sr-user-button"
