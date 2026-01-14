@@ -17,7 +17,6 @@ import {
   getGeoMetadataFromFile
 } from '@/utils/SrDuckDbUtils'
 import { findSrViewKey } from '@/composables/SrViews'
-import { useLegacyJwtStore } from '@/stores/SrLegacyJwtStore'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 import router from '@/router/index.js'
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore'
@@ -379,16 +378,9 @@ async function runFetchToFileWorker(srReqRec: SrRequestRecord): Promise<void> {
           requestsStore.setSvrMsg('')
         }
       }
-      // Get auth token - priority: GitHub OAuth JWT > Legacy JWT > None
-      // GitHub OAuth is required for private clusters
-      // TEMPORARY HACK: Skip JWT for public "sliderule" subdomain (cluster may be "sliderule-green" etc)
-      let accessToken = ''
-      if (sysConfigStore.subdomain !== 'sliderule') {
-        const githubAuthStore = useGitHubAuthStore()
-        const githubToken = githubAuthStore.authToken
-        // Fall back to legacy JWT if GitHub token not available (refreshes proactively if expires within 9 minutes)
-        accessToken = githubToken ?? (await useLegacyJwtStore().ensureFreshToken()) ?? ''
-      }
+      // Get auth token from GitHub OAuth
+      const githubAuthStore = useGitHubAuthStore()
+      const accessToken = githubAuthStore.authToken ?? ''
 
       const cmd = {
         type: 'run',
