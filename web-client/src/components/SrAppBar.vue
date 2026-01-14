@@ -482,6 +482,7 @@ function handleDestroyCluster() {
   destroying.value = true
 
   confirm.require({
+    group: 'appbar',
     message: `Are you sure you want to destroy the cluster "${clusterName}"? This action cannot be undone.`,
     header: 'Destroy Cluster',
     icon: 'pi pi-exclamation-triangle',
@@ -625,7 +626,7 @@ function hideTooltip() {
 </script>
 
 <template>
-  <ConfirmDialog />
+  <ConfirmDialog group="appbar" />
   <div class="sr-nav-container" id="sr-nav-container">
     <div class="left-content">
       <Button
