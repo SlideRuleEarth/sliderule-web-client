@@ -108,5 +108,9 @@
       "bash -c 'ESLINT_USE_FLAT_CONFIG=false eslint --fix \"$@\"' --",
       "prettier --write"
     ]
+  },
+  "//overrides": "jspdf override fixes GHSA-f8cm-6447-x5h2 (Local File Inclusion vulnerability in jspdf <=3.0.4)",
+  "overrides": {
+    "jspdf": "^4.0.0"
   }
 }
