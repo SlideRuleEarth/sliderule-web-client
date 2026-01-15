@@ -88,6 +88,13 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
     },
 
     /**
+     * Check if user can access owner-only features
+     */
+    canAccessOwnerFeatures(): boolean {
+      return this.isOrgOwner && this.hasValidAuth
+    },
+
+    /**
      * Get the JWT token for server requests (null if not authenticated or expired)
      */
     authToken(): string | null {

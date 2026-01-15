@@ -23,16 +23,16 @@ const router = useRouter()
 // Valid tab values for validation
 const validTabs = ['report', 'sysconfig', 'deployconfig', 'clusterstatus', 'clusterevents']
 
-// Default tab based on auth: 'report' for members, 'sysconfig' (Connection) for others
-const activeTab = ref(githubAuthStore.canAccessMemberFeatures ? 'report' : 'sysconfig')
+// Default tab based on auth: 'report' for owners, 'sysconfig' (Connection) for others
+const activeTab = ref(githubAuthStore.canAccessOwnerFeatures ? 'report' : 'sysconfig')
 
 // Update default tab when auth state becomes known (handles async auth resolution)
 const hasSetInitialTab = ref(false)
 watch(
-  () => githubAuthStore.canAccessMemberFeatures,
-  (canAccess) => {
+  () => githubAuthStore.canAccessOwnerFeatures,
+  (canAccessOwnerFeatures) => {
     if (!hasSetInitialTab.value) {
-      activeTab.value = canAccess ? 'report' : 'sysconfig'
+      activeTab.value = canAccessOwnerFeatures ? 'report' : 'sysconfig'
       hasSetInitialTab.value = true
     }
   },
@@ -44,8 +44,12 @@ watch(
   () => route.query.tab,
   (tab) => {
     if (typeof tab === 'string' && validTabs.includes(tab)) {
+      // Only switch to owner-only tabs if user has access
+      if (tab === 'report' && !githubAuthStore.canAccessOwnerFeatures) {
+        return
+      }
       // Only switch to member tabs if user has access
-      const memberTabs = ['report', 'deployconfig', 'clusterstatus', 'clusterevents']
+      const memberTabs = ['deployconfig', 'clusterstatus', 'clusterevents']
       if (memberTabs.includes(tab) && !githubAuthStore.canAccessMemberFeatures) {
         return
       }
@@ -89,6 +93,7 @@ const isMember = computed(() => githubAuthStore.isMember)
 const isOwner = computed(() => githubAuthStore.isOwner)
 const lastError = computed(() => githubAuthStore.lastError)
 const canAccessMemberFeatures = computed(() => githubAuthStore.canAccessMemberFeatures)
+const canAccessOwnerFeatures = computed(() => githubAuthStore.canAccessOwnerFeatures)
 
 // Status severity for the message component
 const statusSeverity = computed(() => {
@@ -133,14 +138,14 @@ const statusMessage = computed(() => {
         <template #content>
           <Tabs v-model:value="activeTab">
             <TabList>
-              <Tab v-if="canAccessMemberFeatures" value="report">Report</Tab>
+              <Tab v-if="canAccessOwnerFeatures" value="report">Report</Tab>
               <Tab value="sysconfig">Connection</Tab>
               <Tab v-if="canAccessMemberFeatures" value="deployconfig">Deploy</Tab>
               <Tab v-if="canAccessMemberFeatures" value="clusterstatus">Status</Tab>
               <Tab v-if="canAccessMemberFeatures" value="clusterevents">Events</Tab>
             </TabList>
             <TabPanels>
-              <TabPanel v-if="canAccessMemberFeatures" value="report">
+              <TabPanel v-if="canAccessOwnerFeatures" value="report">
                 <SrReport ref="reportRef" />
               </TabPanel>
               <TabPanel value="sysconfig">
