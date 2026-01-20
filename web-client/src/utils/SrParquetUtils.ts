@@ -610,8 +610,10 @@ export async function exportCsvStreamed(fileName: string, headerCols: Ref<string
       })
       .map((col) => {
         // Track time columns for formatting
+        // Use epoch_ns() to extract nanoseconds as BIGINT (avoids float64 conversion)
         if (col === 'time' || col.includes('time_ns')) {
           timeColumns.push(col)
+          return `epoch_ns(${duck.escape(col)}) AS ${duck.escape(col)}`
         }
         return duck.escape(col)
       })
@@ -636,8 +638,10 @@ export async function exportCsvStreamed(fileName: string, headerCols: Ref<string
     // No geometry, select all columns
     selectCols = headerCols.value.map((col) => {
       // Track time columns for formatting
+      // Use epoch_ns() to extract nanoseconds as BIGINT (avoids float64 conversion)
       if (col === 'time' || col.includes('time_ns')) {
         timeColumns.push(col)
+        return `epoch_ns(${duck.escape(col)}) AS ${duck.escape(col)}`
       }
       return duck.escape(col)
     })
@@ -680,7 +684,8 @@ export async function exportCsvStreamed(fileName: string, headerCols: Ref<string
             if (col.endsWith('_formatted')) {
               const baseCol = col.replace('_formatted', '')
               const timeVal = row[baseCol]
-              if (typeof timeVal === 'number') {
+              // Handle both number (legacy) and bigint (nanoseconds from DuckDB)
+              if (typeof timeVal === 'number' || typeof timeVal === 'bigint') {
                 return safeCsvCell(formatTime(timeVal))
               }
               return safeCsvCell('')
