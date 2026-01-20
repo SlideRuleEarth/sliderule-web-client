@@ -5,7 +5,6 @@ import Select from 'primevue/select'
 import Button from 'primevue/button'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 import { useSysConfigStore } from '@/stores/sysConfigStore'
-import { useLegacyJwtStore } from '@/stores/SrLegacyJwtStore'
 import { useClusterSelectionStore } from '@/stores/clusterSelectionStore'
 import { storeToRefs } from 'pinia'
 
@@ -15,7 +14,6 @@ const props = defineProps<{
 
 const githubAuthStore = useGitHubAuthStore()
 const sysConfigStore = useSysConfigStore()
-const legacyJwtStore = useLegacyJwtStore()
 const clusterSelectionStore = useClusterSelectionStore()
 
 const { domain, subdomain, version, cluster, current_nodes, canConnectVersion, canConnectNodes } =
@@ -97,7 +95,6 @@ const isPublicCluster = computed(
 
 // Reset to public subdomain and domain
 function resetToPublicDomain() {
-  legacyJwtStore.clearAllJwts()
   sysConfigStore.$reset()
   // Set defaults: slideruleearth.io and sliderule
   domain.value = 'slideruleearth.io'

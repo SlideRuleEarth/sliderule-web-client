@@ -1,4 +1,3 @@
-import { useReqParamsStore } from '@/stores/reqParamsStore'
 import { useSrcIdTblStore } from '@/stores/srcIdTblStore'
 function gpsToUnixTimestamp(gpsSeconds: number): number {
   const gpsToUnixOffset = 315964800 // Seconds from Jan 1, 1970 to Jan 6, 1980
@@ -43,26 +42,54 @@ function gpsToUnixTimestamp(gpsSeconds: number): number {
   return gpsSeconds + gpsToUnixOffset - leapSeconds
 }
 
-export function formatTime(value: number): string {
-  const gpsToATLASOffset = 1198800018 // Offset in seconds from GPS to ATLAS SDP time
-  const gpsToUnixOffset = 315964800 // Offset in seconds from GPS epoch to Unix epoch
-  const gpsToUTCOffset = useReqParamsStore().getGpsToUTCOffset()
-  // 1) Convert GPS to ATLAS SDP by subtracting the ATLAS offset
-  let adjustedTime = value - gpsToATLASOffset
-  // 2) Align ATLAS SDP with Unix epoch by adding the GPS-to-Unix offset
-  adjustedTime += gpsToUnixOffset
-  // 3) Adjust for UTC by subtracting the GPS-UTC offset
-  adjustedTime -= gpsToUTCOffset
-  const date = new Date(adjustedTime)
-  return date.toISOString() // Format as ISO string in UTC
+/**
+ * Format a timestamp value to ISO 8601 string.
+ *
+ * With castTimestampToDate: false, DuckDB returns timestamps as BigInt nanoseconds
+ * since Unix epoch. This function converts nanoseconds to milliseconds for the
+ * JavaScript Date constructor.
+ *
+ * @param value - Timestamp as BigInt nanoseconds or number (legacy milliseconds)
+ * @returns ISO 8601 formatted date string
+ */
+export function formatTime(value: number | bigint): string {
+  let milliseconds: number
+
+  if (typeof value === 'bigint') {
+    // BigInt nanoseconds from DuckDB - convert to milliseconds
+    // Use division to avoid precision loss (nanoseconds / 1_000_000 = milliseconds)
+    milliseconds = Number(value / BigInt(1_000_000))
+  } else {
+    // Legacy: assume number is already milliseconds (for backwards compatibility)
+    milliseconds = value
+  }
+
+  const date = new Date(milliseconds)
+  return date.toISOString()
 }
 
 export function formatKeyValuePair(key: string, value: any, reqId?: number): string {
   const srcIdStore = useSrcIdTblStore()
 
   let formattedValue: string | number
-  if ((key === 'time' || key.includes('time_ns')) && typeof value === 'number') {
-    formattedValue = formatTime(value) // Use the formatTime function for time values
+  // Check for timestamp fields - can be number (legacy) or bigint (nanoseconds from DuckDB)
+  // time_ns_fmt fields are already formatted, display as-is
+  // time_ns fields should display raw BigInt value (formatted version goes in time_ns_fmt)
+  // 'time' fields (legacy) still get formatted for backwards compatibility
+  if (key.endsWith('_fmt')) {
+    // Already formatted time string - display as-is
+    formattedValue = String(value)
+  } else if (key === 'time' && (typeof value === 'number' || typeof value === 'bigint')) {
+    // Legacy 'time' field - format as ISO date for backwards compatibility
+    formattedValue = formatTime(value)
+  } else if (key.includes('time_ns') && (typeof value === 'number' || typeof value === 'bigint')) {
+    // time_ns fields - display raw value as integer string (no decimal point, matching CSV format)
+    if (typeof value === 'bigint') {
+      formattedValue = value.toString()
+    } else {
+      // For number type, convert to BigInt to avoid scientific notation and decimals
+      formattedValue = BigInt(Math.round(value)).toString()
+    }
   } else if (key.includes('.time')) {
     //console.log('formatKeyValuePair: key:',key,' value:',value, 'typeof value:',typeof value);
     const gpsdate = new Date(gpsToUnixTimestamp(value) * 1000) // Convert seconds to ms

@@ -824,7 +824,13 @@ export const duckDbReadAndUpdateElevationData = async (
             if (geometryHasZ && c.name === heightField) return false
             return true
           })
-          .map((c) => duckDbClient.escape(c.name))
+          .map((c) => {
+            // Extract time columns as nanoseconds (BigInt) to match CSV export format
+            if (c.name === 'time' || c.name.includes('time_ns')) {
+              return `epoch_ns(${duckDbClient.escape(c.name)}) AS ${duckDbClient.escape(c.name)}`
+            }
+            return duckDbClient.escape(c.name)
+          })
 
         // Add geometry extractions with field name aliases
         const geomExtractions = [
@@ -843,7 +849,14 @@ export const duckDbReadAndUpdateElevationData = async (
 
         selectClause = [...nonGeomCols, ...geomExtractions].join(', ')
       } else {
-        selectClause = '*'
+        // No geometry - build column list to properly handle time columns with epoch_ns
+        const allCols = colTypes.map((c) => {
+          if (c.name === 'time' || c.name.includes('time_ns')) {
+            return `epoch_ns(${duckDbClient.escape(c.name)}) AS ${duckDbClient.escape(c.name)}`
+          }
+          return duckDbClient.escape(c.name)
+        })
+        selectClause = allCols.join(', ')
       }
 
       // Add WHERE clause to filter invalid geometries when geometry column exists
@@ -1050,7 +1063,13 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, layerName
           if (geometryHasZ && c.name === heightField) return false
           return true
         })
-        .map((c) => duckDbClient.escape(c.name))
+        .map((c) => {
+          // Extract time columns as nanoseconds (BigInt) to match CSV export format
+          if (c.name === 'time' || c.name.includes('time_ns')) {
+            return `epoch_ns(${duckDbClient.escape(c.name)}) AS ${duckDbClient.escape(c.name)}`
+          }
+          return duckDbClient.escape(c.name)
+        })
 
       // Add geometry extractions with field name aliases
       const geomExtractions = [
@@ -1069,7 +1088,14 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, layerName
 
       selectClause = [...nonGeomCols, ...geomExtractions].join(', ')
     } else {
-      selectClause = '*'
+      // No geometry - build column list to properly handle time columns with epoch_ns
+      const allCols = colTypes.map((c) => {
+        if (c.name === 'time' || c.name.includes('time_ns')) {
+          return `epoch_ns(${duckDbClient.escape(c.name)}) AS ${duckDbClient.escape(c.name)}`
+        }
+        return duckDbClient.escape(c.name)
+      })
+      selectClause = allCols.join(', ')
     }
 
     // Build query with geometry filter if applicable

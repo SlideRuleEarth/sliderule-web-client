@@ -1,47 +1,51 @@
 <script setup lang="ts">
 import Button from 'primevue/button'
 import Menu from 'primevue/menu'
-import Dialog from 'primevue/dialog'
+import ConfirmDialog from 'primevue/confirmdialog'
 import { ref, computed, onMounted } from 'vue'
 import { useToast } from 'primevue/usetoast'
+import { useConfirm } from 'primevue/useconfirm'
 import { useSrToastStore } from '@/stores/srToastStore'
-import { authenticatedFetch } from '@/utils/fetchUtils'
-import SrSliderInput from '@/components/SrSliderInput.vue'
 import { useSysConfigStore } from '@/stores/sysConfigStore'
-import { useLegacyJwtStore } from '@/stores/SrLegacyJwtStore'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
+import { useStackStatusStore } from '@/stores/stackStatusStore'
+import { useClusterSelectionStore } from '@/stores/clusterSelectionStore'
+import { useDeployConfigStore } from '@/stores/deployConfigStore'
 import { useRoute, useRouter } from 'vue-router'
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue'
 import SrUserUtilsDialog from '@/components/SrUserUtilsDialog.vue'
 import SrTokenUtilsDialog from '@/components/SrTokenUtilsDialog.vue'
 import { createLogger } from '@/utils/logger'
+import { destroyCluster } from '@/utils/fetchUtils'
 
 const logger = createLogger('SrAppBar')
 
 const build_env = import.meta.env.VITE_BUILD_ENV
 const banner_text = import.meta.env.VITE_BANNER_TEXT
 const sysConfigStore = useSysConfigStore()
-const legacyJwtStore = useLegacyJwtStore()
 const githubAuthStore = useGitHubAuthStore()
+const stackStatusStore = useStackStatusStore()
+const clusterSelectionStore = useClusterSelectionStore()
+const deployConfigStore = useDeployConfigStore()
 const route = useRoute()
 const router = useRouter()
 const tooltipRef = ref()
 const toast = useToast()
+const confirm = useConfirm()
 const srToastStore = useSrToastStore()
 
-// Org menu and cluster dialog state
+// Destroy cluster state
+const destroying = ref(false)
+
+// Org menu and dialog state
 const subDomainMenu = ref<InstanceType<typeof Menu> | null>(null)
-const showClusterDialog = ref(false)
 const showUserUtilsDialog = ref(false)
 const showTokenUtilsDialog = ref(false)
-const desiredNodes = ref(1)
-const ttl = ref(720)
 
 // GitHub auth computed properties
 const isGitHubAuthenticated = computed(() => {
   return githubAuthStore.authStatus === 'authenticated' && githubAuthStore.hasValidAuth
 })
-// TODO: Re-enable when GitHub login button is restored
 const _isGitHubAuthenticating = computed(() => githubAuthStore.authStatus === 'authenticating')
 const githubUsername = computed(() => githubAuthStore.username)
 const githubIsMember = computed(() => githubAuthStore.isMember)
@@ -337,80 +341,49 @@ const subDomainBadgeLabel = computed(() => {
 })
 
 const subDomainBadgeSeverity = computed(() => {
-  const jwt = legacyJwtStore.getCredentials()
-  return jwt ? 'info' : 'warn'
+  return githubAuthStore.hasValidAuth ? 'info' : 'warn'
 })
-
-const computedLegacyLoggedIn = computed(() => {
-  return legacyJwtStore.getCredentials() !== null
-})
-
-const computedLegacyOrgIsPublic = computed(() => {
-  return legacyJwtStore.getIsPublic(sysConfigStore.domain, sysConfigStore.subdomain)
-})
-
-const maxNodes = computed(() => sysConfigStore.max_nodes)
-
-const minNodes = computed(() => sysConfigStore.min_nodes)
-const currentNodes = computed(() => sysConfigStore.current_nodes)
-const clusterVersion = computed(() => sysConfigStore.version)
-
-const computedClusterType = computed(() => {
-  if (!computedLegacyLoggedIn.value) {
-    return 'Unknown'
-  } else {
-    return computedLegacyOrgIsPublic.value ? 'Public' : 'Private'
-  }
-})
-
-function handleDeploy() {
-  logger.info('Deploy selected')
-  // TODO: Add API call to perform deploy lambda
-}
 
 const subDomainMenuItems = computed(() => {
-  const hasGitHubToken = githubAuthStore.hasValidAuth
-
-  const items = []
-
-  if (hasGitHubToken) {
-    items.push({
-      label: 'Deploy',
-      icon: 'pi pi-cloud-upload',
+  const items: Array<{
+    label?: string
+    icon?: string
+    command?: () => void
+    separator?: boolean
+    disabled?: boolean
+  }> = [
+    {
+      label: 'Log Out',
+      icon: 'pi pi-sign-out',
       command: () => {
-        handleDeploy()
+        void handleLogout()
       }
-    })
-  } else {
-    items.push({
-      label: 'Request Nodes',
-      icon: 'pi pi-server',
-      disabled: computedLegacyOrgIsPublic.value || !computedLegacyLoggedIn.value,
+    },
+    {
+      separator: true
+    },
+    {
+      label: 'Reset to Public Cluster',
+      icon: 'pi pi-refresh',
       command: () => {
-        showClusterDialog.value = true
+        void resetToPublicDomain()
+      }
+    }
+  ]
+
+  // Add Destroy Cluster option if enabled
+  if (canDestroyConnectedCluster.value) {
+    items.push({
+      separator: true
+    })
+    items.push({
+      label: 'Destroy Cluster',
+      icon: 'pi pi-trash',
+      command: () => {
+        handleDestroyCluster()
       }
     })
   }
-
-  items.push({
-    label: 'Log Out',
-    icon: 'pi pi-sign-out',
-    command: () => {
-      void handleLogout()
-    }
-  })
-
-  items.push({
-    separator: true
-  })
-
-  items.push({
-    label: 'Reset to Public Cluster',
-    icon: 'pi pi-refresh',
-    command: () => {
-      void resetToPublicDomain()
-    }
-  })
 
   return items
 })
@@ -420,10 +393,7 @@ const toggleSubDomainMenu = (event: Event) => {
 }
 
 async function handleLogout() {
-  // Log out from GitHub if authenticated
   githubAuthStore.logout()
-  // Clear legacy JWT and reset to public cluster
-  legacyJwtStore.clearAllJwts()
   await sysConfigStore.resetToPublicDomain()
   toast.add({
     severity: 'info',
@@ -434,131 +404,142 @@ async function handleLogout() {
 }
 
 async function resetToPublicDomain() {
-  // Reset to public cluster without logging out of GitHub
-  legacyJwtStore.clearAllJwts()
   await sysConfigStore.resetToPublicDomain()
   toast.add({
     severity: 'info',
     summary: 'Reset Complete',
-    detail: 'Configuration and authentication have been reset to defaults',
+    detail: 'Configuration has been reset to defaults',
     life: srToastStore.getLife()
   })
 }
 
-async function getOrgNumNodes() {
-  if (!legacyJwtStore.getCredentials()) {
-    logger.error('Login expired or not logged in')
-    toast.add({
-      severity: 'info',
-      summary: 'Need to Login',
-      detail: 'Please log in again',
-      life: srToastStore.getLife()
-    })
-    return
-  }
+// Computed property for destroy button enabled state (uses connected cluster)
+const canDestroyConnectedCluster = computed(() => {
+  const clusterName = sysConfigStore.cluster
+  if (!clusterName || clusterName === 'unknown') return false
+  if (stackStatusStore.hasPendingOperation(clusterName)) return false
+  if (stackStatusStore.isClusterUndestroyable(clusterName)) return false
+  return true
+})
 
-  const psHost = `https://ps.${sysConfigStore.domain}`
-  const response = await authenticatedFetch(
-    `${psHost}/api/org_num_nodes/${sysConfigStore.subdomain}/`,
-    {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json'
-      }
+async function executeDestroyCluster() {
+  const clusterName = sysConfigStore.cluster
+  if (!clusterName || clusterName === 'unknown') return
+
+  destroying.value = true
+  clusterSelectionStore.setSelectedCluster(clusterName)
+  deployConfigStore.clusterName = clusterName
+  void clusterSelectionStore.setAutoRefreshEnabled(true)
+
+  try {
+    const result = await destroyCluster(clusterName)
+    if (result.success && result.data?.status) {
+      // Success: enable auto-refresh for both status and events via central coordinator
+      void clusterSelectionStore.enableAutoRefresh(clusterName, 'Stopping cluster')
+      // Force immediate status refresh to get updated state
+      void stackStatusStore.fetchStatus(clusterName, true)
+      // Reset to public cluster after initiating destroy
+      await sysConfigStore.resetToPublicDomain()
+      toast.add({
+        severity: 'info',
+        summary: 'Cluster Destruction Started',
+        detail: `Destroying cluster "${clusterName}" and resetting to public cluster`,
+        life: srToastStore.getLife()
+      })
+    } else {
+      // Failure: clear pending operation and show error
+      stackStatusStore.clearPendingOperation(clusterName)
+      const exception = result.data?.exception
+      const errorMsg = exception ?? result.error ?? 'Destroy failed'
+      toast.add({
+        severity: 'error',
+        summary: 'Destroy Failed',
+        detail: errorMsg,
+        life: srToastStore.getLife()
+      })
     }
-  )
-
-  if (response.ok) {
-    const result = await response.json()
-    logger.debug('getOrgNumNodes result', { result })
-    sysConfigStore.min_nodes = result.min_nodes
-    sysConfigStore.current_nodes = result.current_nodes
-    sysConfigStore.max_nodes = result.max_nodes
-    sysConfigStore.version = result.version
-    legacyJwtStore.setIsPublic(sysConfigStore.domain, sysConfigStore.subdomain, result.is_public)
-  } else if (response.status === 401) {
-    logger.error('Authentication failed - please log in again')
-    toast.add({
-      severity: 'info',
-      summary: 'Session Expired',
-      detail: 'Please log in again',
-      life: srToastStore.getLife()
-    })
-  } else {
-    logger.error('Failed to get Num Nodes', { statusText: response.statusText })
+  } catch (e) {
+    // Exception: clear pending operation and show error
+    const clusterName = sysConfigStore.cluster
+    if (clusterName && clusterName !== 'unknown') {
+      stackStatusStore.clearPendingOperation(clusterName)
+    }
     toast.add({
       severity: 'error',
-      summary: 'Failed to Retrieve Nodes',
-      detail: `Error: ${response.statusText}`,
+      summary: 'Destroy Failed',
+      detail: e instanceof Error ? e.message : String(e),
       life: srToastStore.getLife()
     })
+  } finally {
+    destroying.value = false
   }
 }
 
-async function submitDesiredNodes() {
-  if (!legacyJwtStore.getCredentials()) {
-    logger.error('Login expired or not logged in')
+function handleDestroyCluster() {
+  const clusterName = sysConfigStore.cluster
+  if (!clusterName || clusterName === 'unknown') {
     toast.add({
-      severity: 'info',
-      summary: 'Need to Login',
-      detail: 'Please log in again',
+      severity: 'warn',
+      summary: 'No Cluster Connected',
+      detail: 'Cannot destroy cluster - no cluster is currently connected',
+      life: srToastStore.getLife()
+    })
+    return
+  }
+  if (stackStatusStore.hasPendingOperation(clusterName)) {
+    toast.add({
+      severity: 'warn',
+      summary: 'Operation In Progress',
+      detail: `Cannot destroy cluster "${clusterName}" - an operation is already in progress`,
+      life: srToastStore.getLife()
+    })
+    return
+  }
+  if (stackStatusStore.isClusterUndestroyable(clusterName)) {
+    toast.add({
+      severity: 'warn',
+      summary: 'Cannot Destroy Cluster',
+      detail: `Cluster "${clusterName}" cannot be destroyed in its current state`,
+      life: srToastStore.getLife()
+    })
+    return
+  }
+  if (
+    sysConfigStore.currentSlideRuleCluster &&
+    clusterName === sysConfigStore.currentSlideRuleCluster
+  ) {
+    toast.add({
+      severity: 'warn',
+      summary: 'Cannot Destroy Public Cluster',
+      detail: `Cluster "${clusterName}" is the current public SlideRule cluster and cannot be destroyed`,
       life: srToastStore.getLife()
     })
     return
   }
 
-  const psHost = `https://ps.${sysConfigStore.domain}`
-  sysConfigStore.desired_nodes = desiredNodes.value
-  sysConfigStore.time_to_live = ttl.value
+  // Set pending operation (persists until status confirms)
+  stackStatusStore.setPendingOperation(clusterName, 'destroy')
+  destroying.value = true
 
-  const response = await authenticatedFetch(
-    `${psHost}/api/desired_org_num_nodes_ttl/${sysConfigStore.subdomain}/${desiredNodes.value}/${ttl.value}/`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json'
-      }
+  confirm.require({
+    group: 'appbar',
+    message: `Are you sure you want to destroy the cluster "${clusterName}"? This action cannot be undone.`,
+    header: 'Destroy Cluster',
+    icon: 'pi pi-exclamation-triangle',
+    rejectLabel: 'Cancel',
+    acceptLabel: 'Destroy',
+    rejectClass: 'p-button-secondary',
+    acceptClass: 'p-button-danger',
+    accept: () => {
+      void executeDestroyCluster()
+      // Navigate to server view deploy tab to show progress
+      void router.push({ path: '/server', query: { tab: 'deployconfig' } })
+    },
+    reject: () => {
+      destroying.value = false
+      stackStatusStore.clearPendingOperation(clusterName)
     }
-  )
-
-  if (response.ok) {
-    const result = await response.json()
-    if (result.status === 'QUEUED') {
-      toast.add({
-        severity: 'info',
-        summary: 'Desired Nodes Request Queued',
-        detail: result.msg,
-        life: srToastStore.getLife()
-      })
-      showClusterDialog.value = false
-    } else {
-      logger.error('Failed to request nodes', { statusText: response.statusText })
-      toast.add({
-        severity: 'error',
-        summary: 'Failed to Request Nodes',
-        detail: `Error: ${result.msg}`,
-        life: srToastStore.getLife()
-      })
-    }
-  } else if (response.status === 401) {
-    logger.error('Authentication failed - please log in again')
-    toast.add({
-      severity: 'info',
-      summary: 'Session Expired',
-      detail: 'Please log in again',
-      life: srToastStore.getLife()
-    })
-  } else {
-    logger.error('Failed to request nodes', { statusText: response.statusText })
-    toast.add({
-      severity: 'error',
-      summary: 'Failed to Request Nodes',
-      detail: `Error: ${response.statusText}`,
-      life: srToastStore.getLife()
-    })
-  }
+  })
 }
 
 const mobileMenu = ref<InstanceType<typeof Menu> | null>(null)
@@ -600,10 +581,11 @@ const mobileMenuItems = computed(() => {
       items: userMenuItems.value
     })
   }
-  // ╔══════════════════════════════════════════════════════════════════╗
-  // ║   🚧🚧🚧 TEMPORARILY HIDDEN - GITHUB LOGIN (MOBILE) 🚧🚧🚧      ║
-  // ║   TODO: Re-enable when GitHub auth is ready                     ║
-  // ╚══════════════════════════════════════════════════════════════════╝
+  // ============================================================================
+  // TEMPORARILY DISABLED: GitHub Login in mobile menu
+  // The GitHub Login functionality has been temporarily hidden from the UI.
+  // To re-enable, uncomment the else block below.
+  // ============================================================================
   // else {
   //   items.push({
   //     label: 'Login',
@@ -638,42 +620,8 @@ function dumpRouteInfo() {
 
 onMounted(async () => {
   setDarkMode()
-  const isPrivateCluster = sysConfigStore.subdomain && sysConfigStore.subdomain !== 'sliderule'
-
-  if (isPrivateCluster) {
-    const org = sysConfigStore.subdomain
-    // For private clusters, only fetch if we have credentials
-    // Otherwise, the login dialog will be shown and fetchOrgInfo will be called after login
-    const jwt = legacyJwtStore.getCredentials()
-    if (jwt) {
-      // Use the authenticated PS endpoint for private clusters
-      const psHost = `https://ps.${sysConfigStore.domain}`
-      try {
-        const response = await fetch(`${psHost}/api/org_num_nodes/${org}/`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-            Authorization: `Bearer ${jwt.accessToken}`
-          }
-        })
-        if (response.ok) {
-          const result = await response.json()
-          sysConfigStore.min_nodes = result.min_nodes
-          sysConfigStore.current_nodes = result.current_nodes
-          sysConfigStore.max_nodes = result.max_nodes
-          sysConfigStore.version = result.version
-        }
-      } catch (error) {
-        logger.error('Failed to fetch org info', { error })
-      }
-    }
-    // If no credentials, don't try to fetch - App.vue will show login dialog
-  } else {
-    // Public cluster - use direct server endpoints
-    await sysConfigStore.fetchServerVersionInfo()
-    await sysConfigStore.fetchCurrentNodes()
-  }
+  await sysConfigStore.fetchServerVersionInfo()
+  await sysConfigStore.fetchCurrentNodes()
   dumpRouteInfo()
 })
 
@@ -726,6 +674,7 @@ function hideTooltip() {
 </script>
 
 <template>
+  <ConfirmDialog group="appbar" />
   <div class="sr-nav-container" id="sr-nav-container">
     <div class="left-content">
       <Button
@@ -852,13 +801,11 @@ function hideTooltip() {
       >
       </Button>
       <Menu :model="aboutMenuItems" popup ref="aboutMenu" />
-      <!-- ╔══════════════════════════════════════════════════════════════════╗ -->
-      <!-- ║                                                                  ║ -->
-      <!-- ║   🚧🚧🚧 TEMPORARILY HIDDEN - GITHUB LOGIN BUTTON 🚧🚧🚧        ║ -->
-      <!-- ║                                                                  ║ -->
-      <!-- ║   TODO: Re-enable this button when GitHub auth is ready         ║ -->
-      <!-- ║                                                                  ║ -->
-      <!-- ╚══════════════════════════════════════════════════════════════════╝ -->
+      <!-- ====================================================================
+           TEMPORARILY DISABLED: GitHub Login Button
+           The GitHub Login functionality has been temporarily hidden from the UI.
+           To re-enable, uncomment the Button below.
+           ==================================================================== -->
       <!-- <Button
         v-if="!isGitHubAuthenticated"
         icon="pi pi-github"
@@ -888,75 +835,6 @@ function hideTooltip() {
     </div>
   </div>
 
-  <Dialog
-    v-model:visible="showClusterDialog"
-    header="Cluster Status"
-    :closable="true"
-    modal
-    class="sr-cluster-dialog"
-  >
-    <div class="sr-cluster-info">
-      <div class="sr-cluster-field">
-        <label>Type:</label>
-        <span>{{ computedClusterType }}</span>
-      </div>
-      <div class="sr-cluster-field">
-        <label>Min Nodes:</label>
-        <span>{{ minNodes }}</span>
-      </div>
-      <div class="sr-cluster-field">
-        <label>Current Nodes:</label>
-        <span>{{ currentNodes }}</span>
-      </div>
-      <div class="sr-cluster-field">
-        <label>Max Nodes:</label>
-        <span>{{ maxNodes }}</span>
-      </div>
-      <div class="sr-cluster-field">
-        <label>Version:</label>
-        <span>{{ clusterVersion }}</span>
-      </div>
-      <div class="sr-refresh-btn">
-        <Button
-          icon="pi pi-refresh"
-          :disabled="!computedLegacyLoggedIn"
-          size="small"
-          @click="getOrgNumNodes"
-        />
-      </div>
-    </div>
-
-    <div class="sr-request-nodes-section">
-      <h4>Request Nodes</h4>
-      <p>Enter the desired number of nodes and time to live:</p>
-      <SrSliderInput
-        v-model="desiredNodes"
-        label="Desired Nodes"
-        :min="1"
-        :max="maxNodes"
-        :defaultValue="1"
-        :decimalPlaces="0"
-      />
-      <SrSliderInput
-        v-model="ttl"
-        label="Time to Live (minutes)"
-        :min="15"
-        :max="720"
-        :defaultValue="720"
-        :decimalPlaces="0"
-      />
-    </div>
-
-    <div class="sr-dialog-buttons">
-      <Button label="Cancel" severity="secondary" @click="showClusterDialog = false" />
-      <Button
-        label="Submit"
-        :disabled="computedLegacyOrgIsPublic || !computedLegacyLoggedIn"
-        @click="submitDesiredNodes"
-      />
-    </div>
-  </Dialog>
-
   <SrUserUtilsDialog v-model:visible="showUserUtilsDialog" />
   <SrTokenUtilsDialog v-model:visible="showTokenUtilsDialog" />
 </template>
@@ -967,48 +845,6 @@ function hideTooltip() {
   font-size: 0.75rem;
 }
 
-.sr-cluster-info {
-  margin-bottom: 1.5rem;
-}
-
-.sr-cluster-field {
-  display: flex;
-  justify-content: space-between;
-  padding: 0.5rem 0;
-}
-
-.sr-cluster-field label {
-  font-weight: bold;
-}
-
-.sr-refresh-btn {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 1rem;
-}
-
-.sr-request-nodes-section {
-  border-top: 1px solid var(--p-surface-border);
-  padding-top: 1rem;
-  margin-bottom: 1rem;
-}
-
-.sr-request-nodes-section h4 {
-  margin: 0 0 0.5rem 0;
-}
-
-.sr-request-nodes-section p {
-  margin: 0 0 1rem 0;
-  font-size: 0.9rem;
-  color: var(--p-text-muted-color);
-}
-
-.sr-dialog-buttons {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-  margin-top: 1rem;
-}
 .sr-nav-container {
   height: 4rem;
   display: flex;

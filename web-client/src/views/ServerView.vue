@@ -14,20 +14,46 @@ import SrClusterStackStatus from '@/components/SrClusterStackStatus.vue'
 import SrClusterEvents from '@/components/SrClusterEvents.vue'
 import SrReport from '@/components/SrReport.vue'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
+import { useRoute, useRouter } from 'vue-router'
 
 const githubAuthStore = useGitHubAuthStore()
+const route = useRoute()
+const router = useRouter()
 
-// Default tab based on auth: 'report' for members, 'sysconfig' (Connection) for others
-const activeTab = ref(githubAuthStore.canAccessMemberFeatures ? 'report' : 'sysconfig')
+// Valid tab values for validation
+const validTabs = ['report', 'sysconfig', 'deployconfig', 'clusterstatus', 'clusterevents']
+
+// Default tab based on auth: 'report' for owners, 'sysconfig' (Connection) for others
+const activeTab = ref(githubAuthStore.canAccessOwnerFeatures ? 'report' : 'sysconfig')
 
 // Update default tab when auth state becomes known (handles async auth resolution)
 const hasSetInitialTab = ref(false)
 watch(
-  () => githubAuthStore.canAccessMemberFeatures,
-  (canAccess) => {
+  () => githubAuthStore.canAccessOwnerFeatures,
+  (canAccessOwnerFeatures) => {
     if (!hasSetInitialTab.value) {
-      activeTab.value = canAccess ? 'report' : 'sysconfig'
+      activeTab.value = canAccessOwnerFeatures ? 'report' : 'sysconfig'
       hasSetInitialTab.value = true
+    }
+  },
+  { immediate: true }
+)
+
+// Watch for route query parameter to switch tabs (e.g., /server?tab=deployconfig)
+watch(
+  () => route.query.tab,
+  (tab) => {
+    if (typeof tab === 'string' && validTabs.includes(tab)) {
+      // Only switch to owner-only tabs if user has access
+      if (tab === 'report' && !githubAuthStore.canAccessOwnerFeatures) {
+        return
+      }
+      // Only switch to member tabs if user has access
+      const memberTabs = ['deployconfig', 'clusterstatus', 'clusterevents']
+      if (memberTabs.includes(tab) && !githubAuthStore.canAccessMemberFeatures) {
+        return
+      }
+      activeTab.value = tab
     }
   },
   { immediate: true }
@@ -39,8 +65,13 @@ const clusterStatusRef = ref<{ refresh: () => void } | null>(null)
 const clusterEventsRef = ref<{ refresh: () => void } | null>(null)
 const reportRef = ref<{ refresh: () => void } | null>(null)
 
-// Refresh data when switching to certain tabs
+// Refresh data when switching to certain tabs and clear query param
 watch(activeTab, (newTab) => {
+  // Clear the tab query param when tab changes (keeps URL clean)
+  if (route.query.tab) {
+    void router.replace({ path: '/server', query: {} })
+  }
+
   if (newTab === 'deployconfig') {
     deployConfigRef.value?.refresh()
   } else if (newTab === 'clusterstatus') {
@@ -62,6 +93,7 @@ const isMember = computed(() => githubAuthStore.isMember)
 const isOwner = computed(() => githubAuthStore.isOwner)
 const lastError = computed(() => githubAuthStore.lastError)
 const canAccessMemberFeatures = computed(() => githubAuthStore.canAccessMemberFeatures)
+const canAccessOwnerFeatures = computed(() => githubAuthStore.canAccessOwnerFeatures)
 
 // Status severity for the message component
 const statusSeverity = computed(() => {
@@ -106,14 +138,14 @@ const statusMessage = computed(() => {
         <template #content>
           <Tabs v-model:value="activeTab">
             <TabList>
-              <Tab v-if="canAccessMemberFeatures" value="report">Report</Tab>
+              <Tab v-if="canAccessOwnerFeatures" value="report">Report</Tab>
               <Tab value="sysconfig">Connection</Tab>
               <Tab v-if="canAccessMemberFeatures" value="deployconfig">Deploy</Tab>
               <Tab v-if="canAccessMemberFeatures" value="clusterstatus">Status</Tab>
               <Tab v-if="canAccessMemberFeatures" value="clusterevents">Events</Tab>
             </TabList>
             <TabPanels>
-              <TabPanel v-if="canAccessMemberFeatures" value="report">
+              <TabPanel v-if="canAccessOwnerFeatures" value="report">
                 <SrReport ref="reportRef" />
               </TabPanel>
               <TabPanel value="sysconfig">

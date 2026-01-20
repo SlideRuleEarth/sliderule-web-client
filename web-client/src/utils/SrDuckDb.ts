@@ -182,7 +182,12 @@ export class DuckDBClient {
       this._db = await createDb()
       await this._db.open({
         query: {
-          castTimestampToDate: true
+          // Keep timestamps as BigInt nanoseconds instead of converting to JS Date (milliseconds)
+          // This preserves full nanosecond precision for time_ns fields
+          castTimestampToDate: false,
+          // Keep BigInt values as BigInt instead of converting to float64
+          // This prevents precision loss and decimal points in timestamp values
+          castBigIntToDouble: false
         }
       })
 

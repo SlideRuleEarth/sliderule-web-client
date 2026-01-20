@@ -183,6 +183,9 @@ export function buildColumnExpressions(
         return `ST_Y(${escape('geometry')}) AS ${escape(col)}`
       } else if (hasGeometry && geometryInfo?.zCol && col === heightFieldName) {
         return `ST_Z(${escape('geometry')}) AS ${escape(col)}`
+      } else if (col === 'time' || col.includes('time_ns')) {
+        // Extract time columns as nanoseconds (BigInt) to match CSV export format
+        return `epoch_ns(${escape(col)}) AS ${escape(col)}`
       } else {
         return escape(col)
       }

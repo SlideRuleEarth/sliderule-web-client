@@ -107,14 +107,12 @@ export const usePrivacyConsentStore = defineStore('privacyConsent', {
       // Import stores dynamically to avoid circular dependencies
       const { useGitHubAuthStore } = await import('@/stores/githubAuthStore')
       const { useGoogleApiKeyStore } = await import('@/stores/googleApiKeyStore')
-      const { useLegacyJwtStore } = await import('@/stores/SrLegacyJwtStore')
       const { useSysConfigStore } = await import('@/stores/sysConfigStore')
       const { useTourStore } = await import('@/stores/tourStore')
 
       // Clear individual stores
       const githubAuthStore = useGitHubAuthStore()
       const googleApiKeyStore = useGoogleApiKeyStore()
-      const legacyJwtStore = useLegacyJwtStore()
       const sysConfigStore = useSysConfigStore()
       const tourStore = useTourStore()
 
@@ -125,7 +123,6 @@ export const usePrivacyConsentStore = defineStore('privacyConsent', {
       if (googleApiKeyStore.clearApiKey) {
         googleApiKeyStore.clearApiKey()
       }
-      legacyJwtStore.clearAllJwts()
       sysConfigStore.$reset()
       tourStore.resetTour()
 

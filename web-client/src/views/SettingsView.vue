@@ -1,24 +1,16 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import SingleColumnLayout from '@/layouts/SingleColumnLayout.vue'
 import Accordion from 'primevue/accordion'
 import AccordionPanel from 'primevue/accordionpanel'
 import AccordionHeader from 'primevue/accordionheader'
 import AccordionContent from 'primevue/accordioncontent'
 import SrClearCache from '@/components/SrClearCache.vue'
-import SrLegacyProvSys from '@/components/SrLegacyProvSys.vue'
 import SrStorageUsage from '@/components/SrStorageUsage.vue'
 import SrAdvOptPanel from '@/components/SrAdvOptPanel.vue'
 import SrDefaults from '@/components/SrDefaults.vue'
 import SrGoogleApiKeyInput from '@/components/SrGoogleApiKeyInput.vue'
 import SrPrivacySettings from '@/components/SrPrivacySettings.vue'
 import Card from 'primevue/card'
-import { useGitHubAuthStore } from '@/stores/githubAuthStore'
-
-const githubAuthStore = useGitHubAuthStore()
-
-// Hide Legacy Provisioning when user has valid GitHub auth
-const showLegacyProvisioning = computed(() => !githubAuthStore.canAccessMemberFeatures)
 </script>
 
 <template>
@@ -65,14 +57,7 @@ const showLegacyProvisioning = computed(() => !githubAuthStore.canAccessMemberFe
                 </AccordionContent>
               </AccordionPanel>
 
-              <AccordionPanel v-if="showLegacyProvisioning" value="4">
-                <AccordionHeader>Legacy Provisioning</AccordionHeader>
-                <AccordionContent>
-                  <SrLegacyProvSys />
-                </AccordionContent>
-              </AccordionPanel>
-
-              <AccordionPanel value="5">
+              <AccordionPanel value="4">
                 <AccordionHeader>Privacy & Data</AccordionHeader>
                 <AccordionContent>
                   <SrPrivacySettings />

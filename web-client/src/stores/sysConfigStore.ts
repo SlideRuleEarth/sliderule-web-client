@@ -19,6 +19,7 @@ export const useSysConfigStore = defineStore(
     const current_nodes = ref(-1)
     const version = ref('v?.?.?')
     const cluster = ref('unknown')
+    const currentSlideRuleCluster = ref('')
     const canConnectVersion = ref<CanConnectStatus>('unknown')
     const canConnectNodes = ref<CanConnectStatus>('unknown')
 
@@ -36,9 +37,15 @@ export const useSysConfigStore = defineStore(
       if (result.success) {
         version.value = result.version
         cluster.value = result.cluster
+        if (subdomain.value === 'sliderule') {
+          currentSlideRuleCluster.value = result.cluster
+        }
       } else {
         // Explicitly clear stale values on failure to prevent showing old cluster info in red
         version.value = 'v?.?.?'
+        if (subdomain.value === 'sliderule') {
+          currentSlideRuleCluster.value = ''
+        }
         cluster.value = 'unknown'
       }
       return result.success ? result.data : 'Unknown'
@@ -74,6 +81,7 @@ export const useSysConfigStore = defineStore(
       current_nodes,
       version,
       cluster,
+      currentSlideRuleCluster,
       canConnectVersion,
       canConnectNodes,
       resetStatus,
