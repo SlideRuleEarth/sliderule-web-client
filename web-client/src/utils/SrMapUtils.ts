@@ -52,7 +52,7 @@ import { useRecTreeStore } from '@/stores/recTreeStore'
 import { useGlobalChartStore } from '@/stores/globalChartStore'
 import { useAreaThresholdsStore } from '@/stores/areaThresholdsStore'
 import { createLogger } from '@/utils/logger'
-import { formatKeyValuePair } from '@/utils/formatUtils'
+import { formatKeyValuePair, formatTime } from '@/utils/formatUtils'
 import router from '@/router/index.js'
 import {
   type Atl13Coord,
@@ -575,10 +575,18 @@ export function disableTagDisplay(): void {
 }
 
 export function formatElObject(obj: { [key: string]: any }, reqId?: number): string {
-  const html = Object.entries(obj)
-    .filter(([key]) => key !== 'extent_id' && key !== '__rgba')
-    .map(([key, value]) => formatKeyValuePair(key, value, reqId))
-    .join('<br>')
+  // Build entries with time_ns_fmt added after any time_ns fields
+  const entries: Array<[string, any]> = []
+  for (const [key, value] of Object.entries(obj)) {
+    if (key === 'extent_id' || key === '__rgba') continue
+    entries.push([key, value])
+    // Add formatted time field after time_ns fields
+    if (key.includes('time_ns') && (typeof value === 'number' || typeof value === 'bigint')) {
+      const fmtKey = key.replace('time_ns', 'time_ns_fmt')
+      entries.push([fmtKey, formatTime(value)])
+    }
+  }
+  const html = entries.map(([key, value]) => formatKeyValuePair(key, value, reqId)).join('<br>')
   return html
 }
 

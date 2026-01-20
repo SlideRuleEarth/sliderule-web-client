@@ -17,7 +17,7 @@ import { useGradientColorMapStore } from '@/stores/gradientColorMapStore'
 import { useAtl03CnfColorMapStore } from '@/stores/atl03CnfColorMapStore'
 import { useAtl08ClassColorMapStore } from '@/stores/atl08ClassColorMapStore'
 import { useAtl24ClassColorMapStore } from '@/stores/atl24ClassColorMapStore'
-import { formatKeyValuePair } from '@/utils/formatUtils'
+import { formatKeyValuePair, formatTime } from '@/utils/formatUtils'
 import {
   SELECTED_LAYER_NAME_PREFIX,
   type MinMaxLowHigh,
@@ -778,15 +778,23 @@ export function formatTooltip(
   const paramsData = params.data
   const paramsDim = params.dimensionNames as string[]
   const reqId = Number(reqIdStr)
-  let ndx = 0
 
-  const parms = paramsDim
-    .map((dim) => {
-      const val = paramsData[ndx++]
-      filterDataForPos(dim, val, latFieldName, lonFieldName)
-      return formatKeyValuePair(dim, val, reqId)
-    })
-    .join('<br>')
+  // Build HTML with time_ns_fmt added after any time_ns fields
+  const htmlParts: string[] = []
+  for (let i = 0; i < paramsDim.length; i++) {
+    const dim = paramsDim[i]
+    const val = paramsData[i]
+    filterDataForPos(dim, val, latFieldName, lonFieldName)
+    htmlParts.push(formatKeyValuePair(dim, val, reqId))
+    // Add formatted time field after time_ns fields
+    // Check for number, bigint, or numeric string (echarts may convert bigint to string)
+    if (dim.includes('time_ns') && val != null) {
+      const numVal = typeof val === 'bigint' ? val : typeof val === 'number' ? val : BigInt(val)
+      const fmtKey = dim.replace('time_ns', 'time_ns_fmt')
+      htmlParts.push(formatKeyValuePair(fmtKey, formatTime(numVal), reqId))
+    }
+  }
+  const parms = htmlParts.join('<br>')
 
   // Add record ID as the first line
   const htmlWithRecordId = `<strong>Record ID</strong>: <em>${reqIdStr}</em><br>${parms}`
@@ -794,21 +802,33 @@ export function formatTooltip(
   // Convert HTML to plain text for text export
   const srcIdStore = useSrcIdTblStore()
   const sourceTable = srcIdStore.getSourceTableForReqId(reqId)
-  const textContent = paramsDim
-    .map((dim, index) => {
-      const val = paramsData[index]
-      const plainKey = dim === 'srcid' ? 'granule' : dim
-      let plainValue = String(val)
-      if (dim === 'srcid') {
-        if (sourceTable.length - 1 >= val) {
-          plainValue = `${val}: ${sourceTable[val]}`
-        } else {
-          plainValue = `${val}: <unknown source>`
-        }
+  const textParts: string[] = []
+  for (let i = 0; i < paramsDim.length; i++) {
+    const dim = paramsDim[i]
+    const val = paramsData[i]
+    const plainKey = dim === 'srcid' ? 'granule' : dim
+    let plainValue: string
+    if (dim === 'srcid') {
+      if (sourceTable.length - 1 >= val) {
+        plainValue = `${val}: ${sourceTable[val]}`
+      } else {
+        plainValue = `${val}: <unknown source>`
       }
-      return `${plainKey}: ${plainValue}`
-    })
-    .join('\n')
+    } else if (dim.includes('time_ns') && val != null) {
+      // Format time_ns as integer string (no decimal point, matching CSV format)
+      plainValue = typeof val === 'bigint' ? val.toString() : BigInt(val).toString()
+    } else {
+      plainValue = String(val)
+    }
+    textParts.push(`${plainKey}: ${plainValue}`)
+    // Add formatted time field after time_ns fields for text export
+    if (dim.includes('time_ns') && val != null) {
+      const numVal = typeof val === 'bigint' ? val : typeof val === 'number' ? val : BigInt(val)
+      const fmtKey = dim.replace('time_ns', 'time_ns_fmt')
+      textParts.push(`${fmtKey}: ${formatTime(numVal)}`)
+    }
+  }
+  const textContent = textParts.join('\n')
 
   // Add record ID as the first line for text export
   const textWithRecordId = `Record ID: ${reqIdStr}\n${textContent}`

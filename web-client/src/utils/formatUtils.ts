@@ -73,11 +73,23 @@ export function formatKeyValuePair(key: string, value: any, reqId?: number): str
 
   let formattedValue: string | number
   // Check for timestamp fields - can be number (legacy) or bigint (nanoseconds from DuckDB)
-  if (
-    (key === 'time' || key.includes('time_ns')) &&
-    (typeof value === 'number' || typeof value === 'bigint')
-  ) {
-    formattedValue = formatTime(value) // Use the formatTime function for time values
+  // time_ns_fmt fields are already formatted, display as-is
+  // time_ns fields should display raw BigInt value (formatted version goes in time_ns_fmt)
+  // 'time' fields (legacy) still get formatted for backwards compatibility
+  if (key.endsWith('_fmt')) {
+    // Already formatted time string - display as-is
+    formattedValue = String(value)
+  } else if (key === 'time' && (typeof value === 'number' || typeof value === 'bigint')) {
+    // Legacy 'time' field - format as ISO date for backwards compatibility
+    formattedValue = formatTime(value)
+  } else if (key.includes('time_ns') && (typeof value === 'number' || typeof value === 'bigint')) {
+    // time_ns fields - display raw value as integer string (no decimal point, matching CSV format)
+    if (typeof value === 'bigint') {
+      formattedValue = value.toString()
+    } else {
+      // For number type, convert to BigInt to avoid scientific notation and decimals
+      formattedValue = BigInt(Math.round(value)).toString()
+    }
   } else if (key.includes('.time')) {
     //console.log('formatKeyValuePair: key:',key,' value:',value, 'typeof value:',typeof value);
     const gpsdate = new Date(gpsToUnixTimestamp(value) * 1000) // Convert seconds to ms
