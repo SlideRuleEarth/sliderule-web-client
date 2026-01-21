@@ -673,6 +673,32 @@ export class DuckDBClient {
     }
     return colTypes
   }
+
+  // Execute COPY command to write query results to parquet file in DuckDB virtual FS
+  async copyQueryToParquet(sql: string, virtualFileName: string): Promise<void> {
+    const duckDB = await this.duckDB()
+    const conn = await duckDB.connect()
+    try {
+      await conn.query('LOAD spatial;')
+      await duckDB.registerEmptyFileBuffer(virtualFileName)
+      const copyQuery = `COPY (${sql}) TO '${virtualFileName}' (FORMAT PARQUET)`
+      await conn.query(copyQuery)
+    } finally {
+      await conn.close()
+    }
+  }
+
+  // Copy virtual file buffer to Uint8Array
+  async copyFileToBuffer(virtualFileName: string): Promise<Uint8Array> {
+    const duckDB = await this.duckDB()
+    return await duckDB.copyFileToBuffer(virtualFileName)
+  }
+
+  // Drop virtual file after use
+  async dropVirtualFile(virtualFileName: string): Promise<void> {
+    const duckDB = await this.duckDB()
+    await duckDB.dropFile(virtualFileName)
+  }
 }
 
 // Factory function to create a DuckDB client
