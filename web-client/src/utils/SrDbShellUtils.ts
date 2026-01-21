@@ -73,6 +73,20 @@ function getTimestampForFilename(): string {
   return `${year}-${month}-${day}_${hours}-${minutes}-${seconds}`
 }
 
+/**
+ * Format nanoseconds timestamp to human-readable ISO string
+ */
+function formatNanoseconds(ns: bigint | number | string): string {
+  try {
+    const nsValue = typeof ns === 'bigint' ? ns : BigInt(ns)
+    const ms = Number(nsValue / BigInt(1_000_000))
+    const date = new Date(ms)
+    return date.toISOString()
+  } catch {
+    return ''
+  }
+}
+
 export async function streamSqlQueryToCSV(
   duckDbClient: DuckDBClient,
   sql: string,
@@ -89,8 +103,16 @@ export async function streamSqlQueryToCSV(
   const result: QueryResult = await duckDbClient.query(sql)
   const columns = result.schema.map((col) => col.name)
 
-  // Prepare the CSV header
-  let csvContent = columns.join(',') + '\n'
+  // Check if there's a time_ns column to add formatted version
+  const timeNsColIndex = columns.findIndex(
+    (col) => col.toLowerCase() === 'time_ns' || col.toLowerCase() === 'time'
+  )
+  const hasTimeCol = timeNsColIndex !== -1
+  const timeColName = hasTimeCol ? columns[timeNsColIndex] : null
+
+  // Build header with optional time_ns_fmt column
+  const exportColumns = hasTimeCol ? [...columns, 'time_ns_fmt'] : columns
+  let csvContent = exportColumns.join(',') + '\n'
 
   let chunkCount = 0
   for await (const batch of result.readRows()) {
@@ -99,6 +121,14 @@ export async function streamSqlQueryToCSV(
         const cell = row[col] == null ? '' : String(row[col])
         return `"${cell.replace(/"/g, '""')}"`
       })
+
+      // Add formatted time column if time_ns exists
+      if (hasTimeCol && timeColName) {
+        const timeValue = row[timeColName]
+        const formattedTime = timeValue != null ? formatNanoseconds(timeValue) : ''
+        rowData.push(`"${formattedTime}"`)
+      }
+
       csvContent += rowData.join(',') + '\n'
     }
     chunkCount++
