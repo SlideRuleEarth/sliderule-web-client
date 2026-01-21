@@ -50,10 +50,6 @@
             class="sr-run-button"
           >
           </Button>
-          <FloatLabel variant="on">
-            <InputNumber class="sr-limit" v-model="limit" inputId="integeronly" fluid />
-            <label for="integeronly">Limit</label>
-          </FloatLabel>
         </div>
         <div class="sr-query-msg-panel">
           <!-- Error Display -->
@@ -67,7 +63,11 @@
           </p>
         </div>
         <div>
-          <SrExportSelected :reqId="recTreeStore.selectedReqId" :customSql="query" />
+          <SrExportSelected
+            :reqId="recTreeStore.selectedReqId"
+            :resultFile="resultFileName"
+            resultFolder="SqlQueries"
+          />
         </div>
       </div>
     </div>
@@ -105,7 +105,7 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { createDuckDbClient, DuckDBClient } from '@/utils/SrDuckDb'
 import { useRecTreeStore } from '@/stores/recTreeStore'
 import { useChartStore } from '@/stores/chartStore'
-import { runSqlQuery } from '@/utils/SrDbShellUtils'
+import { runSqlQuery, executeSqlQueryToGeoParquet } from '@/utils/SrDbShellUtils'
 import { createWhereClause } from '@/utils/spotUtils'
 
 // PrimeVue Components
@@ -113,8 +113,6 @@ import Button from 'primevue/button'
 import Textarea from 'primevue/textarea'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
-import FloatLabel from 'primevue/floatlabel'
-import InputNumber from 'primevue/inputnumber'
 import { Message } from 'primevue'
 import Tabs from 'primevue/tabs'
 import TabList from 'primevue/tablist'
@@ -200,8 +198,9 @@ const error = ref<string | null>(null)
 const info = ref<string | null>(null)
 const isLoading = ref(false)
 const computedFileLabel = computed(() => `${chartStore.getFile(recTreeStore.selectedReqIdStr)}`)
-const limit = ref(5000)
+const resultFileName = ref<string>('')
 const activeResultTab = ref('0') // '0' = Table, '1' = Plot
+const DISPLAY_LIMIT = 5000 // Max rows to display in table
 
 // Watch for query changes from chartStore (e.g., when Array Column Options change)
 watch(initQuery, (newQuery) => {
@@ -213,14 +212,6 @@ watch(initQuery, (newQuery) => {
   logger.debug('Query updated from chartStore', { newQuery })
 })
 
-const computedLimitClause = computed(() => (limit.value > 0 ? `LIMIT ${limit.value}` : ''))
-const computedStartingInfoText = computed(() => {
-  if (limit.value > 0) {
-    return `running query adding ${computedLimitClause.value} ...`
-  } else {
-    return 'running query ...'
-  }
-})
 const runLabel = computed(() => {
   return isLoading.value ? 'Running...' : 'Run Sql Query'
 })
@@ -237,8 +228,7 @@ onMounted(async () => {
       'You can query the table with any valid SQL statement'
     )
     logger.debug('onMounted: DuckDB client initialized')
-    info.value =
-      'Enter a SQL query and click "Run Sql Query"\nIf it "Snaps" reload the page and narrow the query and/or use LIMIT'
+    info.value = 'Enter a SQL query and click "Run Sql Query"'
   } catch (err: any) {
     error.value = `Failed to initialize DuckDB: ${err?.message ?? err}`
     logger.error('Failed to initialize DuckDB', {
@@ -255,28 +245,45 @@ async function executeQuery() {
   }
   isLoading.value = true
   error.value = ''
-  info.value = computedStartingInfoText.value
+  info.value = 'Executing query and writing to GeoParquet...'
   rows.value = []
   columns.value = []
-  const finalQuery = `${query.value} ${computedLimitClause.value}`
+  resultFileName.value = ''
+
   try {
-    // Ensure the parquet file is registered with DuckDB before querying
-    const fileName = chartStore.getFile(recTreeStore.selectedReqIdStr)
-    if (fileName) {
-      await duckDbClient.insertOpfsParquet(fileName)
+    // Ensure the source parquet file is registered with DuckDB before querying
+    const sourceFileName = chartStore.getFile(recTreeStore.selectedReqIdStr)
+    if (sourceFileName) {
+      await duckDbClient.insertOpfsParquet(sourceFileName)
     }
-    const result = await runSqlQuery(duckDbClient, finalQuery)
-    rows.value = result.rows
-    columns.value = result.columns
-    if (result.chunkCount === 0) {
+
+    // Execute query and write to GeoParquet file
+    const result = await executeSqlQueryToGeoParquet(
+      duckDbClient,
+      query.value,
+      recTreeStore.selectedReqId
+    )
+    resultFileName.value = result.fileName
+
+    // Load results for display (sample if > DISPLAY_LIMIT rows)
+    const displayLimit = result.rowCount > DISPLAY_LIMIT ? DISPLAY_LIMIT : result.rowCount
+    const displayQuery = `SELECT * FROM "${result.fileName}" LIMIT ${displayLimit}`
+    const displayResult = await runSqlQuery(duckDbClient, displayQuery)
+    rows.value = displayResult.rows
+    columns.value = displayResult.columns
+
+    if (result.rowCount === 0) {
       error.value = 'No results found'
+    } else if (result.rowCount > DISPLAY_LIMIT) {
+      info.value = `Query complete: ${result.rowCount} rows saved to ${result.fileName} (showing first ${DISPLAY_LIMIT})`
+    } else {
+      info.value = `Query complete: ${result.rowCount} rows saved to ${result.fileName}`
     }
   } catch (err: any) {
     error.value = `Query error: ${err?.message ?? err}`
     logger.error('Query error', { error: err instanceof Error ? err.message : String(err) })
   } finally {
     isLoading.value = false
-    info.value = `There are ${rows.value.length} rows in the result`
   }
 }
 </script>
@@ -392,10 +399,6 @@ async function executeQuery() {
   border-radius: 0.5rem;
   padding: 0.5rem;
   margin-bottom: 0.25rem;
-}
-.sr-limit {
-  width: fit-content;
-  min-width: 4.25rem;
 }
 .sr-error {
   color: red;
