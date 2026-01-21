@@ -147,11 +147,34 @@ export async function streamSqlQueryToCSV(
 
   URL.revokeObjectURL(url)
 
+  // Also download the SQL query as a .sql file
+  downloadSqlFile(sql, exportFilename)
+
   const endTime = performance.now()
   logger.debug('Exported chunks', {
     chunkCount,
     duration: ((endTime - startTime) / 1000).toFixed(2)
   })
+}
+
+/**
+ * Download SQL query as a .sql text file
+ */
+export function downloadSqlFile(sql: string, baseFilename: string): void {
+  const sqlFilename = baseFilename.replace(/\.(csv|parquet)$/i, '.sql')
+  const blob = new Blob([sql], { type: 'text/plain;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+
+  const link = document.createElement('a')
+  link.href = url
+  link.setAttribute('download', sqlFilename)
+  link.style.visibility = 'hidden'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+
+  URL.revokeObjectURL(url)
+  logger.debug('Downloaded SQL file', { sqlFilename })
 }
 
 /**

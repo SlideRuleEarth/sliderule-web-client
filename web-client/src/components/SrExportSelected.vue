@@ -27,7 +27,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { createDuckDbClient, DuckDBClient } from '@/utils/SrDuckDb'
-import { streamSqlQueryToCSV } from '@/utils/SrDbShellUtils'
+import { streamSqlQueryToCSV, downloadSqlFile } from '@/utils/SrDbShellUtils'
 import { useChartStore } from '@/stores/chartStore'
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue'
 import Button from 'primevue/button'
@@ -91,22 +91,23 @@ async function downloadOpfsFile(folder: string, fileName: string): Promise<void>
 }
 
 async function exportButtonClick() {
+  // Get the SQL statement for exporting as .sql file
+  const sqlStmnt = props.customSql || chartStore.getQuerySql(props.reqId.toString())
+
   if (selectedFormat.value === 'geoparquet' && props.resultFile) {
     // Direct GeoParquet file download from OPFS
     await downloadOpfsFile(props.resultFolder!, props.resultFile)
+    // Also download the SQL query as a .sql file
+    if (sqlStmnt) {
+      downloadSqlFile(sqlStmnt, props.resultFile)
+    }
   } else {
     // CSV export via streaming
-    duckDbClient = await createDuckDbClient()
-    let sqlStmnt = ''
-    if (props.customSql) {
-      sqlStmnt = props.customSql
-    } else {
-      sqlStmnt = chartStore.getQuerySql(props.reqId.toString())
-    }
     if (!sqlStmnt) {
       logger.error('No SQL statement found for the selected request ID', { reqId: props.reqId })
       return
     }
+    duckDbClient = await createDuckDbClient()
     void streamSqlQueryToCSV(duckDbClient, sqlStmnt, props.reqId)
   }
 }
