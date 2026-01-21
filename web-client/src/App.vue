@@ -395,6 +395,7 @@ async function handleLongTourButtonClick() {
   const srDocsButton = document.querySelector('#sr-docs-button')
   const srSettingsButton = document.querySelector('#sr-settings-button')
   const srAboutButton = document.querySelector('#sr-about-button')
+  const srLoginButton = document.querySelector('#sr-login-button')
 
   // 👉 Append additional steps here
 
@@ -474,6 +475,18 @@ async function handleLongTourButtonClick() {
     })
   } else {
     logger.warn('Tour element not found', { element: 'srAboutButton' })
+  }
+
+  if (srLoginButton instanceof HTMLElement) {
+    steps.push({
+      element: srLoginButton,
+      intro: `This is the <b>GitHub Login</b> button.<br>
+            Click here to log in with your GitHub account.<br>
+            Logging in gives you access to slideruleearth.io member features such as deploying private clusters and managing tokens.<br>
+            `
+    })
+  } else {
+    logger.warn('Tour element not found', { element: 'srLoginButton' })
   }
 
   if (srReqDisplayBtn instanceof HTMLElement) {
