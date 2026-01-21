@@ -171,7 +171,7 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
       const loginUrl = new URL(`https://login.slideruleearth.io/auth/github/login`)
       loginUrl.searchParams.set('state', state)
       // Pass the frontend callback URL so Lambda knows where to redirect back
-      loginUrl.searchParams.set('redirect_uri', window.location.origin)
+      loginUrl.searchParams.set('redirect_uri', window.location.origin + '/auth/github/callback')
 
       logger.debug('Initiating GitHub OAuth', { loginUrl: loginUrl.toString() })
 
