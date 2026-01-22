@@ -161,6 +161,8 @@ export function buildColumnExpressions(
     escape: (_col: string) => string
     /** Columns to exclude from output (e.g., derived array columns) */
     excludeColumns?: string[]
+    /** Optional function to get column type - used to skip epoch_ns for array types */
+    getType?: (_col: string) => string
   }
 ): string[] {
   const {
@@ -170,7 +172,8 @@ export function buildColumnExpressions(
     lonFieldName,
     heightFieldName,
     escape,
-    excludeColumns = []
+    excludeColumns = [],
+    getType
   } = options
 
   return columns
@@ -185,7 +188,13 @@ export function buildColumnExpressions(
         return `ST_Z(${escape('geometry')}) AS ${escape(col)}`
       } else if (col === 'time' || col.includes('time_ns')) {
         // Extract time columns as nanoseconds (BigInt) to match CSV export format
-        return `epoch_ns(${escape(col)}) AS ${escape(col)}`
+        // Only apply epoch_ns to scalar timestamps, not arrays (e.g., TIMESTAMP_NS[])
+        const colType = getType?.(col) ?? ''
+        const isArrayType = colType.includes('[]') || colType.toUpperCase().includes('LIST')
+        if (!isArrayType) {
+          return `epoch_ns(${escape(col)}) AS ${escape(col)}`
+        }
+        return escape(col)
       } else {
         return escape(col)
       }

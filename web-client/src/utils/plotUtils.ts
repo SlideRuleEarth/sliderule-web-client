@@ -2333,7 +2333,8 @@ export async function buildSelectClauseFromStore(reqIdStr: string): Promise<stri
     latFieldName,
     lonFieldName,
     heightFieldName,
-    escape: duckDbClient.escape
+    escape: duckDbClient.escape,
+    getType: (col) => colTypes.find((c) => c.name === col)?.type ?? ''
   })
 
   const columnsStr = columnExpressions.join(', ')

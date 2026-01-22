@@ -826,7 +826,9 @@ export const duckDbReadAndUpdateElevationData = async (
           })
           .map((c) => {
             // Extract time columns as nanoseconds (BigInt) to match CSV export format
-            if (c.name === 'time' || c.name.includes('time_ns')) {
+            // Only apply epoch_ns to scalar timestamps, not arrays (e.g., TIMESTAMP_NS[])
+            const isArrayType = c.type.includes('[]') || c.type.toUpperCase().includes('LIST')
+            if ((c.name === 'time' || c.name.includes('time_ns')) && !isArrayType) {
               return `epoch_ns(${duckDbClient.escape(c.name)}) AS ${duckDbClient.escape(c.name)}`
             }
             return duckDbClient.escape(c.name)
@@ -851,7 +853,9 @@ export const duckDbReadAndUpdateElevationData = async (
       } else {
         // No geometry - build column list to properly handle time columns with epoch_ns
         const allCols = colTypes.map((c) => {
-          if (c.name === 'time' || c.name.includes('time_ns')) {
+          // Only apply epoch_ns to scalar timestamps, not arrays (e.g., TIMESTAMP_NS[])
+          const isArrayType = c.type.includes('[]') || c.type.toUpperCase().includes('LIST')
+          if ((c.name === 'time' || c.name.includes('time_ns')) && !isArrayType) {
             return `epoch_ns(${duckDbClient.escape(c.name)}) AS ${duckDbClient.escape(c.name)}`
           }
           return duckDbClient.escape(c.name)
@@ -1065,7 +1069,9 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, layerName
         })
         .map((c) => {
           // Extract time columns as nanoseconds (BigInt) to match CSV export format
-          if (c.name === 'time' || c.name.includes('time_ns')) {
+          // Only apply epoch_ns to scalar timestamps, not arrays (e.g., TIMESTAMP_NS[])
+          const isArrayType = c.type.includes('[]') || c.type.toUpperCase().includes('LIST')
+          if ((c.name === 'time' || c.name.includes('time_ns')) && !isArrayType) {
             return `epoch_ns(${duckDbClient.escape(c.name)}) AS ${duckDbClient.escape(c.name)}`
           }
           return duckDbClient.escape(c.name)
@@ -1090,7 +1096,9 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, layerName
     } else {
       // No geometry - build column list to properly handle time columns with epoch_ns
       const allCols = colTypes.map((c) => {
-        if (c.name === 'time' || c.name.includes('time_ns')) {
+        // Only apply epoch_ns to scalar timestamps, not arrays (e.g., TIMESTAMP_NS[])
+        const isArrayType = c.type.includes('[]') || c.type.toUpperCase().includes('LIST')
+        if ((c.name === 'time' || c.name.includes('time_ns')) && !isArrayType) {
           return `epoch_ns(${duckDbClient.escape(c.name)}) AS ${duckDbClient.escape(c.name)}`
         }
         return duckDbClient.escape(c.name)
@@ -1770,16 +1778,14 @@ export async function fetchScatterData(
     let arrayColumnToFilter: string | null = null
     if (arrayColumnConfig && arrayColumnConfig.mode !== 'none') {
       const { columnName, mode, aggregations = [] } = arrayColumnConfig
-      if (mode === 'flatten') {
-        // Flatten mode: the array column can't use APPROX_QUANTILE directly,
-        // so we need to filter it out and handle it specially
-        arrayColumnToFilter = columnName
-      } else if (mode === 'aggregate' && aggregations.length > 0) {
+      // Array columns can't use APPROX_QUANTILE directly, so filter them out in both modes
+      arrayColumnToFilter = columnName
+      if (mode === 'aggregate' && aggregations.length > 0) {
         derivedArrayColumnNames = aggregations.map((agg) => `${columnName}_${agg}`)
       }
     }
 
-    // Filter derived columns AND array columns (for flatten mode) from allAggCols for the min/max query
+    // Filter derived columns AND array columns from allAggCols for the min/max query
     const allAggCols = [x, ...y, ...extraSelectColumns].filter(
       (col) => !derivedArrayColumnNames.includes(col) && col !== arrayColumnToFilter
     )
@@ -1992,7 +1998,8 @@ export async function fetchScatterData(
       lonFieldName: lon_fieldname,
       heightFieldName: height_fieldname,
       escape: duckDbClient.escape,
-      excludeColumns: columnsToExclude
+      excludeColumns: columnsToExclude,
+      getType: (col) => colTypes.find((c) => c.name === col)?.type ?? ''
     })
 
     // Handle array column processing - build SELECT clauses for the main query

@@ -287,7 +287,9 @@ export async function loadAndCachePointCloudData(reqId: number) {
         })
         .map((c) => {
           // Extract time columns as nanoseconds (BigInt) to match CSV export format
-          if (c.name === 'time' || c.name.includes('time_ns')) {
+          // Only apply epoch_ns to scalar timestamps, not arrays (e.g., TIMESTAMP_NS[])
+          const isArrayType = c.type.includes('[]') || c.type.toUpperCase().includes('LIST')
+          if ((c.name === 'time' || c.name.includes('time_ns')) && !isArrayType) {
             return `epoch_ns(${duckDbClient.escape(c.name)}) AS ${duckDbClient.escape(c.name)}`
           }
           return duckDbClient.escape(c.name)
@@ -312,7 +314,9 @@ export async function loadAndCachePointCloudData(reqId: number) {
     } else {
       // No geometry - build column list to properly handle time columns with epoch_ns
       const allCols = colTypes.map((c) => {
-        if (c.name === 'time' || c.name.includes('time_ns')) {
+        // Only apply epoch_ns to scalar timestamps, not arrays (e.g., TIMESTAMP_NS[])
+        const isArrayType = c.type.includes('[]') || c.type.toUpperCase().includes('LIST')
+        if ((c.name === 'time' || c.name.includes('time_ns')) && !isArrayType) {
           return `epoch_ns(${duckDbClient.escape(c.name)}) AS ${duckDbClient.escape(c.name)}`
         }
         return duckDbClient.escape(c.name)
