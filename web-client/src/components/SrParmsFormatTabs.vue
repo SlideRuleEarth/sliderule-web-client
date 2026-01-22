@@ -59,7 +59,13 @@ const parsedRcvdParms = computed(() => {
     if (typeof props.rcvdParms === 'object' && Object.keys(props.rcvdParms).length === 0) {
       return null
     }
-    return typeof props.rcvdParms === 'string' ? JSON.parse(props.rcvdParms) : props.rcvdParms
+    const parsed =
+      typeof props.rcvdParms === 'string' ? JSON.parse(props.rcvdParms) : props.rcvdParms
+    // Extract inner parms if wrapped (same as sentParms handling)
+    if (parsed?.parms && typeof parsed.parms === 'object' && !Array.isArray(parsed.parms)) {
+      return parsed.parms
+    }
+    return parsed
   } catch (error) {
     logger.warn('Failed to parse rcvdParms data', {
       error: error instanceof Error ? error.message : String(error)
@@ -83,7 +89,7 @@ const parsedSentParms = computed(() => {
     const parsed =
       typeof props.sentParms === 'string' ? JSON.parse(props.sentParms) : props.sentParms
     // Extract inner parms if wrapped
-    if (parsed?.parms && typeof parsed.parms === 'object') {
+    if (parsed?.parms && typeof parsed.parms === 'object' && !Array.isArray(parsed.parms)) {
       return parsed.parms
     }
     return parsed
