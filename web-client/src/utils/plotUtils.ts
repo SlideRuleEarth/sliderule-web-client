@@ -1198,21 +1198,15 @@ export async function getScatterOptions(req_id: number): Promise<any> {
         yAxisMax: Math.max(...seriesData.map((s) => s.max).filter((m): m is number => m !== null))
       })
       options = {
+        // Disable hover layer to prevent progressive rendering conflicts when hovering over toolbox
+        // Without this, hovering over dataZoom controls causes partial chart disappearance with large datasets
+        hoverLayerThreshold: 0,
         title: {
           text: globalChartStore.titleOfElevationPlot,
           left: 'center'
         },
         toolbox: {
-          show: true,
-          orient: 'vertical',
-          left: 0,
-          top: 50,
-          feature: {
-            saveAsImage: {},
-            restore: {},
-            dataZoom: {},
-            dataView: { readOnly: true }
-          }
+          show: false // Temporarily hidden - causes rendering issues with large datasets
         },
         tooltip: {
           show: globalChartStore.showPlotTooltip,

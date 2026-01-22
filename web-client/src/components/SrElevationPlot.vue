@@ -53,6 +53,7 @@ import ProgressSpinner from 'primevue/progressspinner'
 import Panel from 'primevue/panel'
 import { useFieldNameStore } from '@/stores/fieldNameStore'
 import Checkbox from 'primevue/checkbox'
+import Button from 'primevue/button'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('SrElevationPlot')
@@ -465,6 +466,46 @@ function handleSaveTooltip() {
   closeContextMenu()
 }
 
+// Custom toolbar handlers (replacing ECharts toolbox which causes rendering issues with large datasets)
+function saveChartAsImage() {
+  if (!plotRef.value?.chart) {
+    logger.warn('Cannot save chart: chart instance not available')
+    return
+  }
+  try {
+    const dataUrl = plotRef.value.chart.getDataURL({
+      type: 'png',
+      pixelRatio: 2,
+      backgroundColor: '#1e1e1e'
+    })
+    const link = document.createElement('a')
+    link.download = `elevation-plot-${Date.now()}.png`
+    link.href = dataUrl
+    link.click()
+    logger.debug('Chart saved as image')
+  } catch (error) {
+    logger.error('Error saving chart as image', { error })
+  }
+}
+
+async function resetChartZoom() {
+  if (!plotRef.value?.chart) {
+    logger.warn('Cannot reset zoom: chart instance not available')
+    return
+  }
+  try {
+    logger.debug('Resetting chart zoom')
+    atlChartFilterStore.resetZoom()
+    dialogsInitialized.value = false
+    await initPlot()
+    if (chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length > 0) {
+      await callPlotUpdateDebounced('from resetChartZoom')
+    }
+  } catch (error) {
+    logger.error('Error resetting chart zoom', { error })
+  }
+}
+
 // Normalize the currently selected reqId ('' when not ready yet)
 const selectedReqIdStr = computed(() => {
   const id = recTreeStore.selectedReqId
@@ -565,6 +606,11 @@ watch(
 
       // Update location finder on mouseover (works even when tooltip is disabled)
       chartInstance.on('mouseover', (params: any) => {
+        // Only process mouseover events for actual scatter data points
+        // Ignore events from toolbox, legend, or other UI components to prevent
+        // rendering issues with large datasets using progressive rendering
+        if (params?.componentType !== 'series') return
+
         const latFieldName = fieldNameStore.getLatFieldName(recTreeStore.selectedReqId)
         const lonFieldName = fieldNameStore.getLonFieldName(recTreeStore.selectedReqId)
         updateLocationFinderFromEvent(params, latFieldName, lonFieldName)
@@ -774,6 +820,35 @@ watch(
           }"
           @finished="handleChartFinished"
         />
+        <!-- Custom toolbar (replaces ECharts toolbox which causes rendering issues with large datasets) -->
+        <div class="sr-chart-toolbar">
+          <div
+            @mouseover="tooltipRef.showTooltip($event, 'Save as Image')"
+            @mouseleave="tooltipRef.hideTooltip()"
+          >
+            <Button
+              icon="pi pi-download"
+              severity="secondary"
+              text
+              rounded
+              aria-label="Save as Image"
+              @click="saveChartAsImage"
+            />
+          </div>
+          <div
+            @mouseover="tooltipRef.showTooltip($event, 'Reset Zoom')"
+            @mouseleave="tooltipRef.hideTooltip()"
+          >
+            <Button
+              icon="pi pi-refresh"
+              severity="secondary"
+              text
+              rounded
+              aria-label="Reset Zoom"
+              @click="resetChartZoom"
+            />
+          </div>
+        </div>
         <!-- Custom context menu for tooltip -->
         <div
           v-if="showContextMenu"
@@ -1023,6 +1098,31 @@ watch(
   height: 60vh; /* or whatever size you want */
   margin: 0.25rem;
   padding: 0.25rem;
+}
+
+/* Custom toolbar replacing ECharts toolbox (which causes rendering issues with large datasets) */
+.sr-chart-toolbar {
+  position: absolute;
+  left: 0.25rem;
+  top: 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  z-index: 10;
+  background-color: rgba(30, 30, 30, 0.7);
+  border-radius: 0.25rem;
+  padding: 0.25rem;
+}
+
+.sr-chart-toolbar :deep(.p-button) {
+  width: 2rem;
+  height: 2rem;
+  color: #aaa;
+}
+
+.sr-chart-toolbar :deep(.p-button:hover) {
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 :deep(.p-dialog-mask .p-dialog.p-component.sr-floating-dialog) {
