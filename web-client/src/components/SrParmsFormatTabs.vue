@@ -104,14 +104,34 @@ const parsedData = computed(() => {
   return parsedSentParms.value
 })
 
+// Fields that should be objects but server may return as empty arrays
+const OBJECT_FIELDS = ['fit', 'phoreal', 'atl24', 'atl13', 'yapc', 'output', 'cmr']
+
+// Normalize server response: convert empty arrays to empty objects for known object fields
+function normalizeServerParams(data: any): any {
+  if (!data || typeof data !== 'object') return data
+  const result = { ...data }
+  for (const field of OBJECT_FIELDS) {
+    if (Array.isArray(result[field]) && result[field].length === 0) {
+      result[field] = {}
+    }
+  }
+  return result
+}
+
 // Extract inner data (remove 'parms' wrapper if present) for JSON/Python Snippet/Lua tabs
+// In 'sending' mode, preserve the wrapper for consistency with the editable request format
 const innerData = computed(() => {
   if (!parsedData.value) return null
+  // In sending mode, preserve the full structure including parms wrapper
+  if (props.mode === 'sending') {
+    return normalizeServerParams(parsedData.value)
+  }
   // If the data has a 'parms' key, extract just that level
   if (parsedData.value.parms && typeof parsedData.value.parms === 'object') {
-    return parsedData.value.parms
+    return normalizeServerParams(parsedData.value.parms)
   }
-  return parsedData.value
+  return normalizeServerParams(parsedData.value)
 })
 
 // JSON format (uses innerData - without parms wrapper)
@@ -363,7 +383,8 @@ const hasDiff = computed(() => {
 
 const diffEntries = computed((): DiffEntry[] => {
   if (!parsedSentParms.value || !parsedRcvdParms.value) return []
-  return computeDiff(parsedSentParms.value, innerData.value)
+  // Normalize both sides to ensure consistent comparison (e.g., [] vs {} for object fields)
+  return computeDiff(normalizeServerParams(parsedSentParms.value), innerData.value)
 })
 
 function formatValue(val: any): string {

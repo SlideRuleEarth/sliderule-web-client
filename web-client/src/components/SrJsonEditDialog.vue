@@ -258,7 +258,7 @@ watch(computedShowParamsDialog, (newVal) => {
 })
 
 function updateEditableJsonFromStore() {
-  currentReqObj.value = reqParamsStore.getAtlxxReqParams(0)
+  currentReqObj.value = reqParamsStore.getAtlxxReqParams(0).parms
   editableReqJson.value = JSON.stringify(currentReqObj.value, null, 2)
   validateJson()
 }
@@ -275,7 +275,7 @@ const importToStore = () => {
     //const parsed = JSON.parse(editableReqJson.value);
     logger.debug('Importing JSON to store', { parsedEditableReqJson: parsedEditableReqJson.value })
     importRequestJsonToStore(parsedEditableReqJson.value, showToast) // assumes parsed object fits expected input
-    currentReqObj.value = reqParamsStore.getAtlxxReqParams(0)
+    currentReqObj.value = reqParamsStore.getAtlxxReqParams(0).parms
     logger.debug('Request imported to store', { currentReqObj: currentReqObj.value })
   } catch (err) {
     logger.error('Import failed - Invalid JSON', {
@@ -290,7 +290,7 @@ function handleParamsAccessed(index: number) {
   logger.debug('Params accessed at index (pre-flush)', { index })
   void nextTick(() => {
     logger.debug('Params accessed at index (post-flush)', { index })
-    currentReqObj.value = reqParamsStore.getAtlxxReqParams(index)
+    currentReqObj.value = reqParamsStore.getAtlxxReqParams(index).parms
   })
 }
 
