@@ -15,11 +15,13 @@ export const missionItems = ['ICESat-2', 'GEDI']
 export const iceSat2APIsItems = [
   'atl06p',
   'atl06sp',
+  'atl06x',
   'atl03x',
   'atl03x-surface',
   'atl03x-phoreal',
   'atl03vp',
   'atl08p',
+  'atl08x',
   'atl24x',
   'atl13x'
 ]

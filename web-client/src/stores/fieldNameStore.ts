@@ -16,6 +16,7 @@ function getHFieldNameForAPIStr(funcStr: string): string {
   switch (funcStr) {
     case 'atl06':
     case 'atl06p':
+    case 'atl06x':
       return 'h_mean'
     case 'atl06s':
     case 'atl06sp':
@@ -33,6 +34,7 @@ function getHFieldNameForAPIStr(funcStr: string): string {
       return 'height'
     case 'atl08':
     case 'atl08p':
+    case 'atl08x':
       return 'h_mean_canopy'
     case 'atl24x':
       return 'ortho_h'
@@ -92,6 +94,7 @@ function getDefaultElOptions(reqId: number, funcStr?: string): string[] {
   switch (funcStr) {
     case 'atl06':
     case 'atl06p':
+    case 'atl06x':
     case 'atl03x-surface':
       options = [
         'h_mean',
@@ -122,6 +125,7 @@ function getDefaultElOptions(reqId: number, funcStr?: string): string[] {
       break
     case 'atl08':
     case 'atl08p':
+    case 'atl08x':
     case 'atl03x-phoreal':
       options = [
         'h_mean_canopy',
