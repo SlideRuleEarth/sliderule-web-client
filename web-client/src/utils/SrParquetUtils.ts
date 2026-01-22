@@ -576,6 +576,14 @@ export async function exportCsvStreamed(fileName: string, headerCols: Ref<string
   const duck = await createDuckDbClient()
   await duck.insertOpfsParquet(fileName)
 
+  // Query column types to detect array types (e.g., TIMESTAMP_NS[])
+  const colTypes = await duck.queryColumnTypes(fileName)
+  const getColType = (col: string) => colTypes.find((c) => c.name === col)?.type ?? ''
+  const isArrayType = (col: string) => {
+    const colType = getColType(col)
+    return colType.includes('[]') || colType.toUpperCase().includes('LIST')
+  }
+
   let columns = headerCols.value
   let geometryColumn: string | null = null
   let selectCols: string[] = []
@@ -611,7 +619,8 @@ export async function exportCsvStreamed(fileName: string, headerCols: Ref<string
       .map((col) => {
         // Track time columns for formatting
         // Use epoch_ns() to extract nanoseconds as BIGINT (avoids float64 conversion)
-        if (col === 'time' || col.includes('time_ns')) {
+        // Only apply epoch_ns to scalar timestamps, not arrays (e.g., TIMESTAMP_NS[])
+        if ((col === 'time' || col.includes('time_ns')) && !isArrayType(col)) {
           timeColumns.push(col)
           return `epoch_ns(${duck.escape(col)}) AS ${duck.escape(col)}`
         }
@@ -639,7 +648,8 @@ export async function exportCsvStreamed(fileName: string, headerCols: Ref<string
     selectCols = headerCols.value.map((col) => {
       // Track time columns for formatting
       // Use epoch_ns() to extract nanoseconds as BIGINT (avoids float64 conversion)
-      if (col === 'time' || col.includes('time_ns')) {
+      // Only apply epoch_ns to scalar timestamps, not arrays (e.g., TIMESTAMP_NS[])
+      if ((col === 'time' || col.includes('time_ns')) && !isArrayType(col)) {
         timeColumns.push(col)
         return `epoch_ns(${duck.escape(col)}) AS ${duck.escape(col)}`
       }
