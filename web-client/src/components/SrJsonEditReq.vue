@@ -14,7 +14,7 @@
     ></Button>
     <SrJsonEditDialog
       v-model="reqParamsStore.showParamsDialog"
-      :zodSchema="ICESat2RequestSchema"
+      :zodSchema="ICESat2ParamsSchema"
       width="80vw"
     />
   </div>
@@ -26,7 +26,7 @@ import { useReqParamsStore } from '@/stores/reqParamsStore'
 import SrJsonEditDialog from './SrJsonEditDialog.vue'
 import SrCustomTooltip from './SrCustomTooltip.vue'
 import Button from 'primevue/button'
-import { ICESat2RequestSchema } from '@/zod/ICESat2Schemas'
+import { ICESat2ParamsSchema } from '@/zod/ICESat2Schemas'
 
 // Props
 const props = defineProps({

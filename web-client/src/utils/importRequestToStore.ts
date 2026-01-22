@@ -1,5 +1,5 @@
 // src/utils/importRequestToStore.ts
-import { ICESat2RequestSchema } from '@/zod/ICESat2Schemas'
+import { ICESat2ParamsSchema } from '@/zod/ICESat2Schemas'
 import { useReqParamsStore } from '@/stores/reqParamsStore'
 import { useRasterParamsStore } from '@/stores/rasterParamsStore'
 import { applyParsedJsonToStores } from '@/utils/applyParsedJsonToStores'
@@ -231,7 +231,7 @@ export function importRequestJsonToStore(
     }
   }
 
-  const result = ICESat2RequestSchema.safeParse(json)
+  const result = ICESat2ParamsSchema.safeParse(json)
   logger.debug('Zod validation', { json, result })
 
   if (!result.success) {
@@ -248,7 +248,7 @@ export function importRequestJsonToStore(
     return { success: false, errors: flattenIssueObject(userFacingIssues) }
   }
 
-  const data = result.data.parms
+  const data = result.data
   applyParsedJsonToStores(data, store, rasterStore, addError)
 
   // After importing, apply API-specific cleanup logic and warn about mismatches
