@@ -2000,6 +2000,15 @@ watch(
   border-radius: var(--p-border-radius);
 }
 
+/* Scale up control buttons on touch devices to match OpenLayers zoom buttons */
+:deep(.ol-touch .sr-draw-control),
+:deep(.ol-touch .sr-rasterize-control),
+:deep(.ol-touch .sr-upload-region-control),
+:deep(.ol-touch .sr-export-polygon-control),
+:deep(.ol-touch .ol-geocoder .gcd-gl-btn) {
+  font-size: 1.5em;
+}
+
 :deep(.sr-drop-pin-control) {
   top: 20rem;
   left: 0.5rem;
