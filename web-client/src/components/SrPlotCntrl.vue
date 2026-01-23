@@ -79,6 +79,7 @@
               placeholder="Symbol Color"
               :id="computedSolidColorId"
               size="small"
+              @change="handleSolidColorChanged"
             >
             </Select>
             <div
@@ -364,7 +365,7 @@ const handleColorEncodeSelectionChange = async (event: SelectChangeEvent) => {
       severity: 'info',
       summary: `Using ${newValue} MinMax of entire Record`,
       detail: `the Plot Config is now set to use legend with Min Max of ${newValue} using the entire Record`,
-      life: 5000
+      life: 20000
     })
   } else {
     if (newValue !== 'solid') {
@@ -373,7 +374,7 @@ const handleColorEncodeSelectionChange = async (event: SelectChangeEvent) => {
         severity: 'info',
         summary: `Using ${newValue} MinMax of selected Track`,
         detail: `the Plot Config is now set to use legend with Min Max of ${newValue} using only the selected track`,
-        life: 5000
+        life: 20000
       })
     }
   }
@@ -405,6 +406,11 @@ const handleAtl24ClassColorChanged = async () => {
   logger.debug('handleAtl24ClassColorChanged')
   atl24ClassColorMapStore.value?.resetAtl24ClassColorCaches()
   await callPlotUpdateDebounced('from handleAtl24ClassColorChanged')
+}
+
+const handleSolidColorChanged = async () => {
+  logger.debug('handleSolidColorChanged')
+  await callPlotUpdateDebounced('from handleSolidColorChanged')
 }
 </script>
 

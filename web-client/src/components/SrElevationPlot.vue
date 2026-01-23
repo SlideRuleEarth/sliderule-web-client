@@ -1486,18 +1486,15 @@ watch(
         <div class="sr-multiselect-col">
           <SrPlotCntrl v-if="reqId > 0 && !isAtl24WithPhotonCloud" :reqId="reqId" />
         </div>
-        <div
-          class="sr-multiselect-col"
-          v-if="atlChartFilterStore.selectedOverlayedReqIds.length > 0"
-        >
+        <div class="sr-multiselect-col">
+          <!-- Show overlay controls when photon cloud is active -->
           <div
             v-for="overlayedReqId in atlChartFilterStore.selectedOverlayedReqIds"
             :key="overlayedReqId"
           >
             <SrPlotCntrl :reqId="overlayedReqId" :isOverlay="true" />
           </div>
-        </div>
-        <div class="sr-multiselect-col-req">
+          <!-- Show photon cloud params button when no overlay is active -->
           <SrReqDisplay
             v-if="
               mission === 'ICESat-2' &&
@@ -1779,24 +1776,16 @@ watch(
 }
 
 .sr-multiselect-col {
-  flex: 1 1 45%; /* Allow columns to take up 45% of the container width */
-  min-width: 10rem; /* 300px equivalent */
-  max-width: 16rem; /* 500px equivalent */
+  flex: 0 0 auto; /* Don't grow or shrink, size based on content */
+  min-width: 14rem;
+  max-width: 20rem;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  align-items: stretch; /* Stretch items to match the width */
+  align-items: stretch;
   margin: 0.25rem;
 }
 
-.sr-multiselect-col-req {
-  flex: 0 0 auto; /* Don't grow or shrink, size based on content */
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: flex-start;
-  margin: 0.25rem;
-}
 fieldset {
   word-wrap: break-word; /* Break long words */
   white-space: normal; /* Allow wrapping */
