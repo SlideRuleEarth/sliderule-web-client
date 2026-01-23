@@ -64,6 +64,106 @@ const currentTooltipContent = ref<string>('')
 const showContextMenu = ref(false)
 const contextMenuPosition = ref({ x: 0, y: 0 })
 
+// Zoom select mode state (custom drag-to-zoom rectangle)
+const zoomSelectMode = ref(false)
+const isDrawingZoomRect = ref(false)
+const zoomRectStart = ref({ x: 0, y: 0 })
+const zoomRectEnd = ref({ x: 0, y: 0 })
+
+// Computed style for the zoom selection rectangle
+const zoomRectStyle = computed(() => {
+  const left = Math.min(zoomRectStart.value.x, zoomRectEnd.value.x)
+  const top = Math.min(zoomRectStart.value.y, zoomRectEnd.value.y)
+  const width = Math.abs(zoomRectEnd.value.x - zoomRectStart.value.x)
+  const height = Math.abs(zoomRectEnd.value.y - zoomRectStart.value.y)
+  return {
+    left: `${left}px`,
+    top: `${top}px`,
+    width: `${width}px`,
+    height: `${height}px`
+  }
+})
+
+// Zoom selection mouse event handlers
+function handleZoomMouseDown(e: MouseEvent) {
+  if (!zoomSelectMode.value) return
+  const wrapper = chartWrapperRef.value as HTMLElement
+  if (!wrapper) {
+    logger.warn('handleZoomMouseDown: chartWrapperRef is null')
+    return
+  }
+
+  e.preventDefault()
+  e.stopPropagation()
+
+  const rect = wrapper.getBoundingClientRect()
+  isDrawingZoomRect.value = true
+  zoomRectStart.value = { x: e.clientX - rect.left, y: e.clientY - rect.top }
+  zoomRectEnd.value = { ...zoomRectStart.value }
+  logger.debug('Zoom rectangle started', { start: zoomRectStart.value })
+}
+
+function handleZoomMouseMove(e: MouseEvent) {
+  if (!isDrawingZoomRect.value) return
+  const wrapper = chartWrapperRef.value as HTMLElement
+  if (!wrapper) return
+
+  const rect = wrapper.getBoundingClientRect()
+  zoomRectEnd.value = { x: e.clientX - rect.left, y: e.clientY - rect.top }
+}
+
+async function handleZoomMouseUp() {
+  if (!isDrawingZoomRect.value) return
+  isDrawingZoomRect.value = false
+
+  const chart = plotRef.value?.chart
+  if (!chart) return
+
+  // Convert pixel coordinates to data values using ECharts API
+  const startData = chart.convertFromPixel('grid', [zoomRectStart.value.x, zoomRectStart.value.y])
+  const endData = chart.convertFromPixel('grid', [zoomRectEnd.value.x, zoomRectEnd.value.y])
+
+  if (!startData || !endData) {
+    logger.warn('Failed to convert pixel coordinates to data values')
+    return
+  }
+
+  // Ensure we have a meaningful selection (not just a click)
+  const minSelectionSize = 5 // pixels
+  if (
+    Math.abs(zoomRectEnd.value.x - zoomRectStart.value.x) < minSelectionSize &&
+    Math.abs(zoomRectEnd.value.y - zoomRectStart.value.y) < minSelectionSize
+  ) {
+    logger.debug('Selection too small, ignoring')
+    return
+  }
+
+  // Set zoom extents (ensure min < max)
+  atlChartFilterStore.xZoomStartValue = Math.min(startData[0], endData[0])
+  atlChartFilterStore.xZoomEndValue = Math.max(startData[0], endData[0])
+  atlChartFilterStore.yZoomStartValue = Math.min(startData[1], endData[1])
+  atlChartFilterStore.yZoomEndValue = Math.max(startData[1], endData[1])
+
+  logger.debug('Zoom rectangle selection applied', {
+    xStart: atlChartFilterStore.xZoomStartValue,
+    xEnd: atlChartFilterStore.xZoomEndValue,
+    yStart: atlChartFilterStore.yZoomStartValue,
+    yEnd: atlChartFilterStore.yZoomEndValue
+  })
+
+  // Trigger chart update
+  await callPlotUpdateDebounced('from zoom rectangle selection')
+
+  // Disable zoom select mode after use
+  zoomSelectMode.value = false
+}
+
+function handleZoomMouseLeave() {
+  if (isDrawingZoomRect.value) {
+    isDrawingZoomRect.value = false
+  }
+}
+
 const props = defineProps({
   startingReqId: {
     type: Number,
@@ -987,7 +1087,7 @@ watch(
       overlayedReqIds: {{ atlChartFilterStore.selectedOverlayedReqIds }}
     </div> -->
     <div class="sr-elevation-plot-content">
-      <div ref="chartWrapperRef" class="chart-wrapper">
+      <div ref="chartWrapperRef" class="chart-wrapper" :class="{ 'sr-zoom-mode': zoomSelectMode }">
         <v-chart
           ref="plotRef"
           class="scatter-chart"
@@ -1030,7 +1130,37 @@ watch(
               @click="resetChartZoom"
             />
           </div>
+          <div
+            @mouseover="
+              tooltipRef.showTooltip(
+                $event,
+                zoomSelectMode ? 'Cancel Zoom Selection' : 'Drag to Zoom'
+              )
+            "
+            @mouseleave="tooltipRef.hideTooltip()"
+          >
+            <Button
+              icon="pi pi-search-plus"
+              :severity="zoomSelectMode ? 'primary' : 'secondary'"
+              :text="!zoomSelectMode"
+              rounded
+              aria-label="Drag to Zoom"
+              :class="{ 'sr-zoom-select-active': zoomSelectMode }"
+              @click="zoomSelectMode = !zoomSelectMode"
+            />
+          </div>
         </div>
+        <!-- Zoom mode overlay - captures mouse events when zoom select is active -->
+        <div
+          v-if="zoomSelectMode"
+          class="sr-zoom-overlay"
+          @mousedown="handleZoomMouseDown"
+          @mousemove="handleZoomMouseMove"
+          @mouseup="handleZoomMouseUp"
+          @mouseleave="handleZoomMouseLeave"
+        />
+        <!-- Zoom selection rectangle overlay -->
+        <div v-if="isDrawingZoomRect" class="sr-zoom-select-rect" :style="zoomRectStyle" />
         <!-- Custom context menu for tooltip -->
         <div
           v-if="showContextMenu"
@@ -1356,27 +1486,30 @@ watch(
         <div class="sr-multiselect-col">
           <SrPlotCntrl v-if="reqId > 0 && !isAtl24WithPhotonCloud" :reqId="reqId" />
         </div>
-        <div class="sr-multiselect-col">
+        <div
+          class="sr-multiselect-col"
+          v-if="atlChartFilterStore.selectedOverlayedReqIds.length > 0"
+        >
           <div
             v-for="overlayedReqId in atlChartFilterStore.selectedOverlayedReqIds"
             :key="overlayedReqId"
           >
             <SrPlotCntrl :reqId="overlayedReqId" :isOverlay="true" />
           </div>
-          <div class="sr-multiselect-col-req">
-            <SrReqDisplay
-              v-if="
-                mission === 'ICESat-2' &&
-                atlChartFilterStore.selectedOverlayedReqIds.length === 0 &&
-                !(recTreeStore.selectedApi === 'atl03x') &&
-                !(recTreeStore.selectedApi === 'atl03sp') &&
-                !(recTreeStore.selectedApi === 'atl03vp')
-              "
-              label="Show Photon Cloud Req Params"
-              :isForPhotonCloud="true"
-              :tooltipText="'The params that will be used for the Photon Cloud overlay'"
-            />
-          </div>
+        </div>
+        <div class="sr-multiselect-col-req">
+          <SrReqDisplay
+            v-if="
+              mission === 'ICESat-2' &&
+              atlChartFilterStore.selectedOverlayedReqIds.length === 0 &&
+              !(recTreeStore.selectedApi === 'atl03x') &&
+              !(recTreeStore.selectedApi === 'atl03sp') &&
+              !(recTreeStore.selectedApi === 'atl03vp')
+            "
+            label="Show Photon Cloud Req Params"
+            :isForPhotonCloud="true"
+            :tooltipText="'The params that will be used for the Photon Cloud overlay'"
+          />
         </div>
       </div>
     </div>
@@ -1657,13 +1790,11 @@ watch(
 }
 
 .sr-multiselect-col-req {
-  flex: 1 1 45%; /* Allow columns to take up 45% of the container width */
-  min-width: 10rem; /* 300px equivalent */
-  max-width: 25rem; /* 500px equivalent */
+  flex: 0 0 auto; /* Don't grow or shrink, size based on content */
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  align-items: stretch; /* Stretch items to match the width */
+  align-items: flex-start;
   margin: 0.25rem;
 }
 fieldset {
@@ -1820,5 +1951,42 @@ fieldset {
 .context-menu-item:hover {
   background-color: var(--p-primary-color);
   color: var(--p-primary-contrast-color);
+}
+
+/* Zoom mode overlay - captures mouse events on top of chart */
+.sr-zoom-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  cursor: crosshair;
+  z-index: 99;
+  background: transparent;
+}
+
+/* Zoom selection rectangle styles */
+.sr-zoom-select-rect {
+  position: absolute;
+  border: 2px dashed var(--p-primary-color);
+  background-color: rgba(100, 149, 237, 0.15);
+  pointer-events: none;
+  z-index: 100;
+}
+
+/* Highlight active zoom select button */
+.sr-zoom-select-active {
+  background-color: var(--p-primary-color) !important;
+  color: var(--p-primary-contrast-color) !important;
+}
+
+/* Change cursor when zoom select mode is active */
+.chart-wrapper.sr-zoom-mode {
+  cursor: crosshair;
+}
+
+/* Prevent text selection while drawing zoom rectangle */
+.chart-wrapper.sr-zoom-mode * {
+  user-select: none;
 }
 </style>
