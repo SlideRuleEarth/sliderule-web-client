@@ -208,6 +208,15 @@ const toggleLegendPinInternal = async (
 
     // Set up scroll listeners if not already active
     setupScrollListeners()
+
+    // Animate the lock icon (scale up then fade)
+    const pinButton = pinnedDialog?.querySelector('.sr-pin-button') as HTMLElement
+    if (pinButton) {
+      pinButton.classList.add('sr-pin-animating')
+      setTimeout(() => {
+        pinButton.classList.remove('sr-pin-animating')
+      }, 600)
+    }
   } else {
     // UNPINNING: Toggle state first, then restore position
     pinnedRef.value = false
@@ -1728,6 +1737,45 @@ fieldset {
 
 :deep(.sr-pin-button:hover) {
   opacity: 1;
+}
+
+/* Hide pin button when legend is pinned (unless hovering or animating) */
+:deep(.sr-legend-pinned .sr-pin-button) {
+  opacity: 0;
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
+}
+
+/* Show pin button when hovering on pinned legend */
+:deep(.sr-legend-pinned:hover .sr-pin-button) {
+  opacity: 0.6;
+}
+
+:deep(.sr-legend-pinned:hover .sr-pin-button:hover) {
+  opacity: 1;
+}
+
+/* Lock animation - scale up and fade like location finder */
+:deep(.sr-pin-button.sr-pin-animating) {
+  opacity: 1 !important;
+  transform: scale(2);
+  animation: pinPulse 0.6s ease-out forwards;
+}
+
+@keyframes pinPulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
 }
 
 /* Show outline only on hover/drag, not when static */
