@@ -107,10 +107,16 @@ defineExpose({
   right: var(--sr-right, auto);
   bottom: var(--sr-bottom, auto);
   left: var(--sr-left, auto);
-  background: var(--sr-bg, transparent);
-  color: var(--p-text-color);
-  border-radius: var(--sr-radius, 4px);
-  padding: 0.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  background: color-mix(in srgb, var(--p-primary-color) 20%, transparent);
+  border: 1px solid var(--p-primary-color);
+  border-radius: var(--p-border-radius);
+  padding: 0 0.35rem;
+  height: 1.4rem;
+  display: flex;
+  align-items: center;
+}
+
+.sr-rasterize-control:hover {
+  background: color-mix(in srgb, var(--p-primary-color) 80%, transparent);
 }
 </style>
