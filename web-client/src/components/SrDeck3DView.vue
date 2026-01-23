@@ -84,7 +84,9 @@ import {
   finalizeDeck,
   loadAndCachePointCloudData,
   updateFovy,
-  transformLatLonTo3DWorld
+  transformLatLonTo3DWorld,
+  is3DDataLoaded,
+  isTransformCacheReady
 } from '@/utils/deck3DPlotUtils'
 import { useGlobalChartStore } from '@/stores/globalChartStore'
 import { debouncedRender } from '@/utils/SrDebounce'
@@ -192,6 +194,7 @@ watch(reqId, async (newVal, oldVal) => {
 watch(
   () => deck3DConfigStore.fovy,
   (newFov) => {
+    if (!is3DDataLoaded()) return
     logger.debug('FOV updated', { newFov })
     updateFovy(newFov)
     debouncedRender(localDeckContainer) // Use the fast, debounced renderer
@@ -202,6 +205,7 @@ watch(
 watch(
   () => globalChartStore.getSelectedTrackOptions(),
   () => {
+    if (!is3DDataLoaded()) return // Guard against render before data is loaded
     // logger.debug('Selection changed, re-rendering 3D view')
     debouncedRender(localDeckContainer)
   },
@@ -209,6 +213,10 @@ watch(
 )
 
 // Feature 2: Watch 2D map hover to show marker in 3D view
+// Note: Animation removed because debouncedRender causes stuttering.
+// Marker is shown at a fixed size (5x point size) for reliability.
+const MARKER_SIZE_MULTIPLIER = 5
+
 watch(
   () => [
     globalChartStore.mapHoverLat,
@@ -216,6 +224,14 @@ watch(
     globalChartStore.mapHoverIsSelected
   ],
   ([lat, lon, isSelected]) => {
+    // logger.debug('3D view watcher: mapHover changed', {
+    //   lat,
+    //   lon,
+    //   isSelected,
+    //   dataLoaded: is3DDataLoaded(),
+    //   transformReady: isTransformCacheReady()
+    // })
+    if (!isTransformCacheReady()) return // Guard against transform before render completes
     if (
       lat !== null &&
       lon !== null &&
@@ -224,13 +240,18 @@ watch(
     ) {
       // Transform 2D map coordinates to 3D world position
       const worldPos = transformLatLonTo3DWorld(lat as number, lon as number)
+      // logger.debug('3D marker: transform result', { lat, lon, worldPos, isSelected })
       if (worldPos) {
         deck3DConfigStore.hoverMarkerPosition = worldPos
         // Set marker color: blue if on selected track, red if not
         deck3DConfigStore.hoverMarkerColor = isSelected
           ? [0, 0, 255, 255] // Blue for selected track
           : [255, 0, 0, 255] // Red for non-selected track
+        // Set fixed size and render
+        deck3DConfigStore.hoverMarkerSizeMultiplier = MARKER_SIZE_MULTIPLIER
         debouncedRender(localDeckContainer)
+      } else {
+        logger.warn('3D marker: transformLatLonTo3DWorld returned null', { lat, lon })
       }
     } else {
       // Hide marker when hover ends

@@ -144,6 +144,22 @@ export function finalizeDeck() {
   }
 }
 
+/**
+ * Check if 3D data is loaded and ready for rendering.
+ * Use this to guard render calls that might be triggered before data loading completes.
+ */
+export function is3DDataLoaded(): boolean {
+  return lastLoadedReqId !== null && cachedRawData.length > 0
+}
+
+/**
+ * Check if the transform cache is populated (needed for coordinate transformation).
+ * This is populated after renderCachedData() runs successfully.
+ */
+export function isTransformCacheReady(): boolean {
+  return transformCache !== null && cachedPointCloudData.length > 0
+}
+
 export function recreateDeck(deckContainer: Ref<HTMLDivElement | null>): boolean {
   if (!deckContainer?.value) {
     logger.warn('Cannot recreate deck: container is null')
@@ -794,13 +810,17 @@ export function transformLatLonTo3DWorld(
   lat: number,
   lon: number
 ): [number, number, number] | null {
-  if (!transformCache || !cachedPointCloudData.length) return null
+  if (!transformCache || !cachedPointCloudData.length) {
+    return null
+  }
 
   const { dstCrs, lonMin, latMin, metersToWorld, h0, zToWorld } = transformCache
 
   // Find elevation at this location (use nearest point)
   const elevation = findNearestPointElevation(lat, lon)
-  if (elevation === null) return null
+  if (elevation === null) {
+    return null
+  }
 
   // Transform to local metric CRS
   const [E, N] = proj4('EPSG:4326', dstCrs, [lon, lat])
