@@ -38,6 +38,7 @@ export const useDeck3DConfigStore = defineStore('deckConfig', () => {
   const hoverMarkerPosition = ref<[number, number, number] | null>(null)
   const hoverMarkerSizeMultiplier = ref(3) // Marker is 3x normal point size
   const hoverMarkerColor = ref<[number, number, number, number]>([0, 255, 255, 255]) // Cyan for visibility
+  const hoverMarkerScale = ref(2.0) // User-adjustable scale factor (percentage of data extent)
   // — LIVE VIEW STATE —
   // these will be updated in onViewStateChange
   const viewState = reactive<OrbitViewState>({
@@ -84,6 +85,7 @@ export const useDeck3DConfigStore = defineStore('deckConfig', () => {
     hoverMarkerPosition,
     hoverMarkerSizeMultiplier,
     hoverMarkerColor,
+    hoverMarkerScale,
     // methods
     updateViewState
   }

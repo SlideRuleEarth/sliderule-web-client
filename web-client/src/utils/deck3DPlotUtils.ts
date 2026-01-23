@@ -1,4 +1,6 @@
 import { PointCloudLayer } from '@deck.gl/layers'
+import { SimpleMeshLayer } from '@deck.gl/mesh-layers'
+import { SphereGeometry } from '@luma.gl/engine'
 import { createDuckDbClient } from '@/utils/SrDuckDb'
 import { db as indexedDb } from '@/db/SlideRuleDb'
 import { computeSamplingRate } from '@/utils/SrDuckDbUtils'
@@ -730,19 +732,24 @@ export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
   }
 
   // --- Feature 2: Hover marker layer (2D map hover -> 3D marker) ---
+  // Uses SimpleMeshLayer with SphereGeometry for a 3D sphere visible from all angles
+  // Size is calculated as a percentage of the smallest data extent, adjustable via hoverMarkerScale
   if (deck3DConfigStore.hoverMarkerPosition) {
-    const markerLayer = new PointCloudLayer({
+    const sphereGeometry = new SphereGeometry({ radius: 1, nlat: 16, nlong: 16 })
+    // Calculate marker size based on data extent (use smallest axis for reference)
+    const minExtent = Math.min(scaleX, scaleY, scaleZ)
+    const markerSize = minExtent * (deck3DConfigStore.hoverMarkerScale / 100) // hoverMarkerScale is percentage
+    const markerLayer = new SimpleMeshLayer({
       id: 'hover-marker-layer',
       data: [
         {
-          position: deck3DConfigStore.hoverMarkerPosition,
-          color: deck3DConfigStore.hoverMarkerColor
+          position: deck3DConfigStore.hoverMarkerPosition
         }
       ],
+      mesh: sphereGeometry,
       getPosition: (d: any) => d.position,
-      getColor: (d: any) => d.color,
-      pointSize: deck3DConfigStore.pointSize * deck3DConfigStore.hoverMarkerSizeMultiplier,
-      opacity: 1.0,
+      getColor: [255, 0, 0, 255], // Red sphere
+      sizeScale: markerSize,
       pickable: false
     })
     layers.push(markerLayer)

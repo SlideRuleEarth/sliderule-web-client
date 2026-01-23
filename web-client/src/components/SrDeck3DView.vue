@@ -37,10 +37,11 @@
       />
     </div>
     <div>
-      <label class="sr-pnt-sz-label" for="pointSizeId">Point Size</label>
+      <label class="sr-pnt-sz-label" for="pointSizeId">Pt Sz</label>
       <InputNumber
         v-model="deck3DConfigStore.pointSize"
         inputId="pointSizeId"
+        class="sr-narrow-input"
         size="small"
         :step="0.1"
         :min="0.1"
@@ -53,7 +54,7 @@
       />
     </div>
     <div>
-      <label class="sr-vert-exag-label" for="vertExagId">Vertical Exaggeration</label>
+      <label class="sr-vert-exag-label" for="vertExagId">Vert Exag</label>
       <InputNumber
         v-model="deck3DConfigStore.verticalExaggeration"
         inputId="vertExagId"
@@ -348,5 +349,8 @@ watch(
   margin-right: 0.2rem;
   align-items: center;
   justify-content: center;
+}
+.sr-narrow-input {
+  width: 5rem;
 }
 </style>
