@@ -112,6 +112,15 @@ async function countInvalidGeometries(filename: string): Promise<number> {
 const VALID_GEOMETRY_FILTER = `geometry IS NOT NULL AND NOT ST_IsEmpty(geometry) AND isfinite(ST_X(geometry)) AND isfinite(ST_Y(geometry))`
 
 /**
+ * Build SQL WHERE clause fragment to filter out NaN/Inf height values.
+ * @param heightExpr - The SQL expression for the height column (either direct column or ST_Z extraction)
+ * @returns SQL fragment like "NOT isnan(h_li) AND NOT isinf(h_li)"
+ */
+function buildHeightNaNFilter(heightExpr: string): string {
+  return `NOT isnan(${heightExpr}) AND NOT isinf(${heightExpr})`
+}
+
+/**
  * Report invalid geometries via logger and toast notification.
  */
 function reportInvalidGeometries(count: number, reqId: number, context: string): void {
@@ -808,14 +817,12 @@ export const duckDbReadAndUpdateElevationData = async (
       const latField = fieldNameStore.getLatFieldName(req_id)
       const heightField = fieldNameStore.getHFieldName(req_id)
 
+      // Check if Z column exists as a separate column (needed for both SELECT and WHERE)
+      const hasZColumn = colTypes.some((c) => c.name === heightField)
+      const geometryHasZ = hasGeometry && !hasZColumn // Z is in geometry if there's no separate Z column
+
       let selectClause: string
       if (hasGeometry) {
-        // Check if Z column exists as a separate column
-        // If it does, geometry is 2D (Point) and Z is stored separately
-        // If it doesn't, geometry is 3D (Point Z) and Z is in the geometry
-        const hasZColumn = colTypes.some((c) => c.name === heightField)
-        const geometryHasZ = !hasZColumn // Z is in geometry if there's no separate Z column
-
         // Build column list: all columns except geometry (and z column if it's in geometry)
         const nonGeomCols = colTypes
           .filter((c) => {
@@ -863,8 +870,18 @@ export const duckDbReadAndUpdateElevationData = async (
         selectClause = allCols.join(', ')
       }
 
-      // Add WHERE clause to filter invalid geometries when geometry column exists
-      const whereClause = hasGeometry ? ` WHERE ${VALID_GEOMETRY_FILTER}` : ''
+      // Build height expression for NaN filtering (from geometry Z or separate column)
+      const heightExpr = geometryHasZ
+        ? `ST_Z(${duckDbClient.escape('geometry')})`
+        : duckDbClient.escape(heightField)
+
+      // Build WHERE clause with geometry filter (if applicable) AND height NaN filter
+      const whereConditions: string[] = []
+      if (hasGeometry) {
+        whereConditions.push(VALID_GEOMETRY_FILTER)
+      }
+      whereConditions.push(buildHeightNaNFilter(heightExpr))
+      const whereClause = ` WHERE ${whereConditions.join(' AND ')}`
       const queryStr = `SELECT ${selectClause} FROM read_parquet('${filename}')${whereClause}`
       const result = await duckDbClient.queryChunkSampled(queryStr, sample_fraction)
 

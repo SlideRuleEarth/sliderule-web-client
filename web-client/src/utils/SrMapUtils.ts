@@ -659,8 +659,37 @@ export async function setCyclesGtsSpotsFromFileUsingRgtYatc(): Promise<void> {
   }
 }
 
+/**
+ * Check if the elevation value is a valid, finite number.
+ * Checks all known height field names used across different endpoints.
+ */
+function hasValidElevation(d: ElevationDataItem): boolean {
+  const heightFields = [
+    'h_mean', // atl06/atl06p, atl03x-surface
+    'h_li', // atl06s/atl06sp
+    'height', // atl03sp, atl03x
+    'h_mean_canopy', // atl08/atl08p, atl03x-phoreal
+    'ortho_h', // atl24x
+    'ht_ortho', // atl13x
+    'elevation', // gedi04ap/gedi04a
+    'elevation_lm', // gedi02ap/gedi02a
+    'elevation_hr' // gedi02ap/gedi02a
+  ]
+  for (const field of heightFields) {
+    const value = d[field]
+    if (value !== undefined && typeof value === 'number') {
+      if (Number.isNaN(value) || !Number.isFinite(value)) {
+        return false
+      }
+    }
+  }
+  return true
+}
+
 export function isClickable(d: ElevationDataItem): boolean {
-  return hasValidIdFields(d) && (d?.y_atc === undefined || !isInvalid(d.y_atc))
+  return (
+    hasValidIdFields(d) && hasValidElevation(d) && (d?.y_atc === undefined || !isInvalid(d.y_atc))
+  )
 }
 
 export async function processSelectedElPnt(d: ElevationDataItem): Promise<void> {
