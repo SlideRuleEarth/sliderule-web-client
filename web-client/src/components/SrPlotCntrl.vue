@@ -79,6 +79,7 @@
               placeholder="Symbol Color"
               :id="computedSolidColorId"
               size="small"
+              @change="handleSolidColorChanged"
             >
             </Select>
             <div
@@ -100,7 +101,14 @@
       />
     </div>
     <div class="sr-export-panel">
-      <SrExportSelected :reqId="props.reqId" />
+      <Button
+        icon="pi pi-file-export"
+        label="Export CSV"
+        class="sr-export-btn sr-glow-button"
+        @click="exportCsv"
+        variant="text"
+        rounded
+      />
     </div>
     <div class="sr-sql-stmnt">
       <SrSqlStmnt
@@ -150,7 +158,9 @@ import type { SelectChangeEvent } from 'primevue/select'
 import { useActiveTabStore } from '@/stores/activeTabStore'
 import { useFieldNameStore } from '@/stores/fieldNameStore'
 import { useToast } from 'primevue/usetoast'
-import SrExportSelected from './SrExportSelected.vue'
+import Button from 'primevue/button'
+import { createDuckDbClient } from '@/utils/SrDuckDb'
+import { streamSqlQueryToCSV } from '@/utils/SrDbShellUtils'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('SrPlotCntrl')
@@ -364,7 +374,7 @@ const handleColorEncodeSelectionChange = async (event: SelectChangeEvent) => {
       severity: 'info',
       summary: `Using ${newValue} MinMax of entire Record`,
       detail: `the Plot Config is now set to use legend with Min Max of ${newValue} using the entire Record`,
-      life: 5000
+      life: 20000
     })
   } else {
     if (newValue !== 'solid') {
@@ -373,7 +383,7 @@ const handleColorEncodeSelectionChange = async (event: SelectChangeEvent) => {
         severity: 'info',
         summary: `Using ${newValue} MinMax of selected Track`,
         detail: `the Plot Config is now set to use legend with Min Max of ${newValue} using only the selected track`,
-        life: 5000
+        life: 20000
       })
     }
   }
@@ -405,6 +415,21 @@ const handleAtl24ClassColorChanged = async () => {
   logger.debug('handleAtl24ClassColorChanged')
   atl24ClassColorMapStore.value?.resetAtl24ClassColorCaches()
   await callPlotUpdateDebounced('from handleAtl24ClassColorChanged')
+}
+
+const handleSolidColorChanged = async () => {
+  logger.debug('handleSolidColorChanged')
+  await callPlotUpdateDebounced('from handleSolidColorChanged')
+}
+
+async function exportCsv() {
+  const sqlStmnt = chartStore.getQuerySql(reqIdStr.value)
+  if (!sqlStmnt) {
+    logger.error('No SQL statement found for export', { reqId: props.reqId })
+    return
+  }
+  const duckDbClient = await createDuckDbClient()
+  void streamSqlQueryToCSV(duckDbClient, sqlStmnt, props.reqId)
 }
 </script>
 

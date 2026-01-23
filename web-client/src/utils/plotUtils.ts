@@ -1946,7 +1946,8 @@ export async function getPhotonOverlayRunContext(): Promise<SrRunContext> {
       // Use the cached request
       runContext.reqId = reqId
       logger.debug('findCachedRec reqId found', { reqId, runContext })
-      atlChartFilterStore.setSelectedOverlayedReqIds([reqId])
+      // Note: setSelectedOverlayedReqIds is called in handlePhotonCloudShow AFTER initializeColorEncoding
+      // to avoid showing the overlay gradient dialog before color encoding is set
     } else {
       logger.warn('findCachedRec reqId not found, need to fetch', { runContext })
       requestsStore.setSvrMsg('')
