@@ -34,6 +34,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
   const mapHoverLat = ref<number | null>(null)
   const mapHoverLon = ref<number | null>(null)
   const mapHoverActive = ref<boolean>(false)
+  const mapHoverIsSelected = ref<boolean>(false) // true if hovered point is on selected track
   const selected_y_atc = ref<number>(0.0)
   const y_atc_margin = ref<number>(50.0)
   const max_pnts_on_plot = ref<number>(50000)
@@ -508,6 +509,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     mapHoverLat,
     mapHoverLon,
     mapHoverActive,
+    mapHoverIsSelected,
     allColumnMinMaxValues,
     setAllColumnMinMaxValues,
     getAllColumnMinMaxValues,

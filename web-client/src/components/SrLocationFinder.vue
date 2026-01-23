@@ -57,7 +57,7 @@ function updatePosition(lat: number, lon: number) {
     if (highlightEl) {
       highlightEl.classList.remove('active')
     }
-  }, 1000)
+  }, 2000)
 
   //console.log('Highlight marker fixed position (body):', { globalX, globalY });
 }
@@ -167,8 +167,8 @@ onUnmounted(() => {
   pointer-events: none !important;
   transform: translate(-50%, -50%) !important;
   transition:
-    transform 0.2s ease,
-    opacity 0.2s ease;
+    transform 0.6s ease,
+    opacity 0.6s ease;
   z-index: 999999 !important;
 }
 

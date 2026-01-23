@@ -14,6 +14,7 @@ import { Deck } from '@deck.gl/core'
 import proj4 from 'proj4'
 import { useRecTreeStore } from '@/stores/recTreeStore'
 import { useChartStore } from '@/stores/chartStore'
+import { useGlobalChartStore } from '@/stores/globalChartStore'
 
 // import log from '@probe.gl/log';
 // log.level = 1;  // 0 = silent, 1 = minimal, 2 = verbose
@@ -41,6 +42,28 @@ const deckInstance: Ref<Deck<OrbitView[]> | null> = ref(null)
 let cachedRawData: any[] = []
 let lastLoadedReqId: number | null = null
 let verticalExaggerationInitialized = false
+
+// Transformation cache for coordinate transformation (2D map hover -> 3D)
+let transformCache: {
+  dstCrs: string
+  lonMin: number
+  latMin: number
+  metersToWorld: number
+  h0: number
+  zToWorld: number
+} | null = null
+
+// Cached point cloud data for hover marker positioning
+let cachedPointCloudData: Array<{
+  position: [number, number, number]
+  lat: number
+  lon: number
+  elevation: number
+  track?: number
+  spot?: number
+  cycle?: number
+  rgt?: number
+}> = []
 
 // helper: pick a local metric CRS (UTM or polar)
 function pickLocalMetricCRS(lat: number, lon: number): string {
@@ -188,6 +211,27 @@ function createDeck(container: HTMLDivElement) {
     layers: [],
     onViewStateChange: ({ viewState }) => {
       deck3DConfigStore.updateViewState(viewState)
+    },
+    onHover: (info) => {
+      // Feature 3: Update location finder on 2D map when hovering over 3D points
+      const globalChartStore = useGlobalChartStore()
+      if (!globalChartStore.enableLocationFinder) {
+        // logger.debug('Location finder disabled, skipping hover update')
+        return
+      }
+
+      if (info.object && info.object.lat !== undefined && info.object.lon !== undefined) {
+        // logger.debug('3D hover: updating location finder', {
+        //   lat: info.object.lat,
+        //   lon: info.object.lon
+        // })
+        globalChartStore.locationFinderLat = info.object.lat
+        globalChartStore.locationFinderLon = info.object.lon
+      } else {
+        // Mouse left point - hide marker by setting NaN
+        globalChartStore.locationFinderLat = NaN
+        globalChartStore.locationFinderLon = NaN
+      }
     },
     getTooltip: (info) => {
       if (!info.object) return null
@@ -550,7 +594,10 @@ export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
         lat: d[latField],
         lon: d[lonField],
         elevation: d[zField],
+        track: d['track'] ?? null,
+        spot: d['spot'] ?? null,
         cycle: d['cycle'] ?? null,
+        rgt: d['rgt'] ?? null,
         time: d[timeField] ?? null,
         colorByLabel,
         colorByValue
@@ -558,6 +605,19 @@ export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
     })
 
   const sanitizedPointCloudData = sanitizeDeckData(pointCloudData)
+
+  // Store transformation cache for coordinate transformation (2D map hover -> 3D)
+  transformCache = {
+    dstCrs,
+    lonMin,
+    latMin,
+    metersToWorld,
+    h0,
+    zToWorld
+  }
+
+  // Store cached point cloud data for hover marker positioning
+  cachedPointCloudData = pointCloudData
 
   computeCentroid(pointCloudData.map((p) => p.position))
 
@@ -573,6 +633,96 @@ export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
   })
 
   const layers: Layer<any>[] = [layer]
+
+  // --- Feature 1: Selection highlight layer ---
+  const globalChartStore = useGlobalChartStore()
+  const selectedTracks = globalChartStore.getTracks()
+  const selectedSpots = globalChartStore.getSpots()
+  const selectedCycles = globalChartStore.getCycles()
+  const selectedRgt = globalChartStore.getRgt()
+
+  // Check if there's an active selection
+  const hasSelection =
+    selectedTracks.length > 0 ||
+    selectedSpots.length > 0 ||
+    selectedCycles.length > 0 ||
+    selectedRgt !== -1
+
+  // logger.debug('Selection state for 3D highlight', {
+  //   selectedTracks,
+  //   selectedSpots,
+  //   selectedCycles,
+  //   selectedRgt,
+  //   hasSelection,
+  //   samplePointData: pointCloudData.length > 0 ? {
+  //     track: pointCloudData[0].track,
+  //     spot: pointCloudData[0].spot,
+  //     cycle: pointCloudData[0].cycle,
+  //     rgt: pointCloudData[0].rgt
+  //   } : null
+  // })
+
+  if (hasSelection) {
+    // Filter points that match the selection criteria
+    // Note: ICESat-2 data uses spot/cycle/rgt, not track. GEDI uses track/orbit/beam.
+    // Only apply filters when the field exists in the data AND there's a selection for it.
+    const selectedPointCloudData = pointCloudData.filter((d) => {
+      // Track filtering: only apply if data has track field AND tracks are selected
+      // For ICESat-2, track is null so this is skipped
+      const trackMatch =
+        selectedTracks.length === 0 || d.track === null || selectedTracks.includes(d.track)
+
+      // Spot filtering: only apply if spots are selected AND data has spot field
+      const spotMatch =
+        selectedSpots.length === 0 || d.spot === null || selectedSpots.includes(d.spot)
+
+      // Cycle filtering: only apply if cycles are selected AND data has cycle field
+      const cycleMatch =
+        selectedCycles.length === 0 || d.cycle === null || selectedCycles.includes(d.cycle)
+
+      // RGT filtering: only apply if rgt is selected (not -1) AND data has rgt field
+      const rgtMatch = selectedRgt === -1 || d.rgt === null || d.rgt === selectedRgt
+
+      return trackMatch && spotMatch && cycleMatch && rgtMatch
+    })
+
+    // logger.debug('Selection highlight filtering', {
+    //   totalPoints: pointCloudData.length,
+    //   selectedPoints: selectedPointCloudData.length
+    // })
+
+    if (selectedPointCloudData.length > 0) {
+      const highlightedLayer = new PointCloudLayer({
+        id: 'point-cloud-layer-selected',
+        data: sanitizeDeckData(selectedPointCloudData),
+        getPosition: (d) => d.position,
+        getColor: () => deck3DConfigStore.highlightColor,
+        pointSize: deck3DConfigStore.pointSize * deck3DConfigStore.highlightedPointSizeMultiplier,
+        opacity: 1.0,
+        pickable: true
+      })
+      layers.push(highlightedLayer)
+    }
+  }
+
+  // --- Feature 2: Hover marker layer (2D map hover -> 3D marker) ---
+  if (deck3DConfigStore.hoverMarkerPosition) {
+    const markerLayer = new PointCloudLayer({
+      id: 'hover-marker-layer',
+      data: [
+        {
+          position: deck3DConfigStore.hoverMarkerPosition,
+          color: deck3DConfigStore.hoverMarkerColor
+        }
+      ],
+      getPosition: (d: any) => d.position,
+      getColor: (d: any) => d.color,
+      pointSize: deck3DConfigStore.pointSize * deck3DConfigStore.hoverMarkerSizeMultiplier,
+      opacity: 1.0,
+      pickable: false
+    })
+    layers.push(markerLayer)
+  }
 
   if (deck3DConfigStore.showAxes) {
     layers.push(
@@ -610,4 +760,56 @@ export function updateFovy(fovy: number) {
       })
     ]
   })
+}
+
+/**
+ * Find the nearest point's elevation from cached data given lat/lon coordinates.
+ * Uses simple linear search (data is already sampled, so n is manageable).
+ */
+export function findNearestPointElevation(lat: number, lon: number): number | null {
+  if (!cachedPointCloudData.length) return null
+
+  let minDist = Infinity
+  let nearestElev: number | null = null
+
+  for (const point of cachedPointCloudData) {
+    const dLat = point.lat - lat
+    const dLon = point.lon - lon
+    const dist = dLat * dLat + dLon * dLon // squared distance
+    if (dist < minDist) {
+      minDist = dist
+      nearestElev = point.elevation
+    }
+  }
+
+  return nearestElev
+}
+
+/**
+ * Transform lat/lon coordinates to 3D world coordinates.
+ * Uses the cached transformation parameters from the last render.
+ * Returns null if no transformation cache is available.
+ */
+export function transformLatLonTo3DWorld(
+  lat: number,
+  lon: number
+): [number, number, number] | null {
+  if (!transformCache || !cachedPointCloudData.length) return null
+
+  const { dstCrs, lonMin, latMin, metersToWorld, h0, zToWorld } = transformCache
+
+  // Find elevation at this location (use nearest point)
+  const elevation = findNearestPointElevation(lat, lon)
+  if (elevation === null) return null
+
+  // Transform to local metric CRS
+  const [E, N] = proj4('EPSG:4326', dstCrs, [lon, lat])
+  const [Emin, Nmin] = proj4('EPSG:4326', dstCrs, [lonMin, latMin])
+
+  // Convert to world coordinates (same transformation as in renderCachedData)
+  const x = metersToWorld * (E - Emin)
+  const y = metersToWorld * (N - Nmin)
+  const z = zToWorld * (elevation - h0)
+
+  return [x, y, z]
 }

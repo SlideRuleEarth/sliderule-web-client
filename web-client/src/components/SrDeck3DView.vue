@@ -80,7 +80,13 @@ import { useDeck3DConfigStore } from '@/stores/deck3DConfigStore'
 import SrDeck3DCfg from '@/components/SrDeck3DCfg.vue'
 import Button from 'primevue/button'
 import { InputNumber } from 'primevue'
-import { finalizeDeck, loadAndCachePointCloudData, updateFovy } from '@/utils/deck3DPlotUtils'
+import {
+  finalizeDeck,
+  loadAndCachePointCloudData,
+  updateFovy,
+  transformLatLonTo3DWorld
+} from '@/utils/deck3DPlotUtils'
+import { useGlobalChartStore } from '@/stores/globalChartStore'
 import { debouncedRender } from '@/utils/SrDebounce'
 import { yColorEncodeSelectedReactive } from '@/utils/plotUtils'
 import Select from 'primevue/select'
@@ -94,6 +100,7 @@ const recTreeStore = useRecTreeStore()
 const chartStore = useChartStore()
 const toast = useSrToastStore()
 const deck3DConfigStore = useDeck3DConfigStore()
+const globalChartStore = useGlobalChartStore()
 const reqId = computed(() => recTreeStore.selectedReqId)
 const elevationStore = useElevationColorMapStore()
 const computedFunc = computed(() => recTreeStore.selectedApi)
@@ -188,6 +195,50 @@ watch(
     logger.debug('FOV updated', { newFov })
     updateFovy(newFov)
     debouncedRender(localDeckContainer) // Use the fast, debounced renderer
+  }
+)
+
+// Feature 1: Watch selection changes to update highlighted track in 3D view
+watch(
+  () => globalChartStore.getSelectedTrackOptions(),
+  () => {
+    // logger.debug('Selection changed, re-rendering 3D view')
+    debouncedRender(localDeckContainer)
+  },
+  { deep: true }
+)
+
+// Feature 2: Watch 2D map hover to show marker in 3D view
+watch(
+  () => [
+    globalChartStore.mapHoverLat,
+    globalChartStore.mapHoverLon,
+    globalChartStore.mapHoverIsSelected
+  ],
+  ([lat, lon, isSelected]) => {
+    if (
+      lat !== null &&
+      lon !== null &&
+      Number.isFinite(lat as number) &&
+      Number.isFinite(lon as number)
+    ) {
+      // Transform 2D map coordinates to 3D world position
+      const worldPos = transformLatLonTo3DWorld(lat as number, lon as number)
+      if (worldPos) {
+        deck3DConfigStore.hoverMarkerPosition = worldPos
+        // Set marker color: blue if on selected track, red if not
+        deck3DConfigStore.hoverMarkerColor = isSelected
+          ? [0, 0, 255, 255] // Blue for selected track
+          : [255, 0, 0, 255] // Red for non-selected track
+        debouncedRender(localDeckContainer)
+      }
+    } else {
+      // Hide marker when hover ends
+      if (deck3DConfigStore.hoverMarkerPosition !== null) {
+        deck3DConfigStore.hoverMarkerPosition = null
+        debouncedRender(localDeckContainer)
+      }
+    }
   }
 )
 </script>
