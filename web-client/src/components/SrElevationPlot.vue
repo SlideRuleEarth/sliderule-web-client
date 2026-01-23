@@ -164,7 +164,8 @@ const removeScrollListeners = () => {
  */
 const toggleLegendPinInternal = async (
   pinnedRef: typeof gradientLegendPinned,
-  dialogClass: string
+  dialogClass: string,
+  styleRef: typeof gradientLegendDialogStyle
 ) => {
   const dialog = document.querySelector(`.${dialogClass}`) as HTMLElement
   const chartWrapper = chartWrapperRef.value as HTMLElement
@@ -185,6 +186,14 @@ const toggleLegendPinInternal = async (
   // Calculate position relative to chart (for scroll tracking)
   const relativeTop = dialogRect.top - chartRect.top
   const relativeLeft = dialogRect.left - chartRect.left
+
+  // Update the style ref to preserve position across Vue re-renders
+  styleRef.value = {
+    position: 'absolute',
+    top: `${currentTop}px`,
+    left: `${currentLeft}px`,
+    transform: 'none'
+  }
 
   if (!pinnedRef.value) {
     // PINNING: Toggle state first, then apply position after Vue re-renders
@@ -247,17 +256,29 @@ const toggleLegendPinInternal = async (
 
 // Individual toggle functions for each legend (to avoid template ref unwrapping issues)
 const toggleGradientLegendPin = async () =>
-  await toggleLegendPinInternal(gradientLegendPinned, 'sr-gradient-legend-dialog')
+  await toggleLegendPinInternal(
+    gradientLegendPinned,
+    'sr-gradient-legend-dialog',
+    gradientLegendDialogStyle
+  )
 const toggleSolidColorLegendPin = async () =>
-  await toggleLegendPinInternal(solidColorLegendPinned, 'sr-solid-color-legend-dialog')
+  await toggleLegendPinInternal(
+    solidColorLegendPinned,
+    'sr-solid-color-legend-dialog',
+    solidColorLegendDialogStyle
+  )
 const toggleOverlayGradientPin = async () =>
-  await toggleLegendPinInternal(overlayGradientPinned, 'sr-overlay-gradient-dialog')
+  await toggleLegendPinInternal(
+    overlayGradientPinned,
+    'sr-overlay-gradient-dialog',
+    overlayGradientDialogStyle
+  )
 const toggleAtl08ColorsPin = async () =>
-  await toggleLegendPinInternal(atl08ColorsPinned, 'sr-atl08-colors-dialog')
+  await toggleLegendPinInternal(atl08ColorsPinned, 'sr-atl08-colors-dialog', atl08ColorsDialogStyle)
 const toggleAtl03ColorsPin = async () =>
-  await toggleLegendPinInternal(atl03ColorsPinned, 'sr-atl03-colors-dialog')
+  await toggleLegendPinInternal(atl03ColorsPinned, 'sr-atl03-colors-dialog', atl03ColorsDialogStyle)
 const toggleAtl24ColorsPin = async () =>
-  await toggleLegendPinInternal(atl24ColorsPinned, 'sr-atl24-colors-dialog')
+  await toggleLegendPinInternal(atl24ColorsPinned, 'sr-atl24-colors-dialog', atl24ColorsDialogStyle)
 
 use([
   CanvasRenderer,
@@ -276,129 +297,109 @@ const chartWrapperRef = ref<AppendToType>(undefined)
 const webGLSupported = ref<boolean>(!!window.WebGLRenderingContext) // Should log `true` if WebGL is supported
 const chartReady = ref(false)
 
-const mainLegendDialogStyle = ref<{
+// Type for legend dialog style
+type LegendDialogStyle = {
   position: string
   top: string
   left: string
-  transform?: string // Optional property
-}>({
+  transform?: string
+}
+
+// Default style factory to create initial style for each legend
+const createDefaultLegendStyle = (): LegendDialogStyle => ({
   position: 'absolute',
   top: '0px',
   left: '0px',
-  transform: 'translate(-50%, -50%)' // Initially set, removed on drag
+  transform: 'translate(-50%, -50%)'
 })
 
-const overlayLegendDialogStyle = ref<{
-  position: string
-  top: string
-  left: string
-  transform?: string // Optional property
-}>({
-  position: 'absolute',
-  top: '0px',
-  left: '0px',
-  transform: 'translate(-50%, -50%)' // Initially set, removed on drag
-})
+// Individual style objects for each legend to prevent interference when dragging
+const gradientLegendDialogStyle = ref<LegendDialogStyle>(createDefaultLegendStyle())
+const solidColorLegendDialogStyle = ref<LegendDialogStyle>(createDefaultLegendStyle())
+const overlayGradientDialogStyle = ref<LegendDialogStyle>(createDefaultLegendStyle())
+const atl08ColorsDialogStyle = ref<LegendDialogStyle>(createDefaultLegendStyle())
+const atl03ColorsDialogStyle = ref<LegendDialogStyle>(createDefaultLegendStyle())
+const atl24ColorsDialogStyle = ref<LegendDialogStyle>(createDefaultLegendStyle())
+
+// Helper function to calculate legend position
+const calculateLegendPosition = (rowOffset: number) => {
+  const thisChartWrapper = document.querySelector('.chart-wrapper') as HTMLElement
+  if (!thisChartWrapper) {
+    return null
+  }
+  const rect = thisChartWrapper.getBoundingClientRect()
+  globalChartStore.scrollX = window.scrollX
+  globalChartStore.scrollY = window.scrollY
+
+  const middleHorizontalOffset = rect.width / 2
+  const assumedTitleWidth = globalChartStore.titleOfElevationPlot.length * globalChartStore.fontSize
+  const endOfTitle = rect.left + middleHorizontalOffset + assumedTitleWidth / 2
+  const spaceSize = rect.right - endOfTitle
+  const centerOfLegend = endOfTitle + spaceSize / 2
+  const assumedLegendWidth = assumedTitleWidth
+  const leftLegendOffset = centerOfLegend - assumedLegendWidth / 2
+  const left = `${leftLegendOffset}px`
+
+  const topOffset = rowOffset * globalChartStore.fontSize
+  const top = `${rect.top + topOffset}px`
+
+  return {
+    position: 'absolute',
+    top: top,
+    left: left,
+    transform: 'none'
+  } as LegendDialogStyle
+}
 
 const initMainLegendPosition = () => {
-  const thisChartWrapper = document.querySelector('.chart-wrapper') as HTMLElement
-  if (thisChartWrapper) {
-    const rect = thisChartWrapper.getBoundingClientRect()
-    globalChartStore.scrollX = window.scrollX
-    globalChartStore.scrollY = window.scrollY
-    // Convert rem to pixels (1rem = 16px by default)
-    const middleHorizontalOffset = rect.width / 2 // n rem from the left
-    const assumedTitleWidth =
-      globalChartStore.titleOfElevationPlot.length * globalChartStore.fontSize
-    const endOfTitle = rect.left + middleHorizontalOffset + assumedTitleWidth / 2
-    const spaceSize = rect.right - endOfTitle
-    const centerOfLegend = endOfTitle + spaceSize / 2
-    const assumedLegendWidth = assumedTitleWidth // They are about the same cefgw
-    const leftLegendOffset = centerOfLegend - assumedLegendWidth / 2
-    const left = `${leftLegendOffset}px`
-
-    const topOffset = 0.25 * globalChartStore.fontSize // n rem from the top
-    const top = `${rect.top + topOffset}px`
-
-    // console.log('SrElevationPlot initMainLegendPosition:', {
-    //     windowScrollX,
-    //     windowScrollY,
-    //     fontSize: globalChartStore.fontSize,
-    //     topOffset,
-    //     endOfTitle,
-    //     middleHorizontalOffset,
-    //     middleX,
-    //     leftLegendOffset,
-    //     assumedTitleWidth,
-    //     spaceSize,
-    //     centerOfLegend,
-    //     top,
-    //     left,
-    //     rect_top,
-    //     rect_left,
-    //     rect_right,
-    //     rect_bottom
-    //});
-
-    mainLegendDialogStyle.value = {
-      position: 'absolute',
-      top: top,
-      left: left,
-      transform: 'none' // Remove centering transformation
-    }
+  // Initialize gradient legend at row 0 (top)
+  const gradientStyle = calculateLegendPosition(0.25)
+  if (gradientStyle) {
+    gradientLegendDialogStyle.value = gradientStyle
   } else {
-    logger.warn('initMainLegendPosition: thisChartWrapper is null')
+    logger.warn('initMainLegendPosition: chartWrapper is null for gradient legend')
+  }
+
+  // Initialize solid color legend at row 1.5 (slightly below gradient)
+  const solidColorStyle = calculateLegendPosition(1.5)
+  if (solidColorStyle) {
+    solidColorLegendDialogStyle.value = solidColorStyle
+  } else {
+    logger.warn('initMainLegendPosition: chartWrapper is null for solid color legend')
   }
 }
 
 const initOverlayLegendPosition = () => {
-  const thisChartWrapper = document.querySelector('.chart-wrapper') as HTMLElement
-  if (thisChartWrapper) {
-    const rect = thisChartWrapper.getBoundingClientRect()
-    globalChartStore.scrollX = window.scrollX
-    globalChartStore.scrollY = window.scrollY
-    // Convert rem to pixels (1rem = 16px by default)
-    const middleHorizontalOffset = rect.width / 2 // n rem from the left
-    const assumedTitleWidth =
-      globalChartStore.titleOfElevationPlot.length * globalChartStore.fontSize
-    const endOfTitle = rect.left + middleHorizontalOffset + assumedTitleWidth / 2
-    const spaceSize = rect.right - endOfTitle
-    const centerOfLegend = endOfTitle + spaceSize / 2
-    const assumedLegendWidth = assumedTitleWidth // They are about the same cefgw
-    const leftLegendOffset = centerOfLegend - assumedLegendWidth / 2
-    const left = `${leftLegendOffset}px`
-
-    const topOffset = 3 * globalChartStore.fontSize // n rem from the top
-    const top = `${rect.top + topOffset}px`
-
-    // console.log('SrElevationPlot initOverlayLegendPosition:', {
-    //     windowScrollX,
-    //     windowScrollY,
-    //     fontSize: globalChartStore.fontSize,
-    //     topOffset,
-    //     endOfTitle,
-    //     middleHorizontalOffset,
-    //     middleX,
-    //     leftLegendOffset,
-    //     assumedTitleWidth,
-    //     spaceSize,
-    //     centerOfLegend,
-    //     top,
-    //     left,
-    //     rect_top,
-    //     rect_left,
-    //     rect_right,
-    //     rect_bottom
-    // });
-
-    overlayLegendDialogStyle.value = {
-      position: 'absolute',
-      top: top,
-      left: left,
-      transform: 'none' // Remove centering transformation
-    }
+  // Initialize overlay gradient at row 3
+  const overlayGradientStyle = calculateLegendPosition(3)
+  if (overlayGradientStyle) {
+    overlayGradientDialogStyle.value = overlayGradientStyle
   } else {
-    logger.warn('initOverlayLegendPosition: thisChartWrapper is null')
+    logger.warn('initOverlayLegendPosition: chartWrapper is null for overlay gradient')
+  }
+
+  // Initialize ATL08 colors at row 4.5
+  const atl08Style = calculateLegendPosition(4.5)
+  if (atl08Style) {
+    atl08ColorsDialogStyle.value = atl08Style
+  } else {
+    logger.warn('initOverlayLegendPosition: chartWrapper is null for ATL08 colors')
+  }
+
+  // Initialize ATL03 colors at row 6
+  const atl03Style = calculateLegendPosition(6)
+  if (atl03Style) {
+    atl03ColorsDialogStyle.value = atl03Style
+  } else {
+    logger.warn('initOverlayLegendPosition: chartWrapper is null for ATL03 colors')
+  }
+
+  // Initialize ATL24 colors at row 7.5
+  const atl24Style = calculateLegendPosition(7.5)
+  if (atl24Style) {
+    atl24ColorsDialogStyle.value = atl24Style
+  } else {
+    logger.warn('initOverlayLegendPosition: chartWrapper is null for ATL24 colors')
   }
 }
 const reqId = computed(() => recTreeStore.selectedReqId)
@@ -1068,7 +1069,7 @@ watch(
               { 'sr-legend-pinned': gradientLegendPinned }
             ]"
             :appendTo="chartWrapperRef"
-            :style="mainLegendDialogStyle"
+            :style="gradientLegendDialogStyle"
           >
             <template #header>
               <div v-touch-drag class="sr-legend-header">
@@ -1106,7 +1107,7 @@ watch(
               { 'sr-legend-pinned': solidColorLegendPinned }
             ]"
             :appendTo="chartWrapperRef"
-            :style="mainLegendDialogStyle"
+            :style="solidColorLegendDialogStyle"
           >
             <template #header>
               <div v-touch-drag class="sr-legend-header">
@@ -1145,7 +1146,7 @@ watch(
               { 'sr-legend-pinned': overlayGradientPinned }
             ]"
             :appendTo="chartWrapperRef"
-            :style="overlayLegendDialogStyle"
+            :style="overlayGradientDialogStyle"
           >
             <template #header>
               <div v-touch-drag class="sr-legend-header">
@@ -1183,7 +1184,7 @@ watch(
               { 'sr-legend-pinned': atl08ColorsPinned }
             ]"
             appendTo="self"
-            :style="overlayLegendDialogStyle"
+            :style="atl08ColorsDialogStyle"
           >
             <template #header>
               <div v-touch-drag class="sr-legend-header">
@@ -1219,7 +1220,7 @@ watch(
               { 'sr-legend-pinned': atl03ColorsPinned }
             ]"
             appendTo="self"
-            :style="overlayLegendDialogStyle"
+            :style="atl03ColorsDialogStyle"
           >
             <template #header>
               <div v-touch-drag class="sr-legend-header">
@@ -1255,7 +1256,7 @@ watch(
               { 'sr-legend-pinned': atl24ColorsPinned }
             ]"
             appendTo="self"
-            :style="overlayLegendDialogStyle"
+            :style="atl24ColorsDialogStyle"
           >
             <template #header>
               <div v-touch-drag class="sr-legend-header">
