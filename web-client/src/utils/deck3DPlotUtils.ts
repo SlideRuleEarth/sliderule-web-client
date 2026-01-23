@@ -230,23 +230,30 @@ function createDeck(container: HTMLDivElement) {
     },
     onHover: (info) => {
       // Feature 3: Update location finder on 2D map when hovering over 3D points
+      // Also show hover marker in 3D view at the hovered point
+      // Only active when "Link to Plot" is enabled
       const globalChartStore = useGlobalChartStore()
+
       if (!globalChartStore.enableLocationFinder) {
-        // logger.debug('Location finder disabled, skipping hover update')
-        return
+        return // Respect "Link to Plot" toggle
       }
 
       if (info.object && info.object.lat !== undefined && info.object.lon !== undefined) {
-        // logger.debug('3D hover: updating location finder', {
-        //   lat: info.object.lat,
-        //   lon: info.object.lon
-        // })
+        // Update 2D map location finder
         globalChartStore.locationFinderLat = info.object.lat
         globalChartStore.locationFinderLon = info.object.lon
+
+        // Show hover marker in 3D view at the hovered point's position
+        if (info.object.position) {
+          deck3DConfigStore.hoverMarkerPosition = info.object.position
+          deck3DConfigStore.hoverMarkerColor = [0, 255, 255, 255] // Cyan for 3D hover
+          deck3DConfigStore.hoverMarkerSizeMultiplier = 5 // Make marker visible
+        }
       } else {
-        // Mouse left point - hide marker by setting NaN
+        // Mouse left point - hide markers
         globalChartStore.locationFinderLat = NaN
         globalChartStore.locationFinderLon = NaN
+        deck3DConfigStore.hoverMarkerPosition = null
       }
     },
     getTooltip: (info) => {
@@ -288,7 +295,8 @@ function createDeck(container: HTMLDivElement) {
         }
       }
     },
-    debug: deck3DConfigStore.debug
+    debug: deck3DConfigStore.debug,
+    getCursor: () => 'default' // Use arrow cursor instead of hand
   })
 }
 

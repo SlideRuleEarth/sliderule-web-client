@@ -224,13 +224,6 @@ watch(
     globalChartStore.mapHoverIsSelected
   ],
   ([lat, lon, isSelected]) => {
-    // logger.debug('3D view watcher: mapHover changed', {
-    //   lat,
-    //   lon,
-    //   isSelected,
-    //   dataLoaded: is3DDataLoaded(),
-    //   transformReady: isTransformCacheReady()
-    // })
     if (!isTransformCacheReady()) return // Guard against transform before render completes
     if (
       lat !== null &&
@@ -240,7 +233,6 @@ watch(
     ) {
       // Transform 2D map coordinates to 3D world position
       const worldPos = transformLatLonTo3DWorld(lat as number, lon as number)
-      // logger.debug('3D marker: transform result', { lat, lon, worldPos, isSelected })
       if (worldPos) {
         deck3DConfigStore.hoverMarkerPosition = worldPos
         // Set marker color: blue if on selected track, red if not
@@ -261,6 +253,17 @@ watch(
       }
     }
   }
+)
+
+// Watch hover marker position changes (from 3D hover or 2D map hover)
+// This ensures the marker layer gets updated when hovering in 3D view
+watch(
+  () => deck3DConfigStore.hoverMarkerPosition,
+  () => {
+    if (!is3DDataLoaded()) return
+    debouncedRender(localDeckContainer)
+  },
+  { deep: true }
 )
 </script>
 
