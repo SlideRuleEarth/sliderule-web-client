@@ -966,7 +966,9 @@ async function handlePhotonCloudShow() {
     }
   } else {
     // we already have the data
+    // Initialize color encoding BEFORE registering overlay to prevent showing wrong legend dialog
     initializeColorEncoding(runContext.reqId, parentFuncStr)
+    atlChartFilterStore.setSelectedOverlayedReqIds([runContext.reqId])
     const sced = chartStore.getSelectedColorEncodeData(parentReqIdStr)
     //console.log('sced:', sced, ' reqIdStr:', parentReqIdStr);
     chartStore.setSavedColorEncodeData(parentReqIdStr, sced)

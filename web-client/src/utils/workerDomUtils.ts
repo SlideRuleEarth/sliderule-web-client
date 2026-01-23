@@ -21,7 +21,11 @@ import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 import router from '@/router/index.js'
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore'
 import { useChartStore } from '@/stores/chartStore'
-import { callPlotUpdateDebounced, updateWhereClauseAndXData } from '@/utils/plotUtils'
+import {
+  callPlotUpdateDebounced,
+  updateWhereClauseAndXData,
+  initializeColorEncoding
+} from '@/utils/plotUtils'
 import { useRecTreeStore } from '@/stores/recTreeStore'
 import { useServerStateStore } from '@/stores/serverStateStore'
 import { useGeoJsonStore } from '@/stores/geoJsonStore'
@@ -246,6 +250,10 @@ const handleWorkerMsg = async (workerMsg: WorkerMessage) => {
             await updateWhereClauseAndXData(workerMsg.req_id)
             await readOrCacheSummary(workerMsg.req_id)
             await prepareDbForReqId(workerMsg.req_id)
+            // Initialize color encoding BEFORE registering overlay to prevent showing wrong legend dialog
+            const parentFunc = useRecTreeStore().findApiForReqId(rc.parentReqId)
+            const overlayParentFunc = parentFunc === 'atl24x' ? 'atl24x' : 'atl03x'
+            initializeColorEncoding(workerMsg.req_id, overlayParentFunc)
             atlChartFilterStore.setSelectedOverlayedReqIds([workerMsg.req_id])
             void callPlotUpdateDebounced(`opfs_ready ${workerMsg.req_id}`)
           } else {
