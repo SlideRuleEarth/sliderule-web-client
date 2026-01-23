@@ -101,7 +101,14 @@
       />
     </div>
     <div class="sr-export-panel">
-      <SrExportSelected :reqId="props.reqId" />
+      <Button
+        icon="pi pi-file-export"
+        label="Export CSV"
+        class="sr-export-btn sr-glow-button"
+        @click="exportCsv"
+        variant="text"
+        rounded
+      />
     </div>
     <div class="sr-sql-stmnt">
       <SrSqlStmnt
@@ -151,7 +158,9 @@ import type { SelectChangeEvent } from 'primevue/select'
 import { useActiveTabStore } from '@/stores/activeTabStore'
 import { useFieldNameStore } from '@/stores/fieldNameStore'
 import { useToast } from 'primevue/usetoast'
-import SrExportSelected from './SrExportSelected.vue'
+import Button from 'primevue/button'
+import { createDuckDbClient } from '@/utils/SrDuckDb'
+import { streamSqlQueryToCSV } from '@/utils/SrDbShellUtils'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('SrPlotCntrl')
@@ -411,6 +420,16 @@ const handleAtl24ClassColorChanged = async () => {
 const handleSolidColorChanged = async () => {
   logger.debug('handleSolidColorChanged')
   await callPlotUpdateDebounced('from handleSolidColorChanged')
+}
+
+async function exportCsv() {
+  const sqlStmnt = chartStore.getQuerySql(reqIdStr.value)
+  if (!sqlStmnt) {
+    logger.error('No SQL statement found for export', { reqId: props.reqId })
+    return
+  }
+  const duckDbClient = await createDuckDbClient()
+  void streamSqlQueryToCSV(duckDbClient, sqlStmnt, props.reqId)
 }
 </script>
 
