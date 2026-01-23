@@ -37,10 +37,11 @@
       />
     </div>
     <div>
-      <label class="sr-pnt-sz-label" for="pointSizeId">Point Size</label>
+      <label class="sr-pnt-sz-label" for="pointSizeId">Pt Sz</label>
       <InputNumber
         v-model="deck3DConfigStore.pointSize"
         inputId="pointSizeId"
+        class="sr-narrow-input"
         size="small"
         :step="0.1"
         :min="0.1"
@@ -53,7 +54,7 @@
       />
     </div>
     <div>
-      <label class="sr-vert-exag-label" for="vertExagId">Vertical Exaggeration</label>
+      <label class="sr-vert-exag-label" for="vertExagId">Vert Exag</label>
       <InputNumber
         v-model="deck3DConfigStore.verticalExaggeration"
         inputId="vertExagId"
@@ -80,7 +81,15 @@ import { useDeck3DConfigStore } from '@/stores/deck3DConfigStore'
 import SrDeck3DCfg from '@/components/SrDeck3DCfg.vue'
 import Button from 'primevue/button'
 import { InputNumber } from 'primevue'
-import { finalizeDeck, loadAndCachePointCloudData, updateFovy } from '@/utils/deck3DPlotUtils'
+import {
+  finalizeDeck,
+  loadAndCachePointCloudData,
+  updateFovy,
+  transformLatLonTo3DWorld,
+  is3DDataLoaded,
+  isTransformCacheReady
+} from '@/utils/deck3DPlotUtils'
+import { useGlobalChartStore } from '@/stores/globalChartStore'
 import { debouncedRender } from '@/utils/SrDebounce'
 import { yColorEncodeSelectedReactive } from '@/utils/plotUtils'
 import Select from 'primevue/select'
@@ -94,6 +103,7 @@ const recTreeStore = useRecTreeStore()
 const chartStore = useChartStore()
 const toast = useSrToastStore()
 const deck3DConfigStore = useDeck3DConfigStore()
+const globalChartStore = useGlobalChartStore()
 const reqId = computed(() => recTreeStore.selectedReqId)
 const elevationStore = useElevationColorMapStore()
 const computedFunc = computed(() => recTreeStore.selectedApi)
@@ -185,10 +195,76 @@ watch(reqId, async (newVal, oldVal) => {
 watch(
   () => deck3DConfigStore.fovy,
   (newFov) => {
+    if (!is3DDataLoaded()) return
     logger.debug('FOV updated', { newFov })
     updateFovy(newFov)
     debouncedRender(localDeckContainer) // Use the fast, debounced renderer
   }
+)
+
+// Feature 1: Watch selection changes to update highlighted track in 3D view
+watch(
+  () => globalChartStore.getSelectedTrackOptions(),
+  () => {
+    if (!is3DDataLoaded()) return // Guard against render before data is loaded
+    // logger.debug('Selection changed, re-rendering 3D view')
+    debouncedRender(localDeckContainer)
+  },
+  { deep: true }
+)
+
+// Feature 2: Watch 2D map hover to show marker in 3D view
+// Note: Animation removed because debouncedRender causes stuttering.
+// Marker is shown at a fixed size (5x point size) for reliability.
+const MARKER_SIZE_MULTIPLIER = 5
+
+watch(
+  () => [
+    globalChartStore.mapHoverLat,
+    globalChartStore.mapHoverLon,
+    globalChartStore.mapHoverIsSelected
+  ],
+  ([lat, lon, isSelected]) => {
+    if (!isTransformCacheReady()) return // Guard against transform before render completes
+    if (
+      lat !== null &&
+      lon !== null &&
+      Number.isFinite(lat as number) &&
+      Number.isFinite(lon as number)
+    ) {
+      // Transform 2D map coordinates to 3D world position
+      const worldPos = transformLatLonTo3DWorld(lat as number, lon as number)
+      if (worldPos) {
+        deck3DConfigStore.hoverMarkerPosition = worldPos
+        // Set marker color: blue if on selected track, red if not
+        deck3DConfigStore.hoverMarkerColor = isSelected
+          ? [0, 0, 255, 255] // Blue for selected track
+          : [255, 0, 0, 255] // Red for non-selected track
+        // Set fixed size and render
+        deck3DConfigStore.hoverMarkerSizeMultiplier = MARKER_SIZE_MULTIPLIER
+        debouncedRender(localDeckContainer)
+      } else {
+        logger.warn('3D marker: transformLatLonTo3DWorld returned null', { lat, lon })
+      }
+    } else {
+      // Hide marker when hover ends
+      if (deck3DConfigStore.hoverMarkerPosition !== null) {
+        deck3DConfigStore.hoverMarkerPosition = null
+        debouncedRender(localDeckContainer)
+      }
+    }
+  }
+)
+
+// Watch hover marker position changes (from 3D hover or 2D map hover)
+// This ensures the marker layer gets updated when hovering in 3D view
+watch(
+  () => deck3DConfigStore.hoverMarkerPosition,
+  () => {
+    if (!is3DDataLoaded()) return
+    debouncedRender(localDeckContainer)
+  },
+  { deep: true }
 )
 </script>
 
@@ -273,5 +349,8 @@ watch(
   margin-right: 0.2rem;
   align-items: center;
   justify-content: center;
+}
+.sr-narrow-input {
+  width: 5rem;
 }
 </style>

@@ -63,6 +63,21 @@
             @input="handleChange"
           />
         </div>
+        <div class="config-item" v-if="globalChartStore.enableLocationFinder">
+          <label for="markerScale">Hover Marker %</label>
+          <InputNumber
+            v-model="store.hoverMarkerScale"
+            :min="0.5"
+            :max="20"
+            :step="0.5"
+            :minFractionDigits="1"
+            :maxFractionDigits="1"
+            size="small"
+            id="markerScale"
+            :showButtons="true"
+            @input="handleChange"
+          />
+        </div>
         <div class="config-item-centered">
           <Button
             label="Update View"
@@ -148,6 +163,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useDeck3DConfigStore } from '@/stores/deck3DConfigStore'
+import { useGlobalChartStore } from '@/stores/globalChartStore'
 import InputNumber from 'primevue/inputnumber'
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue'
 import { useRecTreeStore } from '@/stores/recTreeStore'
@@ -158,6 +174,7 @@ import { storeToRefs } from 'pinia'
 
 const recTreeStore = useRecTreeStore()
 const deck3DConfigStore = useDeck3DConfigStore()
+const globalChartStore = useGlobalChartStore()
 const { deckContainer } = storeToRefs(deck3DConfigStore)
 const reqId = computed(() => recTreeStore.selectedReqId)
 const tooltipRef = ref()

@@ -1,4 +1,6 @@
 import { PointCloudLayer } from '@deck.gl/layers'
+import { SimpleMeshLayer } from '@deck.gl/mesh-layers'
+import { SphereGeometry } from '@luma.gl/engine'
 import { createDuckDbClient } from '@/utils/SrDuckDb'
 import { db as indexedDb } from '@/db/SlideRuleDb'
 import { computeSamplingRate } from '@/utils/SrDuckDbUtils'
@@ -14,6 +16,7 @@ import { Deck } from '@deck.gl/core'
 import proj4 from 'proj4'
 import { useRecTreeStore } from '@/stores/recTreeStore'
 import { useChartStore } from '@/stores/chartStore'
+import { useGlobalChartStore } from '@/stores/globalChartStore'
 
 // import log from '@probe.gl/log';
 // log.level = 1;  // 0 = silent, 1 = minimal, 2 = verbose
@@ -41,6 +44,28 @@ const deckInstance: Ref<Deck<OrbitView[]> | null> = ref(null)
 let cachedRawData: any[] = []
 let lastLoadedReqId: number | null = null
 let verticalExaggerationInitialized = false
+
+// Transformation cache for coordinate transformation (2D map hover -> 3D)
+let transformCache: {
+  dstCrs: string
+  lonMin: number
+  latMin: number
+  metersToWorld: number
+  h0: number
+  zToWorld: number
+} | null = null
+
+// Cached point cloud data for hover marker positioning
+let cachedPointCloudData: Array<{
+  position: [number, number, number]
+  lat: number
+  lon: number
+  elevation: number
+  track?: number
+  spot?: number
+  cycle?: number
+  rgt?: number
+}> = []
 
 // helper: pick a local metric CRS (UTM or polar)
 function pickLocalMetricCRS(lat: number, lon: number): string {
@@ -121,6 +146,22 @@ export function finalizeDeck() {
   }
 }
 
+/**
+ * Check if 3D data is loaded and ready for rendering.
+ * Use this to guard render calls that might be triggered before data loading completes.
+ */
+export function is3DDataLoaded(): boolean {
+  return lastLoadedReqId !== null && cachedRawData.length > 0
+}
+
+/**
+ * Check if the transform cache is populated (needed for coordinate transformation).
+ * This is populated after renderCachedData() runs successfully.
+ */
+export function isTransformCacheReady(): boolean {
+  return transformCache !== null && cachedPointCloudData.length > 0
+}
+
 export function recreateDeck(deckContainer: Ref<HTMLDivElement | null>): boolean {
   if (!deckContainer?.value) {
     logger.warn('Cannot recreate deck: container is null')
@@ -189,6 +230,34 @@ function createDeck(container: HTMLDivElement) {
     onViewStateChange: ({ viewState }) => {
       deck3DConfigStore.updateViewState(viewState)
     },
+    onHover: (info) => {
+      // Feature 3: Update location finder on 2D map when hovering over 3D points
+      // Also show hover marker in 3D view at the hovered point
+      // Only active when "Link to Plot" is enabled
+      const globalChartStore = useGlobalChartStore()
+
+      if (!globalChartStore.enableLocationFinder) {
+        return // Respect "Link to Plot" toggle
+      }
+
+      if (info.object && info.object.lat !== undefined && info.object.lon !== undefined) {
+        // Update 2D map location finder
+        globalChartStore.locationFinderLat = info.object.lat
+        globalChartStore.locationFinderLon = info.object.lon
+
+        // Show hover marker in 3D view at the hovered point's position
+        if (info.object.position) {
+          deck3DConfigStore.hoverMarkerPosition = info.object.position
+          deck3DConfigStore.hoverMarkerColor = [0, 255, 255, 255] // Cyan for 3D hover
+          deck3DConfigStore.hoverMarkerSizeMultiplier = 5 // Make marker visible
+        }
+      } else {
+        // Mouse left point - hide markers
+        globalChartStore.locationFinderLat = NaN
+        globalChartStore.locationFinderLon = NaN
+        deck3DConfigStore.hoverMarkerPosition = null
+      }
+    },
     getTooltip: (info) => {
       if (!info.object) return null
       const { lat, lon, elevation, cycle, time, colorByLabel, colorByValue } = info.object
@@ -228,7 +297,8 @@ function createDeck(container: HTMLDivElement) {
         }
       }
     },
-    debug: deck3DConfigStore.debug
+    debug: deck3DConfigStore.debug,
+    getCursor: () => 'default' // Use arrow cursor instead of hand
   })
 }
 
@@ -550,7 +620,10 @@ export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
         lat: d[latField],
         lon: d[lonField],
         elevation: d[zField],
+        track: d['track'] ?? null,
+        spot: d['spot'] ?? null,
         cycle: d['cycle'] ?? null,
+        rgt: d['rgt'] ?? null,
         time: d[timeField] ?? null,
         colorByLabel,
         colorByValue
@@ -558,6 +631,19 @@ export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
     })
 
   const sanitizedPointCloudData = sanitizeDeckData(pointCloudData)
+
+  // Store transformation cache for coordinate transformation (2D map hover -> 3D)
+  transformCache = {
+    dstCrs,
+    lonMin,
+    latMin,
+    metersToWorld,
+    h0,
+    zToWorld
+  }
+
+  // Store cached point cloud data for hover marker positioning
+  cachedPointCloudData = pointCloudData
 
   computeCentroid(pointCloudData.map((p) => p.position))
 
@@ -573,6 +659,101 @@ export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
   })
 
   const layers: Layer<any>[] = [layer]
+
+  // --- Feature 1: Selection highlight layer ---
+  const globalChartStore = useGlobalChartStore()
+  const selectedTracks = globalChartStore.getTracks()
+  const selectedSpots = globalChartStore.getSpots()
+  const selectedCycles = globalChartStore.getCycles()
+  const selectedRgt = globalChartStore.getRgt()
+
+  // Check if there's an active selection
+  const hasSelection =
+    selectedTracks.length > 0 ||
+    selectedSpots.length > 0 ||
+    selectedCycles.length > 0 ||
+    selectedRgt !== -1
+
+  // logger.debug('Selection state for 3D highlight', {
+  //   selectedTracks,
+  //   selectedSpots,
+  //   selectedCycles,
+  //   selectedRgt,
+  //   hasSelection,
+  //   samplePointData: pointCloudData.length > 0 ? {
+  //     track: pointCloudData[0].track,
+  //     spot: pointCloudData[0].spot,
+  //     cycle: pointCloudData[0].cycle,
+  //     rgt: pointCloudData[0].rgt
+  //   } : null
+  // })
+
+  if (hasSelection) {
+    // Filter points that match the selection criteria
+    // Note: ICESat-2 data uses spot/cycle/rgt, not track. GEDI uses track/orbit/beam.
+    // Only apply filters when the field exists in the data AND there's a selection for it.
+    const selectedPointCloudData = pointCloudData.filter((d) => {
+      // Track filtering: only apply if data has track field AND tracks are selected
+      // For ICESat-2, track is null so this is skipped
+      const trackMatch =
+        selectedTracks.length === 0 || d.track === null || selectedTracks.includes(d.track)
+
+      // Spot filtering: only apply if spots are selected AND data has spot field
+      const spotMatch =
+        selectedSpots.length === 0 || d.spot === null || selectedSpots.includes(d.spot)
+
+      // Cycle filtering: only apply if cycles are selected AND data has cycle field
+      const cycleMatch =
+        selectedCycles.length === 0 || d.cycle === null || selectedCycles.includes(d.cycle)
+
+      // RGT filtering: only apply if rgt is selected (not -1) AND data has rgt field
+      const rgtMatch = selectedRgt === -1 || d.rgt === null || d.rgt === selectedRgt
+
+      return trackMatch && spotMatch && cycleMatch && rgtMatch
+    })
+
+    // logger.debug('Selection highlight filtering', {
+    //   totalPoints: pointCloudData.length,
+    //   selectedPoints: selectedPointCloudData.length
+    // })
+
+    if (selectedPointCloudData.length > 0) {
+      const highlightedLayer = new PointCloudLayer({
+        id: 'point-cloud-layer-selected',
+        data: sanitizeDeckData(selectedPointCloudData),
+        getPosition: (d) => d.position,
+        getColor: () => deck3DConfigStore.highlightColor,
+        pointSize: deck3DConfigStore.pointSize * deck3DConfigStore.highlightedPointSizeMultiplier,
+        opacity: 1.0,
+        pickable: true
+      })
+      layers.push(highlightedLayer)
+    }
+  }
+
+  // --- Feature 2: Hover marker layer (2D map hover -> 3D marker) ---
+  // Uses SimpleMeshLayer with SphereGeometry for a 3D sphere visible from all angles
+  // Size is calculated as a percentage of the smallest data extent, adjustable via hoverMarkerScale
+  if (deck3DConfigStore.hoverMarkerPosition) {
+    const sphereGeometry = new SphereGeometry({ radius: 1, nlat: 16, nlong: 16 })
+    // Calculate marker size based on data extent (use smallest axis for reference)
+    const minExtent = Math.min(scaleX, scaleY, scaleZ)
+    const markerSize = minExtent * (deck3DConfigStore.hoverMarkerScale / 100) // hoverMarkerScale is percentage
+    const markerLayer = new SimpleMeshLayer({
+      id: 'hover-marker-layer',
+      data: [
+        {
+          position: deck3DConfigStore.hoverMarkerPosition
+        }
+      ],
+      mesh: sphereGeometry,
+      getPosition: (d: any) => d.position,
+      getColor: [255, 0, 0, 255], // Red sphere
+      sizeScale: markerSize,
+      pickable: false
+    })
+    layers.push(markerLayer)
+  }
 
   if (deck3DConfigStore.showAxes) {
     layers.push(
@@ -610,4 +791,60 @@ export function updateFovy(fovy: number) {
       })
     ]
   })
+}
+
+/**
+ * Find the nearest point's elevation from cached data given lat/lon coordinates.
+ * Uses simple linear search (data is already sampled, so n is manageable).
+ */
+export function findNearestPointElevation(lat: number, lon: number): number | null {
+  if (!cachedPointCloudData.length) return null
+
+  let minDist = Infinity
+  let nearestElev: number | null = null
+
+  for (const point of cachedPointCloudData) {
+    const dLat = point.lat - lat
+    const dLon = point.lon - lon
+    const dist = dLat * dLat + dLon * dLon // squared distance
+    if (dist < minDist) {
+      minDist = dist
+      nearestElev = point.elevation
+    }
+  }
+
+  return nearestElev
+}
+
+/**
+ * Transform lat/lon coordinates to 3D world coordinates.
+ * Uses the cached transformation parameters from the last render.
+ * Returns null if no transformation cache is available.
+ */
+export function transformLatLonTo3DWorld(
+  lat: number,
+  lon: number
+): [number, number, number] | null {
+  if (!transformCache || !cachedPointCloudData.length) {
+    return null
+  }
+
+  const { dstCrs, lonMin, latMin, metersToWorld, h0, zToWorld } = transformCache
+
+  // Find elevation at this location (use nearest point)
+  const elevation = findNearestPointElevation(lat, lon)
+  if (elevation === null) {
+    return null
+  }
+
+  // Transform to local metric CRS
+  const [E, N] = proj4('EPSG:4326', dstCrs, [lon, lat])
+  const [Emin, Nmin] = proj4('EPSG:4326', dstCrs, [lonMin, latMin])
+
+  // Convert to world coordinates (same transformation as in renderCachedData)
+  const x = metersToWorld * (E - Emin)
+  const y = metersToWorld * (N - Nmin)
+  const z = zToWorld * (elevation - h0)
+
+  return [x, y, z]
 }

@@ -12,7 +12,7 @@ import {
   ToolboxComponent
 } from 'echarts/components'
 import VChart, { THEME_KEY } from 'vue-echarts'
-import { provide, watch, onMounted, onUnmounted, ref, computed } from 'vue'
+import { provide, watch, onMounted, onUnmounted, ref, computed, nextTick } from 'vue'
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore'
 import { useChartStore } from '@/stores/chartStore'
 import { useRequestsStore } from '@/stores/requestsStore'
@@ -46,7 +46,7 @@ import SrAtl24Colors from './SrAtl24Colors.vue'
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue'
 import Dialog from 'primevue/dialog'
 import type { AppendToType } from '@/types/SrTypes'
-import { processSelectedElPnt } from '@/utils/SrMapUtils'
+import { processSelectedElPnt, getScrollableAncestors } from '@/utils/SrMapUtils'
 import SrCycleSelect from '@/components/SrCycleSelect.vue'
 import SrSimpleYatcCntrl from './SrSimpleYatcCntrl.vue'
 import ProgressSpinner from 'primevue/progressspinner'
@@ -55,6 +55,7 @@ import { useFieldNameStore } from '@/stores/fieldNameStore'
 import Checkbox from 'primevue/checkbox'
 import Button from 'primevue/button'
 import { createLogger } from '@/utils/logger'
+import { vTouchDrag } from '@/directives/touchDrag'
 
 const logger = createLogger('SrElevationPlot')
 
@@ -79,6 +80,184 @@ const analysisMapStore = useAnalysisMapStore()
 const fieldNameStore = useFieldNameStore()
 const loadingComponent = ref(true)
 const dialogsInitialized = ref(false) // Track if dialogs have been initialized
+
+// Pinned state for each legend - when pinned, legend scrolls with plot content
+const gradientLegendPinned = ref(false)
+const solidColorLegendPinned = ref(false)
+const overlayGradientPinned = ref(false)
+const atl08ColorsPinned = ref(false)
+const atl03ColorsPinned = ref(false)
+const atl24ColorsPinned = ref(false)
+
+/**
+ * Update pinned legend positions based on chart position.
+ * Called on scroll to keep pinned legends fixed relative to chart.
+ */
+const updatePinnedLegendPositions = () => {
+  const chartWrapper = chartWrapperRef.value as HTMLElement
+  if (!chartWrapper) return
+
+  const chartRect = chartWrapper.getBoundingClientRect()
+
+  // Update each pinned legend
+  const pinnedDialogs = document.querySelectorAll('.sr-legend-pinned')
+  pinnedDialogs.forEach((dialog) => {
+    const el = dialog as HTMLElement
+    const pinnedTop = el.dataset.pinnedTop
+    const pinnedLeft = el.dataset.pinnedLeft
+
+    if (pinnedTop !== undefined && pinnedLeft !== undefined) {
+      // Position legend relative to current chart position
+      el.style.top = `${chartRect.top + parseFloat(pinnedTop)}px`
+      el.style.left = `${chartRect.left + parseFloat(pinnedLeft)}px`
+    }
+  })
+}
+
+// Scroll handler and containers for cleanup
+let scrollHandler: (() => void) | null = null
+let scrollContainers: (Element | Window)[] = []
+
+/**
+ * Set up scroll listeners on all scrollable ancestors of the chart.
+ * This ensures pinned legends update position when any container scrolls.
+ */
+const setupScrollListeners = () => {
+  const chartWrapper = chartWrapperRef.value as HTMLElement
+  if (!chartWrapper || scrollHandler) return
+
+  scrollHandler = () => {
+    requestAnimationFrame(updatePinnedLegendPositions)
+  }
+
+  // Get all scrollable ancestors (same approach as SrLocationFinder)
+  scrollContainers = getScrollableAncestors(chartWrapper)
+  // Also add window for page-level scroll
+  scrollContainers.push(window)
+
+  for (const container of scrollContainers) {
+    container.addEventListener('scroll', scrollHandler, { passive: true })
+  }
+
+  logger.debug('Scroll listeners attached to containers', { count: scrollContainers.length })
+}
+
+/**
+ * Remove all scroll listeners.
+ */
+const removeScrollListeners = () => {
+  if (!scrollHandler) return
+
+  for (const container of scrollContainers) {
+    container.removeEventListener('scroll', scrollHandler)
+  }
+
+  scrollContainers = []
+  scrollHandler = null
+  logger.debug('Scroll listeners removed')
+}
+
+/**
+ * Toggle pin state for a legend dialog.
+ * When pinned, the legend stays fixed relative to the chart (scrolls with plot).
+ * When unpinned, the legend floats and can be repositioned.
+ */
+const toggleLegendPinInternal = async (
+  pinnedRef: typeof gradientLegendPinned,
+  dialogClass: string
+) => {
+  const dialog = document.querySelector(`.${dialogClass}`) as HTMLElement
+  const chartWrapper = chartWrapperRef.value as HTMLElement
+
+  if (!dialog || !chartWrapper) {
+    pinnedRef.value = !pinnedRef.value
+    return
+  }
+
+  // Get the dialog's current position BEFORE changing state
+  const dialogRect = dialog.getBoundingClientRect()
+  const chartRect = chartWrapper.getBoundingClientRect()
+
+  // Capture the current absolute screen position
+  const currentTop = dialogRect.top
+  const currentLeft = dialogRect.left
+
+  // Calculate position relative to chart (for scroll tracking)
+  const relativeTop = dialogRect.top - chartRect.top
+  const relativeLeft = dialogRect.left - chartRect.left
+
+  if (!pinnedRef.value) {
+    // PINNING: Toggle state first, then apply position after Vue re-renders
+    pinnedRef.value = true
+
+    // Wait for Vue to re-render with the new class
+    await nextTick()
+
+    // Re-query the dialog after re-render (class may have changed)
+    const pinnedDialog = document.querySelector(`.${dialogClass}`) as HTMLElement
+    if (pinnedDialog) {
+      // Store the relative position as data attributes
+      pinnedDialog.dataset.pinnedTop = String(relativeTop)
+      pinnedDialog.dataset.pinnedLeft = String(relativeLeft)
+
+      // Set the dialog to fixed position at captured location
+      pinnedDialog.style.top = `${currentTop}px`
+      pinnedDialog.style.left = `${currentLeft}px`
+      pinnedDialog.style.transform = 'none'
+    }
+
+    // Set up scroll listeners if not already active
+    setupScrollListeners()
+
+    // Animate the lock icon (scale up then fade)
+    const pinButton = pinnedDialog?.querySelector('.sr-pin-button') as HTMLElement
+    if (pinButton) {
+      pinButton.classList.add('sr-pin-animating')
+      setTimeout(() => {
+        pinButton.classList.remove('sr-pin-animating')
+      }, 600)
+    }
+  } else {
+    // UNPINNING: Toggle state first, then restore position
+    pinnedRef.value = false
+
+    // Wait for Vue to re-render
+    await nextTick()
+
+    // Re-query the dialog after re-render
+    const unpinnedDialog = document.querySelector(`.${dialogClass}`) as HTMLElement
+    if (unpinnedDialog) {
+      // Clear stored position
+      delete unpinnedDialog.dataset.pinnedTop
+      delete unpinnedDialog.dataset.pinnedLeft
+
+      // Keep at current visual position
+      unpinnedDialog.style.top = `${currentTop}px`
+      unpinnedDialog.style.left = `${currentLeft}px`
+      unpinnedDialog.style.transform = 'none'
+    }
+
+    // Remove scroll listeners if no more pinned legends
+    const remainingPinned = document.querySelectorAll('.sr-legend-pinned')
+    if (remainingPinned.length === 0) {
+      removeScrollListeners()
+    }
+  }
+}
+
+// Individual toggle functions for each legend (to avoid template ref unwrapping issues)
+const toggleGradientLegendPin = async () =>
+  await toggleLegendPinInternal(gradientLegendPinned, 'sr-gradient-legend-dialog')
+const toggleSolidColorLegendPin = async () =>
+  await toggleLegendPinInternal(solidColorLegendPinned, 'sr-solid-color-legend-dialog')
+const toggleOverlayGradientPin = async () =>
+  await toggleLegendPinInternal(overlayGradientPinned, 'sr-overlay-gradient-dialog')
+const toggleAtl08ColorsPin = async () =>
+  await toggleLegendPinInternal(atl08ColorsPinned, 'sr-atl08-colors-dialog')
+const toggleAtl03ColorsPin = async () =>
+  await toggleLegendPinInternal(atl03ColorsPinned, 'sr-atl03-colors-dialog')
+const toggleAtl24ColorsPin = async () =>
+  await toggleLegendPinInternal(atl24ColorsPinned, 'sr-atl24-colors-dialog')
 
 use([
   CanvasRenderer,
@@ -575,6 +754,8 @@ onUnmounted(() => {
   setTooltipContentCallback(null)
   // Clean up context menu event listener
   document.removeEventListener('click', closeContextMenu)
+  // Clean up scroll listeners for pinned legends
+  removeScrollListeners()
 })
 
 watch(
@@ -879,110 +1060,224 @@ watch(
             v-if="chartWrapperRef !== undefined"
             v-model:visible="shouldDisplayGradientDialog"
             :closable="false"
-            :draggable="true"
+            :draggable="!gradientLegendPinned"
             :modal="false"
-            class="sr-floating-dialog"
+            :class="[
+              'sr-floating-dialog',
+              'sr-gradient-legend-dialog',
+              { 'sr-legend-pinned': gradientLegendPinned }
+            ]"
             :appendTo="chartWrapperRef"
             :style="mainLegendDialogStyle"
           >
             <template #header>
-              <SrGradientLegend
-                class="chart-overlay"
-                v-if="shouldDisplayMainGradient"
-                :reqId="reqId"
-                :transparentBackground="true"
-              />
+              <div v-touch-drag class="sr-legend-header">
+                <SrGradientLegend
+                  class="chart-overlay"
+                  v-if="shouldDisplayMainGradient"
+                  :reqId="reqId"
+                  :transparentBackground="true"
+                />
+                <Button
+                  :icon="gradientLegendPinned ? 'pi pi-lock' : 'pi pi-lock-open'"
+                  class="sr-pin-button"
+                  text
+                  rounded
+                  size="small"
+                  @click="toggleGradientLegendPin"
+                  :title="
+                    gradientLegendPinned
+                      ? 'Unpin legend (allow repositioning)'
+                      : 'Pin legend (scroll with plot)'
+                  "
+                />
+              </div>
             </template>
           </Dialog>
           <Dialog
             v-if="chartWrapperRef !== undefined"
             v-model:visible="shouldDisplayMainSolidColorLegend"
             :closable="false"
-            :draggable="true"
+            :draggable="!solidColorLegendPinned"
             :modal="false"
-            class="sr-floating-dialog"
+            :class="[
+              'sr-floating-dialog',
+              'sr-solid-color-legend-dialog',
+              { 'sr-legend-pinned': solidColorLegendPinned }
+            ]"
             :appendTo="chartWrapperRef"
             :style="mainLegendDialogStyle"
           >
             <template #header>
-              <SrSolidColorLegend
-                class="chart-overlay"
-                v-if="shouldDisplayMainSolidColorLegend"
-                :reqIdStr="reqIdStr"
-                :data_key="computedDataKey"
-                :transparentBackground="true"
-              />
+              <div v-touch-drag class="sr-legend-header">
+                <SrSolidColorLegend
+                  class="chart-overlay"
+                  v-if="shouldDisplayMainSolidColorLegend"
+                  :reqIdStr="reqIdStr"
+                  :data_key="computedDataKey"
+                  :transparentBackground="true"
+                />
+                <Button
+                  :icon="solidColorLegendPinned ? 'pi pi-lock' : 'pi pi-lock-open'"
+                  class="sr-pin-button"
+                  text
+                  rounded
+                  size="small"
+                  @click="toggleSolidColorLegendPin"
+                  :title="
+                    solidColorLegendPinned
+                      ? 'Unpin legend (allow repositioning)'
+                      : 'Pin legend (scroll with plot)'
+                  "
+                />
+              </div>
             </template>
           </Dialog>
           <Dialog
             v-if="chartWrapperRef !== undefined"
             v-model:visible="shouldDisplayOverlayGradient"
             :closable="false"
-            :draggable="true"
+            :draggable="!overlayGradientPinned"
             :modal="false"
-            class="sr-floating-dialog"
+            :class="[
+              'sr-floating-dialog',
+              'sr-overlay-gradient-dialog',
+              { 'sr-legend-pinned': overlayGradientPinned }
+            ]"
             :appendTo="chartWrapperRef"
             :style="overlayLegendDialogStyle"
           >
             <template #header>
-              <SrGradientLegend
-                class="chart-overlay"
-                v-if="shouldDisplayOverlayGradient"
-                :isOverlay="true"
-                :reqId="overlayReqId"
-                :transparentBackground="true"
-              />
+              <div v-touch-drag class="sr-legend-header">
+                <SrGradientLegend
+                  class="chart-overlay"
+                  v-if="shouldDisplayOverlayGradient"
+                  :isOverlay="true"
+                  :reqId="overlayReqId"
+                  :transparentBackground="true"
+                />
+                <Button
+                  :icon="overlayGradientPinned ? 'pi pi-lock' : 'pi pi-lock-open'"
+                  class="sr-pin-button"
+                  text
+                  rounded
+                  size="small"
+                  @click="toggleOverlayGradientPin"
+                  :title="
+                    overlayGradientPinned
+                      ? 'Unpin legend (allow repositioning)'
+                      : 'Pin legend (scroll with plot)'
+                  "
+                />
+              </div>
             </template>
           </Dialog>
           <Dialog
             v-model:visible="shouldDisplayAtl08Colors"
             :closable="false"
-            :draggable="true"
+            :draggable="!atl08ColorsPinned"
             :modal="false"
-            class="sr-floating-dialog"
+            :class="[
+              'sr-floating-dialog',
+              'sr-atl08-colors-dialog',
+              { 'sr-legend-pinned': atl08ColorsPinned }
+            ]"
             appendTo="self"
             :style="overlayLegendDialogStyle"
           >
             <template #header>
-              <SrAtl08Colors
-                :reqIdStr="recTreeStore.selectedReqIdStr"
-                class="chart-overlay"
-                v-if="shouldDisplayAtl08Colors"
-              />
+              <div v-touch-drag class="sr-legend-header">
+                <SrAtl08Colors
+                  :reqIdStr="recTreeStore.selectedReqIdStr"
+                  class="chart-overlay"
+                  v-if="shouldDisplayAtl08Colors"
+                />
+                <Button
+                  :icon="atl08ColorsPinned ? 'pi pi-lock' : 'pi pi-lock-open'"
+                  class="sr-pin-button"
+                  text
+                  rounded
+                  size="small"
+                  @click="toggleAtl08ColorsPin"
+                  :title="
+                    atl08ColorsPinned
+                      ? 'Unpin legend (allow repositioning)'
+                      : 'Pin legend (scroll with plot)'
+                  "
+                />
+              </div>
             </template>
           </Dialog>
           <Dialog
             v-model:visible="shouldDisplayAtl03Colors"
             :closable="false"
-            :draggable="true"
+            :draggable="!atl03ColorsPinned"
             :modal="false"
-            class="sr-floating-dialog"
+            :class="[
+              'sr-floating-dialog',
+              'sr-atl03-colors-dialog',
+              { 'sr-legend-pinned': atl03ColorsPinned }
+            ]"
             appendTo="self"
             :style="overlayLegendDialogStyle"
           >
             <template #header>
-              <SrAtl03CnfColors
-                :reqIdStr="recTreeStore.selectedReqIdStr"
-                class="chart-overlay"
-                v-if="shouldDisplayAtl03Colors"
-              />
+              <div v-touch-drag class="sr-legend-header">
+                <SrAtl03CnfColors
+                  :reqIdStr="recTreeStore.selectedReqIdStr"
+                  class="chart-overlay"
+                  v-if="shouldDisplayAtl03Colors"
+                />
+                <Button
+                  :icon="atl03ColorsPinned ? 'pi pi-lock' : 'pi pi-lock-open'"
+                  class="sr-pin-button"
+                  text
+                  rounded
+                  size="small"
+                  @click="toggleAtl03ColorsPin"
+                  :title="
+                    atl03ColorsPinned
+                      ? 'Unpin legend (allow repositioning)'
+                      : 'Pin legend (scroll with plot)'
+                  "
+                />
+              </div>
             </template>
           </Dialog>
           <Dialog
             v-model:visible="shouldDisplayAtl24Colors"
             :closable="false"
-            :draggable="true"
+            :draggable="!atl24ColorsPinned"
             :modal="false"
-            class="sr-floating-dialog"
+            :class="[
+              'sr-floating-dialog',
+              'sr-atl24-colors-dialog',
+              { 'sr-legend-pinned': atl24ColorsPinned }
+            ]"
             appendTo="self"
             :style="overlayLegendDialogStyle"
           >
             <template #header>
-              <SrAtl24Colors
-                :reqIdStr="recTreeStore.selectedReqIdStr"
-                class="chart-overlay"
-                v-if="shouldDisplayAtl24Colors"
-              />
+              <div v-touch-drag class="sr-legend-header">
+                <SrAtl24Colors
+                  :reqIdStr="recTreeStore.selectedReqIdStr"
+                  class="chart-overlay"
+                  v-if="shouldDisplayAtl24Colors"
+                />
+                <Button
+                  :icon="atl24ColorsPinned ? 'pi pi-lock' : 'pi pi-lock-open'"
+                  class="sr-pin-button"
+                  text
+                  rounded
+                  size="small"
+                  @click="toggleAtl24ColorsPin"
+                  :title="
+                    atl24ColorsPinned
+                      ? 'Unpin legend (allow repositioning)'
+                      : 'Pin legend (scroll with plot)'
+                  "
+                />
+              </div>
             </template>
           </Dialog>
         </div>
@@ -1422,6 +1717,83 @@ fieldset {
   touch-action: none; /* Disable default gestures to allow dragging */
   -webkit-user-drag: none;
   user-select: none;
+}
+
+/* Legend header with pin button */
+.sr-legend-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
+/* Pin button styling */
+:deep(.sr-pin-button) {
+  opacity: 0.5;
+  transition: opacity 0.2s;
+  width: 1.5rem !important;
+  height: 1.5rem !important;
+  padding: 0 !important;
+}
+
+:deep(.sr-pin-button:hover) {
+  opacity: 1;
+}
+
+/* Hide pin button when legend is pinned (unless hovering or animating) */
+:deep(.sr-legend-pinned .sr-pin-button) {
+  opacity: 0;
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
+}
+
+/* Show pin button when hovering on pinned legend */
+:deep(.sr-legend-pinned:hover .sr-pin-button) {
+  opacity: 0.6;
+}
+
+:deep(.sr-legend-pinned:hover .sr-pin-button:hover) {
+  opacity: 1;
+}
+
+/* Lock animation - scale up and fade like location finder */
+:deep(.sr-pin-button.sr-pin-animating) {
+  opacity: 1 !important;
+  transform: scale(2);
+  animation: pinPulse 0.6s ease-out forwards;
+}
+
+@keyframes pinPulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+/* Show outline only on hover/drag, not when static */
+:deep(.sr-legend-pinned:hover),
+:deep(.sr-legend-pinned:active) {
+  outline: 1px solid var(--p-primary-color);
+}
+
+/* Override PrimeVue positioning for pinned legends */
+:deep(.p-dialog.sr-legend-pinned) {
+  position: fixed !important;
+  margin: 0 !important;
+}
+
+/* Ensure the dialog mask doesn't interfere with pinned legend positioning */
+:deep(.p-dialog-mask:has(.sr-legend-pinned)) {
+  position: static !important;
+  display: contents !important;
 }
 
 /* Custom context menu styles */

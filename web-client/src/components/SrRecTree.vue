@@ -345,11 +345,23 @@ onUnmounted(() => {
           v-if="slotProps.node.data.status_details"
           @mouseover="tooltipRef?.showTooltip($event, slotProps.node.data.status_details)"
           @mouseleave="tooltipRef?.hideTooltip"
+          :class="{
+            'status-error':
+              slotProps.node.data.status !== 'success' && slotProps.node.data.status !== 'imported'
+          }"
           style="cursor: help"
         >
           {{ slotProps.node.data.status }}
         </span>
-        <span v-else>{{ slotProps.node.data.status }}</span>
+        <span
+          v-else
+          :class="{
+            'status-error':
+              slotProps.node.data.status !== 'success' && slotProps.node.data.status !== 'imported'
+          }"
+        >
+          {{ slotProps.node.data.status }}
+        </span>
       </template>
     </Column>
     <!-- Request Parameters Button & Dialog -->
@@ -716,6 +728,10 @@ onUnmounted(() => {
   color: red;
   font-size: 1.5rem;
   margin-top: 1rem;
+}
+
+.status-error {
+  color: #ef4444;
 }
 
 .sr-empty-cell {

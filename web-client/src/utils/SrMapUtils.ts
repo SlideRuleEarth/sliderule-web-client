@@ -64,6 +64,7 @@ import {
   pointColor
 } from '@/types/SrTypes'
 import { useFieldNameStore } from '@/stores/fieldNameStore'
+import { useActiveTabStore } from '@/stores/activeTabStore'
 import { createUnifiedColorMapperRGBA } from '@/utils/colorUtils'
 import { boundingExtent } from 'ol/extent'
 import type { Geometry } from 'ol/geom'
@@ -659,8 +660,37 @@ export async function setCyclesGtsSpotsFromFileUsingRgtYatc(): Promise<void> {
   }
 }
 
+/**
+ * Check if the elevation value is a valid, finite number.
+ * Checks all known height field names used across different endpoints.
+ */
+function hasValidElevation(d: ElevationDataItem): boolean {
+  const heightFields = [
+    'h_mean', // atl06/atl06p, atl03x-surface
+    'h_li', // atl06s/atl06sp
+    'height', // atl03sp, atl03x
+    'h_mean_canopy', // atl08/atl08p, atl03x-phoreal
+    'ortho_h', // atl24x
+    'ht_ortho', // atl13x
+    'elevation', // gedi04ap/gedi04a
+    'elevation_lm', // gedi02ap/gedi02a
+    'elevation_hr' // gedi02ap/gedi02a
+  ]
+  for (const field of heightFields) {
+    const value = d[field]
+    if (value !== undefined && typeof value === 'number') {
+      if (Number.isNaN(value) || !Number.isFinite(value)) {
+        return false
+      }
+    }
+  }
+  return true
+}
+
 export function isClickable(d: ElevationDataItem): boolean {
-  return hasValidIdFields(d) && (d?.y_atc === undefined || !isInvalid(d.y_atc))
+  return (
+    hasValidIdFields(d) && hasValidElevation(d) && (d?.y_atc === undefined || !isInvalid(d.y_atc))
+  )
 }
 
 export async function processSelectedElPnt(d: ElevationDataItem): Promise<void> {
@@ -989,8 +1019,13 @@ const onHoverHandler = isIPhone
         // Check if hovering on the selected/highlighted layer (not other tracks)
         const layerId = pickingInfo.layer?.id ?? ''
         const isSelectedLayer = layerId.includes(SELECTED_LAYER_NAME_PREFIX)
+        const is3DTabActive = useActiveTabStore().isActiveTab3D
 
-        if (object && !useDeckStore().getIsDragging() && isSelectedLayer) {
+        // For Elevation tab: only update on selected layer
+        // For 3D tab: update on ALL points
+        const shouldUpdate = is3DTabActive ? true : isSelectedLayer
+
+        if (object && !useDeckStore().getIsDragging() && shouldUpdate) {
           const recTreeStore = useRecTreeStore()
           const reqId = Number(recTreeStore.selectedReqIdStr)
           const fieldNameStore = useFieldNameStore()
@@ -1000,12 +1035,14 @@ const onHoverHandler = isIPhone
           globalChartStore.mapHoverLat = object[latField]
           globalChartStore.mapHoverLon = object[lonField]
           globalChartStore.mapHoverActive = true
+          globalChartStore.mapHoverIsSelected = isSelectedLayer
 
           // Also update location finder to show marker on the map
           globalChartStore.locationFinderLat = object[latField]
           globalChartStore.locationFinderLon = object[lonField]
         } else {
           globalChartStore.mapHoverActive = false
+          globalChartStore.mapHoverIsSelected = false
           // Hide the location finder marker when not hovering on the highlighted track
           globalChartStore.locationFinderLat = NaN
           globalChartStore.locationFinderLon = NaN

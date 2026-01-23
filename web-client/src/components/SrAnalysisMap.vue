@@ -111,7 +111,7 @@ const hasOffPointFilter = computed(() => {
 })
 
 const hasLinkToElevationPlot = computed(() => {
-  return activeTabStore.isActiveTabElevation
+  return activeTabStore.isActiveTabElevation || activeTabStore.isActiveTab3D
 })
 
 const recordsVectorSource = new VectorSource({ wrapX: false })

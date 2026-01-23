@@ -29,6 +29,7 @@
     "@apache-arrow/ts": "^17.0.0",
     "@deck.gl/core": "^9.2.2",
     "@deck.gl/layers": "^9.2.2",
+    "@deck.gl/mesh-layers": "^9.2.6",
     "@duckdb/duckdb-wasm": "^1.30.0",
     "@primeuix/themes": "^1.2.5",
     "@turf/turf": "^7.2.0",

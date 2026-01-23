@@ -1,12 +1,12 @@
 <template>
-  <div v-if="hasPolygon" class="sr-rasterize-wrapper">
-    <Checkbox
-      inputId="rasterize-checkbox"
+  <div v-if="hasPolygon" class="sr-rasterize-wrapper" title="Rasterize polygon region">
+    <input
+      id="rasterize-checkbox"
       v-model="rasterizeEnabled"
-      @change="handleRasterizeChange"
+      type="checkbox"
+      class="sr-custom-checkbox"
       :disabled="disabled"
-      binary
-      size="small"
+      @change="handleRasterizeChange"
     />
     <label for="rasterize-checkbox" class="sr-rasterize-label">Rasterize</label>
   </div>
@@ -14,7 +14,6 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import Checkbox from 'primevue/checkbox'
 import { useReqParamsStore } from '@/stores/reqParamsStore'
 import { useGeoJsonStore } from '@/stores/geoJsonStore'
 import { isClockwise } from '@/composables/SrTurfUtils'
@@ -157,19 +156,64 @@ defineExpose({
 <style scoped>
 .sr-rasterize-wrapper {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
+  align-items: center;
   gap: 0.25rem;
-  padding: 0.125rem 0.25rem;
+  cursor: pointer;
 }
 
 .sr-rasterize-label {
-  font-size: 0.625rem;
-  color: var(--p-primary-400);
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: black;
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
-  line-height: 1;
+  margin: 0;
+}
+
+/* Custom checkbox styling - matches Grid toggle */
+.sr-custom-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 0.85rem;
+  height: 0.85rem;
+  border: 1px solid var(--p-primary-color);
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  position: relative;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.sr-custom-checkbox:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.sr-custom-checkbox:checked {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Inner checkmark - smaller with padding from border */
+.sr-custom-checkbox:checked::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -60%) rotate(45deg);
+  width: 0.2rem;
+  height: 0.4rem;
+  border: solid var(--p-primary-color);
+  border-width: 0 2px 2px 0;
+}
+
+.sr-custom-checkbox:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sr-custom-checkbox:disabled + .sr-rasterize-label {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>
