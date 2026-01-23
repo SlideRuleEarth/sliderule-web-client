@@ -1848,8 +1848,30 @@ async function appendSeries(reqId: number): Promise<void> {
         yAxis: updatedYAxis,
         dataZoom: dataZoomConfig
       },
-      { notMerge: true }
+      { notMerge: true, lazyUpdate: false }
     )
+
+    // Force ECharts to complete progressive rendering by dispatching dataZoom actions.
+    // Progressive rendering can get "stuck" when adding overlay series. Dispatching
+    // dataZoom forces ECharts to re-process and render all visible data.
+    setTimeout(() => {
+      if (chart && !chart.isDisposed()) {
+        // Dispatch dataZoom to force re-render of all data
+        chart.dispatchAction({
+          type: 'dataZoom',
+          dataZoomIndex: 0,
+          start: atlChartFilterStore.xZoomStart,
+          end: atlChartFilterStore.xZoomEnd
+        })
+        chart.dispatchAction({
+          type: 'dataZoom',
+          dataZoomIndex: 1,
+          start: atlChartFilterStore.yZoomStart,
+          end: atlChartFilterStore.yZoomEnd
+        })
+      }
+    }, 150)
+
     //console.log(`appendSeries ${reqId} AFTER options:`, chart.getOption());
 
     // DO NOT re-capture zoom values here! When ECharts updates the axis range, it automatically
