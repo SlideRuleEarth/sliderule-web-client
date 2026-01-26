@@ -2099,3 +2099,74 @@ export function getScrollableAncestors(el: HTMLElement | null): HTMLElement[] {
 
   return scrollables
 }
+
+/**
+ * Zoom the analysis map to the given lat/lon extent from the elevation plot.
+ * Handles projection transformation from EPSG:4326 to the current map projection.
+ *
+ * @param map - The OpenLayers map instance
+ * @param extent - The lat/lon extent { minLat, maxLat, minLon, maxLon }
+ */
+export function zoomMapToLatLonExtent(
+  map: OLMap,
+  extent: { minLat: number; maxLat: number; minLon: number; maxLon: number }
+): void {
+  if (!map) {
+    logger.error('zoomMapToLatLonExtent: map is null')
+    return
+  }
+
+  const { minLat, maxLat, minLon, maxLon } = extent
+
+  // Validate extent values
+  if (
+    !Number.isFinite(minLat) ||
+    !Number.isFinite(maxLat) ||
+    !Number.isFinite(minLon) ||
+    !Number.isFinite(maxLon)
+  ) {
+    logger.error('zoomMapToLatLonExtent: Invalid extent values', { extent })
+    return
+  }
+
+  // Create extent in EPSG:4326 format [minLon, minLat, maxLon, maxLat]
+  const extent4326 = [minLon, minLat, maxLon, maxLat]
+
+  const view = map.getView()
+  const projection = view.getProjection()
+
+  // Transform to current projection
+  let transformedExtent: number[]
+  if (projection.getUnits() === 'degrees') {
+    transformedExtent = extent4326
+  } else {
+    transformedExtent = transformExtent(extent4326, 'EPSG:4326', projection)
+  }
+
+  // Validate transformation result
+  if (transformedExtent.some((val) => !Number.isFinite(val))) {
+    logger.warn('zoomMapToLatLonExtent: Invalid extent after transformation', {
+      projection: projection.getCode(),
+      extent4326,
+      transformedExtent
+    })
+    return
+  }
+
+  // Get map size with fallback
+  const mapSize = map.getSize() || [800, 600]
+
+  logger.debug('zoomMapToLatLonExtent: Fitting view', {
+    projection: projection.getCode(),
+    extent4326
+  })
+
+  // Fit view to extent with animation
+  // Use minimal padding for tight fit, allow high zoom for small extents
+  view.fit(transformedExtent, {
+    size: mapSize,
+    padding: [10, 10, 10, 10],
+    duration: 500,
+    maxZoom: 20
+  })
+}

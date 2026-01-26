@@ -19,6 +19,7 @@ import { createWhereClause } from '@/utils/spotUtils'
 import { type SrPosition } from '@/types/SrTypes'
 import { useAnalysisMapStore } from '@/stores/analysisMapStore'
 import { useFieldNameStore } from '@/stores/fieldNameStore'
+import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore'
 import {
   useArrayColumnStore,
   type ArrayColumnConfig,
@@ -2321,4 +2322,390 @@ export async function getAtl06SlopeSegments(
     throw error
   }
   return lines
+}
+
+/**
+ * Query the lat/lon bounds for points within the visible X range of the plot.
+ * If no X zoom is applied (xZoomStartValue/xZoomEndValue are undefined),
+ * returns bounds for all data matching the current filters.
+ */
+export async function getVisibleLatLonExtent(
+  reqId: number
+): Promise<{ minLat: number; maxLat: number; minLon: number; maxLon: number } | null> {
+  const reqIdStr = reqId.toString()
+  const fileName = await indexedDb.getFilename(reqId)
+  if (!fileName) {
+    logger.warn('getVisibleLatLonExtent: No filename found for reqId', { reqId })
+    return null
+  }
+
+  const chartStore = useChartStore()
+  const atlChartFilterStore = useAtlChartFilterStore()
+  const fieldNameStore = useFieldNameStore()
+
+  // Ensure recordinfo metadata is loaded so we get correct field names from parquet
+  await fieldNameStore.loadMetaForReqId(reqId)
+
+  // Get field names for lat/lon (uses recordinfo from parquet metadata if available)
+  const latField = fieldNameStore.getLatFieldName(reqId)
+  const lonField = fieldNameStore.getLonFieldName(reqId)
+  logger.debug('getVisibleLatLonExtent: Using field names', { reqId, latField, lonField })
+  if (!latField || !lonField) {
+    logger.warn('getVisibleLatLonExtent: No lat/lon field names found', {
+      reqId,
+      latField,
+      lonField
+    })
+    return null
+  }
+
+  // Get the X field and current visible range
+  const xField = chartStore.getXDataForChart(reqIdStr)
+  let xMin = atlChartFilterStore.xZoomStartValue
+  let xMax = atlChartFilterStore.xZoomEndValue
+
+  // If value-based zoom is not set, try to get zoom state directly from ECharts
+  // The store values aren't always synced when user zooms via sliders/pinch
+  if ((xMin === undefined || xMax === undefined) && xField) {
+    // Try to get zoom state from the chart instance
+    const plotRef = atlChartFilterStore.getPlotRef()
+    const chart = plotRef?.chart
+
+    if (chart && !chart.isDisposed()) {
+      const options = chart.getOption()
+      const dataZoom = options?.dataZoom as
+        | Array<{ start?: number; end?: number; startValue?: number; endValue?: number }>
+        | undefined
+
+      // Find the X-axis dataZoom (index 0)
+      const xDataZoom = dataZoom?.[0]
+
+      if (xDataZoom) {
+        // First try to use startValue/endValue if available
+        if (xDataZoom.startValue !== undefined && xDataZoom.endValue !== undefined) {
+          xMin = xDataZoom.startValue
+          xMax = xDataZoom.endValue
+          logger.debug('getVisibleLatLonExtent: Got zoom values from chart', { xMin, xMax })
+        }
+        // Otherwise calculate from percentage
+        else if (xDataZoom.start !== undefined && xDataZoom.end !== undefined) {
+          const xZoomStartPct = xDataZoom.start
+          const xZoomEndPct = xDataZoom.end
+
+          // Only calculate if not at default (0, 100)
+          if (xZoomStartPct > 0 || xZoomEndPct < 100) {
+            const globalChartStore = useGlobalChartStore()
+            const columnMinMax = globalChartStore.getAllColumnMinMaxValues()
+            const xFieldMinMax = columnMinMax[xField]
+
+            if (
+              xFieldMinMax &&
+              Number.isFinite(xFieldMinMax.min) &&
+              Number.isFinite(xFieldMinMax.max)
+            ) {
+              const dataMin = xFieldMinMax.min
+              const dataMax = xFieldMinMax.max
+              const dataRange = dataMax - dataMin
+
+              // Convert percentage (0-100) to actual value
+              xMin = dataMin + (xZoomStartPct / 100) * dataRange
+              xMax = dataMin + (xZoomEndPct / 100) * dataRange
+
+              logger.debug('getVisibleLatLonExtent: Calculated zoom from percentages', {
+                xMin,
+                xMax
+              })
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // The chart may use normalized X values for certain fields like x_atc
+  // (x_normalized = x_raw - rawMinX). We need to convert back to raw values.
+  // rawMinX is only set (and > 0) when normalization was applied.
+  const rawMinX = chartStore.getRawMinX(reqIdStr) ?? 0
+  const needsOffset = rawMinX > 0
+
+  // Convert normalized zoom values back to raw values if needed
+  let queryXMin = xMin
+  let queryXMax = xMax
+  if (needsOffset && xMin !== undefined) {
+    queryXMin = xMin + rawMinX
+  }
+  if (needsOffset && xMax !== undefined) {
+    queryXMax = xMax + rawMinX
+  }
+
+  logger.debug('getVisibleLatLonExtent: Zoom range', {
+    reqId,
+    xField,
+    queryXMin,
+    queryXMax,
+    rawMinX
+  })
+
+  // Build WHERE clause - include existing filters plus X range
+  let whereClause = chartStore.getWhereClause(reqIdStr) || ''
+
+  // Add X range filter if zoomed (use converted raw values)
+  if (queryXMin !== undefined && queryXMax !== undefined && xField) {
+    const xFilter = `"${xField}" BETWEEN ${queryXMin} AND ${queryXMax}`
+    logger.debug('getVisibleLatLonExtent: X range filter', { xFilter })
+    if (whereClause) {
+      const sanitizedClause = whereClause.replace(/^WHERE\s+/i, '')
+      whereClause = `WHERE ${sanitizedClause} AND ${xFilter}`
+    } else {
+      whereClause = `WHERE ${xFilter}`
+    }
+  }
+
+  const duckDbClient = await createDuckDbClient()
+  await duckDbClient.insertOpfsParquet(fileName)
+
+  // Check if this is a GeoParquet file - if so, extract lat/lon from geometry column
+  const isGeoParquet = fieldNameStore.isGeoParquet(reqId)
+
+  // Build the lat/lon expressions - use ST_X/ST_Y for GeoParquet, column names otherwise
+  let latExpr: string
+  let lonExpr: string
+  if (isGeoParquet) {
+    latExpr = 'ST_Y("geometry")'
+    lonExpr = 'ST_X("geometry")'
+  } else {
+    latExpr = `"${latField}"`
+    lonExpr = `"${lonField}"`
+  }
+
+  const query = `
+    SELECT
+      MIN(${latExpr}) as min_lat,
+      MAX(${latExpr}) as max_lat,
+      MIN(${lonExpr}) as min_lon,
+      MAX(${lonExpr}) as max_lon
+    FROM '${fileName}'
+    ${whereClause}
+  `
+
+  logger.debug('getVisibleLatLonExtent: Executing query', { reqId, fileName })
+
+  try {
+    const result = await duckDbClient.query(query)
+    let row: any = null
+
+    for await (const chunk of result.readRows()) {
+      if (chunk.length > 0) {
+        row = chunk[0]
+        break
+      }
+    }
+
+    if (!row) {
+      logger.warn('getVisibleLatLonExtent: No results from query', { reqId })
+      return null
+    }
+
+    logger.debug('getVisibleLatLonExtent: Query result', { reqId, row })
+
+    // Check for null values first - this happens when no rows match the WHERE clause
+    // MIN/MAX return NULL when there are no matching rows
+    if (
+      row.min_lat === null ||
+      row.max_lat === null ||
+      row.min_lon === null ||
+      row.max_lon === null
+    ) {
+      logger.warn(
+        'getVisibleLatLonExtent: Query returned null values (no matching rows in zoom range)',
+        {
+          reqId,
+          min_lat: row.min_lat,
+          max_lat: row.max_lat,
+          min_lon: row.min_lon,
+          max_lon: row.max_lon
+        }
+      )
+      return null
+    }
+
+    const minLat = Number(row.min_lat)
+    const maxLat = Number(row.max_lat)
+    const minLon = Number(row.min_lon)
+    const maxLon = Number(row.max_lon)
+
+    if (
+      !Number.isFinite(minLat) ||
+      !Number.isFinite(maxLat) ||
+      !Number.isFinite(minLon) ||
+      !Number.isFinite(maxLon)
+    ) {
+      logger.warn('getVisibleLatLonExtent: Invalid extent values after conversion', {
+        reqId,
+        minLat,
+        maxLat,
+        minLon,
+        maxLon
+      })
+      return null
+    }
+
+    logger.debug('getVisibleLatLonExtent result', { reqId, minLat, maxLat, minLon, maxLon })
+    return { minLat, maxLat, minLon, maxLon }
+  } catch (error) {
+    logger.error('getVisibleLatLonExtent: Query failed', {
+      reqId,
+      error: error instanceof Error ? error.message : String(error)
+    })
+    return null
+  }
+}
+
+/**
+ * Get the X-axis range for data within a given lat/lon extent.
+ * This is the reverse of getVisibleLatLonExtent - it queries X values based on map bounds.
+ * Used to zoom the plot to match the visible map extent.
+ *
+ * @param reqId - Request ID
+ * @param extent - Lat/lon extent from the map view
+ * @returns X range (normalized if applicable) or null if no data in extent
+ */
+export async function getXRangeFromLatLonExtent(
+  reqId: number,
+  extent: { minLat: number; maxLat: number; minLon: number; maxLon: number }
+): Promise<{ xMin: number; xMax: number } | null> {
+  const reqIdStr = reqId.toString()
+  const fileName = await indexedDb.getFilename(reqId)
+  if (!fileName) {
+    logger.warn('getXRangeFromLatLonExtent: No filename found for reqId', { reqId })
+    return null
+  }
+
+  const chartStore = useChartStore()
+  const fieldNameStore = useFieldNameStore()
+
+  // Ensure recordinfo metadata is loaded so we get correct field names from parquet
+  await fieldNameStore.loadMetaForReqId(reqId)
+
+  // Get field names
+  const xField = chartStore.getXDataForChart(reqIdStr)
+  const latField = fieldNameStore.getLatFieldName(reqId)
+  const lonField = fieldNameStore.getLonFieldName(reqId)
+
+  if (!xField || !latField || !lonField) {
+    logger.warn('getXRangeFromLatLonExtent: Missing field names', {
+      reqId,
+      xField,
+      latField,
+      lonField
+    })
+    return null
+  }
+
+  const duckDbClient = await createDuckDbClient()
+  await duckDbClient.insertOpfsParquet(fileName)
+
+  // Check if this is a GeoParquet file - if so, extract lat/lon from geometry column
+  const isGeoParquet = fieldNameStore.isGeoParquet(reqId)
+
+  // Build the lat/lon expressions - use ST_X/ST_Y for GeoParquet, column names otherwise
+  let latExpr: string
+  let lonExpr: string
+  if (isGeoParquet) {
+    latExpr = 'ST_Y("geometry")'
+    lonExpr = 'ST_X("geometry")'
+  } else {
+    latExpr = `"${latField}"`
+    lonExpr = `"${lonField}"`
+  }
+
+  // Build WHERE clause with lat/lon bounds and existing filters
+  let whereClause = chartStore.getWhereClause(reqIdStr) || ''
+  const latLonFilter = `${latExpr} BETWEEN ${extent.minLat} AND ${extent.maxLat} AND ${lonExpr} BETWEEN ${extent.minLon} AND ${extent.maxLon}`
+
+  logger.debug('getXRangeFromLatLonExtent: Building query', {
+    reqId,
+    xField,
+    isGeoParquet,
+    extent
+  })
+
+  if (whereClause) {
+    const sanitizedClause = whereClause.replace(/^WHERE\s+/i, '')
+    whereClause = `WHERE ${sanitizedClause} AND ${latLonFilter}`
+  } else {
+    whereClause = `WHERE ${latLonFilter}`
+  }
+
+  const query = `
+    SELECT
+      MIN("${xField}") as min_x,
+      MAX("${xField}") as max_x
+    FROM '${fileName}'
+    ${whereClause}
+  `
+
+  logger.debug('getXRangeFromLatLonExtent: Executing query', { reqId, fileName })
+
+  try {
+    const result = await duckDbClient.query(query)
+    let row: any = null
+
+    for await (const chunk of result.readRows()) {
+      if (chunk.length > 0) {
+        row = chunk[0]
+        break
+      }
+    }
+
+    if (!row) {
+      logger.warn('getXRangeFromLatLonExtent: No results from query', { reqId })
+      return null
+    }
+
+    logger.debug('getXRangeFromLatLonExtent: Query result', { reqId, row })
+
+    // Check for null values - happens when no rows match the WHERE clause
+    if (row.min_x === null || row.max_x === null) {
+      logger.warn('getXRangeFromLatLonExtent: Query returned null values (no matching rows)', {
+        reqId
+      })
+      return null
+    }
+
+    let xMin = Number(row.min_x)
+    let xMax = Number(row.max_x)
+
+    if (!Number.isFinite(xMin) || !Number.isFinite(xMax)) {
+      logger.warn('getXRangeFromLatLonExtent: Invalid X values after conversion', {
+        reqId,
+        xMin,
+        xMax
+      })
+      return null
+    }
+
+    // Apply normalization offset if needed (subtract rawMinX to get normalized values)
+    // The chart uses normalized values for display, so we need to convert raw DB values
+    const rawMinX = chartStore.getRawMinX(reqIdStr) ?? 0
+    if (rawMinX > 0) {
+      xMin = xMin - rawMinX
+      xMax = xMax - rawMinX
+      logger.debug('getXRangeFromLatLonExtent: Applied normalization offset', {
+        reqId,
+        rawMinX,
+        normalizedXMin: xMin,
+        normalizedXMax: xMax
+      })
+    }
+
+    logger.debug('getXRangeFromLatLonExtent result', { reqId, xMin, xMax })
+    return { xMin, xMax }
+  } catch (error) {
+    logger.error('getXRangeFromLatLonExtent: Query failed', {
+      reqId,
+      error: error instanceof Error ? error.message : String(error)
+    })
+    return null
+  }
 }
