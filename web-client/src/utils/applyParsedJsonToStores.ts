@@ -540,11 +540,11 @@ export function applyParsedJsonToStores(
         'The "fit" parameter is required for surface fitting APIs (atl03x-surface, atl06p) - add fit:{} to enable surface fitting'
       )
     }
-  } else if (selectedApi === 'atl03x-phoreal' || selectedApi === 'atl08p') {
+  } else if (selectedApi === 'atl03x-phoreal') {
     if (data.phoreal === undefined) {
       _addError(
         'phoreal',
-        'The "phoreal" parameter is required for PhoREAL APIs (atl03x-phoreal, atl08p) - add phoreal:{} to enable vegetation analysis'
+        'The "phoreal" parameter is required for PhoREAL API (atl03x-phoreal) - add phoreal:{} to enable vegetation analysis'
       )
     }
   } else if (selectedApi === 'atl24x') {

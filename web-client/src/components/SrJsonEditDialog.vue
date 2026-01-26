@@ -97,7 +97,7 @@ const computedAutomaticFields = computed(() => {
   // Add API-specific automatic fields
   if (api === 'atl03x-surface' || api === 'atl06p') {
     baseFields.push('fit')
-  } else if (api === 'atl03x-phoreal' || api === 'atl08p') {
+  } else if (api === 'atl03x-phoreal') {
     baseFields.push('phoreal')
   } else if (api === 'atl24x') {
     baseFields.push('atl24')

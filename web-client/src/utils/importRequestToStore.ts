@@ -267,10 +267,10 @@ export function importRequestJsonToStore(
     }
   }
   if (data.phoreal !== undefined) {
-    if (selectedApi !== 'atl03x-phoreal' && selectedApi !== 'atl08p') {
+    if (selectedApi !== 'atl03x-phoreal') {
       addIssue(
         'phoreal',
-        `The "phoreal" parameter was imported but will be ignored because the selected API is "${selectedApi}". Switch to "atl03x-phoreal" or "atl08p" to use PhoREAL.`,
+        `The "phoreal" parameter was imported but will be ignored because the selected API is "${selectedApi}". Switch to "atl03x-phoreal" to use PhoREAL.`,
         ImportIssueCategory.API_MISMATCH
       )
     }
@@ -298,7 +298,7 @@ export function importRequestJsonToStore(
   // Unlike setIceSat2API which also resets data, we only reset the enable flags
   // to match the selected API, while preserving any values that were imported
   store.setUseSurfaceFitAlgorithm(selectedApi === 'atl03x-surface' || selectedApi === 'atl06p')
-  store.setEnablePhoReal(selectedApi === 'atl03x-phoreal' || selectedApi === 'atl08p')
+  store.setEnablePhoReal(selectedApi === 'atl03x-phoreal')
   store.enableAtl24Classification = selectedApi === 'atl24x'
   store.useAtl13Point = selectedApi === 'atl13x' && store.atl13?.coord != null
   logger.debug('Applied API-specific cleanup after import', { selectedApi })

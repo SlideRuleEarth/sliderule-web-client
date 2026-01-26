@@ -317,6 +317,8 @@ export const useChartStore = defineStore('chartStore', {
         this.setXDataForChart(reqIdStr, 'segment_dist_x')
       } else if (func.includes('atl06') || func.includes('atl03x-surface')) {
         this.setXDataForChart(reqIdStr, 'x_atc')
+      } else if (func.includes('atl08x')) {
+        this.setXDataForChart(reqIdStr, 'latitude') // atl08x uses latitude, not x_atc
       } else if (func.includes('atl08') || func.includes('atl03x-phoreal')) {
         this.setXDataForChart(reqIdStr, 'x_atc')
       } else if (func.includes('atl03x')) {
