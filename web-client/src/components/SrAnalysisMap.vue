@@ -1117,11 +1117,11 @@ function handleSaveTooltip() {
       >
         <Button
           icon="pi pi-expand"
-          severity="secondary"
           text
           rounded
           aria-label="Zoom Map to Plot Extent"
           :disabled="!hasLatLonData"
+          class="sr-glow-button"
           @click="handleZoomMapToPlotExtent"
         />
       </div>
