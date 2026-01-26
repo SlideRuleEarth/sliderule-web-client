@@ -16,7 +16,7 @@ import { useRequestsStore } from '@/stores/requestsStore'
 import { Map, MapControls } from 'vue3-openlayers'
 import { db } from '@/db/SlideRuleDb'
 import { type Coordinate } from 'ol/coordinate'
-import { toLonLat } from 'ol/proj'
+import { toLonLat, transformExtent } from 'ol/proj'
 import { format } from 'ol/coordinate'
 import {
   updateMapView,
@@ -210,6 +210,29 @@ const attachViewListeners = (view?: OlView | null) => {
         extent,
         projection: computedProjName.value
       })
+
+      // Update map extent in globalChartStore for plot-to-map-extent feature
+      const projection = view.getProjection()
+      let latLonExtent: [number, number, number, number]
+      if (projection.getUnits() === 'degrees') {
+        latLonExtent = extent as [number, number, number, number]
+      } else {
+        latLonExtent = transformExtent(extent, projection, 'EPSG:4326') as [
+          number,
+          number,
+          number,
+          number
+        ]
+      }
+      // extent format is [minX, minY, maxX, maxY] = [minLon, minLat, maxLon, maxLat]
+      if (latLonExtent.every(Number.isFinite)) {
+        globalChartStore.setMapLatLonExtent({
+          minLon: latLonExtent[0],
+          minLat: latLonExtent[1],
+          maxLon: latLonExtent[2],
+          maxLat: latLonExtent[3]
+        })
+      }
     }
   }
 
@@ -225,6 +248,28 @@ const attachViewListeners = (view?: OlView | null) => {
       extent: initialExtent,
       projection: computedProjName.value
     })
+
+    // Set initial map extent in globalChartStore
+    const projection = view.getProjection()
+    let latLonExtent: [number, number, number, number]
+    if (projection.getUnits() === 'degrees') {
+      latLonExtent = initialExtent as [number, number, number, number]
+    } else {
+      latLonExtent = transformExtent(initialExtent, projection, 'EPSG:4326') as [
+        number,
+        number,
+        number,
+        number
+      ]
+    }
+    if (latLonExtent.every(Number.isFinite)) {
+      globalChartStore.setMapLatLonExtent({
+        minLon: latLonExtent[0],
+        minLat: latLonExtent[1],
+        maxLon: latLonExtent[2],
+        maxLat: latLonExtent[3]
+      })
+    }
   }
 
   view.on('change:resolution', zoomListener)

@@ -54,6 +54,14 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     maxLon: number
   } | null>(null)
 
+  // State for storing current map view extent (for zooming plot to map extent)
+  const mapLatLonExtent = ref<{
+    minLat: number
+    maxLat: number
+    minLon: number
+    maxLon: number
+  } | null>(null)
+
   function setCycleOptions(newCycleOptions: SrListNumberItem[]) {
     cycleOptions.value = newCycleOptions
   }
@@ -463,6 +471,21 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     return plotLatLonExtent.value
   }
 
+  function setMapLatLonExtent(
+    extent: { minLat: number; maxLat: number; minLon: number; maxLon: number } | null
+  ): void {
+    mapLatLonExtent.value = extent
+  }
+
+  function getMapLatLonExtent(): {
+    minLat: number
+    maxLat: number
+    minLon: number
+    maxLon: number
+  } | null {
+    return mapLatLonExtent.value
+  }
+
   async function selectAllCycleOptions() {
     //console.log('selectAllCycleOptions called');
     await resetCycleOptions()
@@ -556,6 +579,9 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     plotLatLonExtent,
     setPlotLatLonExtent,
     resetZoomToPlotExtent,
-    getPlotLatLonExtent
+    getPlotLatLonExtent,
+    mapLatLonExtent,
+    setMapLatLonExtent,
+    getMapLatLonExtent
   }
 })
