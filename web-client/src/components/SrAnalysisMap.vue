@@ -18,13 +18,18 @@ import { db } from '@/db/SlideRuleDb'
 import { type Coordinate } from 'ol/coordinate'
 import { toLonLat } from 'ol/proj'
 import { format } from 'ol/coordinate'
-import { updateMapView, renderSvrReqPoly, resetFilterUsingSelectedRec } from '@/utils/SrMapUtils'
+import {
+  updateMapView,
+  renderSvrReqPoly,
+  resetFilterUsingSelectedRec,
+  zoomMapToLatLonExtent
+} from '@/utils/SrMapUtils'
 import SrRecSelectControl from '@/components/SrRecSelectControl.vue'
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue'
 import { useRecTreeStore } from '@/stores/recTreeStore'
 import SrColMapSelControl from '@/components/SrColMapSelControl.vue'
 import { useSrToastStore } from '@/stores/srToastStore'
-import { readOrCacheSummary } from '@/utils/SrDuckDbUtils'
+import { readOrCacheSummary, getVisibleLatLonExtent } from '@/utils/SrDuckDbUtils'
 import { Vector as VectorSource } from 'ol/source'
 import VectorLayer from 'ol/layer/Vector'
 import { updateMapAndPlot } from '@/utils/SrMapUtils'
@@ -36,6 +41,7 @@ import { useChartStore } from '@/stores/chartStore'
 import { callPlotUpdateDebounced } from '@/utils/plotUtils'
 import { setCyclesGtsSpotsFromFileUsingRgtYatc, updateSrViewName } from '@/utils/SrMapUtils'
 import Checkbox from 'primevue/checkbox'
+import Button from 'primevue/button'
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore'
 import { useDebugStore } from '@/stores/debugStore'
 import SrBaseLayerControl from '@/components/SrBaseLayerControl.vue'
@@ -113,6 +119,42 @@ const hasOffPointFilter = computed(() => {
 const hasLinkToElevationPlot = computed(() => {
   return activeTabStore.isActiveTabElevation || activeTabStore.isActiveTab3D
 })
+
+// Computed to check if lat/lon data exists for zoom-to-map feature
+const hasLatLonData = computed(() => {
+  const selectedReqId = recTreeStore.selectedReqId
+  if (!selectedReqId) return false
+  const latField = fieldNameStore.getLatFieldName(selectedReqId)
+  const lonField = fieldNameStore.getLonFieldName(selectedReqId)
+  return !!(latField && lonField)
+})
+
+// Tooltip text for zoom-to-map button
+const zoomToMapTooltip = computed(() =>
+  hasLatLonData.value ? 'Zoom map to match visible plot extent' : 'No lat/lon data available'
+)
+
+// Handler for zoom-to-map button
+async function handleZoomMapToPlotExtent() {
+  const selectedReqId = recTreeStore.selectedReqId
+  if (!hasLatLonData.value || !selectedReqId) {
+    logger.warn('handleZoomMapToPlotExtent: No lat/lon data or reqId')
+    return
+  }
+
+  const extent = await getVisibleLatLonExtent(selectedReqId)
+  if (extent) {
+    globalChartStore.setPlotLatLonExtent(extent)
+    logger.debug('handleZoomMapToPlotExtent: Zooming to extent', { extent })
+  } else {
+    logger.warn('handleZoomMapToPlotExtent: Could not get visible lat/lon extent')
+    useSrToastStore().warn(
+      'No Data in Visible Range',
+      'Could not determine extent for the current plot zoom range. Try zooming out or resetting the plot zoom.',
+      5000
+    )
+  }
+}
 
 const recordsVectorSource = new VectorSource({ wrapX: false })
 const recordsLayer = new VectorLayer({
@@ -324,6 +366,21 @@ watch(
     if (newValue > oldValue) {
       logger.debug('Google API key validated, refreshing map')
       await updateAnalysisMapView('Google API key validated')
+    }
+  }
+)
+
+// Watch for zoom-to-plot-extent trigger from the elevation plot
+watch(
+  () => globalChartStore.zoomToPlotExtent,
+  (shouldZoom) => {
+    if (shouldZoom && mapRef.value?.map) {
+      const extent = globalChartStore.getPlotLatLonExtent()
+      if (extent) {
+        logger.debug('Zooming map to plot extent', { extent })
+        zoomMapToLatLonExtent(mapRef.value.map, extent)
+      }
+      globalChartStore.resetZoomToPlotExtent()
     }
   }
 )
@@ -1053,6 +1110,20 @@ function handleSaveTooltip() {
         <label v-show="hasLinkToElevationPlot" for="enable-location-finder" class="sr-check-label"
           >Link to Plot
         </label>
+      </div>
+      <div
+        @mouseover="analysisMapStore.tooltipRef.showTooltip($event, zoomToMapTooltip)"
+        @mouseleave="analysisMapStore.tooltipRef.hideTooltip"
+      >
+        <Button
+          icon="pi pi-expand"
+          severity="secondary"
+          text
+          rounded
+          aria-label="Zoom Map to Plot Extent"
+          :disabled="!hasLatLonData"
+          @click="handleZoomMapToPlotExtent"
+        />
       </div>
       <div>
         <div class="sr-spinner">

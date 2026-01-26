@@ -45,6 +45,15 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
   const useMapLegendFullRange = ref<boolean>(true)
   const showPlotTooltip = ref<boolean>(false)
 
+  // State for zooming map to plot extent
+  const zoomToPlotExtent = ref<boolean>(false)
+  const plotLatLonExtent = ref<{
+    minLat: number
+    maxLat: number
+    minLon: number
+    maxLon: number
+  } | null>(null)
+
   function setCycleOptions(newCycleOptions: SrListNumberItem[]) {
     cycleOptions.value = newCycleOptions
   }
@@ -431,6 +440,29 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
   function set_use_y_atc_filter(value: boolean) {
     use_y_atc_filter.value = value
   }
+
+  function setPlotLatLonExtent(
+    extent: { minLat: number; maxLat: number; minLon: number; maxLon: number } | null
+  ): void {
+    plotLatLonExtent.value = extent
+    if (extent) {
+      zoomToPlotExtent.value = true
+    }
+  }
+
+  function resetZoomToPlotExtent(): void {
+    zoomToPlotExtent.value = false
+  }
+
+  function getPlotLatLonExtent(): {
+    minLat: number
+    maxLat: number
+    minLon: number
+    maxLon: number
+  } | null {
+    return plotLatLonExtent.value
+  }
+
   async function selectAllCycleOptions() {
     //console.log('selectAllCycleOptions called');
     await resetCycleOptions()
@@ -519,6 +551,11 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     getHigh,
     usePercentileRange,
     useMapLegendFullRange,
-    showPlotTooltip
+    showPlotTooltip,
+    zoomToPlotExtent,
+    plotLatLonExtent,
+    setPlotLatLonExtent,
+    resetZoomToPlotExtent,
+    getPlotLatLonExtent
   }
 })
