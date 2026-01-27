@@ -297,7 +297,7 @@ describe('applyParsedJsonToStores - Round-trip Tests', () => {
       expect(getNonPolygonErrors(importErrors)).toHaveLength(0)
     })
 
-    it('atl08p: should preserve phoreal with send_waveform and atl08_fields', () => {
+    it('atl08p: should preserve atl08_fields but not phoreal', () => {
       const input = loadTestJson('atl08p.json')
       applyParsedJsonToStores(input.parms, reqParamsStore, rasterParamsStore, addError)
 
@@ -306,10 +306,8 @@ describe('applyParsedJsonToStores - Round-trip Tests', () => {
 
       const output = reqParamsStore.getAtlxxReqParams(0)
 
-      // Verify phoreal with send_waveform
-      expect(output.parms.phoreal).toBeDefined()
-      expect(output.parms.phoreal!.binsize).toBe(1.0)
-      expect(output.parms.phoreal!.send_waveform).toBe(true)
+      // phoreal should NOT be in output for atl08p (only for atl03x-phoreal)
+      expect(output.parms.phoreal).toBeUndefined()
 
       // Verify atl08_fields
       expect(output.parms.atl08_fields).toEqual(

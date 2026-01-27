@@ -12,8 +12,7 @@
       "geoloc": "center",
       "binsize": 0.5,
       "above_classifier": true,
-      "use_abs_h": true,
-      "send_waveform": true
+      "use_abs_h": true
     }
   }
 }

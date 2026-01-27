@@ -55,7 +55,6 @@ export const PhoRealSchema = z.object({
   above_classifier: z.boolean().optional(),
   binsize: z.number().optional(),
   geoloc: z.string().optional(),
-  send_waveform: z.boolean().optional(),
   use_abs_h: z.boolean().optional()
 })
 const Atl24Schema = z

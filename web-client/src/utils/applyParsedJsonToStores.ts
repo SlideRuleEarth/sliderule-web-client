@@ -504,13 +504,12 @@ export function applyParsedJsonToStores(
         store.phoRealBinSize = data.phoreal.binsize
       }
       if ('above_classifier' in data.phoreal) {
-        store.usePhoRealABoVEClassifier = data.phoreal.above_classifier
+        store.useABoVEClassifier = true
+        store.aboVEClassifier = data.phoreal.above_classifier
       }
       if ('use_abs_h' in data.phoreal) {
-        store.usePhoRealAbsoluteHeights = data.phoreal.use_abs_h
-      }
-      if ('send_waveform' in data.phoreal) {
-        store.usePhoRealSendWaveforms = data.phoreal.send_waveform
+        store.useAbsoluteHeights = true
+        store.absoluteHeights = data.phoreal.use_abs_h
       }
     }
   } else {

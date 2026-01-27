@@ -8,8 +8,7 @@
       {"lon": -108.05, "lat": 39.00}
     ],
     "phoreal": {
-      "binsize": 1.0,
-      "send_waveform": true
+      "binsize": 1.0
     },
     "atl08_fields": ["segment_snowcover", "segment_landcover"]
   }

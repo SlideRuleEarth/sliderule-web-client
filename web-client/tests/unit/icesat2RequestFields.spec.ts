@@ -317,11 +317,10 @@ describe('ICESat-2 Request Fields Import', () => {
       expect(reqParamsStore.enablePhoReal).toBe(true)
       expect(reqParamsStore.phoRealGeoLocation).toBe(phorealInput.parms.phoreal.geoloc)
       expect(reqParamsStore.phoRealBinSize).toBe(phorealInput.parms.phoreal.binsize)
-      expect(reqParamsStore.usePhoRealABoVEClassifier).toBe(
-        phorealInput.parms.phoreal.above_classifier
-      )
-      expect(reqParamsStore.usePhoRealAbsoluteHeights).toBe(phorealInput.parms.phoreal.use_abs_h)
-      expect(reqParamsStore.usePhoRealSendWaveforms).toBe(phorealInput.parms.phoreal.send_waveform)
+      expect(reqParamsStore.useABoVEClassifier).toBe(true)
+      expect(reqParamsStore.aboVEClassifier).toBe(phorealInput.parms.phoreal.above_classifier)
+      expect(reqParamsStore.useAbsoluteHeights).toBe(true)
+      expect(reqParamsStore.absoluteHeights).toBe(phorealInput.parms.phoreal.use_abs_h)
     })
 
     it('atl24: should import ATL24 algorithm parameters', () => {

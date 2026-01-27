@@ -195,7 +195,6 @@ export interface SrPhoReal {
   above_classifier?: boolean
   binsize?: number
   geoloc?: string // 'mean', 'median', 'center'
-  send_waveform?: boolean
   use_abs_h?: boolean
 }
 
