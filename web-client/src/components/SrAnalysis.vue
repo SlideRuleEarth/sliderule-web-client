@@ -5,9 +5,11 @@
       <Tabs v-model:value="activeTabStore.activeTab">
         <TabList>
           <Tab value="0">{{ activeTabStore.getTabLabelByIndex('0') }}</Tab>
-          <Tab value="1" v-if="mission === 'ICESat-2'">{{
-            activeTabStore.getTabLabelByIndex('1')
-          }}</Tab>
+          <Tab
+            value="1"
+            v-if="mission === 'ICESat-2' && !recTreeStore.selectedApi.includes('atl08')"
+            >{{ activeTabStore.getTabLabelByIndex('1') }}</Tab
+          >
           <Tab value="2">{{ activeTabStore.getTabLabelByIndex('2') }}</Tab>
           <Tab value="3">{{ activeTabStore.getTabLabelByIndex('3') }}</Tab>
         </TabList>
@@ -19,7 +21,7 @@
           </TabPanel>
           <TabPanel
             value="1"
-            v-if="mission === 'ICESat-2' && recTreeStore.selectedApi.includes('atl08')"
+            v-if="mission === 'ICESat-2' && !recTreeStore.selectedApi.includes('atl08')"
           >
             <!-- Only render SrTimeSeries if active tab is '1' AND your other condition is met -->
             <SrTimeSeries v-if="shouldDisplayTimeSeries" :startingReqId="reqId" />

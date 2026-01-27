@@ -305,30 +305,38 @@ export const useChartStore = defineStore('chartStore', {
       this.ensureState(reqIdStr)
       return this.stateByReqId[reqIdStr].xDataForChart
     },
-    setXDataForChart(reqIdStr: string, xDataForChart: string) {
+    setXDataForChartUsingFunc(reqIdStr: string, func: string, useTimeForXAxis: boolean = false) {
       this.ensureState(reqIdStr)
-      this.stateByReqId[reqIdStr].xDataForChart = xDataForChart
-    },
-    setXDataForChartUsingFunc(reqIdStr: string, func: string) {
-      this.ensureState(reqIdStr)
+
+      // Check if user wants time for x-axis
+      if (useTimeForXAxis) {
+        // Use DERIVED column name for plotting (original time preserved separately)
+        // 'time_ns_plot' for x-APIs (have time_ns), 'time_plot' for others (have time)
+        this.stateByReqId[reqIdStr].xDataForChart = func.includes('x')
+          ? 'time_ns_plot'
+          : 'time_plot'
+        return
+      }
+
+      // Default logic based on API type
       if (func.includes('atl03sp')) {
-        this.setXDataForChart(reqIdStr, 'x_atc')
+        this.stateByReqId[reqIdStr].xDataForChart = 'x_atc'
       } else if (func.includes('atl03vp')) {
-        this.setXDataForChart(reqIdStr, 'segment_dist_x')
+        this.stateByReqId[reqIdStr].xDataForChart = 'segment_dist_x'
       } else if (func.includes('atl06') || func.includes('atl03x-surface')) {
-        this.setXDataForChart(reqIdStr, 'x_atc')
+        this.stateByReqId[reqIdStr].xDataForChart = 'x_atc'
       } else if (func.includes('atl08x')) {
-        this.setXDataForChart(reqIdStr, 'latitude') // atl08x uses latitude, not x_atc
+        this.stateByReqId[reqIdStr].xDataForChart = 'latitude' // atl08x uses latitude, not x_atc
       } else if (func.includes('atl08') || func.includes('atl03x-phoreal')) {
-        this.setXDataForChart(reqIdStr, 'x_atc')
+        this.stateByReqId[reqIdStr].xDataForChart = 'x_atc'
       } else if (func.includes('atl03x')) {
-        this.setXDataForChart(reqIdStr, 'x_atc')
+        this.stateByReqId[reqIdStr].xDataForChart = 'x_atc'
       } else if (func.includes('atl24')) {
-        this.setXDataForChart(reqIdStr, 'x_atc')
+        this.stateByReqId[reqIdStr].xDataForChart = 'x_atc'
       } else if (func.includes('atl13')) {
-        this.setXDataForChart(reqIdStr, 'latitude') // this is a placeholder/HACK
+        this.stateByReqId[reqIdStr].xDataForChart = 'latitude' // this is a placeholder/HACK
       } else if (func.includes('gedi')) {
-        this.setXDataForChart(reqIdStr, 'latitude') // this is a placeholder/HACK
+        this.stateByReqId[reqIdStr].xDataForChart = 'latitude' // this is a placeholder/HACK
       } else {
         logger.error('setXDataForChartUsingFunc unknown function', { func })
       }
