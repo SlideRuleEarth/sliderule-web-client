@@ -130,9 +130,10 @@ export interface SrReqParamsState {
   phoRealBinSize: number
   usePhoRealGeoLocation: boolean
   phoRealGeoLocation: string
-  usePhoRealAbsoluteHeights: boolean
-  usePhoRealSendWaveforms: boolean
-  usePhoRealABoVEClassifier: boolean
+  useAbsoluteHeights: boolean
+  absoluteHeights: boolean
+  useABoVEClassifier: boolean
+  aboVEClassifier: boolean
 
   // ─── GEDI Parameters ───
   gediBeams: number[]

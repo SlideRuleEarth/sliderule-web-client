@@ -160,9 +160,10 @@ export function getDefaultReqParamsState(): SrReqParamsState {
     phoRealBinSize: 0,
     usePhoRealGeoLocation: false,
     phoRealGeoLocation: geoLocationOptions[0], // 'mean'
-    usePhoRealAbsoluteHeights: false,
-    usePhoRealSendWaveforms: false,
-    usePhoRealABoVEClassifier: false,
+    useAbsoluteHeights: false,
+    absoluteHeights: false,
+    useABoVEClassifier: false,
+    aboVEClassifier: false,
 
     // ─── GEDI Parameters ───
     gediBeams: [0, 1, 2, 3, 5, 6, 8, 11] as number[],
@@ -437,14 +438,11 @@ const createReqParamsStore = (id: string) =>
             if (this.usePhoRealBinSize) {
               req.phoreal.binsize = this.phoRealBinSize
             }
-            if (this.usePhoRealABoVEClassifier) {
-              req.phoreal.above_classifier = true
+            if (this.useABoVEClassifier) {
+              req.phoreal.above_classifier = this.aboVEClassifier
             }
-            if (this.usePhoRealAbsoluteHeights) {
-              req.phoreal.use_abs_h = true
-            }
-            if (this.usePhoRealSendWaveforms) {
-              req.phoreal.send_waveform = true
+            if (this.useAbsoluteHeights) {
+              req.phoreal.use_abs_h = this.absoluteHeights
             }
           }
         }
