@@ -29,9 +29,11 @@ witch.zip
 
 # misc
 *.parquet
+*.py
 **/npm-debug.log
 **/testem.log
 **/.env*
+
 # package-lock.json
 **/.vscode/settings.json
 **/setenv.sh

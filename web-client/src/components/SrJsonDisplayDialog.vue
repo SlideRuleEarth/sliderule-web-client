@@ -5,6 +5,7 @@ import Button from 'primevue/button'
 import hljs from 'highlight.js/lib/core'
 import json from 'highlight.js/lib/languages/json'
 import 'highlight.js/styles/atom-one-dark.css'
+import DOMPurify from 'dompurify'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('SrJsonDisplayDialog')
@@ -46,13 +47,13 @@ const prettyJson = computed(() => {
 const highlightedJson = computed(() => {
   try {
     const result = hljs.highlight(prettyJson.value, { language: 'json' })
-    return result.value
+    return DOMPurify.sanitize(result.value)
   } catch (error) {
     logger.warn('Failed to highlight JSON', {
       error: error instanceof Error ? error.message : String(error)
     })
     // Return plain text if highlighting fails
-    return prettyJson.value
+    return DOMPurify.sanitize(prettyJson.value)
   }
 })
 

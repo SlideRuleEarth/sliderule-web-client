@@ -27,8 +27,15 @@ import { createLogger } from '@/utils/logger'
 import { usePrivacyConsentStore } from '@/stores/privacyConsentStore'
 import SrConsentBanner from '@/components/SrConsentBanner.vue'
 import SrMobileWarning from '@/components/SrMobileWarning.vue'
+import DOMPurify from 'dompurify'
 
 const logger = createLogger('App')
+
+// Sanitize toast message details to prevent XSS
+const sanitizeToastDetail = (detail: string | undefined): string => {
+  if (!detail) return ''
+  return DOMPurify.sanitize(detail)
+}
 
 const srToastStore = useSrToastStore()
 const recTreeStore = useRecTreeStore()
@@ -551,7 +558,10 @@ async function handleLongTourButtonClick() {
         <template #message="slotProps">
           <div class="sr-toast-content">
             <span class="sr-toast-summary">{{ slotProps.message.summary }}</span>
-            <div class="sr-toast-detail" v-html="slotProps.message.detail"></div>
+            <div
+              class="sr-toast-detail"
+              v-html="sanitizeToastDetail(slotProps.message.detail)"
+            ></div>
           </div>
         </template>
       </SrToast>

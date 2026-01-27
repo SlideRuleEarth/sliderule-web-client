@@ -2122,7 +2122,15 @@ export function updateWhereClauseAndXData(req_id: number) {
     //console.log('updateWhereClauseAndXData req_id:', req_id);
     const func = useRecTreeStore().findApiForReqId(req_id)
     const chartStore = useChartStore()
-    chartStore.setXDataForChartUsingFunc(reqIdStr, func)
+    const globalChartStore = useGlobalChartStore()
+    const activeTabStore = useActiveTabStore()
+
+    // Pass useTimeForXAxis to determine x-axis field, but NOT for Time Series tab
+    // Time Series already uses time natively and should not be affected by this toggle
+    const useTimeForXAxis = activeTabStore.isActiveTabTimeSeries
+      ? false
+      : globalChartStore.useTimeForXAxis
+    chartStore.setXDataForChartUsingFunc(reqIdStr, func, useTimeForXAxis)
 
     const whereClause = createWhereClause(req_id)
     if (whereClause !== '') {

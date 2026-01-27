@@ -44,6 +44,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
   const usePercentileRange = ref<boolean>(false)
   const useMapLegendFullRange = ref<boolean>(true)
   const showPlotTooltip = ref<boolean>(false)
+  const useTimeForXAxis = ref<boolean>(false)
 
   // State for zooming map to plot extent
   const zoomToPlotExtent = ref<boolean>(false)
@@ -575,6 +576,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
     usePercentileRange,
     useMapLegendFullRange,
     showPlotTooltip,
+    useTimeForXAxis,
     zoomToPlotExtent,
     plotLatLonExtent,
     setPlotLatLonExtent,

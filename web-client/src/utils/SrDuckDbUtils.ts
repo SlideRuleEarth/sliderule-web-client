@@ -76,6 +76,11 @@ function safeToNumber(value: any): number {
     }
     return Number(value)
   }
+  // Handle typed arrays (DuckDB WASM sometimes returns Int32Array, BigInt64Array, etc.)
+  if (ArrayBuffer.isView(value) && 'length' in value && (value as any).length > 0) {
+    const firstVal = (value as any)[0]
+    return safeToNumber(firstVal)
+  }
   return value
 }
 
@@ -1755,18 +1760,22 @@ export async function fetchScatterData(
 
     // Build WHERE clause to filter out invalid rows
     // Strategy: Only filter on X axis (required for plotting). Y columns can have NULLs (will show as gaps).
-    const xType = getColType(x)
+
+    // For derived time columns, use the source field for filtering (the derived column doesn't exist in the file)
+    const isTimeXAxisForFilter = x === 'time_ns_plot' || x === 'time_plot'
+    const xForFilter = isTimeXAxisForFilter ? (x === 'time_ns_plot' ? 'time_ns' : 'time') : x
+    const xType = getColType(xForFilter)
     let xColExpr: string
 
     // Check if X column should be extracted from geometry
-    if (hasGeometry && x === lon_fieldname) {
+    if (hasGeometry && xForFilter === lon_fieldname) {
       xColExpr = `ST_X(${duckDbClient.escape('geometry')})`
-    } else if (hasGeometry && x === lat_fieldname) {
+    } else if (hasGeometry && xForFilter === lat_fieldname) {
       xColExpr = `ST_Y(${duckDbClient.escape('geometry')})`
-    } else if (hasGeometry && geometryInfo?.zCol && x === height_fieldname) {
+    } else if (hasGeometry && geometryInfo?.zCol && xForFilter === height_fieldname) {
       xColExpr = `ST_Z(${duckDbClient.escape('geometry')})`
     } else {
-      xColExpr = duckDbClient.escape(x)
+      xColExpr = duckDbClient.escape(xForFilter)
     }
 
     // Filter on X column validity
@@ -1803,9 +1812,17 @@ export async function fetchScatterData(
       }
     }
 
-    // Filter derived columns AND array columns from allAggCols for the min/max query
+    // Check if x is a derived time column
+    const isTimeXAxis = x === 'time_ns_plot' || x === 'time_plot'
+    const sourceTimeField = isTimeXAxis ? (x === 'time_ns_plot' ? 'time_ns' : 'time') : null
+
+    // Filter derived columns, array columns, AND derived time columns from allAggCols for the min/max query
     const allAggCols = [x, ...y, ...extraSelectColumns].filter(
-      (col) => !derivedArrayColumnNames.includes(col) && col !== arrayColumnToFilter
+      (col) =>
+        !derivedArrayColumnNames.includes(col) &&
+        col !== arrayColumnToFilter &&
+        col !== 'time_ns_plot' &&
+        col !== 'time_plot'
     )
 
     const selectParts = buildSafeAggregateClauses(
@@ -1900,7 +1917,31 @@ export async function fetchScatterData(
       )
     }
 
-    const allMinMaxParts = [...selectParts, ...derivedMinMaxParts, ...flattenMinMaxParts]
+    // Add min/max/low/high for derived time columns
+    const timeMinMaxParts: string[] = []
+    if (isTimeXAxis && sourceTimeField) {
+      const escapedSource = duckDbClient.escape(sourceTimeField)
+      // For normalized time (time - MIN(time)), min is always 0, max is (MAX - MIN)
+      // Use epoch_ns() to ensure we get numeric values (timestamps return INTERVAL when subtracted)
+      timeMinMaxParts.push(`CAST(0 AS BIGINT) AS "min_${x}"`)
+      timeMinMaxParts.push(
+        `(epoch_ns(MAX(${escapedSource})) - epoch_ns(MIN(${escapedSource}))) AS "max_${x}"`
+      )
+      // Percentiles relative to min
+      timeMinMaxParts.push(
+        `(epoch_ns(APPROX_QUANTILE(${escapedSource}, 0.10)) - epoch_ns(MIN(${escapedSource}))) AS "low_${x}"`
+      )
+      timeMinMaxParts.push(
+        `(epoch_ns(APPROX_QUANTILE(${escapedSource}, 0.90)) - epoch_ns(MIN(${escapedSource}))) AS "high_${x}"`
+      )
+    }
+
+    const allMinMaxParts = [
+      ...selectParts,
+      ...derivedMinMaxParts,
+      ...flattenMinMaxParts,
+      ...timeMinMaxParts
+    ]
 
     const minMaxQuery = `
             SELECT
@@ -2009,6 +2050,10 @@ export async function fetchScatterData(
     if (arrayColumnToFilter) {
       columnsToExclude.push(arrayColumnToFilter)
     }
+    // Exclude derived time columns from baseColumnParts (they're added via timeColumnParts)
+    if (isTimeXAxis) {
+      columnsToExclude.push(x)
+    }
     const baseColumnParts = buildColumnExpressions([x, ...y, ...extraSelectColumns], {
       hasGeometry,
       geometryInfo,
@@ -2047,7 +2092,19 @@ export async function fetchScatterData(
       useChartStore().setDerivedArrayColumns(reqIdStr, derivedArrayColumnNames)
     }
 
-    const allColumns = [...baseColumnParts, ...arrayColumnParts].join(', ')
+    // Add derived time column for plotting if using time for x-axis
+    // (isTimeXAxis and sourceTimeField were defined earlier in min/max section)
+    let timeColumnParts: string[] = []
+    if (isTimeXAxis && sourceTimeField) {
+      // Window function normalizes to 0-based relative time (within safe integer range)
+      // Use epoch_ns() to ensure we get numeric values (timestamps return INTERVAL when subtracted)
+      const escapedSource = duckDbClient.escape(sourceTimeField)
+      const timeExpr = `(epoch_ns(${escapedSource}) - MIN(epoch_ns(${escapedSource})) OVER ()) AS ${duckDbClient.escape(x)}`
+      timeColumnParts = [timeExpr]
+      logger.debug('Adding derived time column for x-axis', { x, sourceTimeField, timeExpr })
+    }
+
+    const allColumns = [...baseColumnParts, ...arrayColumnParts, ...timeColumnParts].join(', ')
 
     let mainQuery = `SELECT ${allColumns} \nFROM '${fileName}'\n${finalWhereClause}`
     //console.log('fetchScatterData mainQuery:', mainQuery);
@@ -2131,7 +2188,8 @@ export async function fetchScatterData(
       }
     }
 
-    const units = x.toLowerCase() === 'latitude' ? 'Degrees' : 'Meters'
+    const isTimePlotField = x === 'time_plot' || x === 'time_ns_plot'
+    const units = x.toLowerCase() === 'latitude' ? 'Degrees' : isTimePlotField ? 'Time' : 'Meters'
 
     useChartStore().setXLegend(reqIdStr, `${x} (normalized) - ${units}`)
     //console.log('fetchScatterData chartData:', chartData);
@@ -2687,8 +2745,11 @@ export async function getXRangeFromLatLonExtent(
 
     // Apply normalization offset if needed (subtract rawMinX to get normalized values)
     // The chart uses normalized values for display, so we need to convert raw DB values
+    // Skip for derived time fields - they're already normalized in SQL
     const rawMinX = chartStore.getRawMinX(reqIdStr) ?? 0
-    if (rawMinX > 0) {
+    const xField = chartStore.getXDataForChart(reqIdStr)
+    const isTimePlotField = xField === 'time_plot' || xField === 'time_ns_plot'
+    if (rawMinX > 0 && !isTimePlotField) {
       xMin = xMin - rawMinX
       xMax = xMax - rawMinX
       logger.debug('getXRangeFromLatLonExtent: Applied normalization offset', {

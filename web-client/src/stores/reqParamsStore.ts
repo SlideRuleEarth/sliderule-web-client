@@ -427,9 +427,9 @@ const createReqParamsStore = (id: string) =>
           req.cmr = { version: '006' }
         }
 
-        if (this.iceSat2SelectedAPI === 'atl08p' || this.iceSat2SelectedAPI.includes('atl03')) {
+        if (this.iceSat2SelectedAPI.includes('atl03')) {
           if (this.getEnablePhoReal()) {
-            req.phoreal = {} // atl08p requires phoreal even if not used
+            req.phoreal = {} // phoreal is only for atl03x-phoreal
 
             if (this.usePhoRealGeoLocation) {
               req.phoreal.geoloc = this.phoRealGeoLocation
@@ -1230,7 +1230,7 @@ const createReqParamsStore = (id: string) =>
         // Enable the specific parameters for each API type
         if (value === 'atl03x-surface' || value === 'atl06p') {
           this.setUseSurfaceFitAlgorithm(true)
-        } else if (value === 'atl03x-phoreal' || value === 'atl08p') {
+        } else if (value === 'atl03x-phoreal') {
           this.setEnablePhoReal(true)
         } else if (value === 'atl24x') {
           this.enableAtl24Classification = true

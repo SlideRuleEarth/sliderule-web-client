@@ -73,10 +73,18 @@ watch(
 )
 
 // Helpers
-const fmt = (n: number | null | undefined) =>
-  n === null || n === undefined || Number.isNaN(n)
-    ? '?'
-    : new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(n)
+const MAX_REASONABLE_VALUE = 1e15 // Values beyond this are likely corrupted data
+
+const isReasonableValue = (n: number | null | undefined): boolean => {
+  if (n === null || n === undefined || Number.isNaN(n) || !Number.isFinite(n)) return false
+  return Math.abs(n) <= MAX_REASONABLE_VALUE
+}
+
+const fmt = (n: number | null | undefined) => {
+  if (n === null || n === undefined || Number.isNaN(n)) return '?'
+  if (!isReasonableValue(n)) return '?'
+  return new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(n)
+}
 
 const colorEncode = computed(() => {
   const id = reqIdStr.value

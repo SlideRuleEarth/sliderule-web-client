@@ -11,6 +11,7 @@ import json from 'highlight.js/lib/languages/json'
 import python from 'highlight.js/lib/languages/python'
 import lua from 'highlight.js/lib/languages/lua'
 import 'highlight.js/styles/atom-one-dark.css'
+import DOMPurify from 'dompurify'
 import { createLogger } from '@/utils/logger'
 import {
   jsonToPythonDict,
@@ -152,9 +153,9 @@ const prettyJson = computed(() => {
 
 const highlightedJson = computed(() => {
   try {
-    return hljs.highlight(prettyJson.value, { language: 'json' }).value
+    return DOMPurify.sanitize(hljs.highlight(prettyJson.value, { language: 'json' }).value)
   } catch {
-    return prettyJson.value
+    return DOMPurify.sanitize(prettyJson.value)
   }
 })
 
@@ -170,9 +171,9 @@ const prettySentJson = computed(() => {
 
 const highlightedSentJson = computed(() => {
   try {
-    return hljs.highlight(prettySentJson.value, { language: 'json' }).value
+    return DOMPurify.sanitize(hljs.highlight(prettySentJson.value, { language: 'json' }).value)
   } catch {
-    return prettySentJson.value
+    return DOMPurify.sanitize(prettySentJson.value)
   }
 })
 
@@ -188,9 +189,9 @@ const pythonSnippet = computed(() => {
 
 const highlightedPythonSnippet = computed(() => {
   try {
-    return hljs.highlight(pythonSnippet.value, { language: 'python' }).value
+    return DOMPurify.sanitize(hljs.highlight(pythonSnippet.value, { language: 'python' }).value)
   } catch {
-    return pythonSnippet.value
+    return DOMPurify.sanitize(pythonSnippet.value)
   }
 })
 
@@ -206,9 +207,9 @@ const pythonExample = computed(() => {
 
 const highlightedPythonExample = computed(() => {
   try {
-    return hljs.highlight(pythonExample.value, { language: 'python' }).value
+    return DOMPurify.sanitize(hljs.highlight(pythonExample.value, { language: 'python' }).value)
   } catch {
-    return pythonExample.value
+    return DOMPurify.sanitize(pythonExample.value)
   }
 })
 
@@ -224,9 +225,9 @@ const luaCode = computed(() => {
 
 const highlightedLua = computed(() => {
   try {
-    return hljs.highlight(luaCode.value, { language: 'lua' }).value
+    return DOMPurify.sanitize(hljs.highlight(luaCode.value, { language: 'lua' }).value)
   } catch {
-    return luaCode.value
+    return DOMPurify.sanitize(luaCode.value)
   }
 })
 

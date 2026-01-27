@@ -53,6 +53,7 @@ import ProgressSpinner from 'primevue/progressspinner'
 import Panel from 'primevue/panel'
 import { useFieldNameStore } from '@/stores/fieldNameStore'
 import { useSrToastStore } from '@/stores/srToastStore'
+import ToggleSwitch from 'primevue/toggleswitch'
 import Checkbox from 'primevue/checkbox'
 import Button from 'primevue/button'
 import { createLogger } from '@/utils/logger'
@@ -839,6 +840,18 @@ async function handleZoomPlotToMapExtent() {
   }
 }
 
+// Handler for time x-axis toggle
+async function onUseTimeForXAxisChange() {
+  logger.debug('Use Time For X Axis changed', { newValue: globalChartStore.useTimeForXAxis })
+  // Reset zoom and reinitialize plot when switching x-axis field
+  atlChartFilterStore.resetZoom()
+  dialogsInitialized.value = false
+  await initPlot()
+  if (chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length > 0) {
+    await callPlotUpdateDebounced('from onUseTimeForXAxisChange')
+  }
+}
+
 // Normalize the currently selected reqId ('' when not ready yet)
 const selectedReqIdStr = computed(() => {
   const id = recTreeStore.selectedReqId
@@ -1233,6 +1246,19 @@ watch(
         />
         <!-- Zoom selection rectangle overlay -->
         <div v-if="isDrawingZoomRect" class="sr-zoom-select-rect" :style="zoomRectStyle" />
+        <!-- Time x-axis control positioned at bottom-left of chart -->
+        <div
+          class="sr-time-xaxis-control"
+          @mouseover="tooltipRef.showTooltip($event, 'Use time instead of distance for x-axis')"
+          @mouseleave="tooltipRef.hideTooltip()"
+        >
+          <label for="timeXAxisToggle" class="sr-time-xaxis-label">Time</label>
+          <ToggleSwitch
+            v-model="globalChartStore.useTimeForXAxis"
+            inputId="timeXAxisToggle"
+            @change="onUseTimeForXAxisChange"
+          />
+        </div>
         <!-- Custom context menu for tooltip -->
         <div
           v-if="showContextMenu"
@@ -1621,6 +1647,47 @@ watch(
 .sr-chart-toolbar :deep(.p-button:hover) {
   color: #fff;
   background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Time x-axis toggle control positioned at bottom-left of chart, next to x-axis zoom */
+.sr-time-xaxis-control {
+  position: absolute;
+  left: 0.25rem;
+  bottom: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.125rem;
+  z-index: 10;
+  background-color: rgba(30, 30, 30, 0.7);
+  border-radius: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+}
+
+.sr-time-xaxis-label {
+  font-size: 0.625rem;
+  color: #aaa;
+  cursor: pointer;
+}
+
+.sr-time-xaxis-control:hover .sr-time-xaxis-label {
+  color: #fff;
+}
+
+/* Make the toggle switch smaller */
+.sr-time-xaxis-control :deep(.p-toggleswitch) {
+  width: 2rem;
+  height: 1rem;
+}
+
+.sr-time-xaxis-control :deep(.p-toggleswitch-slider) {
+  border-radius: 0.5rem;
+}
+
+.sr-time-xaxis-control :deep(.p-toggleswitch-slider:before) {
+  width: 0.75rem;
+  height: 0.75rem;
 }
 
 :deep(.p-dialog-mask .p-dialog.p-component.sr-floating-dialog) {

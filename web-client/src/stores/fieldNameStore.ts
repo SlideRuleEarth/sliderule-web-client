@@ -17,6 +17,7 @@ function getHFieldNameForAPIStr(funcStr: string): string {
     case 'atl06':
     case 'atl06p':
       return 'h_mean'
+    case 'atl06x':
     case 'atl06s':
     case 'atl06sp':
       return 'h_li'
@@ -34,6 +35,8 @@ function getHFieldNameForAPIStr(funcStr: string): string {
     case 'atl08':
     case 'atl08p':
       return 'h_mean_canopy'
+    case 'atl08x':
+      return 'h_canopy'
     case 'atl24x':
       return 'ortho_h'
     case 'gedi02ap':
@@ -106,6 +109,7 @@ function getDefaultElOptions(reqId: number, funcStr?: string): string[] {
         'srcid'
       ]
       break
+    case 'atl06x':
     case 'atl06s':
     case 'atl06sp':
       options = ['h_li', 'y_atc', 'cycle', 'srcid']
@@ -121,8 +125,6 @@ function getDefaultElOptions(reqId: number, funcStr?: string): string[] {
       options = ['height', 'atl03_cnf', 'y_atc', 'cycle', 'srcid', 'yapc_score']
       break
     case 'atl08':
-    case 'atl08p':
-    case 'atl03x-phoreal':
       options = [
         'h_mean_canopy',
         'h_max_canopy',
@@ -131,6 +133,52 @@ function getDefaultElOptions(reqId: number, funcStr?: string): string[] {
         'h_te_median',
         'canopy_openness',
         'cycle',
+        'srcid'
+      ]
+      break
+    case 'atl08p':
+      options = [
+        'h_mean_canopy',
+        'h_max_canopy',
+        'h_canopy',
+        'h_min_canopy',
+        'h_te_median',
+        'canopy_openness',
+        'ph_count',
+        'veg_ph_count',
+        'gnd_ph_count',
+        'solar_elevation',
+        'landcover',
+        'snowcover',
+        'cycle'
+      ]
+      break
+    case 'atl03x-phoreal':
+      options = [
+        'h_mean_canopy',
+        'h_max_canopy',
+        'h_canopy',
+        'h_min_canopy',
+        'h_te_median',
+        'canopy_openness',
+        'photon_count',
+        'ground_photon_count',
+        'vegetation_photon_count',
+        'solar_elevation',
+        'landcover',
+        'snowcover',
+        'cycle',
+        'y_atc',
+        'srcid'
+      ]
+      break
+    case 'atl08x':
+      options = [
+        'h_canopy',
+        'h_te_best_fit',
+        'h_te_uncertainty',
+        'can_quality_score',
+        'n_ca_photons',
         'srcid'
       ]
       break
