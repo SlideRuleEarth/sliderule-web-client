@@ -62,6 +62,7 @@ import { computed } from 'vue'
 import hljs from 'highlight.js/lib/core'
 import json from 'highlight.js/lib/languages/json'
 import 'highlight.js/styles/atom-one-dark.css'
+import DOMPurify from 'dompurify'
 import Checkbox from 'primevue/checkbox'
 import Button from 'primevue/button'
 import { useReqParamsStore } from '@/stores/reqParamsStore'
@@ -102,9 +103,11 @@ interface DiffRow {
 
 function highlight(value: unknown): string {
   try {
-    return hljs.highlight(JSON.stringify(value, null, 2), { language: 'json' }).value
+    return DOMPurify.sanitize(
+      hljs.highlight(JSON.stringify(value, null, 2), { language: 'json' }).value
+    )
   } catch {
-    return String(value)
+    return DOMPurify.sanitize(String(value))
   }
 }
 
