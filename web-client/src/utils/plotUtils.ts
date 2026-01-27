@@ -1857,18 +1857,38 @@ async function appendSeries(reqId: number): Promise<void> {
     setTimeout(() => {
       if (chart && !chart.isDisposed()) {
         // Dispatch dataZoom to force re-render of all data
-        chart.dispatchAction({
+        // Use value-based zoom when available (from drag rectangle), otherwise use percentages
+        const xZoomAction: any = {
           type: 'dataZoom',
-          dataZoomIndex: 0,
-          start: atlChartFilterStore.xZoomStart,
-          end: atlChartFilterStore.xZoomEnd
-        })
-        chart.dispatchAction({
+          dataZoomIndex: 0
+        }
+        if (
+          atlChartFilterStore.xZoomStartValue !== undefined &&
+          atlChartFilterStore.xZoomEndValue !== undefined
+        ) {
+          xZoomAction.startValue = atlChartFilterStore.xZoomStartValue
+          xZoomAction.endValue = atlChartFilterStore.xZoomEndValue
+        } else {
+          xZoomAction.start = atlChartFilterStore.xZoomStart
+          xZoomAction.end = atlChartFilterStore.xZoomEnd
+        }
+        chart.dispatchAction(xZoomAction)
+
+        const yZoomAction: any = {
           type: 'dataZoom',
-          dataZoomIndex: 1,
-          start: atlChartFilterStore.yZoomStart,
-          end: atlChartFilterStore.yZoomEnd
-        })
+          dataZoomIndex: 1
+        }
+        if (
+          atlChartFilterStore.yZoomStartValue !== undefined &&
+          atlChartFilterStore.yZoomEndValue !== undefined
+        ) {
+          yZoomAction.startValue = atlChartFilterStore.yZoomStartValue
+          yZoomAction.endValue = atlChartFilterStore.yZoomEndValue
+        } else {
+          yZoomAction.start = atlChartFilterStore.yZoomStart
+          yZoomAction.end = atlChartFilterStore.yZoomEnd
+        }
+        chart.dispatchAction(yZoomAction)
       }
     }, 150)
 
