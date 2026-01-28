@@ -67,6 +67,10 @@ export interface SrRequestSummary {
   numPoints: number
 }
 
+/**
+ * @deprecated This interface is kept for backwards compatibility with existing IndexedDB databases.
+ * Named colors are now managed by colorMapStore (localStorage). Do not add new functionality here.
+ */
 export interface SrColors {
   color: string
 }
@@ -99,6 +103,10 @@ export interface SrRunContextRecord extends SrRunContext {
   beam: number
 }
 
+/**
+ * @deprecated This interface is kept for backwards compatibility with existing IndexedDB databases.
+ * Plot config is now managed by plotConfigStore (localStorage). Do not add new functionality here.
+ */
 export interface SrPlotConfig {
   id?: number // let Dexie store the record at id=1
   isLarge: boolean
@@ -164,11 +172,13 @@ export class SlideRuleDexie extends Dexie {
   // We just tell the typing system this is the case
   requests!: Table<SrRequestRecord>
   summary!: Table<SrRequestSummary>
+  /** @deprecated Kept for backwards compatibility. Named colors now managed by colorMapStore (localStorage). */
   colors!: Table<SrColors>
   atl03CnfColors!: Table<Atl03Color>
   atl08ClassColors!: Table<Atl03Color>
   atl24ClassColors!: Table<Atl03Color>
   runContexts!: Table<SrRunContextRecord>
+  /** @deprecated Kept for backwards compatibility. Plot config now managed by plotConfigStore (localStorage). */
   plotConfig!: Table<SrPlotConfig>
 
   constructor() {
@@ -177,7 +187,7 @@ export class SlideRuleDexie extends Dexie {
       .stores({
         requests: '++req_id', // req_id is auto-incrementing and the primary key here, no other keys required
         summary: '++db_id, &req_id',
-        colors: '&color',
+        colors: '&color', // DEPRECATED: kept for backwards compatibility, now uses colorMapStore
         atl03CnfColors: 'number',
         atl08ClassColors: 'number',
         atl24ClassColors: 'number',
@@ -191,7 +201,7 @@ export class SlideRuleDexie extends Dexie {
                 beam,
                 track,
                 [parentReqId+rgt+cycle+beam+track]`,
-        plotConfig: 'id' // single record table
+        plotConfig: 'id' // DEPRECATED: kept for backwards compatibility, now uses plotConfigStore
       })
       .upgrade(async (tx) => {
         const table = tx.table<SrPlotConfig>('plotConfig')
@@ -211,7 +221,7 @@ export class SlideRuleDexie extends Dexie {
     this.version(12).stores({
       requests: '++req_id',
       summary: '++db_id, &req_id',
-      colors: '&color',
+      colors: '&color', // DEPRECATED: kept for backwards compatibility, now uses colorMapStore
       atl03CnfColors: 'number',
       atl08ClassColors: 'number',
       atl24ClassColors: 'number',
@@ -224,12 +234,11 @@ export class SlideRuleDexie extends Dexie {
                 beam,
                 track,
                 [parentReqId+rgt+cycle+beam+track]`,
-      plotConfig: 'id'
+      plotConfig: 'id' // DEPRECATED: kept for backwards compatibility, now uses plotConfigStore
     })
     // Note: No .upgrade() - new fields (projectionName, baseLayerName) will be undefined for existing records
 
     this._initializeDefaultColors()
-    this._initializePlotConfig()
     this._useMiddleware()
   }
   // Method to initialize default colors
@@ -254,208 +263,12 @@ export class SlideRuleDexie extends Dexie {
         if (atl24ClassColorCount === 0) {
           await this.restoreDefaultAtl24ClassColors()
         }
-
-        const plotConfig = await this.plotConfig.get(1)
-        const gradientNumShades = plotConfig?.defaultGradientNumShades
-        const gradientColorMapName = plotConfig?.defaultGradientColorMapName
-        if (!gradientColorMapName || !gradientNumShades || gradientNumShades === 0) {
-          await this.updatePlotConfig({
-            id: 1,
-            defaultGradientColorMapName: 'viridis',
-            defaultGradientNumShades: 512
-          })
-        }
-
-        // Check and populate colors
-        const colorsCount = await this.colors.count()
-        if (colorsCount === 0) {
-          await this.restoreDefaultColors()
-        }
       } catch (error) {
         logger.error('Failed to initialize default colors', {
           error: error instanceof Error ? error.message : String(error)
         })
       }
     })()
-  }
-  private _initializePlotConfig(): void {
-    // Initialize plot config asynchronously (fire and forget)
-    void (async () => {
-      try {
-        // Check if plotConfig record is already there:
-        const count = await this.plotConfig.count()
-        if (count === 0) {
-          // Insert a single record with known id=1
-          await this.restorePlotConfig()
-          logger.warn('plotConfig table initialized with default values')
-        } else {
-          logger.debug('plotConfig table already has records')
-        }
-      } catch (error) {
-        logger.error('Failed to initialize plotConfig record', {
-          error: error instanceof Error ? error.message : String(error)
-        })
-      }
-    })()
-  }
-
-  async restorePlotConfig(): Promise<void> {
-    try {
-      // Clear existing records
-      await this.plotConfig.clear()
-
-      // Insert default record
-      await this.plotConfig.add({
-        id: 1,
-        isLarge: false,
-        largeThreshold: 50000,
-        progressiveChunkSize: 12000,
-        progressiveChunkThreshold: 10000,
-        progressiveChunkMode: 'auto',
-        defaultAtl06Color: 'red',
-        defaultAtl06SymbolSize: 4,
-        defaultAtl08SymbolSize: 4,
-        defaultAtl03spSymbolSize: 2,
-        defaultAtl03vpSymbolSize: 4,
-        defaultGradientColorMapName: 'viridis',
-        defaultGradientNumShades: 512,
-        defaultAtl24SymbolSize: 4,
-        defaultAtl03xSymbolSize: 3
-      })
-
-      logger.warn('plotConfig table restored to default values')
-    } catch (error) {
-      logger.error('Failed to restore plotConfig', {
-        error: error instanceof Error ? error.message : String(error)
-      })
-      throw error
-    }
-  }
-
-  async restoreDefaultGradientColorMap(): Promise<void> {
-    try {
-      const plotConfig = await this.plotConfig.get(1)
-      if (plotConfig) {
-        await this.updatePlotConfig({
-          id: 1,
-          defaultGradientColorMapName: 'viridis',
-          defaultGradientNumShades: 512
-        })
-      }
-    } catch (error) {
-      logger.error('Failed to restore default gradient color map', {
-        error: error instanceof Error ? error.message : String(error)
-      })
-      throw error
-    }
-  }
-
-  // Method to restore default colors for the colors table
-  async restoreDefaultColors(): Promise<void> {
-    try {
-      const defaultColors: SrColors[] = [
-        { color: 'gray' },
-        { color: 'slategray' },
-        { color: 'yellow' },
-        { color: 'green' },
-        { color: 'blue' },
-        { color: 'indigo' },
-        { color: 'violet' },
-        { color: 'red' },
-        { color: 'orange' },
-        { color: 'purple' },
-        { color: 'pink' },
-        { color: 'brown' },
-        { color: 'black' },
-        { color: 'white' },
-        { color: 'cyan' },
-        { color: 'greenyellow' },
-        { color: 'lightblue' },
-        { color: 'lightgreen' }
-      ]
-
-      // Clear existing entries in the table
-      await this.colors.clear()
-      logger.debug('Colors table cleared')
-
-      // Add default entries
-      for (const colorEntry of defaultColors) {
-        await this.colors.add(colorEntry)
-      }
-
-      logger.info('Default colors restored', { colorCount: defaultColors.length })
-    } catch (error) {
-      logger.error('Failed to restore default colors', {
-        error: error instanceof Error ? error.message : String(error)
-      })
-      throw error
-    }
-  }
-
-  // CRUD Methods for colors table
-
-  // Method to add or update a color in colors table
-  async addOrUpdateColor(color: string): Promise<void> {
-    try {
-      const existingColorEntry = await this.colors.where('color').equals(color).first()
-      if (existingColorEntry) {
-        logger.debug('Color already exists', { color })
-      } else {
-        await this.colors.add({ color })
-        logger.debug('Color added', { color })
-      }
-    } catch (error) {
-      logger.error('Failed to add or update color', {
-        color,
-        error: error instanceof Error ? error.message : String(error)
-      })
-      throw error
-    }
-  }
-
-  async setAllColors(colors: string[]): Promise<void> {
-    try {
-      // Clear existing entries in the table
-      await this.colors.clear()
-
-      // Add new colors
-      for (const color of colors) {
-        await this.colors.add({ color })
-      }
-    } catch (error) {
-      logger.error('Failed to restore all colors', {
-        error: error instanceof Error ? error.message : String(error)
-      })
-      throw error
-    }
-  }
-
-  // Method to get all colors from the colors table
-  async getAllColors(): Promise<string[]> {
-    try {
-      const colorRecords = await this.colors.toArray()
-      const colors = colorRecords.map((record) => record.color)
-      return colors
-    } catch (error) {
-      logger.error('Failed to retrieve all colors', {
-        error: error instanceof Error ? error.message : String(error)
-      })
-      throw error
-    }
-  }
-
-  // Method to delete a color by name from the colors table
-  async deleteColor(color: string): Promise<void> {
-    try {
-      await this.colors.delete(color)
-      logger.debug('Color deleted', { color })
-    } catch (error) {
-      logger.error('Failed to delete color', {
-        color,
-        error: error instanceof Error ? error.message : String(error)
-      })
-      throw error
-    }
   }
 
   // Function to restore default colors for atl03CnfColors
@@ -1624,32 +1437,6 @@ export class SlideRuleDexie extends Dexie {
       return runContext
     } catch (error) {
       logger.error('Failed to get run context', { reqId, error })
-      throw error
-    }
-  }
-  // Get the single record
-  async getPlotConfig(): Promise<SrPlotConfig | undefined> {
-    try {
-      // We assume that there is only ever one record (id = 1).
-      const config = await this.plotConfig.get(1)
-      if (!config) {
-        logger.warn('No plotConfig record found. Did initialization fail?')
-      }
-      return config
-    } catch (error) {
-      logger.error('Error retrieving plotConfig', { error })
-      throw error
-    }
-  }
-
-  // Update fields of the single record
-  async updatePlotConfig(updates: Partial<SrPlotConfig>): Promise<void> {
-    try {
-      // Keep the same id, forcibly set to 1
-      await this.plotConfig.update(1, updates)
-      // If update returns 0, it means there was no record to update
-    } catch (error) {
-      logger.error('Error updating plotConfig', { error })
       throw error
     }
   }

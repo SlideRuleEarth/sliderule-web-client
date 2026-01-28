@@ -3,7 +3,7 @@
     <Fieldset
       legend="Color Palette"
       class="sr-color-palette-content"
-      :toggleable="true"
+      :toggleable="false"
       :collapsed="false"
     >
       <h2>Select Your Color Palette</h2>
@@ -36,7 +36,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, computed, ref } from 'vue'
+import { onMounted, computed, ref, watch } from 'vue'
 import PickList from 'primevue/picklist'
 import Button from 'primevue/button'
 import { useColorMapStore } from '@/stores/colorMapStore'
@@ -47,7 +47,7 @@ const logger = createLogger('SrColorPalette')
 
 const selectedColors = computed({
   get: () => useColorMapStore().getNamedColorPalette(),
-  set: async (value) => await useColorMapStore().setNamedColorPalette(value)
+  set: (value) => useColorMapStore().setNamedColorPalette(value)
 })
 
 // Predefined list of CSS color names
@@ -210,9 +210,25 @@ onMounted(() => {
   logger.debug('Mounted SrColorPalette colors', { srColorTable: srColorTable.value })
 })
 
-const restoreDefaultColors = async () => {
-  await colorMapStore.restoreDefaultColors()
-  logger.debug('SrColorPalette colors', { srColorTable: srColorTable.value })
+// Sync PickList changes back to the store
+watch(
+  () => srColorTable.value[1],
+  (newSelectedColors) => {
+    const colorStrings = newSelectedColors.map(
+      (item: { label: string; value: string }) => item.value
+    )
+    colorMapStore.setNamedColorPalette(colorStrings)
+    logger.debug('Synced color palette to store', { colors: colorStrings })
+  },
+  { deep: true }
+)
+
+const restoreDefaultColors = () => {
+  colorMapStore.restoreDefaultColors()
+  srColorTable.value[1] = colorMapStore
+    .getNamedColorPalette()
+    .map((color) => ({ label: color, value: color }))
+  logger.debug('SrColorPalette colors restored', { srColorTable: srColorTable.value })
 }
 </script>
 

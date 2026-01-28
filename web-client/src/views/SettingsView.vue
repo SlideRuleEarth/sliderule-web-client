@@ -9,6 +9,7 @@ import SrStorageUsage from '@/components/SrStorageUsage.vue'
 import SrAdvOptPanel from '@/components/SrAdvOptPanel.vue'
 import SrDefaults from '@/components/SrDefaults.vue'
 import SrPlotCfgEdit from '@/components/SrPlotCfgEdit.vue'
+import SrColorPalette from '@/components/SrColorPalette.vue'
 import SrGoogleApiKeyInput from '@/components/SrGoogleApiKeyInput.vue'
 import SrPrivacySettings from '@/components/SrPrivacySettings.vue'
 import Card from 'primevue/card'
@@ -59,13 +60,20 @@ import Card from 'primevue/card'
               </AccordionPanel>
 
               <AccordionPanel value="4">
+                <AccordionHeader>Color Palette</AccordionHeader>
+                <AccordionContent>
+                  <SrColorPalette />
+                </AccordionContent>
+              </AccordionPanel>
+
+              <AccordionPanel value="5">
                 <AccordionHeader>Defaults</AccordionHeader>
                 <AccordionContent>
                   <SrDefaults />
                 </AccordionContent>
               </AccordionPanel>
 
-              <AccordionPanel value="5">
+              <AccordionPanel value="6">
                 <AccordionHeader>Privacy & Data</AccordionHeader>
                 <AccordionContent>
                   <SrPrivacySettings />
