@@ -62,11 +62,11 @@ export const useGlobalMinMaxReactive = reactive<{ [key: string]: WritableCompute
 export const selectedCyclesReactive = computed({
   get: (): number[] => {
     const value = useGlobalChartStore().getCycles()
-    //console.log(`selectedCyclesReactive[${reqId}] get:`, value);
+    //logger.debug(`selectedCyclesReactive[${reqId}] get:`, value);
     return value
   },
   set: (values: number[]): void => {
-    //console.log(`selectedCyclesReactive[${reqId}] set:`, values);
+    //logger.debug(`selectedCyclesReactive[${reqId}] set:`, values);
     useGlobalChartStore().setCycles(values)
   }
 })
@@ -74,11 +74,11 @@ export const selectedCyclesReactive = computed({
 export const selectedRgtReactive = computed({
   get: (): number => {
     const value = useGlobalChartStore().getRgt()
-    //console.log(`selectedRgtsReactive[${reqId}] get:`, value);
+    //logger.debug(`selectedRgtsReactive[${reqId}] get:`, value);
     return value ? value : 0
   },
   set: (value: number): void => {
-    //console.log(`selectedRgtsReactive[${reqId}] set:`, values);
+    //logger.debug(`selectedRgtsReactive[${reqId}] set:`, values);
     useGlobalChartStore().setRgt(value)
   }
 })
@@ -157,11 +157,11 @@ export function initializeColorEncoding(reqId: number, parentFuncStr?: string) {
   if (reqId > 0) {
     chartStore.setSelectedColorEncodeData(reqIdStr, getDefaultColorEncoding(reqId, parentFuncStr))
   }
-  //console.log(`initializeColorEncoding reqId:${reqIdStr} parentFuncStr:${parentFuncStr} chartStore.getSelectedColorEncodeData:`, chartStore.getSelectedColorEncodeData(reqIdStr));
+  //logger.debug(`initializeColorEncoding reqId:${reqIdStr} parentFuncStr:${parentFuncStr} chartStore.getSelectedColorEncodeData:`, chartStore.getSelectedColorEncodeData(reqIdStr));
 }
 
 export function initDataBindingsToChartStore(reqIds: string[]) {
-  //console.log('initDataBindingsToChartStore:', reqIds);
+  //logger.debug('initDataBindingsToChartStore:', reqIds);
   const chartStore = useChartStore()
   reqIds.forEach((reqId) => {
     if (!(reqId in yDataBindingsReactive)) {
@@ -284,11 +284,11 @@ async function getGenericSeries({
     }
 
     const { chartData = {}, ...rest } = await fetchData(reqIdStr, fileName, x, y, fetchOptions)
-    //console.log(`${functionName} ${reqIdStr} ${y}: chartData:`, chartData, 'fetchOptions:', fetchOptions);
+    //logger.debug(`${functionName} ${reqIdStr} ${y}: chartData:`, chartData, 'fetchOptions:', fetchOptions);
     // e.g. choose minMax based on minMaxProperty
     const minMaxLowHigh = rest['minMaxLowHigh'] || {}
     const minMaxValues = rest[minMaxProperty] || {}
-    //console.log(`getGenericSeries ${functionName}: minMaxValues:`, minMaxValues);
+    //logger.debug(`getGenericSeries ${functionName}: minMaxValues:`, minMaxValues);
     const chartStore = useChartStore()
     chartStore.setMinMaxValues(reqIdStr, minMaxValues)
     chartStore.setMinMaxLowHigh(reqIdStr, minMaxLowHigh)
@@ -311,8 +311,8 @@ async function getGenericSeries({
       if (cedk === 'solid') {
         thisColorFunction = (_params: any) => chartStore.getSolidSymbolColor(reqIdStr)
       } else {
-        //console.log(`getGenericSeries: chartStore.getSelectedColorEncodeData(reqIdStr):`, chartStore.getSelectedColorEncodeData(reqIdStr));
-        //console.log(`getGenericSeries: chartStore.getMinMaxValues(reqIdStr):`, chartStore.getMinMaxValues(reqIdStr));
+        //logger.debug(`getGenericSeries: chartStore.getSelectedColorEncodeData(reqIdStr):`, chartStore.getSelectedColorEncodeData(reqIdStr));
+        //logger.debug(`getGenericSeries: chartStore.getMinMaxValues(reqIdStr):`, chartStore.getMinMaxValues(reqIdStr));
         let minValue = chartStore.getLow(reqIdStr, cedk)
         let maxValue = chartStore.getHigh(reqIdStr, cedk)
         if (!chartStore.getUseSelectedMinMax(reqIdStr)) {
@@ -328,7 +328,7 @@ async function getGenericSeries({
       }
       colorFunction = thisColorFunction
     }
-    //console.log(`${functionName}: colorFunction:`, colorFunction);
+    //logger.debug(`${functionName}: colorFunction:`, colorFunction);
     // Get the selected Y data name
     const ySelectedName = chartStore.getSelectedYData(reqIdStr)
 
@@ -347,7 +347,7 @@ async function getGenericSeries({
       const data = chartData[reqIdStr].data // get raw number[][] data
       const min = minMaxValues[ySelectedName]?.min ?? null
       const max = minMaxValues[ySelectedName]?.max ?? null
-      //console.log(`${functionName}: Index of selected Y data "${ySelectedName}" in Y array is ${yIndex}. Min: ${min}, Max: ${max}`, data);
+      //logger.debug(`${functionName}: Index of selected Y data "${ySelectedName}" in Y array is ${yIndex}. Min: ${min}, Max: ${max}`, data);
 
       yItems.push({
         series: {
@@ -413,7 +413,7 @@ export async function getSeriesForAtl03sp(
   x: string,
   y: string[]
 ): Promise<SrScatterSeriesData[]> {
-  //console.log('getSeriesForAtl03sp reqIdStr:', reqIdStr,'x:',x,'y:',y);
+  //logger.debug('getSeriesForAtl03sp reqIdStr:', reqIdStr,'x:',x,'y:',y);
   const chartStore = useChartStore()
   const atl03CnfColorMapStore = await useAtl03CnfColorMapStore(reqIdStr)
   const atl08ClassColorMapStore = await useAtl08ClassColorMapStore(reqIdStr)
@@ -464,12 +464,12 @@ export async function getSeriesForAtl03sp(
   if (cedk === 'atl03_cnf') {
     thisColorFunction = atl03CnfColorMapStore.cachedColorFunction
     // test the color function
-    //console.log(`getSeriesForAtl03sp ${reqIdStr} cedk:`,cedk,'thisColorFunction:',thisColorFunction);
+    //logger.debug(`getSeriesForAtl03sp ${reqIdStr} cedk:`,cedk,'thisColorFunction:',thisColorFunction);
     //const c1 = thisColorFunction({data:[-2]});
   } else if (cedk === 'atl08_class') {
     thisColorFunction = atl08ClassColorMapStore.getColorUsingAtl08_class
   }
-  //console.log(`getSeriesForAtl03sp ${reqIdStr} cedk:`,cedk,'thisColorFunction:',thisColorFunction);
+  //logger.debug(`getSeriesForAtl03sp ${reqIdStr} cedk:`,cedk,'thisColorFunction:',thisColorFunction);
   return getGenericSeries({
     reqIdStr,
     fileName,
@@ -491,7 +491,7 @@ export async function getSeriesForAtl03x(
   y: string[],
   parentMinX?: number
 ): Promise<SrScatterSeriesData[]> {
-  //console.log('getSeriesForAtl03sp reqIdStr:', reqIdStr,'x:',x,'y:',y);
+  //logger.debug('getSeriesForAtl03sp reqIdStr:', reqIdStr,'x:',x,'y:',y);
   const chartStore = useChartStore()
   const atl03CnfColorMapStore = await useAtl03CnfColorMapStore(reqIdStr)
   const atl24ClassColorMapStore = await useAtl24ClassColorMapStore(reqIdStr)
@@ -502,14 +502,14 @@ export async function getSeriesForAtl03x(
   if (cedk === 'atl03_cnf') {
     thisColorFunction = atl03CnfColorMapStore.cachedColorFunction
     // test the color function
-    //console.log(`getSeriesForAtl03sp ${reqIdStr} cedk:`,cedk,'thisColorFunction:',thisColorFunction);
+    //logger.debug(`getSeriesForAtl03sp ${reqIdStr} cedk:`,cedk,'thisColorFunction:',thisColorFunction);
     //const c1 = thisColorFunction({data:[-2]});
   } else if (cedk === 'atl08_class') {
     thisColorFunction = atl08ClassColorMapStore.getColorUsingAtl08_class
   } else if (cedk === 'atl24_class') {
     thisColorFunction = atl24ClassColorMapStore.getColorUsingAtl24_class
   }
-  //console.log(`getSeriesForAtl03sp ${reqIdStr} cedk:`,cedk,'thisColorFunction:',thisColorFunction);
+  //logger.debug(`getSeriesForAtl03sp ${reqIdStr} cedk:`,cedk,'thisColorFunction:',thisColorFunction);
   return getGenericSeries({
     reqIdStr,
     fileName,
@@ -692,7 +692,7 @@ let rawLat: number | null = null
 let rawLon: number | null = null
 
 function filterDataForPos(label: any, data: any, lat: string, lon: string) {
-  //console.log('filterDataForPos label:', label, 'data:', data);
+  //logger.debug('filterDataForPos label:', label, 'data:', data);
   const globalChartStore = useGlobalChartStore()
 
   // Store raw values
@@ -724,7 +724,7 @@ function filterDataForPos(label: any, data: any, lat: string, lon: string) {
         )
         finalLon = transformedLon
         finalLat = transformedLat
-        //console.log(`Location Finder: Transformed: (${rawLon}, ${rawLat}) -> (${transformedLon}, ${transformedLat})`);
+        //logger.debug(`Location Finder: Transformed: (${rawLon}, ${rawLat}) -> (${transformedLon}, ${transformedLat})`);
       } catch (error) {
         logger.warn('Failed to transform coordinates for location finder', {
           error: error instanceof Error ? error.message : String(error)
@@ -736,13 +736,13 @@ function filterDataForPos(label: any, data: any, lat: string, lon: string) {
     // Set the final coordinates
     globalChartStore.locationFinderLon = finalLon
     globalChartStore.locationFinderLat = finalLat
-    //console.log(`Location Finder: Set coordinates lat=${finalLat}, lon=${finalLon}`);
+    //logger.debug(`Location Finder: Set coordinates lat=${finalLat}, lon=${finalLon}`);
 
     // Reset raw values for next hover
     rawLat = null
     rawLon = null
   }
-  //console.log('filterDataForPos AFTER  lat:',  globalChartStore.locationFinderLat, 'lon:', globalChartStore.locationFinderLon);
+  //logger.debug('filterDataForPos AFTER  lat:',  globalChartStore.locationFinderLat, 'lon:', globalChartStore.locationFinderLon);
 }
 
 // Callback for storing tooltip content
@@ -838,7 +838,7 @@ export function formatTooltip(
     tooltipContentCallback(textWithRecordId)
   }
 
-  //console.log('formatTooltip parms:', parms);
+  //logger.debug('formatTooltip parms:', parms);
   return htmlWithRecordId
 }
 
@@ -884,10 +884,10 @@ async function getSeriesFor(reqIdStr: string, isOverlay = false): Promise<SrScat
 
   const all_y = chartStore.getYDataOptions(reqIdStr)
   const y = all_y.filter((col) => existingColumns.includes(col))
-  // console.log('all_y:', all_y);
-  // console.log('existingColumns:', existingColumns);
-  // console.log('Filtered y:', y);
-  // console.log('getSeriesFor Using y:',y);
+  // logger.debug('all_y:', all_y);
+  // logger.debug('existingColumns:', existingColumns);
+  // logger.debug('Filtered y:', y);
+  // logger.debug('getSeriesFor Using y:',y);
   if (y.length != all_y.length) {
     const missing = all_y.filter((col) => !existingColumns.includes(col))
     const apiMismatch = !func
@@ -948,7 +948,7 @@ async function getSeriesFor(reqIdStr: string, isOverlay = false): Promise<SrScat
       if (seriesData.length === 0) {
         logger.warn('seriesData is empty', { reqIdStr })
       }
-      //console.log(`getSeriesFor ${reqIdStr} seriesData:`, seriesData);
+      //logger.debug(`getSeriesFor ${reqIdStr} seriesData:`, seriesData);
     } else {
       logger.warn('fileName is null', { reqIdStr })
     }
@@ -964,7 +964,7 @@ async function getSeriesFor(reqIdStr: string, isOverlay = false): Promise<SrScat
       duration: `${endTime - startTime}ms`,
       seriesDataLength: seriesData.length
     })
-    //console.log(`getSeriesFor ${reqIdStr} seriesData:`, seriesData);
+    //logger.debug(`getSeriesFor ${reqIdStr} seriesData:`, seriesData);
   }
   return seriesData
 }
@@ -1020,7 +1020,7 @@ export async function initChartStoreFor(reqId: number): Promise<boolean> {
     if (parameters) {
       const parms = parameters as AtlReqParams
       if (parms) {
-        //console.log(`initChartStoreFor ${reqIdStr} setting parameters:`, parms);
+        //logger.debug(`initChartStoreFor ${reqIdStr} setting parameters:`, parms);
         chartStore.setParameters(reqIdStr, parms)
       } else {
         logger.warn('No parameters found for reqId', { reqIdStr, request })
@@ -1101,7 +1101,7 @@ export async function getScatterOptions(req_id: number): Promise<any> {
     .getPropertyValue('--p-button-text-primary-color')
     .trim() // Retrieve and trim the color value
 
-  //console.log(`getScatterOptions for reqId:${reqIdStr} xZoomStart:${atlChartFilterStore.xZoomStart} xZoomEnd:${atlChartFilterStore.xZoomEnd} yZoomStart:${atlChartFilterStore.yZoomStart} yZoomEnd:${atlChartFilterStore.yZoomEnd} `);
+  //logger.debug(`getScatterOptions for reqId:${reqIdStr} xZoomStart:${atlChartFilterStore.xZoomStart} xZoomEnd:${atlChartFilterStore.xZoomEnd} yZoomStart:${atlChartFilterStore.yZoomStart} yZoomEnd:${atlChartFilterStore.yZoomEnd} `);
   let options = null
   try {
     let seriesData = [] as SrScatterSeriesData[]
@@ -1114,14 +1114,14 @@ export async function getScatterOptions(req_id: number): Promise<any> {
           // Only attempt to get slope segments for APIs that have dh_fit_dx field (ATL06-based data)
           const supportsSlopes = func && (func.includes('atl06') || func.includes('atl03x-surface'))
           if (useAtlChartFilterStore().showSlopeLines && supportsSlopes) {
-            //console.log(`getSeriesFor ${reqIdStr} showSlopeLines is true, adding slope lines`);
+            //logger.debug(`getSeriesFor ${reqIdStr} showSlopeLines is true, adding slope lines`);
             const minX = chartStore.getRawMinX(reqIdStr) // Use *raw* min, not normalized
             const svr_params = (await indexedDb.getSvrParams(req_id)) as SrSvrParmsUsed
             if (svr_params) {
-              //console.log(`getScatterOptions ${reqIdStr} CURRENT parms:`, svr_params);
+              //logger.debug(`getScatterOptions ${reqIdStr} CURRENT parms:`, svr_params);
               const segmentLength = svr_params?.len
               const whereClause = chartStore.getWhereClause(reqIdStr)
-              //console.log(`getScatterOptions ${reqIdStr} minX: ${minX} segmentLength: ${segmentLength} whereClause: ${whereClause}`);
+              //logger.debug(`getScatterOptions ${reqIdStr} minX: ${minX} segmentLength: ${segmentLength} whereClause: ${whereClause}`);
               const slopeLines = await getAtl06SlopeSegments(
                 fileName,
                 x,
@@ -1131,7 +1131,7 @@ export async function getScatterOptions(req_id: number): Promise<any> {
                 whereClause,
                 minX
               )
-              //console.log(`getSeriesFor ${reqIdStr} slopeLines (${slopeLines.length}):`, slopeLines);
+              //logger.debug(`getSeriesFor ${reqIdStr} slopeLines (${slopeLines.length}):`, slopeLines);
               const slopeLineItems = slopeLines.map((seg) => [
                 seg[0][0],
                 seg[0][1],
@@ -1148,7 +1148,7 @@ export async function getScatterOptions(req_id: number): Promise<any> {
                   z: 11
                 }
 
-                //console.log(`getSeriesFor ${reqIdStr} adding slopeLines series:`, slopeSeries);
+                //logger.debug(`getSeriesFor ${reqIdStr} adding slopeLines series:`, slopeSeries);
               } else {
                 logger.warn('showSlopeLines is true but no slope lines found', { reqIdStr })
               }
@@ -1363,7 +1363,7 @@ export async function getScatterOptions(req_id: number): Promise<any> {
     } else {
       logger.warn('seriesData is empty')
     }
-    //console.log('getScatterOptions options:', options);
+    //logger.debug('getScatterOptions options:', options);
   } catch (error) {
     logger.error('getScatterOptions Error', {
       error: error instanceof Error ? error.message : String(error)
@@ -1380,7 +1380,7 @@ export async function getScatterOptions(req_id: number): Promise<any> {
 
 export async function getScatterOptionsFor(reqId: number) {
   const atlChartFilterStore = useAtlChartFilterStore()
-  //console.log(`getScatterOptionsFor for reqId:${reqId} xZoomStart:${atlChartFilterStore.xZoomStart} xZoomEnd:${atlChartFilterStore.xZoomEnd} yZoomStart:${atlChartFilterStore.yZoomStart} yZoomEnd:${atlChartFilterStore.yZoomEnd} `);
+  //logger.debug(`getScatterOptionsFor for reqId:${reqId} xZoomStart:${atlChartFilterStore.xZoomStart} xZoomEnd:${atlChartFilterStore.xZoomEnd} yZoomStart:${atlChartFilterStore.yZoomStart} yZoomEnd:${atlChartFilterStore.yZoomEnd} `);
   const newScatterOptions = await getScatterOptions(reqId)
   if (!newScatterOptions) {
     atlChartFilterStore.setShowMessage(true)
@@ -1412,7 +1412,7 @@ const initScatterPlotWith = async (reqId: number) => {
   const startTime = performance.now()
   const atlChartFilterStore = useAtlChartFilterStore()
   const chartStore = useChartStore()
-  //console.log(`initScatterPlotWith ${reqId} startTime:`, startTime);
+  //logger.debug(`initScatterPlotWith ${reqId} startTime:`, startTime);
 
   if (reqId === undefined || reqId <= 0) {
     logger.error('reqId is empty or invalid', { reqId })
@@ -1440,7 +1440,7 @@ const initScatterPlotWith = async (reqId: number) => {
   // Save the current zoom state of the chart before applying new options
   const chart: ECharts = plotRef.chart
   const options = chart.getOption() as EChartsOption
-  //console.log(`initScatterPlotWith ${reqId} BEFORE options:`, options);
+  //logger.debug(`initScatterPlotWith ${reqId} BEFORE options:`, options);
   const zoomCntrls = Array.isArray(options?.dataZoom) ? options.dataZoom : [options?.dataZoom]
   logger.debug('initScatterPlotWith: Capturing zoom BEFORE rebuild', {
     reqId,
@@ -1453,10 +1453,10 @@ const initScatterPlotWith = async (reqId: number) => {
       : { name: options?.yAxis?.name, min: options?.yAxis?.min, max: options?.yAxis?.max }
   })
   for (let zoomNdx = 0; zoomNdx < zoomCntrls.length; zoomNdx++) {
-    const zoomCntrl = zoomCntrls[zoomNdx] //console.log(`initScatterPlotWith ${reqId} zoomCntrls[${zoomNdx}]:`, zoomCntrls[zoomNdx]);
+    const zoomCntrl = zoomCntrls[zoomNdx] //logger.debug(`initScatterPlotWith ${reqId} zoomCntrls[${zoomNdx}]:`, zoomCntrls[zoomNdx]);
     if (zoomCntrl) {
       zoomCntrl.filterMode = 'filter'
-      //console.log(`initScatterPlotWith ALL ${reqId} zoomCntrls[${zoomNdx}]:`, zoomCntrl);
+      //logger.debug(`initScatterPlotWith ALL ${reqId} zoomCntrls[${zoomNdx}]:`, zoomCntrl);
       if (zoomCntrl.start !== undefined) {
         logger.debug('Zoom control start', {
           reqId,
@@ -1478,7 +1478,7 @@ const initScatterPlotWith = async (reqId: number) => {
           ) {
             atlChartFilterStore.xZoomStartValue = zoomCntrl.startValue
           }
-          //console.log(`initScatterPlotWith ${reqId} xZoomStart:`, atlChartFilterStore.xZoomStart);
+          //logger.debug(`initScatterPlotWith ${reqId} xZoomStart:`, atlChartFilterStore.xZoomStart);
         }
         if (zoomCntrl.yAxisIndex !== undefined) {
           // Only update percentage if we don't have value-based zoom active
@@ -1493,7 +1493,7 @@ const initScatterPlotWith = async (reqId: number) => {
           ) {
             atlChartFilterStore.yZoomStartValue = zoomCntrl.startValue
           }
-          //console.log(`initScatterPlotWith ${reqId} yZoomStart:`, atlChartFilterStore.yZoomStart);
+          //logger.debug(`initScatterPlotWith ${reqId} yZoomStart:`, atlChartFilterStore.yZoomStart);
         }
       }
       if (zoomCntrl.end !== undefined) {
@@ -1516,7 +1516,7 @@ const initScatterPlotWith = async (reqId: number) => {
           ) {
             atlChartFilterStore.xZoomEndValue = zoomCntrl.endValue
           }
-          //console.log(`initScatterPlotWith ${reqId} xZoomEnd:`, atlChartFilterStore.xZoomEnd);
+          //logger.debug(`initScatterPlotWith ${reqId} xZoomEnd:`, atlChartFilterStore.xZoomEnd);
         }
         if (zoomCntrl.yAxisIndex !== undefined) {
           // Only update percentage if we don't have value-based zoom active
@@ -1531,7 +1531,7 @@ const initScatterPlotWith = async (reqId: number) => {
           ) {
             atlChartFilterStore.yZoomEndValue = zoomCntrl.endValue
           }
-          //console.log(`initScatterPlotWith ${reqId} yZoomEnd:`, atlChartFilterStore.yZoomEnd);
+          //logger.debug(`initScatterPlotWith ${reqId} yZoomEnd:`, atlChartFilterStore.yZoomEnd);
         }
       }
     }
@@ -1543,9 +1543,9 @@ const initScatterPlotWith = async (reqId: number) => {
     afterYStartValue: atlChartFilterStore.yZoomStartValue,
     afterYEndValue: atlChartFilterStore.yZoomEndValue
   })
-  //console.log(`initScatterPlotWith for reqId:${reqId} SAVED VALUES: xZoomStart:${atlChartFilterStore.xZoomStart} xZoomEnd:${atlChartFilterStore.xZoomEnd} yZoomStart:${atlChartFilterStore.yZoomStart} yZoomEnd:${atlChartFilterStore.yZoomEnd} `);
+  //logger.debug(`initScatterPlotWith for reqId:${reqId} SAVED VALUES: xZoomStart:${atlChartFilterStore.xZoomStart} xZoomEnd:${atlChartFilterStore.xZoomEnd} yZoomStart:${atlChartFilterStore.yZoomStart} yZoomEnd:${atlChartFilterStore.yZoomEnd} `);
 
-  //console.log(`initScatterPlotWith ${reqId} y_options:`, y_options);
+  //logger.debug(`initScatterPlotWith ${reqId} y_options:`, y_options);
   atlChartFilterStore.setShowMessage(false)
   if (!y_options.length || y_options[0] === 'not_set') {
     logger.debug('No y options selected (UI message will be displayed)', { reqId })
@@ -1556,7 +1556,7 @@ const initScatterPlotWith = async (reqId: number) => {
     try {
       atlChartFilterStore.setIsLoading()
       clearPlot()
-      //console.log(`initScatterPlotWith for reqId:${reqId} AFTER CLEARPLOT xZoomStart:${atlChartFilterStore.xZoomStart} xZoomEnd:${atlChartFilterStore.xZoomEnd} yZoomStart:${atlChartFilterStore.yZoomStart} yZoomEnd:${atlChartFilterStore.yZoomEnd} `);
+      //logger.debug(`initScatterPlotWith for reqId:${reqId} AFTER CLEARPLOT xZoomStart:${atlChartFilterStore.xZoomStart} xZoomEnd:${atlChartFilterStore.xZoomEnd} yZoomStart:${atlChartFilterStore.yZoomStart} yZoomEnd:${atlChartFilterStore.yZoomEnd} `);
       await getScatterOptionsFor(reqId)
     } catch (error) {
       logger.error('Error fetching scatter options', {
@@ -1582,7 +1582,7 @@ function removeUnusedOptions(options: any): any {
   delete options.timeline
   delete options.calendar
   delete options.dataZoom // Don't include dataZoom - let it come from store values
-  //console.log('removeUnusedOptions returning options:', options);
+  //logger.debug('removeUnusedOptions returning options:', options);
   return options
 }
 
@@ -1600,14 +1600,14 @@ async function appendSeries(reqId: number): Promise<void> {
     // Retrieve existing options from the chart
     const existingOptions = chart.getOption() as EChartsOption
     const filteredOptions = removeUnusedOptions(existingOptions)
-    //console.log(`appendSeries(${reqIdStr}): existingOptions:`,existingOptions,` filteredOptions:`, filteredOptions);
+    //logger.debug(`appendSeries(${reqIdStr}): existingOptions:`,existingOptions,` filteredOptions:`, filteredOptions);
     // Fetch series data for the given reqIdStr
     const seriesData = await getSeriesFor(reqIdStr, true) //isOverlay=true
     if (!seriesData.length) {
       logger.warn('No series data found', { reqId: reqIdStr })
       return
     }
-    //console.log(`appendSeries(${reqIdStr}): seriesData:`, seriesData);
+    //logger.debug(`appendSeries(${reqIdStr}): seriesData:`, seriesData);
     // Define the fields that should share a single axis
     const heightFields = [
       'height',
@@ -1623,8 +1623,8 @@ async function appendSeries(reqId: number): Promise<void> {
     // Separate series into "height" group and "non-height" group
     const heightSeriesData = seriesData.filter((d) => heightFields.includes(d.series.name))
     const nonHeightSeriesData = seriesData.filter((d) => !heightFields.includes(d.series.name))
-    //console.log(`appendSeries(${reqIdStr}): heightSeriesData:`, heightSeriesData);
-    //console.log(`appendSeries(${reqIdStr}): nonHeightSeriesData:`, nonHeightSeriesData);
+    //logger.debug(`appendSeries(${reqIdStr}): heightSeriesData:`, heightSeriesData);
+    //logger.debug(`appendSeries(${reqIdStr}): nonHeightSeriesData:`, nonHeightSeriesData);
     let updatedSeries = [...(Array.isArray(filteredOptions.series) ? filteredOptions.series : [])]
 
     let updatedYAxis = Array.isArray(filteredOptions.yAxis) ? [...filteredOptions.yAxis] : []
@@ -1892,7 +1892,7 @@ async function appendSeries(reqId: number): Promise<void> {
       }
     }, 150)
 
-    //console.log(`appendSeries ${reqId} AFTER options:`, chart.getOption());
+    //logger.debug(`appendSeries ${reqId} AFTER options:`, chart.getOption());
 
     // DO NOT re-capture zoom values here! When ECharts updates the axis range, it automatically
     // recalculates startValue/endValue based on the NEW range, which gives us wrong values.
@@ -1906,7 +1906,7 @@ async function appendSeries(reqId: number): Promise<void> {
       yZoomEndValue: useAtlChartFilterStore().yZoomEndValue
     })
 
-    //console.log( `appendSeries(${reqIdStr}): Successfully appended scatter series and updated yAxis + legend.`,chart.getOption());
+    //logger.debug( `appendSeries(${reqIdStr}): Successfully appended scatter series and updated yAxis + legend.`,chart.getOption());
   } catch (error) {
     logger.error('Error appending scatter series', {
       reqId,
@@ -1917,12 +1917,12 @@ async function appendSeries(reqId: number): Promise<void> {
 
 export const addOverlaysToScatterPlot = async () => {
   const startTime = performance.now()
-  //console.log(`addOverlaysToScatterPlot for: ${msg}`);
+  //logger.debug(`addOverlaysToScatterPlot for: ${msg}`);
   // Retrieve existing options from the chart
   const plotRef = useAtlChartFilterStore().getPlotRef()
   if (plotRef && plotRef.chart) {
     const reqIds = useAtlChartFilterStore().getSelectedOverlayedReqIds()
-    //console.log(`addOverlaysToScatterPlot reqIds:`, reqIds);
+    //logger.debug(`addOverlaysToScatterPlot reqIds:`, reqIds);
     for (const reqId of reqIds) {
       if (reqId > 0) {
         await updateWhereClauseAndXData(reqId)
@@ -1970,7 +1970,7 @@ export async function getPhotonOverlayRunContext(): Promise<SrRunContext> {
   const atlChartFilterStore = useAtlChartFilterStore()
   const requestsStore = useRequestsStore()
   const globalChartStore = useGlobalChartStore()
-  //console.log('getPhotonOverlayRunContext reqIdStr:', recTreeStore.selectedReqIdStr, ' chartStore.stateByReqId:', chartStore.stateByReqId[recTreeStore.selectedReqIdStr]);
+  //logger.debug('getPhotonOverlayRunContext reqId',recTreeStore.selectedReqId,', reqIdStr:', recTreeStore.selectedReqIdStr, ' chartStore.stateByReqId:', useChartStore().stateByReqId[recTreeStore.selectedReqIdStr]);
   const runContext: SrRunContext = {
     reqId: -1, // this will be set in the worker
     parentReqId: recTreeStore.selectedReqId,
@@ -1982,8 +1982,8 @@ export async function getPhotonOverlayRunContext(): Promise<SrRunContext> {
     }
   }
   if (atlChartFilterStore.getShowPhotonCloud()) {
-    //console.log('Show Photon Cloud Overlay checked');
     const reqId = await indexedDb.findCachedRec(runContext, !useAtlChartFilterStore().excludeAtl08)
+    //logger.debug('Show Photon Cloud is set; got this from cache -> reqId:', reqId);
     if (reqId && reqId > 0) {
       // Use the cached request
       runContext.reqId = reqId
@@ -2127,19 +2127,19 @@ export async function initSymbolSize(req_id: number): Promise<number> {
   } else {
     symbolStore.setSize(reqIdStr, plotConfig?.defaultAtl06SymbolSize ?? 3)
   }
-  //console.log('initSymbolSize reqId:', req_id, 'func:', func, 'symbolSize:', chartStore.getSymbolSize(reqIdStr));
+  //logger.debug('initSymbolSize reqId:', req_id, 'func:', func, 'symbolSize:', chartStore.getSymbolSize(reqIdStr));
   return symbolStore.getSize(reqIdStr)
 }
 
 export function updateWhereClauseAndXData(req_id: number) {
-  //console.log('updateWhereClauseAndXData req_id:', req_id);
+  //logger.debug('updateWhereClauseAndXData req_id:', req_id);
   if (req_id <= 0) {
     logger.warn('Invalid request ID', { req_id })
     return
   }
   try {
     const reqIdStr = req_id.toString()
-    //console.log('updateWhereClauseAndXData req_id:', req_id);
+    //logger.debug('updateWhereClauseAndXData req_id:', req_id);
     const func = useRecTreeStore().findApiForReqId(req_id)
     const chartStore = useChartStore()
     const globalChartStore = useGlobalChartStore()
@@ -2165,7 +2165,7 @@ export function updateWhereClauseAndXData(req_id: number) {
   }
 }
 export async function checkAndSetFilterForTimeSeries() {
-  //console.log('checkAndSetFilterForTimeSeries called');
+  //logger.debug('checkAndSetFilterForTimeSeries called');
   const globalChartStore = useGlobalChartStore()
   const chartStore = useChartStore()
   const reqIdStr = useRecTreeStore().selectedReqIdStr
@@ -2177,7 +2177,7 @@ export async function checkAndSetFilterForTimeSeries() {
     globalChartStore.setScOrients([SC_BACKWARD, SC_FORWARD])
     await globalChartStore.selectAllCycleOptions()
     globalChartStore.use_rgt_in_filter = false
-    //console.log('checkAndSetFilterForTimeSeries Setting use_y_atc_filter false, Spots to [1,2,3,4,5,6], Cycles to:',globalChartStore.getSelectedCycleOptions(),'/', globalChartStore.getCycles());
+    //logger.debug('checkAndSetFilterForTimeSeries Setting use_y_atc_filter false, Spots to [1,2,3,4,5,6], Cycles to:',globalChartStore.getSelectedCycleOptions(),'/', globalChartStore.getCycles());
   } else {
     globalChartStore.use_rgt_in_filter = true
     await resetFilterUsingSelectedRec()
@@ -2200,7 +2200,7 @@ export async function checkAndSetFilterFor3D() {
       await globalChartStore.selectAllCycleOptions()
       globalChartStore.use_rgt_in_filter = false
       chartStore.setSelectedColorEncodeData(recTreeStore.selectedReqIdStr, 'cycle')
-      //console.log('checkAndSetFilterForTimeSeries Setting use_y_atc_filter false, Spots to [1,2,3,4,5,6], Cycles to all');
+      //logger.debug('checkAndSetFilterForTimeSeries Setting use_y_atc_filter false, Spots to [1,2,3,4,5,6], Cycles to all');
     } else {
       // verticalExaggeration will be set automatically based on data in renderCachedData
       chartStore.setSelectedColorEncodeData(

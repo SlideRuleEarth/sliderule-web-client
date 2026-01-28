@@ -683,7 +683,7 @@ const photonCloudBtnTooltip = computed(() => {
 
 const handleChartFinished = () => {
   if (chartWrapperRef.value) {
-    //console.log('handleChartFinished ECharts update finished event -- dialogsInitialized.value:', dialogsInitialized.value, 'chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length:',chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length);
+    //logger.debug('handleChartFinished ECharts update finished event -- dialogsInitialized.value:', dialogsInitialized.value, 'chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length:',chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length);
     if (
       dialogsInitialized.value == false &&
       chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length > 0
@@ -842,7 +842,7 @@ async function handleZoomPlotToMapExtent() {
 
 // Handler for time x-axis toggle
 async function onUseTimeForXAxisChange() {
-  logger.debug('Use Time For X Axis changed', { newValue: globalChartStore.useTimeForXAxis })
+  //logger.debug('Use Time For X Axis changed', { newValue: globalChartStore.useTimeForXAxis })
   // Reset zoom and reinitialize plot when switching x-axis field
   atlChartFilterStore.resetZoom()
   dialogsInitialized.value = false
@@ -859,12 +859,12 @@ const selectedReqIdStr = computed(() => {
 })
 
 async function initPlot() {
-  logger.debug('initPlot: webGLSupported', { webGLSupported: !!window.WebGLRenderingContext })
+  //logger.debug('initPlot: webGLSupported', { webGLSupported: !!window.WebGLRenderingContext })
   try {
     // Get the computed style of the document's root element
     // Extract the font size from the computed style
     // Log the font size to the console
-    //console.log(`onMounted Current root globalChartStore.fontSize: ${globalChartStore.fontSize} recTreeStore.selectedReqId:`, recTreeStore.selectedReqId);
+    //logger.debug(`onMounted Current root globalChartStore.fontSize: ${globalChartStore.fontSize} recTreeStore.selectedReqId:`, recTreeStore.selectedReqId);
     globalChartStore.use_y_atc_filter = false
     atlChartFilterStore.setIsWarning(true)
     atlChartFilterStore.setMessage('Loading...')
@@ -873,7 +873,7 @@ async function initPlot() {
     const sReqId = props.startingReqId
     if (sReqId > 0) {
       const selectedElRecord = globalChartStore.getSelectedElevationRec()
-      //console.log('SrElevationPlot onMounted selectedElRecord:', selectedElRecord);
+      //logger.debug('SrElevationPlot onMounted selectedElRecord:', selectedElRecord);
       if (selectedElRecord) {
         await processSelectedElPnt(selectedElRecord) // TBD maybe no await here to run in parallel?
       } else {
@@ -894,7 +894,7 @@ async function initPlot() {
 
 onMounted(async () => {
   try {
-    //console.log('SrElevationPlot onMounted initial chartWrapperRef:',chartWrapperRef.value);
+    //logger.debug('SrElevationPlot onMounted initial chartWrapperRef:',chartWrapperRef.value);
     webGLSupported.value = !!window.WebGLRenderingContext // Should log `true` if WebGL is supported
     globalChartStore.titleOfElevationPlot = ' Highlighted Track(s)'
 
@@ -1010,10 +1010,10 @@ async function handlePhotonCloudShow() {
   const isAtl03sp = recTreeStore.findApiForReqId(runContext.reqId) === 'atl03sp' //because it is deprecated
   if (runContext.reqId <= 0 || isAtl03sp) {
     // need to fetch the data because atl03sp is deprecated
-    //console.log('showPhotonCloud runContext.reqId:', runContext.reqId, ' runContext.parentReqId:', runContext.parentReqId, 'runContext.trackFilter:', runContext.trackFilter);
+    //logger.debug('showPhotonCloud runContext.reqId:', runContext.reqId, ' runContext.parentReqId:', runContext.parentReqId, 'runContext.trackFilter:', runContext.trackFilter);
     await useAutoReqParamsStore().presetForScatterPlotOverlay(runContext.parentReqId)
     await processRunSlideRuleClicked(runContext) // worker is started here
-    //console.log('SrElevationPlot watch atlChartFilterStore.showPhotonCloud runContext:',runContext, 'reqId:', runContext.reqId, parentReqIdStr, ' parentFuncStr:', parentFuncStr);
+    //logger.debug('SrElevationPlot watch atlChartFilterStore.showPhotonCloud runContext:',runContext, 'reqId:', runContext.reqId, parentReqIdStr, ' parentFuncStr:', parentFuncStr);
     if (runContext.reqId > 0) {
       const thisReqIdStr = runContext.reqId.toString()
       initDataBindingsToChartStore([thisReqIdStr]) //after run gives us a reqId
@@ -1036,7 +1036,7 @@ async function handlePhotonCloudShow() {
     initializeColorEncoding(runContext.reqId, parentFuncStr)
     atlChartFilterStore.setSelectedOverlayedReqIds([runContext.reqId])
     const sced = chartStore.getSelectedColorEncodeData(parentReqIdStr)
-    //console.log('sced:', sced, ' reqIdStr:', parentReqIdStr);
+    //logger.debug('sced:', sced, ' reqIdStr:', parentReqIdStr);
     chartStore.setSavedColorEncodeData(parentReqIdStr, sced)
     chartStore.setSelectedColorEncodeData(parentReqIdStr, 'solid')
     await prepareDbForReqId(runContext.reqId)
@@ -1055,15 +1055,15 @@ watch(
         await handlePhotonCloudShow()
       } else {
         chartStore.setInitLegendUnselected(recTreeStore.selectedReqIdStr, false)
-        //console.log(`calling chartStore.getSavedColorEncodeData(${recTreeStore.selectedReqIdStr})`)
+        //logger.debug(`calling chartStore.getSavedColorEncodeData(${recTreeStore.selectedReqIdStr})`)
         const sced = chartStore.getSavedColorEncodeData(recTreeStore.selectedReqIdStr)
-        //console.log(`called chartStore.getSavedColorEncodeData(${recTreeStore.selectedReqIdStr}) sced:${sced}`)
+        //logger.debug(`called chartStore.getSavedColorEncodeData(${recTreeStore.selectedReqIdStr}) sced:${sced}`)
         if (sced && sced != 'unset') {
-          //console.log('Restoring to sced:', sced, ' reqIdStr:', recTreeStore.selectedReqIdStr);
+          //logger.debug('Restoring to sced:', sced, ' reqIdStr:', recTreeStore.selectedReqIdStr);
           chartStore.setSelectedColorEncodeData(recTreeStore.selectedReqIdStr, sced)
           chartStore.setSavedColorEncodeData(recTreeStore.selectedReqIdStr, 'unset')
         }
-        //console.log('SrElevationPlot handlePhotonCloudChange - showPhotonCloud FALSE');
+        //logger.debug('SrElevationPlot handlePhotonCloudChange - showPhotonCloud FALSE');
         atlChartFilterStore.setSelectedOverlayedReqIds([])
         await callPlotUpdateDebounced('from watch atlChartFilterStore.showPhotonCloud FALSE')
       }

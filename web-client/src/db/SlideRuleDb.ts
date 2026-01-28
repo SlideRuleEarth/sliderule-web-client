@@ -1561,6 +1561,11 @@ export class SlideRuleDexie extends Dexie {
           req.num_bytes &&
           req.num_bytes > 0
         ) {
+          //logger.debug('Candidate matches atl03x func and success status', { rec, req })
+          if (req?.parameters?.parms.atl24) {
+            returnedReqId = rec.reqId
+            break // this is atl24x overlay
+          }
           if (req?.parameters?.parms.atl08_class && includeAtl08) {
             returnedReqId = rec.reqId
             break // prefer ones with atl08_class specified
