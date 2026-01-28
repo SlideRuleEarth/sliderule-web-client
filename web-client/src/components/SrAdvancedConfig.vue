@@ -6,7 +6,6 @@
       :toggleable="true"
       :collapsed="false"
     >
-      <SrPlotCfgEdit />
       <label for="chunkSizeToRead">SQL Query Chunk Size</label>
       <InputNumber
         v-model="srParquetCfgStore.chunkSizeToRead"
@@ -168,7 +167,6 @@ import { useRequestsStore } from '@/stores/requestsStore'
 import SrCheckbox from './SrCheckbox.vue'
 import InputNumber from 'primevue/inputnumber'
 import { useGlobalChartStore } from '@/stores/globalChartStore'
-import SrPlotCfgEdit from '@/components/SrPlotCfgEdit.vue'
 import { useTourStore } from '@/stores/tourStore'
 import { useMobileWarningStore } from '@/stores/mobileWarningStore'
 import Button from 'primevue/button'

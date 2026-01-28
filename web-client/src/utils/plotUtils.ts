@@ -25,6 +25,7 @@ import {
   type SrSvrParmsUsed
 } from '@/types/SrTypes'
 import { useSymbolStore } from '@/stores/symbolStore'
+import { usePlotConfigStore } from '@/stores/plotConfigStore'
 import { useFieldNameStore } from '@/stores/fieldNameStore'
 import { useArrayColumnStore } from '@/stores/arrayColumnStore'
 import { useSrcIdTblStore } from '@/stores/srcIdTblStore'
@@ -249,10 +250,10 @@ async function getGenericSeries({
 }: GetSeriesParams): Promise<SrScatterSeriesData[]> {
   const startTime = performance.now()
   let yItems: SrScatterSeriesData[] = []
-  const plotConfig = await indexedDb.getPlotConfig()
-  const progressiveChunkSize = plotConfig?.progressiveChunkSize ?? 12000
-  const progressiveThreshold = plotConfig?.progressiveChunkThreshold ?? 10000
-  const progressiveChunkMode = plotConfig?.progressiveChunkMode ?? 'sequential'
+  const plotConfigStore = usePlotConfigStore()
+  const progressiveChunkSize = plotConfigStore.progressiveChunkSize
+  const progressiveThreshold = plotConfigStore.progressiveChunkThreshold
+  const progressiveChunkMode = plotConfigStore.progressiveChunkMode
 
   try {
     // Ensure lat/lon are always included for location finder, even if not displayed
@@ -2115,19 +2116,10 @@ export const findReqMenuLabel = (reqId: number) => {
 
 export async function initSymbolSize(req_id: number): Promise<number> {
   const reqIdStr = req_id.toString()
-  const plotConfig = await indexedDb.getPlotConfig()
+  const plotConfigStore = usePlotConfigStore()
   const symbolStore = useSymbolStore()
-  const func = await indexedDb.getFunc(req_id) //must use db
-  if (func === 'atl03sp' || func === 'atl03x' || func === 'atl03vp') {
-    //symbolStore.size[reqIdStr] = (plotConfig?.defaultAtl03spSymbolSize  ?? 1);
-    symbolStore.setSize(reqIdStr, plotConfig?.defaultAtl03spSymbolSize ?? 1)
-  } else if (func.includes('atl03vp')) {
-    //symbolStore.size[reqIdStr] = (plotConfig?.defaultAtl03vpSymbolSize  ?? 5);
-    symbolStore.setSize(reqIdStr, plotConfig?.defaultAtl03vpSymbolSize ?? 5)
-  } else {
-    symbolStore.setSize(reqIdStr, plotConfig?.defaultAtl06SymbolSize ?? 3)
-  }
-  //logger.debug('initSymbolSize reqId:', req_id, 'func:', func, 'symbolSize:', chartStore.getSymbolSize(reqIdStr));
+  const func = await indexedDb.getFunc(req_id)
+  symbolStore.setSize(reqIdStr, plotConfigStore.getDefaultSymbolSize(func))
   return symbolStore.getSize(reqIdStr)
 }
 
@@ -2274,7 +2266,7 @@ export function highlightPlotPointByCoordinates(lat: number, lon: number, reqIdS
   }
 
   if (matchedIndex >= 0 && matchedIndex !== lastHighlightedDataIndex) {
-    logger.debug('highlightPlotPointByCoordinates: highlighting point', { matchedIndex, lat, lon })
+    //logger.debug('highlightPlotPointByCoordinates: highlighting point', { matchedIndex, lat, lon })
 
     // Downplay any previous highlight
     if (lastHighlightedDataIndex !== null) {
