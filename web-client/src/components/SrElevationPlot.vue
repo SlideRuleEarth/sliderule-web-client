@@ -777,12 +777,24 @@ async function resetChartZoom() {
   }
   try {
     logger.debug('Resetting chart zoom')
+    // Clear both percentage and value-based zoom fields in store
     atlChartFilterStore.resetZoom()
-    dialogsInitialized.value = false
-    await initPlot()
-    if (chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length > 0) {
-      await callPlotUpdateDebounced('from resetChartZoom')
-    }
+
+    const chart = plotRef.value.chart
+    // Reset X-axis dataZoom (slider at index 0, inside at index 2 shares state)
+    chart.dispatchAction({
+      type: 'dataZoom',
+      dataZoomIndex: 0,
+      start: 0,
+      end: 100
+    })
+    // Reset Y-axis dataZoom (slider at index 1, inside at index 3 shares state)
+    chart.dispatchAction({
+      type: 'dataZoom',
+      dataZoomIndex: 1,
+      start: 0,
+      end: 100
+    })
   } catch (error) {
     logger.error('Error resetting chart zoom', { error })
   }
