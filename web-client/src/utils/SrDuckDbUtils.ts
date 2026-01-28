@@ -2001,6 +2001,26 @@ export async function fetchScatterData(
             low: lowX,
             high: highX
           }
+
+          // Store time_plot min/max in global store for datazoom handler
+          // This is needed because time_plot is a derived column not in the parquet schema,
+          // so getAllColumnMinMax() doesn't include it
+          if (isTimeXAxis) {
+            const globalChartStore = useGlobalChartStore()
+            const currentMinMax = globalChartStore.getAllColumnMinMaxValues()
+            logger.debug('fetchScatterData: Storing time x-axis min/max in globalChartStore', {
+              xField: x,
+              minX,
+              maxX,
+              lowX,
+              highX,
+              existingKeys: Object.keys(currentMinMax)
+            })
+            globalChartStore.setAllColumnMinMaxValues({
+              ...currentMinMax,
+              [x]: { min: minX, max: maxX, low: lowX, high: highX }
+            })
+          }
         } else {
           logger.error('min/max x is NaN', { x, minX, maxX, aliasKey: aliasKey('min', `${x}`) })
         }
@@ -2383,6 +2403,80 @@ export async function getAtl06SlopeSegments(
 }
 
 /**
+ * Detect the correlation direction between time and latitude for a dataset.
+ * Returns 1 if time and latitude are positively correlated (both increase together),
+ * Returns -1 if they are negatively correlated (time increases, latitude decreases).
+ * Returns 0 if correlation cannot be determined.
+ *
+ * This is used for time-based X-axis to properly sync zoom between plot and map.
+ */
+export async function getTimeLatitudeDirection(reqId: number): Promise<1 | -1 | 0> {
+  const fileName = await indexedDb.getFilename(reqId)
+  if (!fileName) {
+    logger.warn('getTimeLatitudeDirection: No filename found', { reqId })
+    return 0
+  }
+
+  const fieldNameStore = useFieldNameStore()
+  await fieldNameStore.loadMetaForReqId(reqId)
+
+  const latField = fieldNameStore.getLatFieldName(reqId)
+  const timeField = fieldNameStore.getTimeFieldName(reqId)
+
+  if (!latField || !timeField) {
+    logger.warn('getTimeLatitudeDirection: Missing field names', { reqId, latField, timeField })
+    return 0
+  }
+
+  const duckDbClient = await createDuckDbClient()
+  await duckDbClient.insertOpfsParquet(fileName)
+
+  // Check if GeoParquet - use ST_Y for latitude if so
+  const isGeoParquet = fieldNameStore.isGeoParquet(reqId)
+  const latExpr = isGeoParquet ? 'ST_Y("geometry")' : `"${latField}"`
+
+  // Query first and last points by time to determine direction
+  // Using FIRST_VALUE/LAST_VALUE with ORDER BY time
+  const query = `
+    SELECT
+      FIRST_VALUE(${latExpr}) OVER (ORDER BY "${timeField}" ASC) as first_lat,
+      LAST_VALUE(${latExpr}) OVER (ORDER BY "${timeField}" ASC
+        ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) as last_lat
+    FROM '${fileName}'
+    LIMIT 1
+  `
+
+  try {
+    const result = await duckDbClient.query(query)
+    for await (const chunk of result.readRows()) {
+      if (chunk.length > 0) {
+        const row = chunk[0]
+        const firstLat = Number(row.first_lat)
+        const lastLat = Number(row.last_lat)
+
+        if (Number.isFinite(firstLat) && Number.isFinite(lastLat)) {
+          const direction = lastLat > firstLat ? 1 : -1
+          logger.debug('getTimeLatitudeDirection: Detected direction', {
+            reqId,
+            firstLat,
+            lastLat,
+            direction
+          })
+          return direction
+        }
+      }
+    }
+  } catch (error) {
+    logger.error('getTimeLatitudeDirection: Query failed', {
+      reqId,
+      error: error instanceof Error ? error.message : String(error)
+    })
+  }
+
+  return 0
+}
+
+/**
  * Query the lat/lon bounds for points within the visible X range of the plot.
  * If no X zoom is applied (xZoomStartValue/xZoomEndValue are undefined),
  * returns bounds for all data matching the current filters.
@@ -2422,6 +2516,21 @@ export async function getVisibleLatLonExtent(
   let xMin = atlChartFilterStore.xZoomStartValue
   let xMax = atlChartFilterStore.xZoomEndValue
 
+  // Diagnostic logging to help debug zoom issues
+  const globalChartStoreForDebug = useGlobalChartStore()
+  const columnMinMaxForDebug = globalChartStoreForDebug.getAllColumnMinMaxValues()
+  logger.debug('getVisibleLatLonExtent: Initial state', {
+    reqId,
+    xField,
+    storeXMin: xMin,
+    storeXMax: xMax,
+    hasXFieldInColumnMinMax: xField ? !!columnMinMaxForDebug[xField] : false,
+    xFieldMinMax: xField ? columnMinMaxForDebug[xField] : undefined,
+    chartStoreMinX: chartStore.getMinX(reqIdStr),
+    chartStoreMaxX: chartStore.getMaxX(reqIdStr),
+    allColumnMinMaxKeys: Object.keys(columnMinMaxForDebug)
+  })
+
   // If value-based zoom is not set, try to get zoom state directly from ECharts
   // The store values aren't always synced when user zooms via sliders/pinch
   if ((xMin === undefined || xMax === undefined) && xField) {
@@ -2441,38 +2550,88 @@ export async function getVisibleLatLonExtent(
       if (xDataZoom) {
         // First try to use startValue/endValue if available
         if (xDataZoom.startValue !== undefined && xDataZoom.endValue !== undefined) {
-          xMin = xDataZoom.startValue
-          xMax = xDataZoom.endValue
-          logger.debug('getVisibleLatLonExtent: Got zoom values from chart', { xMin, xMax })
+          // Ensure the values are numbers (ECharts might return Date objects for time axes)
+          const startVal =
+            typeof xDataZoom.startValue === 'number'
+              ? xDataZoom.startValue
+              : Number(xDataZoom.startValue)
+          const endVal =
+            typeof xDataZoom.endValue === 'number' ? xDataZoom.endValue : Number(xDataZoom.endValue)
+
+          if (Number.isFinite(startVal) && Number.isFinite(endVal)) {
+            xMin = startVal
+            xMax = endVal
+            logger.debug('getVisibleLatLonExtent: Got zoom values from chart', { xMin, xMax })
+          } else {
+            logger.warn('getVisibleLatLonExtent: Invalid startValue/endValue from chart', {
+              startValue: xDataZoom.startValue,
+              endValue: xDataZoom.endValue,
+              startVal,
+              endVal
+            })
+          }
         }
         // Otherwise calculate from percentage
         else if (xDataZoom.start !== undefined && xDataZoom.end !== undefined) {
           const xZoomStartPct = xDataZoom.start
           const xZoomEndPct = xDataZoom.end
 
-          // Only calculate if not at default (0, 100)
-          if (xZoomStartPct > 0 || xZoomEndPct < 100) {
-            const globalChartStore = useGlobalChartStore()
-            const columnMinMax = globalChartStore.getAllColumnMinMaxValues()
-            const xFieldMinMax = columnMinMax[xField]
+          // Try to get min/max from globalChartStore first
+          const globalChartStore = useGlobalChartStore()
+          const columnMinMax = globalChartStore.getAllColumnMinMaxValues()
+          let xFieldMinMax = columnMinMax[xField]
 
-            if (
-              xFieldMinMax &&
-              Number.isFinite(xFieldMinMax.min) &&
-              Number.isFinite(xFieldMinMax.max)
-            ) {
-              const dataMin = xFieldMinMax.min
-              const dataMax = xFieldMinMax.max
-              const dataRange = dataMax - dataMin
+          // Fallback to chartStore's minX/maxX if globalChartStore doesn't have it
+          // These are set during fetchScatterData and should be available
+          if (
+            !xFieldMinMax ||
+            !Number.isFinite(xFieldMinMax.min) ||
+            !Number.isFinite(xFieldMinMax.max)
+          ) {
+            const chartMinX = chartStore.getMinX(reqIdStr)
+            const chartMaxX = chartStore.getMaxX(reqIdStr)
+            if (chartMinX !== undefined && chartMaxX !== undefined) {
+              xFieldMinMax = { min: chartMinX, max: chartMaxX, low: chartMinX, high: chartMaxX }
+              logger.debug('getVisibleLatLonExtent: Using chartStore min/max as fallback', {
+                chartMinX,
+                chartMaxX
+              })
+            }
+          }
 
+          if (
+            xFieldMinMax &&
+            Number.isFinite(xFieldMinMax.min) &&
+            Number.isFinite(xFieldMinMax.max)
+          ) {
+            const dataMin = xFieldMinMax.min
+            const dataMax = xFieldMinMax.max
+            const dataRange = dataMax - dataMin
+
+            // Only calculate zoom values if we have a valid non-zero range
+            // A zero range indicates the min/max values weren't properly set
+            if (dataRange > 0) {
               // Convert percentage (0-100) to actual value
+              // Even at full extent (0, 100), we set the values to ensure the query works
               xMin = dataMin + (xZoomStartPct / 100) * dataRange
               xMax = dataMin + (xZoomEndPct / 100) * dataRange
 
               logger.debug('getVisibleLatLonExtent: Calculated zoom from percentages', {
                 xMin,
-                xMax
+                xMax,
+                xZoomStartPct,
+                xZoomEndPct
               })
+            } else {
+              logger.warn(
+                'getVisibleLatLonExtent: Invalid data range (zero or negative), skipping x-filter',
+                {
+                  dataMin,
+                  dataMax,
+                  dataRange,
+                  xField
+                }
+              )
             }
           }
         }
@@ -2507,16 +2666,37 @@ export async function getVisibleLatLonExtent(
   // Build WHERE clause - include existing filters plus X range
   let whereClause = chartStore.getWhereClause(reqIdStr) || ''
 
+  logger.debug('getVisibleLatLonExtent: Existing WHERE clause from chartStore', {
+    reqId,
+    existingWhereClause: whereClause || '(none)'
+  })
+
+  // Check if xField is a derived time column (time_plot or time_ns_plot)
+  const isTimePlotField = xField === 'time_plot' || xField === 'time_ns_plot'
+  const sourceTimeField = isTimePlotField ? (xField === 'time_ns_plot' ? 'time_ns' : 'time') : null
+
   // Add X range filter if zoomed (use converted raw values)
   if (queryXMin !== undefined && queryXMax !== undefined && xField) {
-    const xFilter = `"${xField}" BETWEEN ${queryXMin} AND ${queryXMax}`
-    logger.debug('getVisibleLatLonExtent: X range filter', { xFilter })
+    let xFilter: string
+    if (isTimePlotField && sourceTimeField) {
+      // For derived time columns, compute the normalized time inline
+      // time_plot = epoch_ns(time) - MIN(epoch_ns(time))
+      // So we need to compare against (epoch_ns(time) - minEpochNs)
+      // IMPORTANT: The subquery must use the same filters as the data fetch to get consistent min values
+      // Otherwise if the file contains multiple tracks, the min from entire file differs from filtered min
+      const subqueryWhereClause = whereClause ? ` ${whereClause}` : ''
+      xFilter = `(epoch_ns("${sourceTimeField}") - (SELECT MIN(epoch_ns("${sourceTimeField}")) FROM '${fileName}'${subqueryWhereClause})) BETWEEN ${queryXMin} AND ${queryXMax}`
+    } else {
+      xFilter = `"${xField}" BETWEEN ${queryXMin} AND ${queryXMax}`
+    }
+    logger.debug('getVisibleLatLonExtent: X range filter', { xFilter, isTimePlotField })
     if (whereClause) {
       const sanitizedClause = whereClause.replace(/^WHERE\s+/i, '')
       whereClause = `WHERE ${sanitizedClause} AND ${xFilter}`
     } else {
       whereClause = `WHERE ${xFilter}`
     }
+    logger.debug('getVisibleLatLonExtent: Final WHERE clause', { whereClause })
   }
 
   const duckDbClient = await createDuckDbClient()
@@ -2546,7 +2726,17 @@ export async function getVisibleLatLonExtent(
     ${whereClause}
   `
 
-  logger.debug('getVisibleLatLonExtent: Executing query', { reqId, fileName })
+  logger.debug('getVisibleLatLonExtent: Executing query', {
+    reqId,
+    fileName,
+    isGeoParquet,
+    latExpr,
+    lonExpr,
+    whereClause: whereClause || '(none)',
+    xField,
+    queryXMin,
+    queryXMax
+  })
 
   try {
     const result = await duckDbClient.query(query)
@@ -2613,7 +2803,10 @@ export async function getVisibleLatLonExtent(
   } catch (error) {
     logger.error('getVisibleLatLonExtent: Query failed', {
       reqId,
-      error: error instanceof Error ? error.message : String(error)
+      error: error instanceof Error ? error.message : String(error),
+      query: query.slice(0, 500), // Log first 500 chars of query for debugging
+      xField,
+      isGeoParquet
     })
     return null
   }
@@ -2678,13 +2871,19 @@ export async function getXRangeFromLatLonExtent(
   }
 
   // Build WHERE clause with lat/lon bounds and existing filters
-  let whereClause = chartStore.getWhereClause(reqIdStr) || ''
+  const baseWhereClause = chartStore.getWhereClause(reqIdStr) || ''
+  let whereClause = baseWhereClause
   const latLonFilter = `${latExpr} BETWEEN ${extent.minLat} AND ${extent.maxLat} AND ${lonExpr} BETWEEN ${extent.minLon} AND ${extent.maxLon}`
+
+  // Check if xField is a derived time column (time_plot or time_ns_plot)
+  const isTimePlotField = xField === 'time_plot' || xField === 'time_ns_plot'
+  const sourceTimeField = isTimePlotField ? (xField === 'time_ns_plot' ? 'time_ns' : 'time') : null
 
   logger.debug('getXRangeFromLatLonExtent: Building query', {
     reqId,
     xField,
     isGeoParquet,
+    isTimePlotField,
     extent
   })
 
@@ -2695,10 +2894,25 @@ export async function getXRangeFromLatLonExtent(
     whereClause = `WHERE ${latLonFilter}`
   }
 
+  // Build the X field expression - for derived time columns, compute normalized time inline
+  let xMinExpr: string
+  let xMaxExpr: string
+  if (isTimePlotField && sourceTimeField) {
+    // For derived time columns: time_plot = epoch_ns(time) - MIN(epoch_ns(time))
+    // The subquery must use the base filters (without lat/lon) to match the scatter data normalization
+    const subqueryWhereClause = baseWhereClause ? ` ${baseWhereClause}` : ''
+    const minEpochSubquery = `(SELECT MIN(epoch_ns("${sourceTimeField}")) FROM '${fileName}'${subqueryWhereClause})`
+    xMinExpr = `MIN(epoch_ns("${sourceTimeField}") - ${minEpochSubquery})`
+    xMaxExpr = `MAX(epoch_ns("${sourceTimeField}") - ${minEpochSubquery})`
+  } else {
+    xMinExpr = `MIN("${xField}")`
+    xMaxExpr = `MAX("${xField}")`
+  }
+
   const query = `
     SELECT
-      MIN("${xField}") as min_x,
-      MAX("${xField}") as max_x
+      ${xMinExpr} as min_x,
+      ${xMaxExpr} as max_x
     FROM '${fileName}'
     ${whereClause}
   `

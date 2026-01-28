@@ -151,7 +151,7 @@ async function handleZoomMapToPlotExtent() {
     useSrToastStore().warn(
       'No Data in Visible Range',
       'Could not determine extent for the current plot zoom range. Try zooming out or resetting the plot zoom.',
-      5000
+      10000
     )
   }
 }

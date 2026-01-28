@@ -807,6 +807,15 @@ const hasMapExtentData = computed(() => {
   return !!(mapExtent && selectedReqId && selectedReqId > 0)
 })
 
+// Check if current API supports toggling between time and distance for x-axis
+// GEDI and ATL13 always use time (no spatial distance field like x_atc)
+const supportsTimeToggle = computed(() => {
+  if (!recTreeStore.isTreeLoaded || reqId.value <= 0) return true
+  const func = recTreeStore.findApiForReqId(reqId.value)
+  // GEDI and ATL13 don't have a spatial distance field, so hide the toggle
+  return !func.includes('gedi') && !func.includes('atl13')
+})
+
 // Tooltip text for zoom-plot-to-map button
 const zoomPlotToMapTooltip = computed(() =>
   hasMapExtentData.value ? 'Zoom plot to match visible map extent' : 'No map extent available'
@@ -847,7 +856,7 @@ async function handleZoomPlotToMapExtent() {
     useSrToastStore().warn(
       'No Data in Visible Map Area',
       'Could not find data within the visible map extent. Try zooming out on the map.',
-      5000
+      10000
     )
   }
 }
@@ -1014,16 +1023,28 @@ watch(
                 Number.isFinite(xFieldMinMax.max)
               ) {
                 const dataRange = xFieldMinMax.max - xFieldMinMax.min
-                atlChartFilterStore.xZoomStartValue =
-                  xFieldMinMax.min + (xDataZoom.start / 100) * dataRange
-                atlChartFilterStore.xZoomEndValue =
-                  xFieldMinMax.min + (xDataZoom.end / 100) * dataRange
-                logger.debug('datazoom: Calculated X zoom from percentages', {
-                  start: xDataZoom.start,
-                  end: xDataZoom.end,
-                  xZoomStartValue: atlChartFilterStore.xZoomStartValue,
-                  xZoomEndValue: atlChartFilterStore.xZoomEndValue
-                })
+                // Only calculate if we have a valid non-zero range
+                if (dataRange > 0) {
+                  atlChartFilterStore.xZoomStartValue =
+                    xFieldMinMax.min + (xDataZoom.start / 100) * dataRange
+                  atlChartFilterStore.xZoomEndValue =
+                    xFieldMinMax.min + (xDataZoom.end / 100) * dataRange
+                  logger.debug('datazoom: Calculated X zoom from percentages', {
+                    start: xDataZoom.start,
+                    end: xDataZoom.end,
+                    xZoomStartValue: atlChartFilterStore.xZoomStartValue,
+                    xZoomEndValue: atlChartFilterStore.xZoomEndValue
+                  })
+                } else {
+                  logger.warn(
+                    'datazoom: Invalid data range (zero or negative), cannot calculate zoom values',
+                    {
+                      xField,
+                      dataRange,
+                      xFieldMinMax
+                    }
+                  )
+                }
               }
             }
           }
@@ -1328,7 +1349,9 @@ watch(
         <!-- Zoom selection rectangle overlay -->
         <div v-if="isDrawingZoomRect" class="sr-zoom-select-rect" :style="zoomRectStyle" />
         <!-- Time x-axis control positioned at bottom-left of chart -->
+        <!-- Hidden for GEDI and ATL13 which always use time (no spatial distance field) -->
         <div
+          v-if="supportsTimeToggle"
           class="sr-time-xaxis-control"
           @mouseover="tooltipRef.showTooltip($event, 'Use time instead of distance for x-axis')"
           @mouseleave="tooltipRef.hideTooltip()"
@@ -1666,13 +1689,6 @@ watch(
           <SrPlotCntrl v-if="reqId > 0 && !isAtl24WithPhotonCloud" :reqId="reqId" />
         </div>
         <div class="sr-multiselect-col">
-          <!-- Show overlay controls when photon cloud is active -->
-          <div
-            v-for="overlayedReqId in atlChartFilterStore.selectedOverlayedReqIds"
-            :key="overlayedReqId"
-          >
-            <SrPlotCntrl :reqId="overlayedReqId" :isOverlay="true" />
-          </div>
           <!-- Show photon cloud params button when no overlay is active -->
           <SrReqDisplay
             v-if="
@@ -1686,6 +1702,13 @@ watch(
             :isForPhotonCloud="true"
             :tooltipText="'The params that will be used for the Photon Cloud overlay'"
           />
+          <!-- Show overlay controls when photon cloud is active -->
+          <div
+            v-for="overlayedReqId in atlChartFilterStore.selectedOverlayedReqIds"
+            :key="overlayedReqId"
+          >
+            <SrPlotCntrl :reqId="overlayedReqId" :isOverlay="true" />
+          </div>
         </div>
       </div>
     </div>
