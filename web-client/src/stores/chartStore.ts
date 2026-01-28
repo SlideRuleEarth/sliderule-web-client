@@ -334,9 +334,10 @@ export const useChartStore = defineStore('chartStore', {
       } else if (func.includes('atl24')) {
         this.stateByReqId[reqIdStr].xDataForChart = 'x_atc'
       } else if (func.includes('atl13')) {
-        this.stateByReqId[reqIdStr].xDataForChart = 'latitude' // this is a placeholder/HACK
+        // atl13x uses time_ns, so use time_ns_plot for the derived normalized time column
+        this.stateByReqId[reqIdStr].xDataForChart = 'time_ns_plot'
       } else if (func.includes('gedi')) {
-        this.stateByReqId[reqIdStr].xDataForChart = 'latitude' // this is a placeholder/HACK
+        this.stateByReqId[reqIdStr].xDataForChart = 'time_plot' // Use time for GEDI (gedi APIs have 'time' field)
       } else {
         logger.error('setXDataForChartUsingFunc unknown function', { func })
       }
