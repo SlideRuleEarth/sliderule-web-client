@@ -28,7 +28,6 @@ const props = defineProps({
     default: 0
   }
 })
-const tooltipRef = ref()
 const loadingThisSFC = ref(true)
 const isMounted = ref(false)
 
