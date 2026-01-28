@@ -296,11 +296,11 @@ async function getGenericSeries({
     chartStore.setDataOrderNdx(reqIdStr, rest['dataOrderNdx'] || {})
     const gradientColorMapStore = useGradientColorMapStore(reqIdStr)
     gradientColorMapStore.setDataOrderNdx(rest['dataOrderNdx'] || {})
-    const atl03CnfColorMapStore = await useAtl03CnfColorMapStore(reqIdStr)
+    const atl03CnfColorMapStore = useAtl03CnfColorMapStore(reqIdStr)
     atl03CnfColorMapStore.setDataOrderNdx(rest['dataOrderNdx'] || {})
-    const atl08ClassColorMapStore = await useAtl08ClassColorMapStore(reqIdStr)
+    const atl08ClassColorMapStore = useAtl08ClassColorMapStore(reqIdStr)
     atl08ClassColorMapStore.setDataOrderNdx(rest['dataOrderNdx'] || {})
-    const atl24ClassColorMapStore = await useAtl24ClassColorMapStore(reqIdStr)
+    const atl24ClassColorMapStore = useAtl24ClassColorMapStore(reqIdStr)
     atl24ClassColorMapStore.setDataOrderNdx(rest['dataOrderNdx'] || {})
     if (Object.keys(chartData).length === 0 || Object.keys(minMaxValues).length === 0) {
       logger.warn('Chart data or minMax is empty, skipping processing', { functionName, reqIdStr })
@@ -416,8 +416,8 @@ export async function getSeriesForAtl03sp(
 ): Promise<SrScatterSeriesData[]> {
   //logger.debug('getSeriesForAtl03sp reqIdStr:', reqIdStr,'x:',x,'y:',y);
   const chartStore = useChartStore()
-  const atl03CnfColorMapStore = await useAtl03CnfColorMapStore(reqIdStr)
-  const atl08ClassColorMapStore = await useAtl08ClassColorMapStore(reqIdStr)
+  const atl03CnfColorMapStore = useAtl03CnfColorMapStore(reqIdStr)
+  const atl08ClassColorMapStore = useAtl08ClassColorMapStore(reqIdStr)
   const fetchOptions: FetchScatterDataOptions = {
     normalizeX: false,
     extraSelectColumns: ['segment_dist'],
@@ -468,7 +468,7 @@ export async function getSeriesForAtl03sp(
     //logger.debug(`getSeriesForAtl03sp ${reqIdStr} cedk:`,cedk,'thisColorFunction:',thisColorFunction);
     //const c1 = thisColorFunction({data:[-2]});
   } else if (cedk === 'atl08_class') {
-    thisColorFunction = atl08ClassColorMapStore.getColorUsingAtl08_class
+    thisColorFunction = atl08ClassColorMapStore.cachedColorFunction
   }
   //logger.debug(`getSeriesForAtl03sp ${reqIdStr} cedk:`,cedk,'thisColorFunction:',thisColorFunction);
   return getGenericSeries({
@@ -494,9 +494,9 @@ export async function getSeriesForAtl03x(
 ): Promise<SrScatterSeriesData[]> {
   //logger.debug('getSeriesForAtl03sp reqIdStr:', reqIdStr,'x:',x,'y:',y);
   const chartStore = useChartStore()
-  const atl03CnfColorMapStore = await useAtl03CnfColorMapStore(reqIdStr)
-  const atl24ClassColorMapStore = await useAtl24ClassColorMapStore(reqIdStr)
-  const atl08ClassColorMapStore = await useAtl08ClassColorMapStore(reqIdStr)
+  const atl03CnfColorMapStore = useAtl03CnfColorMapStore(reqIdStr)
+  const atl24ClassColorMapStore = useAtl24ClassColorMapStore(reqIdStr)
+  const atl08ClassColorMapStore = useAtl08ClassColorMapStore(reqIdStr)
   const fetchOptions: FetchScatterDataOptions = { normalizeX: true, parentMinX: parentMinX }
   const cedk = chartStore.getSelectedColorEncodeData(reqIdStr)
   let thisColorFunction // generic will set it if is not set here
@@ -506,9 +506,9 @@ export async function getSeriesForAtl03x(
     //logger.debug(`getSeriesForAtl03sp ${reqIdStr} cedk:`,cedk,'thisColorFunction:',thisColorFunction);
     //const c1 = thisColorFunction({data:[-2]});
   } else if (cedk === 'atl08_class') {
-    thisColorFunction = atl08ClassColorMapStore.getColorUsingAtl08_class
+    thisColorFunction = atl08ClassColorMapStore.cachedColorFunction
   } else if (cedk === 'atl24_class') {
-    thisColorFunction = atl24ClassColorMapStore.getColorUsingAtl24_class
+    thisColorFunction = atl24ClassColorMapStore.cachedColorFunction
   }
   //logger.debug(`getSeriesForAtl03sp ${reqIdStr} cedk:`,cedk,'thisColorFunction:',thisColorFunction);
   return getGenericSeries({

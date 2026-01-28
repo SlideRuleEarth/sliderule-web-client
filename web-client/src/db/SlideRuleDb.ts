@@ -75,6 +75,10 @@ export interface SrColors {
   color: string
 }
 
+/**
+ * @deprecated This interface is kept for backwards compatibility with existing IndexedDB databases.
+ * Classification colors are now managed by classificationColorsStore (localStorage). Do not add new functionality here.
+ */
 export interface Atl03Color {
   number: number // Primary key
   color: string //
@@ -174,8 +178,11 @@ export class SlideRuleDexie extends Dexie {
   summary!: Table<SrRequestSummary>
   /** @deprecated Kept for backwards compatibility. Named colors now managed by colorMapStore (localStorage). */
   colors!: Table<SrColors>
+  /** @deprecated Kept for backwards compatibility. Classification colors now managed by classificationColorsStore (localStorage). */
   atl03CnfColors!: Table<Atl03Color>
+  /** @deprecated Kept for backwards compatibility. Classification colors now managed by classificationColorsStore (localStorage). */
   atl08ClassColors!: Table<Atl03Color>
+  /** @deprecated Kept for backwards compatibility. Classification colors now managed by classificationColorsStore (localStorage). */
   atl24ClassColors!: Table<Atl03Color>
   runContexts!: Table<SrRunContextRecord>
   /** @deprecated Kept for backwards compatibility. Plot config now managed by plotConfigStore (localStorage). */
@@ -188,9 +195,9 @@ export class SlideRuleDexie extends Dexie {
         requests: '++req_id', // req_id is auto-incrementing and the primary key here, no other keys required
         summary: '++db_id, &req_id',
         colors: '&color', // DEPRECATED: kept for backwards compatibility, now uses colorMapStore
-        atl03CnfColors: 'number',
-        atl08ClassColors: 'number',
-        atl24ClassColors: 'number',
+        atl03CnfColors: 'number', // DEPRECATED: kept for backwards compatibility, now uses classificationColorsStore
+        atl08ClassColors: 'number', // DEPRECATED: kept for backwards compatibility, now uses classificationColorsStore
+        atl24ClassColors: 'number', // DEPRECATED: kept for backwards compatibility, now uses classificationColorsStore
         //find runContexts by (parentReqId + rgt + cycle + beam +track) in one go, define a compound index:
         runContexts: `
                 ++id,
@@ -222,9 +229,9 @@ export class SlideRuleDexie extends Dexie {
       requests: '++req_id',
       summary: '++db_id, &req_id',
       colors: '&color', // DEPRECATED: kept for backwards compatibility, now uses colorMapStore
-      atl03CnfColors: 'number',
-      atl08ClassColors: 'number',
-      atl24ClassColors: 'number',
+      atl03CnfColors: 'number', // DEPRECATED: kept for backwards compatibility, now uses classificationColorsStore
+      atl08ClassColors: 'number', // DEPRECATED: kept for backwards compatibility, now uses classificationColorsStore
+      atl24ClassColors: 'number', // DEPRECATED: kept for backwards compatibility, now uses classificationColorsStore
       runContexts: `
                 ++id,
                 &reqId,
@@ -237,41 +244,12 @@ export class SlideRuleDexie extends Dexie {
       plotConfig: 'id' // DEPRECATED: kept for backwards compatibility, now uses plotConfigStore
     })
     // Note: No .upgrade() - new fields (projectionName, baseLayerName) will be undefined for existing records
-
-    this._initializeDefaultColors()
+    // Note: Classification colors initialization removed - now managed by classificationColorsStore (localStorage)
     this._useMiddleware()
   }
-  // Method to initialize default colors
-  private _initializeDefaultColors(): void {
-    // Initialize default colors asynchronously (fire and forget)
-    void (async () => {
-      try {
-        // Check and populate atl03CnfColors
-        const atl03CnfColorCount = await this.atl03CnfColors.count()
-        if (atl03CnfColorCount === 0) {
-          await this.restoreDefaultAtl03CnfColors()
-        }
-
-        // Check and populate atl08ClassColors
-        const atl08ClassColorCount = await this.atl08ClassColors.count()
-        if (atl08ClassColorCount === 0) {
-          await this.restoreDefaultAtl08ClassColors()
-        }
-
-        // Check and populate atl24ClassColors
-        const atl24ClassColorCount = await this.atl24ClassColors.count()
-        if (atl24ClassColorCount === 0) {
-          await this.restoreDefaultAtl24ClassColors()
-        }
-      } catch (error) {
-        logger.error('Failed to initialize default colors', {
-          error: error instanceof Error ? error.message : String(error)
-        })
-      }
-    })()
-  }
-
-  // Function to restore default colors for atl03CnfColors
+  /**
+   * @deprecated Classification colors now managed by classificationColorsStore (localStorage).
+   */
   async restoreDefaultAtl03CnfColors(): Promise<void> {
     try {
       // Define default color-number pairs
@@ -303,7 +281,9 @@ export class SlideRuleDexie extends Dexie {
     }
   }
 
-  // Function to restore default colors for atl08ClassColors
+  /**
+   * @deprecated Classification colors now managed by classificationColorsStore (localStorage).
+   */
   async restoreDefaultAtl08ClassColors(): Promise<void> {
     try {
       // Define default color-number pairs
@@ -333,7 +313,9 @@ export class SlideRuleDexie extends Dexie {
     }
   }
 
-  // Function to restore default colors for atl24ClassColors
+  /**
+   * @deprecated Classification colors now managed by classificationColorsStore (localStorage).
+   */
   async restoreDefaultAtl24ClassColors(): Promise<void> {
     try {
       const defaultAtl24ClassColors: Atl03Color[] = [
@@ -360,7 +342,9 @@ export class SlideRuleDexie extends Dexie {
     }
   }
 
-  // Method to add or update a color for a given number in atl03CnfColors
+  /**
+   * @deprecated Classification colors now managed by classificationColorsStore (localStorage).
+   */
   async addOrUpdateAtl03CnfColor(number: number, color: string): Promise<void> {
     try {
       // Check the number range
@@ -395,7 +379,9 @@ export class SlideRuleDexie extends Dexie {
     }
   }
 
-  // Method to add or update a color for a given number in atl08ClassColors
+  /**
+   * @deprecated Classification colors now managed by classificationColorsStore (localStorage).
+   */
   async addOrUpdateAtl08ClassColor(number: number, color: string): Promise<void> {
     try {
       // Check the number range
@@ -431,7 +417,9 @@ export class SlideRuleDexie extends Dexie {
     }
   }
 
-  // Method to add or update a color for a given number in atl24ClassColors
+  /**
+   * @deprecated Classification colors now managed by classificationColorsStore (localStorage).
+   */
   async addOrUpdateAtl24ClassColor(number: number, color: string): Promise<void> {
     try {
       // Check the number range
@@ -467,7 +455,9 @@ export class SlideRuleDexie extends Dexie {
     }
   }
 
-  // Method to get all color-number pairs from atl03CnfColors in ascending order by number
+  /**
+   * @deprecated Classification colors now managed by classificationColorsStore (localStorage).
+   */
   async getAllAtl03CnfColorNumberPairs(): Promise<Atl03Color[]> {
     try {
       // Use orderBy to sort the results by the 'number' field in ascending order
@@ -482,7 +472,9 @@ export class SlideRuleDexie extends Dexie {
     }
   }
 
-  // Method to get all color-number pairs from atl08ClassColors in ascending order by number
+  /**
+   * @deprecated Classification colors now managed by classificationColorsStore (localStorage).
+   */
   async getAllAtl08ClassColorNumberPairs(): Promise<Atl03Color[]> {
     try {
       // Use orderBy to sort the results by the 'number' field in ascending order
@@ -497,7 +489,9 @@ export class SlideRuleDexie extends Dexie {
     }
   }
 
-  // Method to get all color-number pairs from atl24ClassColors in ascending order by number
+  /**
+   * @deprecated Classification colors now managed by classificationColorsStore (localStorage).
+   */
   async getAllAtl24ClassColorNumberPairs(): Promise<Atl03Color[]> {
     try {
       // Use orderBy to sort the results by the 'number' field in ascending order
@@ -512,7 +506,9 @@ export class SlideRuleDexie extends Dexie {
     }
   }
 
-  // Method to get an ordered list of colors from atl03CnfColors sorted by ascending number
+  /**
+   * @deprecated Classification colors now managed by classificationColorsStore (localStorage).
+   */
   async getAllAtl03CnfColors(): Promise<string[]> {
     try {
       // Use orderBy to sort the results by the 'number' field in ascending order
@@ -531,7 +527,9 @@ export class SlideRuleDexie extends Dexie {
     }
   }
 
-  // Method to get an ordered list of colors from atl08ClassColors sorted by ascending number
+  /**
+   * @deprecated Classification colors now managed by classificationColorsStore (localStorage).
+   */
   async getAllAtl08ClassColors(): Promise<string[]> {
     try {
       // Use orderBy to sort the results by the 'number' field in ascending order
@@ -550,7 +548,9 @@ export class SlideRuleDexie extends Dexie {
     }
   }
 
-  // Method to get an ordered list of colors from atl24ClassColors sorted by ascending number
+  /**
+   * @deprecated Classification colors now managed by classificationColorsStore (localStorage).
+   */
   async getAllAtl24ClassColors(): Promise<string[]> {
     try {
       // Use orderBy to sort the results by the 'number' field in ascending order
@@ -569,7 +569,9 @@ export class SlideRuleDexie extends Dexie {
     }
   }
 
-  // Method to delete a color-number pair by color from atl03CnfColors
+  /**
+   * @deprecated Classification colors now managed by classificationColorsStore (localStorage).
+   */
   async deleteAtl03CnfColor(color: string): Promise<void> {
     try {
       await this.atl03CnfColors.where('color').equals(color).delete()
@@ -583,7 +585,9 @@ export class SlideRuleDexie extends Dexie {
     }
   }
 
-  // Method to delete a color-number pair by color from atl08ClassColors
+  /**
+   * @deprecated Classification colors now managed by classificationColorsStore (localStorage).
+   */
   async deleteAtl08ClassColor(color: string): Promise<void> {
     try {
       await this.atl08ClassColors.where('color').equals(color).delete()
@@ -597,7 +601,9 @@ export class SlideRuleDexie extends Dexie {
     }
   }
 
-  // Method to delete a color-number pair by color from atl24ClassColors
+  /**
+   * @deprecated Classification colors now managed by classificationColorsStore (localStorage).
+   */
   async deleteAtl24ClassColor(color: string): Promise<void> {
     try {
       await this.atl24ClassColors.where('color').equals(color).delete()
@@ -1343,7 +1349,7 @@ export class SlideRuleDexie extends Dexie {
 
   async findCachedRec(
     runContext: SrRunContext,
-    includeAtl08: boolean
+    _includeAtl08: boolean // kept for API compatibility, not used in cache lookup
   ): Promise<number | undefined> {
     try {
       const candidates = await this.runContexts
@@ -1358,43 +1364,45 @@ export class SlideRuleDexie extends Dexie {
         .toArray()
 
       if (candidates.length === 0) {
-        logger.debug('No matching record found for run context', { runContext })
+        logger.warn('No matching record found for run context', { runContext })
         return undefined
       } else {
         logger.debug('Found candidate(s) for run context', { count: candidates.length, runContext })
       }
-      let returnedReqId: number | undefined = undefined
-      // Filter candidates by checking if corresponding request has func === 'atl03x'
+
+      // Find any valid cached record with data - the excludeAtl08 checkbox only affects
+      // request parameters for new requests, not cache lookup
       for (const rec of candidates) {
         const req = await this.requests.get(rec.reqId)
-        logger.debug('Evaluating candidate record', { rec, req, includeAtl08 })
-        if (
-          req?.func === 'atl03x' &&
-          req.status === 'success' &&
-          req.num_bytes &&
-          req.num_bytes > 0
-        ) {
-          //logger.debug('Candidate matches atl03x func and success status', { rec, req })
-          if (req?.parameters?.parms.atl24) {
-            returnedReqId = rec.reqId
-            break // this is atl24x overlay
-          }
-          if (req?.parameters?.parms.atl08_class && includeAtl08) {
-            returnedReqId = rec.reqId
-            break // prefer ones with atl08_class specified
-          } else if (!req?.parameters?.parms.atl08_class && !includeAtl08) {
-            returnedReqId = rec.reqId
-            break // prefer ones without atl08_class specified
+        // Parse cnt which may be stored as string with 'n' suffix (BigInt serialization)
+        let cntValue = 0
+        if (req?.cnt !== undefined) {
+          const cntRaw = req.cnt as unknown
+          if (typeof cntRaw === 'string') {
+            // Remove 'n' suffix if present and parse
+            cntValue = parseInt(cntRaw.replace(/n$/, ''), 10) || 0
+          } else {
+            cntValue = Number(cntRaw) || 0
           }
         }
-      }
-      if (!returnedReqId) {
-        logger.debug('No matching atl03x func found in candidates after filtering', {
-          count: candidates.length,
-          runContext
+        logger.debug('Evaluating candidate record', {
+          reqId: rec.reqId,
+          func: req?.func,
+          status: req?.status,
+          cnt: req?.cnt,
+          cntValue
         })
+        if (req?.func === 'atl03x' && req.status === 'success' && cntValue > 0) {
+          logger.debug('Found valid cached record with data', { reqId: rec.reqId, cntValue })
+          return rec.reqId
+        }
       }
-      return returnedReqId
+
+      logger.warn('No valid atl03x records with data found in candidates', {
+        count: candidates.length,
+        runContext
+      })
+      return undefined
     } catch (error) {
       logger.error('Failed to find matching atl03x record for run context', { error })
       throw error
