@@ -25,6 +25,7 @@ import {
   type SrSvrParmsUsed
 } from '@/types/SrTypes'
 import { useSymbolStore } from '@/stores/symbolStore'
+import { usePlotConfigStore } from '@/stores/plotConfigStore'
 import { useFieldNameStore } from '@/stores/fieldNameStore'
 import { useArrayColumnStore } from '@/stores/arrayColumnStore'
 import { useSrcIdTblStore } from '@/stores/srcIdTblStore'
@@ -249,10 +250,10 @@ async function getGenericSeries({
 }: GetSeriesParams): Promise<SrScatterSeriesData[]> {
   const startTime = performance.now()
   let yItems: SrScatterSeriesData[] = []
-  const plotConfig = await indexedDb.getPlotConfig()
-  const progressiveChunkSize = plotConfig?.progressiveChunkSize ?? 12000
-  const progressiveThreshold = plotConfig?.progressiveChunkThreshold ?? 10000
-  const progressiveChunkMode = plotConfig?.progressiveChunkMode ?? 'sequential'
+  const plotConfigStore = usePlotConfigStore()
+  const progressiveChunkSize = plotConfigStore.progressiveChunkSize
+  const progressiveThreshold = plotConfigStore.progressiveChunkThreshold
+  const progressiveChunkMode = plotConfigStore.progressiveChunkMode
 
   try {
     // Ensure lat/lon are always included for location finder, even if not displayed
@@ -295,11 +296,11 @@ async function getGenericSeries({
     chartStore.setDataOrderNdx(reqIdStr, rest['dataOrderNdx'] || {})
     const gradientColorMapStore = useGradientColorMapStore(reqIdStr)
     gradientColorMapStore.setDataOrderNdx(rest['dataOrderNdx'] || {})
-    const atl03CnfColorMapStore = await useAtl03CnfColorMapStore(reqIdStr)
+    const atl03CnfColorMapStore = useAtl03CnfColorMapStore(reqIdStr)
     atl03CnfColorMapStore.setDataOrderNdx(rest['dataOrderNdx'] || {})
-    const atl08ClassColorMapStore = await useAtl08ClassColorMapStore(reqIdStr)
+    const atl08ClassColorMapStore = useAtl08ClassColorMapStore(reqIdStr)
     atl08ClassColorMapStore.setDataOrderNdx(rest['dataOrderNdx'] || {})
-    const atl24ClassColorMapStore = await useAtl24ClassColorMapStore(reqIdStr)
+    const atl24ClassColorMapStore = useAtl24ClassColorMapStore(reqIdStr)
     atl24ClassColorMapStore.setDataOrderNdx(rest['dataOrderNdx'] || {})
     if (Object.keys(chartData).length === 0 || Object.keys(minMaxValues).length === 0) {
       logger.warn('Chart data or minMax is empty, skipping processing', { functionName, reqIdStr })
@@ -415,8 +416,8 @@ export async function getSeriesForAtl03sp(
 ): Promise<SrScatterSeriesData[]> {
   //logger.debug('getSeriesForAtl03sp reqIdStr:', reqIdStr,'x:',x,'y:',y);
   const chartStore = useChartStore()
-  const atl03CnfColorMapStore = await useAtl03CnfColorMapStore(reqIdStr)
-  const atl08ClassColorMapStore = await useAtl08ClassColorMapStore(reqIdStr)
+  const atl03CnfColorMapStore = useAtl03CnfColorMapStore(reqIdStr)
+  const atl08ClassColorMapStore = useAtl08ClassColorMapStore(reqIdStr)
   const fetchOptions: FetchScatterDataOptions = {
     normalizeX: false,
     extraSelectColumns: ['segment_dist'],
@@ -467,7 +468,7 @@ export async function getSeriesForAtl03sp(
     //logger.debug(`getSeriesForAtl03sp ${reqIdStr} cedk:`,cedk,'thisColorFunction:',thisColorFunction);
     //const c1 = thisColorFunction({data:[-2]});
   } else if (cedk === 'atl08_class') {
-    thisColorFunction = atl08ClassColorMapStore.getColorUsingAtl08_class
+    thisColorFunction = atl08ClassColorMapStore.cachedColorFunction
   }
   //logger.debug(`getSeriesForAtl03sp ${reqIdStr} cedk:`,cedk,'thisColorFunction:',thisColorFunction);
   return getGenericSeries({
@@ -493,9 +494,9 @@ export async function getSeriesForAtl03x(
 ): Promise<SrScatterSeriesData[]> {
   //logger.debug('getSeriesForAtl03sp reqIdStr:', reqIdStr,'x:',x,'y:',y);
   const chartStore = useChartStore()
-  const atl03CnfColorMapStore = await useAtl03CnfColorMapStore(reqIdStr)
-  const atl24ClassColorMapStore = await useAtl24ClassColorMapStore(reqIdStr)
-  const atl08ClassColorMapStore = await useAtl08ClassColorMapStore(reqIdStr)
+  const atl03CnfColorMapStore = useAtl03CnfColorMapStore(reqIdStr)
+  const atl24ClassColorMapStore = useAtl24ClassColorMapStore(reqIdStr)
+  const atl08ClassColorMapStore = useAtl08ClassColorMapStore(reqIdStr)
   const fetchOptions: FetchScatterDataOptions = { normalizeX: true, parentMinX: parentMinX }
   const cedk = chartStore.getSelectedColorEncodeData(reqIdStr)
   let thisColorFunction // generic will set it if is not set here
@@ -505,9 +506,9 @@ export async function getSeriesForAtl03x(
     //logger.debug(`getSeriesForAtl03sp ${reqIdStr} cedk:`,cedk,'thisColorFunction:',thisColorFunction);
     //const c1 = thisColorFunction({data:[-2]});
   } else if (cedk === 'atl08_class') {
-    thisColorFunction = atl08ClassColorMapStore.getColorUsingAtl08_class
+    thisColorFunction = atl08ClassColorMapStore.cachedColorFunction
   } else if (cedk === 'atl24_class') {
-    thisColorFunction = atl24ClassColorMapStore.getColorUsingAtl24_class
+    thisColorFunction = atl24ClassColorMapStore.cachedColorFunction
   }
   //logger.debug(`getSeriesForAtl03sp ${reqIdStr} cedk:`,cedk,'thisColorFunction:',thisColorFunction);
   return getGenericSeries({
@@ -2115,19 +2116,10 @@ export const findReqMenuLabel = (reqId: number) => {
 
 export async function initSymbolSize(req_id: number): Promise<number> {
   const reqIdStr = req_id.toString()
-  const plotConfig = await indexedDb.getPlotConfig()
+  const plotConfigStore = usePlotConfigStore()
   const symbolStore = useSymbolStore()
-  const func = await indexedDb.getFunc(req_id) //must use db
-  if (func === 'atl03sp' || func === 'atl03x' || func === 'atl03vp') {
-    //symbolStore.size[reqIdStr] = (plotConfig?.defaultAtl03spSymbolSize  ?? 1);
-    symbolStore.setSize(reqIdStr, plotConfig?.defaultAtl03spSymbolSize ?? 1)
-  } else if (func.includes('atl03vp')) {
-    //symbolStore.size[reqIdStr] = (plotConfig?.defaultAtl03vpSymbolSize  ?? 5);
-    symbolStore.setSize(reqIdStr, plotConfig?.defaultAtl03vpSymbolSize ?? 5)
-  } else {
-    symbolStore.setSize(reqIdStr, plotConfig?.defaultAtl06SymbolSize ?? 3)
-  }
-  //logger.debug('initSymbolSize reqId:', req_id, 'func:', func, 'symbolSize:', chartStore.getSymbolSize(reqIdStr));
+  const func = await indexedDb.getFunc(req_id)
+  symbolStore.setSize(reqIdStr, plotConfigStore.getDefaultSymbolSize(func))
   return symbolStore.getSize(reqIdStr)
 }
 
@@ -2274,7 +2266,7 @@ export function highlightPlotPointByCoordinates(lat: number, lon: number, reqIdS
   }
 
   if (matchedIndex >= 0 && matchedIndex !== lastHighlightedDataIndex) {
-    logger.debug('highlightPlotPointByCoordinates: highlighting point', { matchedIndex, lat, lon })
+    //logger.debug('highlightPlotPointByCoordinates: highlighting point', { matchedIndex, lat, lon })
 
     // Downplay any previous highlight
     if (lastHighlightedDataIndex !== null) {

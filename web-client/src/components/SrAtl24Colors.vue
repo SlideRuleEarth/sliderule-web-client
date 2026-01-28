@@ -33,8 +33,8 @@ const props = defineProps({
 })
 const atl24ClassColorMapStore = ref<any>(null)
 
-onMounted(async () => {
-  atl24ClassColorMapStore.value = await useAtl24ClassColorMapStore(props.reqIdStr)
+onMounted(() => {
+  atl24ClassColorMapStore.value = useAtl24ClassColorMapStore(props.reqIdStr)
 })
 
 const atl24ClassOptions = computed(() => atl24ClassColorMapStore.value?.atl24ClassOptions)

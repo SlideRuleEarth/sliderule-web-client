@@ -284,10 +284,10 @@ const isTimeSeries = computed(() => {
   }
 })
 
-onMounted(async () => {
-  atl03CnfColorMapStore = await useAtl03CnfColorMapStore(props.reqId.toString())
-  atl08ClassColorMapStore.value = await useAtl08ClassColorMapStore(props.reqId.toString())
-  atl24ClassColorMapStore.value = await useAtl24ClassColorMapStore(props.reqId.toString())
+onMounted(() => {
+  atl03CnfColorMapStore = useAtl03CnfColorMapStore(props.reqId.toString())
+  atl08ClassColorMapStore.value = useAtl08ClassColorMapStore(props.reqId.toString())
+  atl24ClassColorMapStore.value = useAtl24ClassColorMapStore(props.reqId.toString())
   initDataBindingsToChartStore([reqIdStr.value])
   if (isTimeSeries.value) {
     chartStore.setSelectedColorEncodeData(reqIdStr.value, 'cycle')
@@ -407,13 +407,13 @@ const handleAtl03CnfColorChanged = async () => {
 
 const handleAtl08ClassColorChanged = async () => {
   logger.debug('handleAtl08ClassColorChanged')
-  atl08ClassColorMapStore.value?.resetAtl08ClassColorCaches()
+  atl08ClassColorMapStore.value?.resetColorCache()
   await callPlotUpdateDebounced('from handleAtl08ClassColorChanged')
 }
 
 const handleAtl24ClassColorChanged = async () => {
   logger.debug('handleAtl24ClassColorChanged')
-  atl24ClassColorMapStore.value?.resetAtl24ClassColorCaches()
+  atl24ClassColorMapStore.value?.resetColorCache()
   await callPlotUpdateDebounced('from handleAtl24ClassColorChanged')
 }
 

@@ -33,8 +33,8 @@ const props = defineProps({
 })
 const atl08ClassColorMapStore = ref<any>(null)
 
-onMounted(async () => {
-  atl08ClassColorMapStore.value = await useAtl08ClassColorMapStore(props.reqIdStr)
+onMounted(() => {
+  atl08ClassColorMapStore.value = useAtl08ClassColorMapStore(props.reqIdStr)
 })
 
 const atl08ClassOptions = computed(() => atl08ClassColorMapStore.value?.atl08ClassOptions)

@@ -1,119 +1,114 @@
-import { defineStore } from 'pinia';
-import { ref } from 'vue';
-import { db } from '@/db/SlideRuleDb';
-import { createLogger } from '@/utils/logger';
+import { defineStore } from 'pinia'
+import { ref } from 'vue'
+import { useClassificationColorsStore } from '@/stores/classificationColorsStore'
+import { createLogger } from '@/utils/logger'
 
-const logger = createLogger('Atl03CnfColorMapStore');
-
+const logger = createLogger('Atl03CnfColorMapStore')
 
 /**
  * Factory function to create a unique store instance per reqId
+ * Colors are stored in the global classificationColorsStore.
+ * This per-request store handles dataOrderNdx caching for performance.
  */
-export async function useAtl03CnfColorMapStore(reqIdStr: string) {
-    const store = defineStore(`atl03CnfStore-${reqIdStr}`, () => {
-        const isInitialized = ref(false);
-        let dataOrderNdx: Record<string, number> = {};
-        const atl03CnfColorMap = ref([] as string[]);
-        const atl03CnfOptions = [
-            {label:'atl03_tep',value:-2}, 
-            {label:'atl03_not_considered',value:-1}, 
-            {label:'atl03_background',value:0}, 
-            {label:'atl03_within_10m',value:1}, 
-            {label:'atl03_low',value:2}, 
-            {label:'atl03_medium',value:3}, 
-            {label:'atl03_high',value:4}
-        ] as {label:string,value:number}[];
-        const colorCache: Record<number, string> = {};
-        let ndx: number = -1;
+export function useAtl03CnfColorMapStore(reqIdStr: string) {
+  const store = defineStore(`atl03CnfStore-${reqIdStr}`, () => {
+    const isInitialized = ref(false)
+    let dataOrderNdx: Record<string, number> = {}
+    const colorCache: Record<number, string> = {}
+    let ndx: number = -1
 
-        async function initializeColorMapStore() {
-            isInitialized.value = true;
-            atl03CnfColorMap.value = await db.getAllAtl03CnfColors();
-        }
+    const atl03CnfOptions = [
+      { label: 'atl03_tep', value: -2 },
+      { label: 'atl03_not_considered', value: -1 },
+      { label: 'atl03_background', value: 0 },
+      { label: 'atl03_within_10m', value: 1 },
+      { label: 'atl03_low', value: 2 },
+      { label: 'atl03_medium', value: 3 },
+      { label: 'atl03_high', value: 4 }
+    ] as { label: string; value: number }[]
 
-        function getDimensions(): string[] {
-            return Object.keys(dataOrderNdx).sort((a, b) => {
-                const aValue = dataOrderNdx[a];
-                const bValue = dataOrderNdx[b];
-                return aValue - bValue;
-            });
-        }
-        function getDataOrderNdx(): Record<string, number> {
-            return dataOrderNdx;
-        }
+    // Get reference to global colors store
+    const classificationColorsStore = useClassificationColorsStore()
 
-        function setDataOrderNdx(dataOrderNdxObj: Record<string, number>) {
-            dataOrderNdx = dataOrderNdxObj;
-        }
+    // Computed ref that returns colors from global store
+    const atl03CnfColorMap = ref<string[]>([])
 
-        function cachedColorFunction(params: any){
-            if (ndx < 0) {
-                // the index can change so look it up 
-                ndx = dataOrderNdx['atl03_cnf']
-                //console.log('cachedColorFunction :','ndx:',ndx,'dataOrderNdx:',dataOrderNdx);
-            }
-            const value = params.data[ndx];//grab the atl03_cnf value from the data array using the dataOrderNdx
-            if (colorCache[value] === undefined) {
-                colorCache[value] = getColorForAtl03CnfValue(value);
-                // if(debugCnt<10){
-                //     console.log('cachedColorFunction :','ndx:',ndx,'value:',value,'colorCache:',colorCache);
-                // }
-            }
-            // if(debugCnt++<10){
-            //     console.log('cachedColorFunction params:',params,'ndx:',ndx,'value:',value,'colorCache:',colorCache);
-            // }
-            return colorCache[value];
-        };
+    function initializeColorMapStore() {
+      isInitialized.value = true
+      // Sync colors from global store
+      atl03CnfColorMap.value = classificationColorsStore.getAtl03CnfColors()
+    }
 
+    function getDimensions(): string[] {
+      return Object.keys(dataOrderNdx).sort((a, b) => {
+        const aValue = dataOrderNdx[a]
+        const bValue = dataOrderNdx[b]
+        return aValue - bValue
+      })
+    }
 
-        function getColorForAtl03CnfValue(value:number) { // value is the atl03_cnf value -2 to 4
-            const ndx = value + 2;
-            if(ndx < 0 || ndx > 6){
-                return 'White'; // Return White for invalid values
-            }
-            const c = atl03CnfColorMap.value[ndx];
-            return c;
-        };
+    function getDataOrderNdx(): Record<string, number> {
+      return dataOrderNdx
+    }
 
+    function setDataOrderNdx(dataOrderNdxObj: Record<string, number>) {
+      dataOrderNdx = dataOrderNdxObj
+    }
 
-        async function restoreDefaultAtl03CnfColorMap() {
-            await db.restoreDefaultAtl03CnfColors();
-            atl03CnfColorMap.value = await db.getAllAtl03CnfColors();
-        }
+    function cachedColorFunction(params: any) {
+      if (ndx < 0) {
+        ndx = dataOrderNdx['atl03_cnf']
+      }
+      const value = params.data[ndx]
+      if (colorCache[value] === undefined) {
+        colorCache[value] = getColorForAtl03CnfValue(value)
+      }
+      return colorCache[value]
+    }
 
-        async function setColorForAtl03CnfValue(value:number,namedColorValue:string) { // value is the atl03_cnf value -2 to 4
-            const ndx = value + 2;
-            if(ndx < 0 || ndx > 6){
-                logger.error('setColorForAtl03CnfValue invalid value', { value });
-                return;
-            }
-            resetColorCache();
-            atl03CnfColorMap.value[ndx] = namedColorValue;
-            await db.addOrUpdateAtl03CnfColor(value,namedColorValue);
-        }
+    function getColorForAtl03CnfValue(value: number): string {
+      return classificationColorsStore.getAtl03CnfColor(value)
+    }
 
-        function resetColorCache() {
-            //debugCnt = 0;
-            Object.keys(colorCache).forEach(key => delete colorCache[Number(key)]);
-            ndx = -1; // Reset index so it is recalculated
-            logger.debug('Cache for atl03_cnf reset');
-        }
+    function restoreDefaultAtl03CnfColorMap() {
+      classificationColorsStore.restoreDefaultAtl03CnfColors()
+      atl03CnfColorMap.value = classificationColorsStore.getAtl03CnfColors()
+      resetColorCache()
+    }
 
-        return {
-            dataOrderNdx,
-            getDimensions,
-            getDataOrderNdx,
-            setDataOrderNdx,
-            restoreDefaultAtl03CnfColorMap,
-            setColorForAtl03CnfValue,
-            getColorForAtl03CnfValue,
-            cachedColorFunction,
-            resetColorCache,
-            atl03CnfOptions,
-            atl03CnfColorMap,
-            initializeColorMapStore,
-        };
-    })();
-    await store.initializeColorMapStore();
-    return store;
+    function setColorForAtl03CnfValue(value: number, namedColorValue: string) {
+      const ndx = value + 2
+      if (ndx < 0 || ndx > 6) {
+        logger.error('setColorForAtl03CnfValue invalid value', { value })
+        return
+      }
+      resetColorCache()
+      classificationColorsStore.setAtl03CnfColor(value, namedColorValue)
+      atl03CnfColorMap.value = classificationColorsStore.getAtl03CnfColors()
+    }
+
+    function resetColorCache() {
+      Object.keys(colorCache).forEach((key) => delete colorCache[Number(key)])
+      ndx = -1
+      logger.debug('Cache for atl03_cnf reset')
+    }
+
+    return {
+      dataOrderNdx,
+      getDimensions,
+      getDataOrderNdx,
+      setDataOrderNdx,
+      restoreDefaultAtl03CnfColorMap,
+      setColorForAtl03CnfValue,
+      getColorForAtl03CnfValue,
+      cachedColorFunction,
+      resetColorCache,
+      atl03CnfOptions,
+      atl03CnfColorMap,
+      initializeColorMapStore
+    }
+  })()
+
+  store.initializeColorMapStore()
+  return store
 }

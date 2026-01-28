@@ -1,51 +1,96 @@
-import { defineStore } from 'pinia';
-import { db } from '@/db/SlideRuleDb';
+import { defineStore } from 'pinia'
+import { ref } from 'vue'
+import { createLogger } from '@/utils/logger'
 
-export const useColorMapStore = defineStore('colorMapStore', {
-    state: () => ({
-        isInitialized: false as boolean,
-        namedColorPalette: [] as string[],
-        debugCnt: 0 as number,
-    }),
-    getters: {
-        getDebugCnt(): number {
-            return this.debugCnt;
-        },    
-    },
-    actions: {
-        async initializeColorMapStore() {
-            //console.log('initializeColorMapStore isInitialized:',this.isInitialized);
-            if(!this.isInitialized){
-                this.isInitialized = true;
-                this.namedColorPalette = await db.getAllColors();
-            }
-        },
+const logger = createLogger('ColorMapStore')
 
-        setDebugCnt(debugCnt: number) {
-            this.debugCnt = debugCnt;
-        },
-        incrementDebugCnt(): number {
-            this.debugCnt += 1;
-            return this.debugCnt;
-        },
-        // },
-        async setNamedColorPalette(namedColorPalette: string[]) {
-            this.namedColorPalette = namedColorPalette;
-            await db.setAllColors(namedColorPalette)
-        },
-        getNamedColorPalette() {
-            //console.log('getNamedColorPalette:',this.namedColorPalette)
-            return this.namedColorPalette;
-        },
+// Default named color palette
+const DEFAULT_COLORS: string[] = [
+  'gray',
+  'slategray',
+  'yellow',
+  'green',
+  'blue',
+  'indigo',
+  'violet',
+  'red',
+  'orange',
+  'purple',
+  'pink',
+  'brown',
+  'black',
+  'white',
+  'cyan',
+  'greenyellow',
+  'lightblue',
+  'lightgreen'
+]
 
-        async restoreDefaultColors() {
-            await db.restoreDefaultColors();
-            this.namedColorPalette = await db.getAllColors();
-        },
+export const useColorMapStore = defineStore(
+  'colorMapStore',
+  () => {
+    const namedColorPalette = ref<string[]>([...DEFAULT_COLORS])
+    const debugCnt = ref(0)
 
-    },
-});
+    function getNamedColorPalette(): string[] {
+      return namedColorPalette.value
+    }
 
-// Automatically call initialize when the store is first used
-const store = useColorMapStore();
-void store.initializeColorMapStore();
+    function setNamedColorPalette(colors: string[]): void {
+      namedColorPalette.value = colors
+    }
+
+    function addColor(color: string): void {
+      if (!namedColorPalette.value.includes(color)) {
+        namedColorPalette.value.push(color)
+      }
+    }
+
+    function removeColor(color: string): void {
+      const index = namedColorPalette.value.indexOf(color)
+      if (index > -1) {
+        namedColorPalette.value.splice(index, 1)
+      }
+    }
+
+    function restoreDefaultColors(): void {
+      namedColorPalette.value = [...DEFAULT_COLORS]
+      logger.info('Named color palette restored to defaults')
+    }
+
+    function getDebugCnt(): number {
+      return debugCnt.value
+    }
+
+    function setDebugCnt(cnt: number): void {
+      debugCnt.value = cnt
+    }
+
+    function incrementDebugCnt(): number {
+      debugCnt.value += 1
+      return debugCnt.value
+    }
+
+    return {
+      // State
+      namedColorPalette,
+      debugCnt,
+
+      // Actions
+      getNamedColorPalette,
+      setNamedColorPalette,
+      addColor,
+      removeColor,
+      restoreDefaultColors,
+      getDebugCnt,
+      setDebugCnt,
+      incrementDebugCnt
+    }
+  },
+  {
+    persist: {
+      storage: localStorage,
+      pick: ['namedColorPalette']
+    }
+  }
+)

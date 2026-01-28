@@ -1,18 +1,22 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { db } from '@/db/SlideRuleDb'
+import { useClassificationColorsStore } from '@/stores/classificationColorsStore'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('Atl08ClassColorMapStore')
 
 /**
  * Factory function to create a unique store instance per reqId
+ * Colors are stored in the global classificationColorsStore.
+ * This per-request store handles dataOrderNdx caching for performance.
  */
-export async function useAtl08ClassColorMapStore(reqIdStr: string) {
+export function useAtl08ClassColorMapStore(reqIdStr: string) {
   const store = defineStore(`atl08ClassStore-${reqIdStr}`, () => {
-    // const isInitialized = ref(false); // Unused variable
-    const dataOrderNdx = ref<Record<string, number>>({})
-    const atl08ClassColorMap = ref([] as string[])
+    const isInitialized = ref(false)
+    let dataOrderNdx: Record<string, number> = {}
+    const colorCache: Record<number, string> = {}
+    let ndx: number = -1
+
     const atl08ClassOptions = [
       { label: 'atl08_noise', value: 0 },
       { label: 'atl08_ground', value: 1 },
@@ -21,90 +25,69 @@ export async function useAtl08ClassColorMapStore(reqIdStr: string) {
       { label: 'atl08_unclassified', value: 4 }
     ] as { label: string; value: number }[]
 
-    async function initializeColorMapStore() {
-      atl08ClassColorMap.value = await db.getAllAtl08ClassColors()
+    // Get reference to global colors store
+    const classificationColorsStore = useClassificationColorsStore()
+
+    // Computed ref that returns colors from global store
+    const atl08ClassColorMap = ref<string[]>([])
+
+    function initializeColorMapStore() {
+      isInitialized.value = true
+      // Sync colors from global store
+      atl08ClassColorMap.value = classificationColorsStore.getAtl08ClassColors()
     }
 
     function getDimensions(): string[] {
-      return Object.keys(dataOrderNdx.value).sort((a, b) => {
-        const aValue = dataOrderNdx.value[a]
-        const bValue = dataOrderNdx.value[b]
+      return Object.keys(dataOrderNdx).sort((a, b) => {
+        const aValue = dataOrderNdx[a]
+        const bValue = dataOrderNdx[b]
         return aValue - bValue
       })
     }
+
     function getDataOrderNdx(): Record<string, number> {
-      return dataOrderNdx.value
+      return dataOrderNdx
     }
 
     function setDataOrderNdx(dataOrderNdxObj: Record<string, number>) {
-      dataOrderNdx.value = dataOrderNdxObj
+      dataOrderNdx = dataOrderNdxObj
     }
 
-    function createDiscreteColorFunction(
-      getColorFunction: (_value: number) => string,
-      ndx_name: string
-    ) {
-      const colorCache: Record<number, string> = {}
-      let ndx: number = -1
-      const colorFunction = (params: any) => {
-        if (ndx < 0) {
-          ndx = dataOrderNdx.value[ndx_name]
-        }
-        const paramValue = params.data[ndx]
-        if (colorCache[paramValue] === undefined) {
-          colorCache[paramValue] = getColorFunction(paramValue)
-        }
-        return colorCache[paramValue]
+    function cachedColorFunction(params: any) {
+      if (ndx < 0) {
+        ndx = dataOrderNdx['atl08_class']
       }
-
-      // Function to clear the cache
-      colorFunction.resetCache = () => {
-        Object.keys(colorCache).forEach((key) => delete colorCache[Number(key)])
-        ndx = -1 // Reset index so it is recalculated
-        logger.debug('Cache reset', { ndx_name })
+      const value = params.data[ndx]
+      if (colorCache[value] === undefined) {
+        colorCache[value] = getColorForAtl08ClassValue(value)
       }
-
-      return colorFunction
+      return colorCache[value]
     }
 
-    const getColorForAtl08ClassValue = (value: number) => {
-      // value is the atl08_class value 0 to 4
-      const ndx = value
-      if (ndx < 0 || ndx > 4) {
-        logger.error('getColorForAtl08ClassValue invalid value', { value })
-        return 'White' // Return White for invalid values
-      }
-      const c = atl08ClassColorMap.value[ndx]
-      return c
+    function getColorForAtl08ClassValue(value: number): string {
+      return classificationColorsStore.getAtl08ClassColor(value)
     }
 
-    const getAtl08ClassColorCached = createDiscreteColorFunction(
-      getColorForAtl08ClassValue,
-      'atl08_class'
-    )
-
-    function getColorUsingAtl08_class(params: any): string {
-      return getAtl08ClassColorCached(params)
+    function restoreDefaultAtl08ClassColorMap() {
+      classificationColorsStore.restoreDefaultAtl08ClassColors()
+      atl08ClassColorMap.value = classificationColorsStore.getAtl08ClassColors()
+      resetColorCache()
     }
 
-    function resetAtl08ClassColorCaches() {
-      getAtl08ClassColorCached.resetCache()
-    }
-
-    async function restoreDefaultAtl08ClassColorMap() {
-      await db.restoreDefaultAtl08ClassColors()
-      atl08ClassColorMap.value = await db.getAllAtl08ClassColors()
-    }
-
-    async function setColorForAtl08ClassValue(value: number, namedColorValue: string) {
-      // value is the atl08_class value 0 to 4
-      const ndx = value
-      if (ndx < 0 || ndx > 4) {
+    function setColorForAtl08ClassValue(value: number, namedColorValue: string) {
+      if (value < 0 || value > 4) {
         logger.error('setColorForAtl08ClassValue invalid value', { value })
         return
       }
-      atl08ClassColorMap.value[ndx] = namedColorValue
-      await db.addOrUpdateAtl08ClassColor(value, namedColorValue)
+      resetColorCache()
+      classificationColorsStore.setAtl08ClassColor(value, namedColorValue)
+      atl08ClassColorMap.value = classificationColorsStore.getAtl08ClassColors()
+    }
+
+    function resetColorCache() {
+      Object.keys(colorCache).forEach((key) => delete colorCache[Number(key)])
+      ndx = -1
+      logger.debug('Cache for atl08_class reset')
     }
 
     return {
@@ -112,17 +95,17 @@ export async function useAtl08ClassColorMapStore(reqIdStr: string) {
       getDimensions,
       getDataOrderNdx,
       setDataOrderNdx,
-      getAtl08ClassColorCached,
-      getColorUsingAtl08_class,
-      resetAtl08ClassColorCaches,
       restoreDefaultAtl08ClassColorMap,
       setColorForAtl08ClassValue,
       getColorForAtl08ClassValue,
+      cachedColorFunction,
+      resetColorCache,
       atl08ClassOptions,
+      atl08ClassColorMap,
       initializeColorMapStore
     }
   })()
 
-  await store.initializeColorMapStore()
+  store.initializeColorMapStore()
   return store
 }

@@ -41,6 +41,7 @@ const { deckContainer } = storeToRefs(deck3DConfigStore)
 const activeTabStore = useActiveTabStore()
 const srcIdTblStore = useSrcIdTblStore()
 const atlChartFilterStore = useAtlChartFilterStore()
+const { excludeAtl08 } = storeToRefs(atlChartFilterStore)
 
 // Define props with TypeScript types
 const props = withDefaults(
@@ -89,20 +90,20 @@ async function onMainYDataSelectionChange(_newValue: string[]) {
   const api = recTreeStore.findApiForReqId(props.reqId)
   if (api.includes('atl03')) {
     const { useAtl03CnfColorMapStore } = await import('@/stores/atl03CnfColorMapStore')
-    const atl03CnfStore = await useAtl03CnfColorMapStore(props.reqId.toString())
+    const atl03CnfStore = useAtl03CnfColorMapStore(props.reqId.toString())
     atl03CnfStore.resetColorCache()
     logger.debug('Reset atl03_cnf color cache due to Y data selection change')
   }
   if (api.includes('atl03') || api.includes('atl08')) {
     const { useAtl08ClassColorMapStore } = await import('@/stores/atl08ClassColorMapStore')
-    const atl08ClassStore = await useAtl08ClassColorMapStore(props.reqId.toString())
-    atl08ClassStore.resetAtl08ClassColorCaches()
+    const atl08ClassStore = useAtl08ClassColorMapStore(props.reqId.toString())
+    atl08ClassStore.resetColorCache()
     logger.debug('Reset atl08_class color cache due to Y data selection change')
   }
   if (api.includes('atl03') || api.includes('atl24')) {
     const { useAtl24ClassColorMapStore } = await import('@/stores/atl24ClassColorMapStore')
-    const atl24ClassStore = await useAtl24ClassColorMapStore(props.reqId.toString())
-    atl24ClassStore.resetAtl24ClassColorCaches()
+    const atl24ClassStore = useAtl24ClassColorMapStore(props.reqId.toString())
+    atl24ClassStore.resetColorCache()
     logger.debug('Reset atl24_class color cache due to Y data selection change')
   }
 
@@ -181,8 +182,6 @@ async function enableLocationFinder(): Promise<void> {
 }
 
 onMounted(() => {
-  // Reset the ATL08 classification checkbox when component loads
-  atlChartFilterStore.excludeAtl08 = false
   void enableLocationFinder()
 })
 
@@ -268,10 +267,9 @@ watch(
       <SrCheckbox
         v-if="showAtl08Checkbox && !props.isOverlay"
         class="sr-checkbox-style"
-        :defaultValue="false"
         label="Exclude ATL08 classification from photon cloud overlay"
         labelFontSize="small"
-        v-model="atlChartFilterStore.excludeAtl08"
+        v-model="excludeAtl08"
         tooltipText="Exclude ATL08 classification from photon cloud overlay. On rare occasions, when Atl08 data causes issues with rendering the photon cloud, you can exclude it here."
         size="small"
       />

@@ -36,9 +36,9 @@ const props = defineProps({
 
 const atl03CnfColorMapStore = ref<any>(null)
 
-onMounted(async () => {
+onMounted(() => {
   // Any initialization logic can go here
-  atl03CnfColorMapStore.value = await useAtl03CnfColorMapStore(props.reqIdStr)
+  atl03CnfColorMapStore.value = useAtl03CnfColorMapStore(props.reqIdStr)
 })
 
 // Reactive options computed from the store
