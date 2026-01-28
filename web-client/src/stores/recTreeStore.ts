@@ -51,224 +51,235 @@ function buildRecTree(nodes: SrMenuNumberItem[]): SrPrimeTreeNode[] {
   return rootNodes
 }
 
-export const useRecTreeStore = defineStore('recTreeStore', () => {
-  // State
-  const treeData = ref<SrPrimeTreeNode[]>([])
-  const isTreeLoaded = ref(false)
-  const selectedValue = ref<Record<string, boolean>>({ '0': false })
-  const reqIdMenuItems = ref<SrMenuNumberItem[]>([])
-  const selectedNodeKey: ComputedRef<string> = computed(() => {
-    const keys = Object.keys(selectedValue.value)
-    return keys.length ? keys[0] : '0'
-  })
+export const useRecTreeStore = defineStore(
+  'recTreeStore',
+  () => {
+    // State
+    const treeData = ref<SrPrimeTreeNode[]>([])
+    const isTreeLoaded = ref(false)
+    const selectedValue = ref<Record<string, boolean>>({ '0': false })
+    const reqIdMenuItems = ref<SrMenuNumberItem[]>([])
+    const selectedNodeKey: ComputedRef<string> = computed(() => {
+      const keys = Object.keys(selectedValue.value)
+      return keys.length ? keys[0] : '0'
+    })
 
-  const selectedNodeLabel: ComputedRef<string> = computed(() => {
-    if (!selectedNodeKey.value || !treeData.value) {
-      return '' // or null
-    }
-    const node = findNodeByKey(treeData.value, selectedNodeKey.value)
-    return node ? node.label : ''
-  })
-
-  const selectedReqId: ComputedRef<number> = computed(() => {
-    if (!selectedNodeKey.value || !treeData.value) {
-      return 0
-    }
-    const node = findNodeByKey(treeData.value, selectedNodeKey.value)
-    return node?.data ? node.data : 0
-  })
-
-  const selectedReqIdStr: ComputedRef<string> = computed(() => {
-    if (!selectedNodeKey.value || !treeData.value) {
-      return ''
-    }
-    const node = findNodeByKey(treeData.value, selectedNodeKey.value)
-    return node ? node.key : ''
-  })
-
-  const selectedApi: ComputedRef<string> = computed(() => {
-    if (!selectedNodeKey.value || !treeData.value) {
-      return ''
-    }
-    const node = findNodeByKey(treeData.value, selectedNodeKey.value)
-    return node?.api ? node.api : ''
-  })
-  const allReqIds = computed(() => {
-    return reqIdMenuItems.value.map((item) => item.value)
-  })
-  const countRequestsByApi = (): Record<string, number> => {
-    const countMap: Record<string, number> = {}
-
-    const traverse = (nodes: SrPrimeTreeNode[]) => {
-      for (const node of nodes) {
-        const api = node.api || ''
-        countMap[api] = (countMap[api] || 0) + 1
-        if (node.children && node.children.length > 0) {
-          traverse(node.children)
-        }
+    const selectedNodeLabel: ComputedRef<string> = computed(() => {
+      if (!selectedNodeKey.value || !treeData.value) {
+        return '' // or null
       }
-    }
+      const node = findNodeByKey(treeData.value, selectedNodeKey.value)
+      return node ? node.label : ''
+    })
 
-    traverse(treeData.value)
-    return countMap
-  }
-
-  // Actions
-
-  // const setReadyToPlot = (ready:boolean) => {
-  //     readyToPlot.value = ready;
-  // };
-
-  const loadTreeData = async (selectReqId?: number) => {
-    try {
-      reqIdMenuItems.value = await useRequestsStore().getMenuItems()
-      treeData.value = buildRecTree(reqIdMenuItems.value) // Transform to TreeNode structure
-      isTreeLoaded.value = true // Mark as loaded
-      if (treeData.value.length > 0) {
-        if (selectReqId && selectReqId > 0) {
-          if (findAndSelectNode(selectReqId)) {
-            //console.log('loadTreeData: Selected node with reqId:',selectReqId);
-          } else {
-            logger.warn('Failed to find and select node', { selectReqId })
-          }
-        } else if (!selectedNodeKey.value) {
-          logger.warn('No selectedNodeKey available', { selectReqId })
-        }
-      } else {
-        logger.debug('No nodes available in tree data')
+    const selectedReqId: ComputedRef<number> = computed(() => {
+      if (!selectedNodeKey.value || !treeData.value) {
+        return 0
       }
-    } catch (error) {
-      logger.error('Failed to load tree data', {
-        error: error instanceof Error ? error.message : String(error)
-      })
-      isTreeLoaded.value = true // Still mark as loaded even if empty/error
-    }
-  }
+      const node = findNodeByKey(treeData.value, selectedNodeKey.value)
+      return node?.data ? node.data : 0
+    })
 
-  const setSelectedValue = (key: string) => {
-    const node = findNodeByKey(treeData.value, key)
-    if (node?.key) {
-      // Set selectedValue to the shape: { [node.key]: true }
-      selectedValue.value = { [node.key]: true }
-      //console.log(
-      //     'setSelectedValue: selectedValue:',
-      //     selectedValue.value,
-      //     'selectedNodeKey:', selectedNodeKey.value,
-      //     'selectedReqId:', selectedReqId.value
-      //   );
-    } else {
-      logger.warn('Node not found in treeData', { key })
-    }
-  }
-
-  const initToFirstRecord = () => {
-    const firstReqId = allReqIds.value[0]
-    if (firstReqId > 0) {
-      if (findAndSelectNode(firstReqId)) {
-        logger.debug('Set selected record to first reqId', { firstReqId })
-      } else {
-        logger.error('findAndSelectNode FAILED for first reqId', { firstReqId })
+    const selectedReqIdStr: ComputedRef<string> = computed(() => {
+      if (!selectedNodeKey.value || !treeData.value) {
+        return ''
       }
-    } else {
-      logger.error('Found invalid reqId in first record', { firstReqId })
-    }
-  }
+      const node = findNodeByKey(treeData.value, selectedNodeKey.value)
+      return node ? node.key : ''
+    })
 
-  const findApiForReqId = (reqId: number): string => {
-    // Handle invalid reqId early
-    if (!reqId || reqId <= 0) {
-      return ''
-    }
+    const selectedApi: ComputedRef<string> = computed(() => {
+      if (!selectedNodeKey.value || !treeData.value) {
+        return ''
+      }
+      const node = findNodeByKey(treeData.value, selectedNodeKey.value)
+      return node?.api ? node.api : ''
+    })
+    const allReqIds = computed(() => {
+      return reqIdMenuItems.value.map((item) => item.value)
+    })
+    const countRequestsByApi = (): Record<string, number> => {
+      const countMap: Record<string, number> = {}
 
-    // Check if tree is loaded (race condition - tree not yet loaded- reactive and will update later)
-    if (!isTreeLoaded.value) {
-      logger.debug('TreeData not yet loaded for findApiForReqId, will retry when loaded', { reqId })
-      return ''
-    }
-
-    // Check if tree is empty after loading
-    if (!treeData.value || treeData.value.length === 0) {
-      logger.debug('TreeData is empty after loading', { reqId })
-      return ''
-    }
-
-    const node = findNodeByKey(treeData.value, reqId.toString())
-    if (!node) {
-      // Node genuinely not found in populated tree
-      logger.debug('Node not found in tree for findApiForReqId', {
-        reqId,
-        treeDataRootCount: treeData.value.length
-      })
-      return ''
-    }
-    return node?.api || ''
-  }
-
-  const findAndSelectNode = (reqId: number): boolean => {
-    const findNode = (nodes: SrPrimeTreeNode[]): SrPrimeTreeNode | null => {
-      for (const node of nodes) {
-        if (node.data === reqId) {
-          return node
-        }
-        if (node.children) {
-          const childResult = findNode(node.children)
-          if (childResult) {
-            return childResult
+      const traverse = (nodes: SrPrimeTreeNode[]) => {
+        for (const node of nodes) {
+          const api = node.api || ''
+          countMap[api] = (countMap[api] || 0) + 1
+          if (node.children && node.children.length > 0) {
+            traverse(node.children)
           }
         }
       }
-      return null
+
+      traverse(treeData.value)
+      return countMap
     }
 
-    const node = findNode(treeData.value)
-    if (node) {
-      //console.log('findAndSelectNode found node:',node,' with reqId:',reqId);
-      setSelectedValue(node.key)
-      return true // Node was found and selected
-    } else {
-      logger.warn('Node not found in findAndSelectNode', { reqId })
-      return false // Node not found
-    }
-  }
+    // Actions
 
-  const updateRecMenu = async (logMsg: string, newReqId?: number): Promise<number> => {
-    //console.log('updateRecMenu', logMsg,'newReqId', newReqId);
-    try {
-      //console.log('updateRecMenu reqIdMenuItems:', reqIdMenuItems.value, 'allreqIds:', allReqIds.value);
-      await loadTreeData(newReqId)
-      //console.log('updateRecMenu treeData:', treeData);
-      initDataBindingsToChartStore(reqIdMenuItems.value.map((item) => item.value.toString()))
-      if (newReqId) {
-        await initChartStoreFor(newReqId)
-        await initSymbolSize(newReqId)
+    // const setReadyToPlot = (ready:boolean) => {
+    //     readyToPlot.value = ready;
+    // };
+
+    const loadTreeData = async (selectReqId?: number) => {
+      try {
+        reqIdMenuItems.value = await useRequestsStore().getMenuItems()
+        treeData.value = buildRecTree(reqIdMenuItems.value) // Transform to TreeNode structure
+        isTreeLoaded.value = true // Mark as loaded
+        if (treeData.value.length > 0) {
+          if (selectReqId && selectReqId > 0) {
+            if (findAndSelectNode(selectReqId)) {
+              //console.log('loadTreeData: Selected node with reqId:',selectReqId);
+            } else {
+              logger.warn('Failed to find and select node', { selectReqId })
+            }
+          } else if (!selectedNodeKey.value) {
+            logger.warn('No selectedNodeKey available', { selectReqId })
+          }
+        } else {
+          logger.debug('No nodes available in tree data')
+        }
+      } catch (error) {
+        logger.error('Failed to load tree data', {
+          error: error instanceof Error ? error.message : String(error)
+        })
+        isTreeLoaded.value = true // Still mark as loaded even if empty/error
       }
-    } catch (error) {
-      logger.error('Failed to updateRecMenu', {
-        logMsg,
-        newReqId,
-        error: error instanceof Error ? error.message : String(error)
-      })
     }
-    //console.log('updateRecMenu reqIdMenuItems:', reqIdMenuItems.value, 'allreqIds:', allReqIds.value, 'selectedReqId:', selectedReqId.value);
-    return selectedReqId.value ? selectedReqId.value : 0
-  }
 
-  return {
-    treeData,
-    isTreeLoaded,
-    selectedValue,
-    selectedNodeKey,
-    selectedNodeLabel,
-    selectedReqId,
-    selectedReqIdStr,
-    selectedApi,
-    reqIdMenuItems,
-    allReqIds,
-    loadTreeData,
-    findAndSelectNode,
-    updateRecMenu,
-    initToFirstRecord,
-    findApiForReqId,
-    countRequestsByApi
+    const setSelectedValue = (key: string) => {
+      const node = findNodeByKey(treeData.value, key)
+      if (node?.key) {
+        // Set selectedValue to the shape: { [node.key]: true }
+        selectedValue.value = { [node.key]: true }
+        //console.log(
+        //     'setSelectedValue: selectedValue:',
+        //     selectedValue.value,
+        //     'selectedNodeKey:', selectedNodeKey.value,
+        //     'selectedReqId:', selectedReqId.value
+        //   );
+      } else {
+        logger.warn('Node not found in treeData', { key })
+      }
+    }
+
+    const initToFirstRecord = () => {
+      const firstReqId = allReqIds.value[0]
+      if (firstReqId > 0) {
+        if (findAndSelectNode(firstReqId)) {
+          logger.debug('Set selected record to first reqId', { firstReqId })
+        } else {
+          logger.error('findAndSelectNode FAILED for first reqId', { firstReqId })
+        }
+      } else {
+        logger.error('Found invalid reqId in first record', { firstReqId })
+      }
+    }
+
+    const findApiForReqId = (reqId: number): string => {
+      // Handle invalid reqId early
+      if (!reqId || reqId <= 0) {
+        return ''
+      }
+
+      // Check if tree is loaded (race condition - tree not yet loaded- reactive and will update later)
+      if (!isTreeLoaded.value) {
+        logger.debug('TreeData not yet loaded for findApiForReqId, will retry when loaded', {
+          reqId
+        })
+        return ''
+      }
+
+      // Check if tree is empty after loading
+      if (!treeData.value || treeData.value.length === 0) {
+        logger.debug('TreeData is empty after loading', { reqId })
+        return ''
+      }
+
+      const node = findNodeByKey(treeData.value, reqId.toString())
+      if (!node) {
+        // Node genuinely not found in populated tree
+        logger.debug('Node not found in tree for findApiForReqId', {
+          reqId,
+          treeDataRootCount: treeData.value.length
+        })
+        return ''
+      }
+      return node?.api || ''
+    }
+
+    const findAndSelectNode = (reqId: number): boolean => {
+      const findNode = (nodes: SrPrimeTreeNode[]): SrPrimeTreeNode | null => {
+        for (const node of nodes) {
+          if (node.data === reqId) {
+            return node
+          }
+          if (node.children) {
+            const childResult = findNode(node.children)
+            if (childResult) {
+              return childResult
+            }
+          }
+        }
+        return null
+      }
+
+      const node = findNode(treeData.value)
+      if (node) {
+        //console.log('findAndSelectNode found node:',node,' with reqId:',reqId);
+        setSelectedValue(node.key)
+        return true // Node was found and selected
+      } else {
+        logger.warn('Node not found in findAndSelectNode', { reqId })
+        return false // Node not found
+      }
+    }
+
+    const updateRecMenu = async (logMsg: string, newReqId?: number): Promise<number> => {
+      //console.log('updateRecMenu', logMsg,'newReqId', newReqId);
+      try {
+        //console.log('updateRecMenu reqIdMenuItems:', reqIdMenuItems.value, 'allreqIds:', allReqIds.value);
+        await loadTreeData(newReqId)
+        //console.log('updateRecMenu treeData:', treeData);
+        initDataBindingsToChartStore(reqIdMenuItems.value.map((item) => item.value.toString()))
+        if (newReqId) {
+          await initChartStoreFor(newReqId)
+          await initSymbolSize(newReqId)
+        }
+      } catch (error) {
+        logger.error('Failed to updateRecMenu', {
+          logMsg,
+          newReqId,
+          error: error instanceof Error ? error.message : String(error)
+        })
+      }
+      //console.log('updateRecMenu reqIdMenuItems:', reqIdMenuItems.value, 'allreqIds:', allReqIds.value, 'selectedReqId:', selectedReqId.value);
+      return selectedReqId.value ? selectedReqId.value : 0
+    }
+
+    return {
+      treeData,
+      isTreeLoaded,
+      selectedValue,
+      selectedNodeKey,
+      selectedNodeLabel,
+      selectedReqId,
+      selectedReqIdStr,
+      selectedApi,
+      reqIdMenuItems,
+      allReqIds,
+      loadTreeData,
+      findAndSelectNode,
+      updateRecMenu,
+      initToFirstRecord,
+      findApiForReqId,
+      countRequestsByApi
+    }
+  },
+  {
+    persist: {
+      storage: localStorage,
+      pick: ['selectedValue']
+    }
   }
-})
+)
