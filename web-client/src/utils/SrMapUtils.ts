@@ -923,8 +923,12 @@ export function updateDeckLayerWithObject(
       const globalChartStore = useGlobalChartStore()
 
       // Get selected color field (fallback to height field)
+      // 'solid' and 'unset' are not data fields, so use height field for map coloring
       const selectedColorField = reqIdStr ? chartStore.getSelectedColorEncodeData(reqIdStr) : null
-      const colorFieldName = selectedColorField || heightFieldName
+      const colorFieldName =
+        selectedColorField && selectedColorField !== 'solid' && selectedColorField !== 'unset'
+          ? selectedColorField
+          : heightFieldName
 
       // Get min/max for color field
       const allMinMax = globalChartStore.getAllColumnMinMaxValues()
