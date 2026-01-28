@@ -976,6 +976,75 @@ watch(
         updateLocationFinderFromEvent(params, latFieldName, lonFieldName)
       })
 
+      // Capture zoom changes when user interacts with dataZoom (slider, scroll, pinch)
+      // This ensures xZoomStartValue/xZoomEndValue are set for getVisibleLatLonExtent()
+      chartInstance.on('datazoom', () => {
+        const options = chartInstance.getOption()
+        const dataZoom = options?.dataZoom as
+          | Array<{
+              start?: number
+              end?: number
+              startValue?: number
+              endValue?: number
+            }>
+          | undefined
+
+        const xDataZoom = dataZoom?.[0]
+
+        if (xDataZoom) {
+          // Use startValue/endValue if available (actual data values)
+          if (xDataZoom.startValue !== undefined && xDataZoom.endValue !== undefined) {
+            atlChartFilterStore.xZoomStartValue = xDataZoom.startValue
+            atlChartFilterStore.xZoomEndValue = xDataZoom.endValue
+            logger.debug('datazoom: Captured X zoom from startValue/endValue', {
+              xZoomStartValue: xDataZoom.startValue,
+              xZoomEndValue: xDataZoom.endValue
+            })
+          }
+          // Otherwise calculate from percentage using columnMinMax
+          else if (xDataZoom.start !== undefined && xDataZoom.end !== undefined) {
+            const xField = chartStore.getXDataForChart(recTreeStore.selectedReqIdStr)
+            if (xField) {
+              const columnMinMax = globalChartStore.getAllColumnMinMaxValues()
+              const xFieldMinMax = columnMinMax[xField]
+
+              if (
+                xFieldMinMax &&
+                Number.isFinite(xFieldMinMax.min) &&
+                Number.isFinite(xFieldMinMax.max)
+              ) {
+                const dataRange = xFieldMinMax.max - xFieldMinMax.min
+                atlChartFilterStore.xZoomStartValue =
+                  xFieldMinMax.min + (xDataZoom.start / 100) * dataRange
+                atlChartFilterStore.xZoomEndValue =
+                  xFieldMinMax.min + (xDataZoom.end / 100) * dataRange
+                logger.debug('datazoom: Calculated X zoom from percentages', {
+                  start: xDataZoom.start,
+                  end: xDataZoom.end,
+                  xZoomStartValue: atlChartFilterStore.xZoomStartValue,
+                  xZoomEndValue: atlChartFilterStore.xZoomEndValue
+                })
+              }
+            }
+          }
+
+          // Also update percentage values for consistency
+          if (xDataZoom.start !== undefined) atlChartFilterStore.xZoomStart = xDataZoom.start
+          if (xDataZoom.end !== undefined) atlChartFilterStore.xZoomEnd = xDataZoom.end
+        }
+
+        // Also capture Y-axis zoom values
+        const yDataZoom = dataZoom?.[1]
+        if (yDataZoom) {
+          if (yDataZoom.startValue !== undefined && yDataZoom.endValue !== undefined) {
+            atlChartFilterStore.yZoomStartValue = yDataZoom.startValue
+            atlChartFilterStore.yZoomEndValue = yDataZoom.endValue
+          }
+          if (yDataZoom.start !== undefined) atlChartFilterStore.yZoomStart = yDataZoom.start
+          if (yDataZoom.end !== undefined) atlChartFilterStore.yZoomEnd = yDataZoom.end
+        }
+      })
+
       // Add context menu handler to chart DOM element
       const chartDom = chartInstance.getDom()
       if (chartDom) {
