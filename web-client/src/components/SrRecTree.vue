@@ -564,7 +564,7 @@ watch(
           @mouseover="
             tooltipRef?.showTooltip(
               $event,
-              `${new Intl.NumberFormat().format(slotProps.node.data.num_gran)} unique out of ${new Intl.NumberFormat().format(slotProps.node.data.num_gran_total || slotProps.node.data.num_gran)} total`
+              `${new Intl.NumberFormat().format(slotProps.node.data.num_gran)} granules with data out of ${new Intl.NumberFormat().format(slotProps.node.data.num_gran_total || slotProps.node.data.num_gran)} available`
             )
           "
           @mouseleave="tooltipRef?.hideTooltip"
