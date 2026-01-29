@@ -69,6 +69,21 @@ export const useSrcIdTblStore = defineStore('srcIdTblStore', () => {
     return new Set(table).size
   }
 
+  async function getTotalSourceCount(req_id: number): Promise<number> {
+    await setSourceTbl(req_id)
+    const table = sourceTables.value.get(req_id) || []
+    return table.length
+  }
+
+  async function getSourceCounts(req_id: number): Promise<{ unique: number; total: number }> {
+    await setSourceTbl(req_id)
+    const table = sourceTables.value.get(req_id) || []
+    return {
+      unique: new Set(table).size,
+      total: table.length
+    }
+  }
+
   async function getSourceTblForFile(fileName: string): Promise<string[]> {
     await setSrcIdTblWithFileName(fileName)
     return sourceTable.value
@@ -82,6 +97,8 @@ export const useSrcIdTblStore = defineStore('srcIdTblStore', () => {
     sourceTable,
     sourceTables,
     getUniqueSourceCount,
+    getTotalSourceCount,
+    getSourceCounts,
     getSourceTblForFile,
     getSourceTableForReqId
   }

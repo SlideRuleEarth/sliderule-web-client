@@ -356,6 +356,8 @@ export const useRequestsStore = defineStore('requests', {
               cnt: child.data.cnt,
               num_bytes: child.data.num_bytes != null ? Number(child.data.num_bytes) : undefined,
               num_gran: child.data.num_gran != null ? Number(child.data.num_gran) : undefined,
+              num_gran_total:
+                child.data.num_gran_total != null ? Number(child.data.num_gran_total) : undefined,
               area_of_poly:
                 child.data.area_of_poly != null ? Number(child.data.area_of_poly) : undefined,
 
@@ -408,8 +410,12 @@ export const useRequestsStore = defineStore('requests', {
           }
         }
 
-        // num_gran needs update?
-        const granMissing = srRecord.num_gran == null || Number.isNaN(Number(srRecord.num_gran))
+        // num_gran needs update? (also check num_gran_total for migration)
+        const granMissing =
+          srRecord.num_gran == null ||
+          Number.isNaN(Number(srRecord.num_gran)) ||
+          srRecord.num_gran_total == null ||
+          Number.isNaN(Number(srRecord.num_gran_total))
 
         if (granMissing) {
           try {

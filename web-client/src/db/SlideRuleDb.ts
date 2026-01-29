@@ -55,7 +55,8 @@ export interface SrRequestRecord {
   num_bytes?: number // number of bytes
   description?: string // description
   srViewName?: string
-  num_gran?: number // number of granules involved in the request
+  num_gran?: number // number of unique granules involved in the request
+  num_gran_total?: number // total number of granules (including duplicates)
   area_of_poly?: number // area (e.g., km^2) of the request polygon (if any)
 }
 
