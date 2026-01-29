@@ -551,8 +551,23 @@ onUnmounted(() => {
         <div style="text-align: left; width: 100%"># Granules</div>
       </template>
       <template #body="slotProps">
-        <span v-if="slotProps.node.data.num_gran > 0">
-          {{ new Intl.NumberFormat().format(slotProps.node.data.num_gran) }}
+        <span
+          v-if="slotProps.node.data.num_gran > 0"
+          @mouseover="
+            tooltipRef?.showTooltip(
+              $event,
+              `${new Intl.NumberFormat().format(slotProps.node.data.num_gran)} unique out of ${new Intl.NumberFormat().format(slotProps.node.data.num_gran_total || slotProps.node.data.num_gran)} total`
+            )
+          "
+          @mouseleave="tooltipRef?.hideTooltip"
+          style="cursor: help"
+        >
+          {{
+            slotProps.node.data.num_gran_total &&
+            slotProps.node.data.num_gran !== slotProps.node.data.num_gran_total
+              ? `${new Intl.NumberFormat().format(slotProps.node.data.num_gran)}/${new Intl.NumberFormat().format(slotProps.node.data.num_gran_total)}`
+              : new Intl.NumberFormat().format(slotProps.node.data.num_gran)
+          }}
         </span>
         <span v-else>—</span>
       </template>
