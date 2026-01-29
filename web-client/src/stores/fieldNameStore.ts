@@ -175,6 +175,10 @@ function getDefaultElOptions(reqId: number, funcStr?: string): string[] {
     case 'atl08x':
       options = [
         'h_canopy',
+        'h_te_median',
+        'h_mean_canopy',
+        'h_max_canopy',
+        'h_min_canopy',
         'h_te_best_fit',
         'h_te_uncertainty',
         'can_quality_score',
