@@ -411,23 +411,15 @@ export const useRequestsStore = defineStore('requests', {
           }
         }
 
-        // num_gran needs update? (also check num_gran_total for migration)
-        const granMissing =
-          srRecord.num_gran == null ||
-          Number.isNaN(Number(srRecord.num_gran)) ||
-          srRecord.num_gran_total == null ||
-          Number.isNaN(Number(srRecord.num_gran_total))
-
-        if (granMissing) {
-          try {
-            await updateNumGranulesInRecord(reqId) // <-- uses SrParquetUtils
-            updatedGranules = true
-          } catch (error) {
-            logger.warn('Failed to update granules for request', {
-              reqId,
-              error: error instanceof Error ? error.message : String(error)
-            })
-          }
+        // Always recalculate granule counts (ensures latest calculation logic is used)
+        try {
+          await updateNumGranulesInRecord(reqId) // <-- uses SrParquetUtils
+          updatedGranules = true
+        } catch (error) {
+          logger.warn('Failed to update granules for request', {
+            reqId,
+            error: error instanceof Error ? error.message : String(error)
+          })
         }
 
         // Always update request parameters from metadata for x endpoints

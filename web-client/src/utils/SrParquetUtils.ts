@@ -364,11 +364,11 @@ export const nukeSlideRuleFolder = async () => {
 }
 
 export async function updateNumGranulesInRecord(req_id: number): Promise<void> {
-  const counts = await useSrcIdTblStore().getSourceCounts(req_id)
+  const counts = await useSrcIdTblStore().getGranuleCounts(req_id)
   await db.updateRequestRecord({
     req_id: req_id,
-    num_gran: counts.unique,
-    num_gran_total: counts.total
+    num_gran: counts.usedInData,
+    num_gran_total: counts.availableInSrcTbl
   })
 }
 

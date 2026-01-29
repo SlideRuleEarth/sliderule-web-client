@@ -84,6 +84,54 @@ export const useSrcIdTblStore = defineStore('srcIdTblStore', () => {
     }
   }
 
+  /**
+   * Get the count of granules that actually have data in the elevation table
+   * vs the total unique granules available in the srcid table.
+   * @returns usedInData = unique granule names with data, availableInSrcTbl = unique granule names in srctbl
+   */
+  async function getGranuleCounts(
+    req_id: number
+  ): Promise<{ usedInData: number; availableInSrcTbl: number }> {
+    const fileName = await indexedDB.getFilename(req_id)
+    const db = await createDuckDbClient()
+    if (!db) {
+      logger.error('Failed to create DuckDB client for granule counts', { req_id })
+      return { usedInData: 0, availableInSrcTbl: 0 }
+    }
+
+    await db.insertOpfsParquet(fileName)
+
+    // First load the srctbl lookup table
+    await setSourceTbl(req_id)
+    const table = sourceTables.value.get(req_id) || []
+    const availableInSrcTbl = new Set(table).size
+
+    // Query distinct srcids from the elevation data
+    let usedInData = 0
+    try {
+      const result = await db.query(`SELECT DISTINCT srcid FROM "${fileName}"`)
+      const usedGranuleNames = new Set<string>()
+      for await (const rows of result.readRows()) {
+        for (const row of rows) {
+          const srcid = Number(row.srcid)
+          // Look up the granule name and add to set (deduplicates automatically)
+          if (srcid >= 0 && srcid < table.length) {
+            usedGranuleNames.add(table[srcid])
+          }
+        }
+      }
+      usedInData = usedGranuleNames.size
+    } catch (error) {
+      logger.warn('getGranuleCounts: Could not query srcid from elevation data', {
+        req_id,
+        fileName,
+        error: error instanceof Error ? error.message : String(error)
+      })
+    }
+
+    return { usedInData, availableInSrcTbl }
+  }
+
   async function getSourceTblForFile(fileName: string): Promise<string[]> {
     await setSrcIdTblWithFileName(fileName)
     return sourceTable.value
@@ -99,6 +147,7 @@ export const useSrcIdTblStore = defineStore('srcIdTblStore', () => {
     getUniqueSourceCount,
     getTotalSourceCount,
     getSourceCounts,
+    getGranuleCounts,
     getSourceTblForFile,
     getSourceTableForReqId
   }
