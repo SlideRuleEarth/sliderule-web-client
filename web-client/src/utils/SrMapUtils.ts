@@ -693,7 +693,10 @@ export function isClickable(d: ElevationDataItem): boolean {
   )
 }
 
-export async function processSelectedElPnt(d: ElevationDataItem): Promise<void> {
+export async function processSelectedElPnt(
+  d: ElevationDataItem,
+  skipZoomReset = false
+): Promise<void> {
   //logger.debug('processSelectedElPnt called with:', d);
   const gcs = useGlobalChartStore()
   gcs.setSelectedElevationRec(d)
@@ -708,7 +711,10 @@ export async function processSelectedElPnt(d: ElevationDataItem): Promise<void> 
   atlChartFilterStore.setSelectedOverlayedReqIds([])
 
   // Reset zoom when filters change (clicking on elevation point)
-  atlChartFilterStore.resetZoom()
+  // Skip reset when called from time series update to preserve user's zoom selection
+  if (!skipZoomReset) {
+    atlChartFilterStore.resetZoom()
+  }
   const mission = useFieldNameStore().getMissionForReqId(useRecTreeStore().selectedReqId)
 
   if (mission === 'ICESat-2') {
@@ -796,12 +802,12 @@ export async function resetFilterRgtOptions(): Promise<void> {
   globalChartStore.setRgtOptions(rgtOptions)
 }
 
-export async function resetFilterUsingSelectedRec() {
+export async function resetFilterUsingSelectedRec(skipZoomReset = false) {
   //logger.debug('resetFilterUsingSelectedRec called');
   const gcs = useGlobalChartStore()
   const selectedRec = gcs.getSelectedElevationRec()
   if (selectedRec) {
-    await processSelectedElPnt(selectedRec)
+    await processSelectedElPnt(selectedRec, skipZoomReset)
   } else {
     logger.warn('selectedRec is null')
   }

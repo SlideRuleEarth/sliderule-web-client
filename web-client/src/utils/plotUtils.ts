@@ -2172,7 +2172,7 @@ export async function checkAndSetFilterForTimeSeries() {
     //logger.debug('checkAndSetFilterForTimeSeries Setting use_y_atc_filter false, Spots to [1,2,3,4,5,6], Cycles to:',globalChartStore.getSelectedCycleOptions(),'/', globalChartStore.getCycles());
   } else {
     globalChartStore.use_rgt_in_filter = true
-    await resetFilterUsingSelectedRec()
+    await resetFilterUsingSelectedRec(true) // Skip zoom reset to preserve user's zoom selection
   }
 }
 

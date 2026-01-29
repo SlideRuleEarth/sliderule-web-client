@@ -6,7 +6,8 @@ import {
   TitleComponent,
   TooltipComponent,
   LegendComponent,
-  DataZoomComponent
+  DataZoomComponent,
+  ToolboxComponent
 } from 'echarts/components'
 import VChart, { THEME_KEY } from 'vue-echarts'
 import { provide, watch, onMounted, ref, computed, nextTick } from 'vue'
@@ -24,6 +25,9 @@ import type { AppendToType } from '@/types/SrTypes'
 import SrCycleSelect from '@/components/SrCycleSelect.vue'
 import SrSimpleYatcCntrl from './SrSimpleYatcCntrl.vue'
 import { createLogger } from '@/utils/logger'
+import SrCustomTooltip from '@/components/SrCustomTooltip.vue'
+import Button from 'primevue/button'
+import Checkbox from 'primevue/checkbox'
 
 const logger = createLogger('SrTimeSeries')
 
@@ -39,13 +43,169 @@ const recTreeStore = useRecTreeStore()
 const fieldNameStore = useFieldNameStore()
 const loadingComponent = ref(true)
 
+// Custom tooltip ref
+const tooltipRef = ref()
+
+// Zoom select mode state (custom drag-to-zoom rectangle)
+const zoomSelectMode = ref(false)
+const isDrawingZoomRect = ref(false)
+const zoomRectStart = ref({ x: 0, y: 0 })
+const zoomRectEnd = ref({ x: 0, y: 0 })
+
+// Computed style for the zoom selection rectangle
+const zoomRectStyle = computed(() => {
+  const left = Math.min(zoomRectStart.value.x, zoomRectEnd.value.x)
+  const top = Math.min(zoomRectStart.value.y, zoomRectEnd.value.y)
+  const width = Math.abs(zoomRectEnd.value.x - zoomRectStart.value.x)
+  const height = Math.abs(zoomRectEnd.value.y - zoomRectStart.value.y)
+  return {
+    left: `${left}px`,
+    top: `${top}px`,
+    width: `${width}px`,
+    height: `${height}px`
+  }
+})
+
+// Zoom selection mouse event handlers
+function handleZoomMouseDown(e: MouseEvent) {
+  if (!zoomSelectMode.value) return
+  const wrapper = chartWrapperRef.value as HTMLElement
+  if (!wrapper) {
+    logger.warn('handleZoomMouseDown: chartWrapperRef is null')
+    return
+  }
+
+  e.preventDefault()
+  e.stopPropagation()
+
+  const rect = wrapper.getBoundingClientRect()
+  isDrawingZoomRect.value = true
+  zoomRectStart.value = { x: e.clientX - rect.left, y: e.clientY - rect.top }
+  zoomRectEnd.value = { ...zoomRectStart.value }
+  logger.debug('Zoom rectangle started', { start: zoomRectStart.value })
+}
+
+function handleZoomMouseMove(e: MouseEvent) {
+  if (!isDrawingZoomRect.value) return
+  const wrapper = chartWrapperRef.value as HTMLElement
+  if (!wrapper) return
+
+  const rect = wrapper.getBoundingClientRect()
+  zoomRectEnd.value = { x: e.clientX - rect.left, y: e.clientY - rect.top }
+}
+
+async function handleZoomMouseUp() {
+  if (!isDrawingZoomRect.value) return
+  isDrawingZoomRect.value = false
+
+  const chart = plotRef.value?.chart
+  if (!chart) return
+
+  // Convert pixel coordinates to data values using ECharts API
+  const startData = chart.convertFromPixel('grid', [zoomRectStart.value.x, zoomRectStart.value.y])
+  const endData = chart.convertFromPixel('grid', [zoomRectEnd.value.x, zoomRectEnd.value.y])
+
+  if (!startData || !endData) {
+    logger.warn('Failed to convert pixel coordinates to data values')
+    return
+  }
+
+  // Ensure we have a meaningful selection (not just a click)
+  const minSelectionSize = 5 // pixels
+  if (
+    Math.abs(zoomRectEnd.value.x - zoomRectStart.value.x) < minSelectionSize &&
+    Math.abs(zoomRectEnd.value.y - zoomRectStart.value.y) < minSelectionSize
+  ) {
+    logger.debug('Selection too small, ignoring')
+    return
+  }
+
+  // Set zoom extents (ensure min < max)
+  atlChartFilterStore.xZoomStartValue = Math.min(startData[0], endData[0])
+  atlChartFilterStore.xZoomEndValue = Math.max(startData[0], endData[0])
+  atlChartFilterStore.yZoomStartValue = Math.min(startData[1], endData[1])
+  atlChartFilterStore.yZoomEndValue = Math.max(startData[1], endData[1])
+
+  logger.debug('Zoom rectangle selection applied', {
+    xStart: atlChartFilterStore.xZoomStartValue,
+    xEnd: atlChartFilterStore.xZoomEndValue,
+    yStart: atlChartFilterStore.yZoomStartValue,
+    yEnd: atlChartFilterStore.yZoomEndValue
+  })
+
+  // Trigger chart update
+  await callPlotUpdateDebounced('from zoom rectangle selection')
+
+  // Disable zoom select mode after use
+  zoomSelectMode.value = false
+}
+
+function handleZoomMouseLeave() {
+  if (isDrawingZoomRect.value) {
+    isDrawingZoomRect.value = false
+  }
+}
+
+// Custom toolbar handlers
+function saveChartAsImage() {
+  if (!plotRef.value?.chart) {
+    logger.warn('Cannot save chart: chart instance not available')
+    return
+  }
+  try {
+    const dataUrl = plotRef.value.chart.getDataURL({
+      type: 'png',
+      pixelRatio: 2,
+      backgroundColor: '#1e1e1e'
+    })
+    const link = document.createElement('a')
+    link.download = `time-series-plot-${Date.now()}.png`
+    link.href = dataUrl
+    link.click()
+    logger.debug('Chart saved as image')
+  } catch (error) {
+    logger.error('Error saving chart as image', { error })
+  }
+}
+
+function resetChartZoom() {
+  if (!plotRef.value?.chart) {
+    logger.warn('Cannot reset zoom: chart instance not available')
+    return
+  }
+  try {
+    logger.debug('Resetting chart zoom')
+    // Clear both percentage and value-based zoom fields in store
+    atlChartFilterStore.resetZoom()
+
+    const chart = plotRef.value.chart
+    // Reset X-axis dataZoom (slider at index 0, inside at index 2 shares state)
+    chart.dispatchAction({
+      type: 'dataZoom',
+      dataZoomIndex: 0,
+      start: 0,
+      end: 100
+    })
+    // Reset Y-axis dataZoom (slider at index 1, inside at index 3 shares state)
+    chart.dispatchAction({
+      type: 'dataZoom',
+      dataZoomIndex: 1,
+      start: 0,
+      end: 100
+    })
+  } catch (error) {
+    logger.error('Error resetting chart zoom', { error })
+  }
+}
+
 use([
   CanvasRenderer,
   ScatterChart,
   TitleComponent,
   TooltipComponent,
   LegendComponent,
-  DataZoomComponent
+  DataZoomComponent,
+  ToolboxComponent
 ])
 
 provide(THEME_KEY, 'dark')
@@ -216,12 +376,21 @@ watch(
     }
   }
 )
+
+watch(
+  () => globalChartStore.showPlotTooltip,
+  (newValue) => {
+    if (plotRef.value?.chart) {
+      plotRef.value.chart.setOption({ tooltip: { show: newValue } })
+    }
+  }
+)
 </script>
 <template>
   <div class="sr-time-series-container" v-if="loadingComponent"><span>Loading...</span></div>
   <div class="sr-time-series-container" v-else>
     <div class="sr-time-series-content">
-      <div ref="chartWrapperRef" class="chart-wrapper">
+      <div ref="chartWrapperRef" class="chart-wrapper" :class="{ 'sr-zoom-mode': zoomSelectMode }">
         <v-chart
           ref="plotRef"
           class="time-series-chart"
@@ -236,6 +405,67 @@ watch(
           }"
           @finished="handleChartFinished"
         />
+        <!-- Custom toolbar (replaces ECharts toolbox which causes rendering issues with large datasets) -->
+        <div class="sr-chart-toolbar">
+          <div
+            @mouseover="tooltipRef.showTooltip($event, 'Save as Image')"
+            @mouseleave="tooltipRef.hideTooltip()"
+          >
+            <Button
+              icon="pi pi-download"
+              severity="secondary"
+              text
+              rounded
+              class="sr-glow-button"
+              aria-label="Save as Image"
+              @click="saveChartAsImage"
+            />
+          </div>
+          <div
+            @mouseover="tooltipRef.showTooltip($event, 'Reset Zoom')"
+            @mouseleave="tooltipRef.hideTooltip()"
+          >
+            <Button
+              icon="pi pi-refresh"
+              severity="secondary"
+              text
+              rounded
+              class="sr-glow-button"
+              aria-label="Reset Zoom"
+              @click="resetChartZoom"
+            />
+          </div>
+          <div
+            @mouseover="
+              tooltipRef.showTooltip(
+                $event,
+                zoomSelectMode ? 'Cancel Zoom Selection' : 'Drag to Zoom'
+              )
+            "
+            @mouseleave="tooltipRef.hideTooltip()"
+          >
+            <Button
+              icon="pi pi-search-plus"
+              :severity="zoomSelectMode ? 'primary' : 'secondary'"
+              :text="!zoomSelectMode"
+              rounded
+              aria-label="Drag to Zoom"
+              :class="['sr-glow-button', { 'sr-zoom-select-active': zoomSelectMode }]"
+              @click="zoomSelectMode = !zoomSelectMode"
+            />
+          </div>
+        </div>
+        <!-- Zoom mode overlay - captures mouse events when zoom select is active -->
+        <div
+          v-if="zoomSelectMode"
+          class="sr-zoom-overlay"
+          @mousedown="handleZoomMouseDown"
+          @mousemove="handleZoomMouseMove"
+          @mouseup="handleZoomMouseUp"
+          @mouseleave="handleZoomMouseLeave"
+        />
+        <!-- Zoom selection rectangle overlay -->
+        <div v-if="isDrawingZoomRect" class="sr-zoom-select-rect" :style="zoomRectStyle" />
       </div>
       <div class="sr-cycles-legend-panel">
         <SrCycleSelect :label="cyclesLabel" />
@@ -264,6 +494,16 @@ watch(
       </div>
     </div>
     <div class="sr-time-series-cntrl">
+      <SrCustomTooltip ref="tooltipRef" id="'timeSeriesPlotTooltip'" />
+      <div class="plot-tooltip-checkbox-group">
+        <Checkbox
+          v-model="globalChartStore.showPlotTooltip"
+          binary
+          inputId="plotTooltipCheckbox"
+          size="small"
+        />
+        <label for="plotTooltipCheckbox" class="sr-checkbox-label">Tooltip</label>
+      </div>
       <div class="sr-multiselect-container">
         <div class="sr-multiselect-col">
           <SrPlotCntrl v-if="recTreeStore.selectedReqId > 0" :reqId="recTreeStore.selectedReqId" />
@@ -518,5 +758,80 @@ fieldset {
   margin-right: 0.5rem;
   max-height: 50rem;
   max-width: 80rem;
+}
+
+/* Custom toolbar replacing ECharts toolbox (which causes rendering issues with large datasets) */
+.sr-chart-toolbar {
+  position: absolute;
+  left: 0.25rem;
+  top: 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  z-index: 10;
+  background-color: rgba(30, 30, 30, 0.7);
+  border-radius: 0.25rem;
+  padding: 0.25rem;
+}
+
+.sr-chart-toolbar :deep(.p-button) {
+  width: 2rem;
+  height: 2rem;
+  color: #aaa;
+}
+
+.sr-chart-toolbar :deep(.p-button:hover) {
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Zoom mode overlay - captures mouse events on top of chart */
+.sr-zoom-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  cursor: crosshair;
+  z-index: 99;
+  background: transparent;
+}
+
+/* Zoom selection rectangle styles */
+.sr-zoom-select-rect {
+  position: absolute;
+  border: 2px dashed var(--p-primary-color);
+  background-color: rgba(100, 149, 237, 0.15);
+  pointer-events: none;
+  z-index: 100;
+}
+
+/* Highlight active zoom select button */
+.sr-zoom-select-active {
+  background-color: var(--p-primary-color) !important;
+  color: var(--p-primary-contrast-color) !important;
+}
+
+/* Change cursor when zoom select mode is active */
+.chart-wrapper.sr-zoom-mode {
+  cursor: crosshair;
+}
+
+/* Prevent text selection while drawing zoom rectangle */
+.chart-wrapper.sr-zoom-mode * {
+  user-select: none;
+}
+
+.plot-tooltip-checkbox-group {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.sr-checkbox-label {
+  margin-left: 0.5rem;
+  font-size: 0.875rem;
+  cursor: pointer;
 }
 </style>
