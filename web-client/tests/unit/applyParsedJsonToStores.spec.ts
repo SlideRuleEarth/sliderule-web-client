@@ -275,7 +275,7 @@ describe('applyParsedJsonToStores - Round-trip Tests', () => {
       expect(getNonPolygonErrors(importErrors)).toHaveLength(0)
     })
 
-    it('atl06p: should preserve fit, atl08_class, and field arrays', () => {
+    it('atl06p: should preserve atl08_class and field arrays but NOT fit', () => {
       const input = loadTestJson('atl06p.json')
       applyParsedJsonToStores(input.parms, reqParamsStore, rasterParamsStore, addError)
 
@@ -284,9 +284,8 @@ describe('applyParsedJsonToStores - Round-trip Tests', () => {
 
       const output = reqParamsStore.getAtlxxReqParams(0)
 
-      // Verify fit is enabled
-      expect(output.parms.fit).toBeDefined()
-      expect(output.parms.fit.maxi).toBe(6)
+      // Verify fit is NOT enabled for atl06p (only atl03x-surface uses fit)
+      expect(output.parms.fit).toBeUndefined()
 
       // Verify atl08_class
       expect(output.parms.atl08_class).toEqual(expect.arrayContaining(['atl08_ground']))

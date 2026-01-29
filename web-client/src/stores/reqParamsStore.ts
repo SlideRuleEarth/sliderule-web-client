@@ -1226,7 +1226,7 @@ const createReqParamsStore = (id: string) =>
         this.useAtl13Point = false
 
         // Enable the specific parameters for each API type
-        if (value === 'atl03x-surface' || value === 'atl06p') {
+        if (value === 'atl03x-surface') {
           this.setUseSurfaceFitAlgorithm(true)
         } else if (value === 'atl03x-phoreal') {
           this.setEnablePhoReal(true)
