@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import TreeTable from 'primevue/treetable'
 import Column from 'primevue/column'
 import type { TreeNode } from 'primevue/treenode'
@@ -278,6 +278,14 @@ onMounted(async () => {
 onUnmounted(() => {
   requestsStore.unWatchReqTable()
 })
+
+watch(
+  () => requestsStore.tableRefreshTrigger,
+  async () => {
+    logger.debug('Table refresh triggered, updating treeNodes')
+    treeNodes.value = await requestsStore.getTreeTableNodes(onlySuccess.value)
+  }
+)
 </script>
 
 <template>

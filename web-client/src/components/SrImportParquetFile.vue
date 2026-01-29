@@ -154,6 +154,7 @@ async function handleProjectionSelection(useGlobal: boolean) {
     })
     upload_status.value = 'success'
     emit('file-imported', srReqRec.req_id.toString())
+    requestsStore.triggerTableRefresh()
   } catch (error) {
     logger.error('Failed to update projection selection', {
       error: error instanceof Error ? error.message : String(error)
@@ -485,6 +486,7 @@ const customUploader = async (event: any) => {
         })
         upload_status.value = 'success'
         emit('file-imported', srReqRec.req_id.toString())
+        requestsStore.triggerTableRefresh()
       } else {
         throw new Error(`Failed to get summary for req_id: ${srReqRec.req_id}`)
       }

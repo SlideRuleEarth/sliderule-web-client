@@ -25,7 +25,8 @@ export const useRequestsStore = defineStore('requests', {
     consoleMsg: 'ready',
     autoFetchError: false,
     autoFetchErrorMsg: '',
-    helpfulReqAdviceCnt: 2
+    helpfulReqAdviceCnt: 2,
+    tableRefreshTrigger: 0
   }),
   getters: {
     getReqById: (state) => {
@@ -477,6 +478,11 @@ export const useRequestsStore = defineStore('requests', {
         totalUpdatedArea,
         totalUpdatedGranules
       }
+    },
+
+    triggerTableRefresh() {
+      this.tableRefreshTrigger++
+      logger.debug('Table refresh triggered', { tableRefreshTrigger: this.tableRefreshTrigger })
     }
   }
 })
