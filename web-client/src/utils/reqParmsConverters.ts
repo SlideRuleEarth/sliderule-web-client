@@ -91,18 +91,63 @@ const gediEndpointToFunc: Record<string, string> = {
 }
 
 /**
- * Checks if the request parameters specify a file output format
- * @param jsonData - The request parameters object
- * @returns The output format if specified, otherwise null
+ * List of nested parameter objects that should NOT contain a 'poly' field
+ * (poly belongs only at the top level)
  */
-function getOutputFormat(jsonData: unknown): string | null {
-  if (jsonData && typeof jsonData === 'object' && 'output' in jsonData) {
-    const output = (jsonData as Record<string, unknown>).output
-    if (output && typeof output === 'object' && 'format' in output) {
-      return (output as Record<string, unknown>).format as string
+const NESTED_OBJECTS_WITHOUT_POLY = [
+  'atl24',
+  'atl13',
+  'fit',
+  'phoreal',
+  'yapc',
+  'cmr',
+  'region_mask'
+]
+
+/**
+ * Cleans request parameters for Python client code generation:
+ * - Removes the 'output' field (sliderule.run() handles output automatically)
+ * - Removes duplicate 'poly' from nested objects (poly should only be at top level)
+ * @param jsonData - The request parameters object
+ * @returns Cleaned parameters suitable for Python client code
+ */
+export function cleanParamsForPythonClient(jsonData: unknown): unknown {
+  if (!jsonData || typeof jsonData !== 'object' || Array.isArray(jsonData)) {
+    return jsonData
+  }
+
+  const data = jsonData as Record<string, unknown>
+  const cleaned: Record<string, unknown> = {}
+
+  for (const [key, value] of Object.entries(data)) {
+    // Skip 'output' field - sliderule.run() handles this automatically
+    if (key === 'output') {
+      continue
+    }
+
+    // Remove 'poly' from nested objects (it should only be at top level)
+    if (
+      NESTED_OBJECTS_WITHOUT_POLY.includes(key) &&
+      value &&
+      typeof value === 'object' &&
+      !Array.isArray(value)
+    ) {
+      const nestedObj = value as Record<string, unknown>
+      const cleanedNested: Record<string, unknown> = {}
+      for (const [nestedKey, nestedValue] of Object.entries(nestedObj)) {
+        if (nestedKey !== 'poly') {
+          cleanedNested[nestedKey] = nestedValue
+        }
+      }
+      if (Object.keys(cleanedNested).length > 0) {
+        cleaned[key] = cleanedNested
+      }
+    } else {
+      cleaned[key] = value
     }
   }
-  return null
+
+  return cleaned
 }
 
 /**
@@ -113,16 +158,14 @@ function getOutputFormat(jsonData: unknown): string | null {
  */
 export function generatePythonClientCode(jsonData: unknown, endpoint: string): string {
   const normalizedEndpoint = endpoint.toLowerCase().trim()
-  const parmsDict = jsonToPythonDict(jsonData, 0)
+
+  // Clean parameters for Python client (removes 'output' and duplicate 'poly' in nested objects)
+  const cleanedData = cleanParamsForPythonClient(jsonData)
+  const parmsDict = jsonToPythonDict(cleanedData, 0)
 
   // Check if this is a GEDI endpoint
   const gediFunc = gediEndpointToFunc[normalizedEndpoint]
   const isGedi = !!gediFunc
-
-  // Check if output format is specified (returns file path instead of GeoDataFrame)
-  const outputFormat = getOutputFormat(jsonData)
-  const hasFileOutput =
-    outputFormat === 'parquet' || outputFormat === 'geoparquet' || outputFormat === 'csv'
 
   // Determine import and execute statements based on endpoint type
   const importStatement = isGedi
@@ -132,40 +175,6 @@ export function generatePythonClientCode(jsonData: unknown, endpoint: string): s
   const executeStatement = isGedi
     ? `gedi.${gediFunc}(parms)`
     : `sliderule.run("${endpointToRunName[normalizedEndpoint] || normalizedEndpoint}", parms)`
-
-  if (hasFileOutput) {
-    // When output format is specified, the API returns a file path
-    const geopandasImport =
-      outputFormat === 'csv' ? 'import pandas as pd' : 'import geopandas as gpd'
-    const readFunc = outputFormat === 'csv' ? 'pd.read_csv' : 'gpd.read_parquet'
-
-    return `#!/usr/bin/env python3
-"""
-SlideRule request generated from web client
-Endpoint: ${endpoint}
-"""
-
-${importStatement}
-${geopandasImport}
-
-# Initialize SlideRule client
-sliderule.init("slideruleearth.io")
-
-# Request parameters
-parms = ${parmsDict}
-
-# Execute request (returns file path when output format is specified)
-output_file = ${executeStatement}
-print(f"Data saved to: {output_file}")
-
-# Read the output file into a GeoDataFrame
-gdf = ${readFunc}(output_file)
-
-# Display results
-print(f"Retrieved {len(gdf)} records")
-print(gdf.head())
-`
-  }
 
   return `#!/usr/bin/env python3
 """
