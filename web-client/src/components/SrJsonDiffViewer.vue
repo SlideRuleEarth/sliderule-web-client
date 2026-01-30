@@ -217,6 +217,10 @@ function forceChanges() {
 
   for (const row of diffRows.value) {
     if (row.forceAdd) {
+      // Skip poly in nested objects - it belongs only at top level
+      if (row.path.includes('.') && row.path.endsWith('.poly')) {
+        continue
+      }
       added[row.path] = row.bVal
       updated = true
     }

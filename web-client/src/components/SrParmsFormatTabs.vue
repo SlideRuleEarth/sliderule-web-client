@@ -17,7 +17,8 @@ import {
   jsonToPythonDict,
   generatePythonClientCode,
   jsonToLuaTable,
-  downloadAsFile
+  downloadAsFile,
+  cleanParamsForPythonClient
 } from '@/utils/reqParmsConverters'
 
 const logger = createLogger('SrParmsFormatTabs')
@@ -178,10 +179,11 @@ const highlightedSentJson = computed(() => {
 })
 
 // Python snippet (dict literal only - uses innerData without parms wrapper)
+// Cleaned for Python client usage (removes 'output' field and duplicate 'poly' in nested objects)
 const pythonSnippet = computed(() => {
   if (!innerData.value) return '# No data available'
   try {
-    return jsonToPythonDict(innerData.value)
+    return jsonToPythonDict(cleanParamsForPythonClient(innerData.value))
   } catch {
     return '# Error converting to Python'
   }
