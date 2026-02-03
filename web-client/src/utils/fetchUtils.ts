@@ -532,6 +532,135 @@ export async function fetchProvisionerReport(): Promise<ProvisionerReportResult>
 }
 
 /**
+ * Response from the discovery status API.
+ */
+export interface DiscoveryStatusResponse {
+  nodes: number
+  [key: string]: unknown
+}
+
+/**
+ * Result from fetchDiscoveryStatus function.
+ */
+export interface DiscoveryStatusResult {
+  success: boolean
+  data: DiscoveryStatusResponse | null
+  error?: string
+}
+
+/**
+ * Fetch discovery status from the SlideRule discovery API.
+ * Returns the full response (not just node count).
+ *
+ * @param cluster - The cluster subdomain
+ * @param domain - The domain name
+ * @returns Discovery status result with full response data
+ */
+export async function fetchDiscoveryStatus(
+  cluster: string,
+  domain: string
+): Promise<DiscoveryStatusResult> {
+  const url = `https://${cluster}.${domain}/discovery/status`
+  try {
+    const fetchOptions = {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ service: 'sliderule' })
+    }
+    const response =
+      cluster === 'sliderule'
+        ? await fetch(url, fetchOptions)
+        : await authenticatedFetch(url, fetchOptions)
+
+    if (!response.ok) throw new Error(`HTTP error: ${response.status}`)
+
+    const data = await response.json()
+    return {
+      success: true,
+      data
+    }
+  } catch (error) {
+    logger.warn('Error fetching discovery status', {
+      cluster,
+      url,
+      error: error instanceof Error ? error.message : String(error)
+    })
+    return {
+      success: false,
+      data: null,
+      error: error instanceof Error ? error.message : String(error)
+    }
+  }
+}
+
+/**
+ * Response from the provisioner status API (global, without cluster param).
+ */
+export interface ProvisionerStatusResponse {
+  status: boolean
+  [key: string]: unknown
+}
+
+/**
+ * Result from fetchProvisionerStatus function.
+ */
+export interface ProvisionerStatusResult {
+  success: boolean
+  data: ProvisionerStatusResponse | null
+  error?: string
+  errorDetails?: string
+}
+
+/**
+ * Fetch provisioner status from the provisioner API.
+ * Requires GitHub OAuth authentication and org membership.
+ * Includes a single retry with backoff for 401 errors (handles JWKS latency).
+ *
+ * @param cluster - The cluster name to get status for
+ * @returns Provisioner status result with response data
+ */
+export async function fetchProvisionerStatus(cluster: string): Promise<ProvisionerStatusResult> {
+  return provisionerFetch<ProvisionerStatusResponse>({
+    url: 'https://provisioner.slideruleearth.io/status',
+    body: { cluster },
+    context: 'fetching provisioner status'
+  })
+}
+
+/**
+ * Response from the provisioner test report API.
+ */
+export interface ProvisionerTestReportResponse {
+  status: boolean
+  [key: string]: unknown
+}
+
+/**
+ * Result from fetchProvisionerTestReport function.
+ */
+export interface ProvisionerTestReportResult {
+  success: boolean
+  data: ProvisionerTestReportResponse | null
+  error?: string
+  errorDetails?: string
+}
+
+/**
+ * Fetch test report from the provisioner API.
+ * Requires GitHub OAuth authentication and org membership.
+ * Includes a single retry with backoff for 401 errors (handles JWKS latency).
+ *
+ * @returns Test report result with response data
+ */
+export async function fetchProvisionerTestReport(): Promise<ProvisionerTestReportResult> {
+  return provisionerFetch<ProvisionerTestReportResponse>({
+    url: 'https://provisioner.slideruleearth.io/report/tests',
+    body: {},
+    context: 'fetching provisioner test report'
+  })
+}
+
+/**
  * Wrapper around fetch that adds GitHub OAuth authentication header if available.
  */
 export async function authenticatedFetch(

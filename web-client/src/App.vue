@@ -15,9 +15,8 @@ import { initChartStore } from '@/utils/plotUtils'
 import { useRecTreeStore } from '@/stores/recTreeStore'
 import { useRoute } from 'vue-router'
 import SrClearCache from '@/components/SrClearCache.vue'
-import { useSysConfigStore } from '@/stores/sysConfigStore'
 import { useGoogleApiKeyStore } from '@/stores/googleApiKeyStore'
-import SrJsonDisplayDialog from '@/components/SrJsonDisplayDialog.vue'
+import SrServerInfoDialog from '@/components/SrServerInfoDialog.vue'
 import SrGoogleApiKeyInput from '@/components/SrGoogleApiKeyInput.vue'
 import introJs from 'intro.js'
 import { useTourStore } from '@/stores/tourStore.js'
@@ -50,7 +49,6 @@ const showServerVersionDialog = ref(false)
 const showClientVersionDialog = ref(false)
 const showUnsupportedDialog = ref(false)
 const showBuzzDialog = ref(false)
-const serverVersionInfo = ref('')
 const isMounted = ref(false)
 
 const checkUnsupported = () => {
@@ -334,26 +332,8 @@ const slideruleBuzzButtonClick = () => {
 }
 
 // Function to handle the server version button click and show the dialog
-const handleServerVersionButtonClick = async () => {
-  try {
-    // Fetch server version info from the store
-    const info = await useSysConfigStore().fetchServerVersionInfo()
-    if (info) {
-      serverVersionInfo.value = JSON.stringify(info, null, 2)
-      logger.debug('Fetched server version info', { infoLength: serverVersionInfo.value.length })
-    }
-  } catch (error) {
-    logger.error('Failed to fetch server version info', {
-      error: error instanceof Error ? error.message : String(error)
-    })
-    toast.add({
-      severity: 'error',
-      summary: 'Error',
-      detail: 'Failed to fetch server version info',
-      life: srToastStore.getLife()
-    })
-  }
-  showServerVersionDialog.value = true // Show the dialog
+const handleServerVersionButtonClick = () => {
+  showServerVersionDialog.value = true
 }
 
 // Function to handle the client version button click and show the dialog
@@ -604,12 +584,7 @@ async function handleLongTourButtonClick() {
         <SrClearCache />
       </div>
     </Dialog>
-    <SrJsonDisplayDialog
-      v-model:visible="showServerVersionDialog"
-      :jsonData="serverVersionInfo"
-      title="About the SlideRule Server"
-    >
-    </SrJsonDisplayDialog>
+    <SrServerInfoDialog v-model="showServerVersionDialog" />
 
     <Dialog
       v-model:visible="showUnsupportedDialog"

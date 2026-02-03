@@ -246,9 +246,7 @@ const nodeBadgeSeverity = computed(() => {
   return 'info' // both yes and >0
 })
 
-const badgeLabel = computed(() => {
-  return sysConfigStore.current_nodes >= 0 ? `server ${sysConfigStore.current_nodes}` : 'server ?'
-})
+const badgeLabel = computed(() => 'server')
 
 const handleRequestButtonClick = () => {
   emit('request-button-click')
