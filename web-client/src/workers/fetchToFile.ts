@@ -492,7 +492,6 @@ onmessage = async (event) => {
           if (cmd.func) {
             let result: Sr_Results_type = {} as Sr_Results_type
             try {
-              //console.log('Fetching:', cmd.func, ' for reqID:', reqID, ' with cmd.parameters:', cmd.parameters, ' using callbacks:', callbacks);
               logger.debug('Fetching data', {
                 func: cmd.func,
                 reqId: reqID,
@@ -502,6 +501,7 @@ onmessage = async (event) => {
                 logger.warn('State error: got_all_cbs already true')
               }
               got_all_cbs = false
+              //console.log('Calling atlxx', cmd.func, reqID, JSON.stringify(cmd.parameters, null, 2))
               result = await atlxx(cmd.func as string, cmd.parameters as AtlxxReqParams, callbacks)
 
               if (result) {

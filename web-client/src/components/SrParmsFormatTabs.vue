@@ -64,8 +64,13 @@ const parsedRcvdParms = computed(() => {
     const parsed =
       typeof props.rcvdParms === 'string' ? JSON.parse(props.rcvdParms) : props.rcvdParms
     // Extract inner parms if wrapped (same as sentParms handling)
+    // Also preserve top-level fields like 'resources' alongside parms content
     if (parsed?.parms && typeof parsed.parms === 'object' && !Array.isArray(parsed.parms)) {
-      return parsed.parms
+      const result = { ...parsed.parms }
+      if (parsed.resources && Array.isArray(parsed.resources) && parsed.resources.length > 0) {
+        result.resources = parsed.resources
+      }
+      return result
     }
     return parsed
   } catch (error) {

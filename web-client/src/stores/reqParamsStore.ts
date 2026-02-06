@@ -14,6 +14,8 @@ import { useGeoJsonStore } from './geoJsonStore'
 import { useChartStore } from '@/stores/chartStore'
 import { useRasterParamsStore } from '@/stores/rasterParamsStore'
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore'
+import { useSrcIdTblStore } from '@/stores/srcIdTblStore'
+import { createDuckDbClient } from '@/utils/SrDuckDb'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('ReqParamsStore')
@@ -345,6 +347,84 @@ const createReqParamsStore = (id: string) =>
           this.atl24_class_ph = atl24_class_ph_Options
           this.useDatum = true
           this.isAtl24PhotonOverlay = true
+          // Derive ATL03 granule names from ATL24 data for the resources field
+          // Query the parquet data to find srcids matching the selected rgt/cycle/spot,
+          // then look up granule names from the source table
+          const srcIdStore = useSrcIdTblStore()
+          let sourceTable = srcIdStore.getSourceTableForReqId(parentReqId)
+          if (sourceTable.length === 0) {
+            await srcIdStore.setSourceTbl(parentReqId)
+            sourceTable = srcIdStore.getSourceTableForReqId(parentReqId)
+          }
+          const globalChartStore = useGlobalChartStore()
+          const selectedRgt = globalChartStore.getRgt()
+          const selectedCycles = globalChartStore.getCycles()
+          const selectedSpots = globalChartStore.getSpots()
+          try {
+            const fileName = await db.getFilename(parentReqId)
+            const duckDb = await createDuckDbClient()
+            if (duckDb && fileName) {
+              await duckDb.insertOpfsParquet(fileName)
+              // Build WHERE clause to match the selected track (rgt + cycle + spot)
+              const conditions: string[] = []
+              if (selectedRgt > 0) conditions.push(`rgt = ${selectedRgt}`)
+              if (selectedCycles.length > 0)
+                conditions.push(`cycle IN (${selectedCycles.join(',')})`)
+              if (selectedSpots.length > 0) conditions.push(`spot IN (${selectedSpots.join(',')})`)
+              const whereClause = conditions.length > 0 ? ` WHERE ${conditions.join(' AND ')}` : ''
+              const result = await duckDb.query(
+                `SELECT DISTINCT srcid FROM "${fileName}"${whereClause}`
+              )
+              const matchingSrcIds = new Set<number>()
+              for await (const rows of result.readRows()) {
+                for (const row of rows) {
+                  matchingSrcIds.add(Number(row.srcid))
+                }
+              }
+              // Map srcids to granule names, convert ATL24 to ATL03
+              const matchingNames = [...matchingSrcIds]
+                .filter((id) => id >= 0 && id < sourceTable.length)
+                .map((id) => sourceTable[id])
+                .filter((name) => name.startsWith('ATL24'))
+              // ATL24 granules have an extra _nnn_nn suffix that ATL03 doesn't have
+              // Standard: ATLNN_DATETIME_RRRRCCSS_VVV_RR (5 parts)
+              // ATL24:    ATL24_DATETIME_RRRRCCSS_VVV_RR_nnn_nn[.ext] (7 parts)
+              // Result:   ATL03_DATETIME_RRRRCCSS_VVV_RR
+              this.resources = [
+                ...new Set(
+                  matchingNames.map((name) => {
+                    const parts = name.split('_')
+                    parts[parts.length - 1] = parts[parts.length - 1].replace(/\.[^.]+$/, '')
+                    const baseParts = parts.slice(0, 5)
+                    baseParts[0] = 'ATL03'
+                    return baseParts.join('_') + '.h5'
+                  })
+                )
+              ]
+            }
+          } catch (error) {
+            logger.warn('Failed to query srcids for resource derivation', {
+              parentReqId,
+              error: error instanceof Error ? error.message : String(error)
+            })
+          }
+          if (this.resources.length > 0) {
+            logger.info('Derived ATL03 resources from ATL24 granules', {
+              parentReqId,
+              selectedRgt,
+              selectedCycles,
+              selectedSpots,
+              atl03Resources: this.resources
+            })
+          } else {
+            logger.warn('No ATL24 granules found for resource derivation', {
+              parentReqId,
+              selectedRgt,
+              selectedCycles,
+              selectedSpots,
+              sourceTableLength: sourceTable.length
+            })
+          }
         } else {
           this.enableAtl24Classification = false
           // Check the excludeAtl08 checkbox state to exclude atl08 from atl03x photon cloud overlay
@@ -789,7 +869,7 @@ const createReqParamsStore = (id: string) =>
         }
 
         if (this.resources.length > 0) {
-          baseParams['resources'] = this.resources
+          baseParams.parms.resources = this.resources
         }
 
         // Apply forced additions

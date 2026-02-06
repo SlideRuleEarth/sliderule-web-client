@@ -24,6 +24,7 @@ import { useChartStore } from '@/stores/chartStore'
 import { useSrToastStore } from '@/stores/srToastStore'
 import { useAdvancedModeStore } from '@/stores/advancedModeStore'
 import { useAnalysisMapStore } from '@/stores/analysisMapStore'
+import { useSrcIdTblStore } from '@/stores/srcIdTblStore'
 import { srViews } from '@/composables/SrViews'
 import { srProjections } from '@/composables/SrProjections'
 import { get as getProjection } from 'ol/proj.js'
@@ -1942,6 +1943,16 @@ export const updateElevationMap = async (req_id: number) => {
     const analysisMapStore = useAnalysisMapStore()
     const minMax = await getAllColumnMinMax(req_id)
     useGlobalChartStore().setAllColumnMinMaxValues(minMax)
+
+    // Load the srcid-to-granule name table so tooltips can show granule names
+    try {
+      await useSrcIdTblStore().setSourceTbl(req_id)
+    } catch (error) {
+      logger.warn('Failed to load source table for tooltips', {
+        req_id,
+        error: error instanceof Error ? error.message : String(error)
+      })
+    }
 
     const parms = await duckDbReadAndUpdateElevationData(req_id, EL_LAYER_NAME_PREFIX)
     if (parms) {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import TreeTable from 'primevue/treetable'
 import Column from 'primevue/column'
 import type { TreeNode } from 'primevue/treenode'
@@ -23,8 +23,20 @@ import SrImportParquetFile from './SrImportParquetFile.vue'
 import ToggleButton from 'primevue/togglebutton'
 import SrExportDialog from '@/components/SrExportDialog.vue'
 import SrParmsFormatTabs from '@/components/SrParmsFormatTabs.vue'
+import Tabs from 'primevue/tabs'
+import TabList from 'primevue/tablist'
+import Tab from 'primevue/tab'
+import TabPanels from 'primevue/tabpanels'
+import TabPanel from 'primevue/tabpanel'
+import DataTable from 'primevue/datatable'
 import { updateElevationMap } from '@/utils/SrMapUtils'
+import { useSrcIdTblStore } from '@/stores/srcIdTblStore'
 import { createLogger } from '@/utils/logger'
+import hljs from 'highlight.js/lib/core'
+import jsonLang from 'highlight.js/lib/languages/json'
+import DOMPurify from 'dompurify'
+
+hljs.registerLanguage('json', jsonLang)
 
 const logger = createLogger('SrRecTree')
 const requestsStore = useRequestsStore()
@@ -46,9 +58,32 @@ const currentSentParmsObj = ref<object | null>(null)
 const currentFunc = ref('')
 const currentReqId = ref<number | null>(null)
 
-// -- Dialog state for "geo_metadata"
-const showGeoMetadataDialog = ref(false)
+// -- Dialog state for "geo_metadata" tabbed dialog
+const showMetadataDialog = ref(false)
 const currentGeoMetadata = ref('')
+const currentGranuleNames = ref<string[]>([])
+const metadataActiveTab = ref('0')
+
+const granuleTableData = computed(() =>
+  currentGranuleNames.value.map((name, index) => ({ srcid: index, name }))
+)
+
+const highlightedGeoMetadata = computed(() => {
+  try {
+    const result = hljs.highlight(currentGeoMetadata.value || '{}', { language: 'json' })
+    return DOMPurify.sanitize(result.value)
+  } catch {
+    return DOMPurify.sanitize(currentGeoMetadata.value)
+  }
+})
+
+const copyGeoMetadata = async () => {
+  try {
+    await navigator.clipboard.writeText(currentGeoMetadata.value)
+  } catch (err) {
+    logger.error('Failed to copy', { error: err instanceof Error ? err.message : String(err) })
+  }
+}
 
 const onlySuccess = ref(false)
 
@@ -83,14 +118,28 @@ function openSvrParmsDialog(params: string | object | null | undefined) {
   showSvrParmsDialog.value = true
 }
 
-// Open the Geo Metadata dialog
-function openGeoMetadataDialog(metadata: string | object) {
+// Open the Metadata dialog (Geo + Granules tabs)
+const srcIdTblStore = useSrcIdTblStore()
+
+async function openMetadataDialog(metadata: string | object, reqId: number) {
   if (typeof metadata === 'object') {
     currentGeoMetadata.value = JSON.stringify(metadata, null, 2)
   } else {
     currentGeoMetadata.value = metadata
   }
-  showGeoMetadataDialog.value = true
+  metadataActiveTab.value = '0'
+  // Load granule names for this request
+  try {
+    await srcIdTblStore.setSourceTbl(reqId)
+    currentGranuleNames.value = srcIdTblStore.getSourceTableForReqId(reqId)
+  } catch (error) {
+    logger.warn('Failed to load granule names', {
+      reqId,
+      error: error instanceof Error ? error.message : String(error)
+    })
+    currentGranuleNames.value = []
+  }
+  showMetadataDialog.value = true
 }
 
 // Open the Combined Parameters dialog
@@ -502,10 +551,10 @@ watch(
         <SrEditDesc :reqId="slotProps.node.data.reqId" label="" />
       </template>
     </Column>
-    <!-- Geo Metadata Button & Dialog -->
+    <!-- Metadata Button & Tabbed Dialog (Geo + Granules) -->
     <Column field="geo_metadata" class="sr-par-fmt">
       <template #header>
-        <div style="text-align: center; width: 100%">Geo Metadata</div>
+        <div style="text-align: center; width: 100%">Metadata</div>
       </template>
       <template #body="slotProps">
         <Button
@@ -513,8 +562,8 @@ watch(
           icon="pi pi-eye"
           label="View"
           class="sr-glow-button"
-          @click="openGeoMetadataDialog(slotProps.node.data.geo_metadata)"
-          @mouseover="tooltipRef?.showTooltip($event, 'View Geo Metadata')"
+          @click="openMetadataDialog(slotProps.node.data.geo_metadata, slotProps.node.data.reqId)"
+          @mouseover="tooltipRef?.showTooltip($event, 'View Geo Metadata & Granules')"
           @mouseleave="tooltipRef?.hideTooltip"
           variant="text"
           rounded
@@ -680,13 +729,53 @@ watch(
     title="Server Parameters"
     width="50vw"
   />
-  <!-- Geo Metadata Dialog -->
-  <SrJsonDisplayDialog
-    v-model:visible="showGeoMetadataDialog"
-    :json-data="currentGeoMetadata"
-    title="Geo Metadata"
-    width="50vw"
-  />
+  <!-- Metadata Tabbed Dialog (Geo + Granules) -->
+  <Dialog
+    v-model:visible="showMetadataDialog"
+    header="Metadata"
+    :style="{ width: '50vw' }"
+    :modal="true"
+    :dismissableMask="true"
+  >
+    <Tabs v-model:value="metadataActiveTab">
+      <TabList>
+        <Tab value="0">Geo</Tab>
+        <Tab value="1">Granules</Tab>
+      </TabList>
+      <TabPanels>
+        <TabPanel value="0">
+          <div class="tab-content">
+            <Button
+              label="Copy to clipboard"
+              size="small"
+              icon="pi pi-copy"
+              @click="copyGeoMetadata"
+              class="copy-btn"
+            />
+            <pre class="json-content" v-html="highlightedGeoMetadata"></pre>
+          </div>
+        </TabPanel>
+        <TabPanel value="1">
+          <div v-if="granuleTableData.length > 0" class="granule-table-wrapper">
+            <DataTable
+              :value="granuleTableData"
+              size="small"
+              sortField="srcid"
+              :sortOrder="1"
+              scrollable
+              scrollHeight="60vh"
+              :paginator="granuleTableData.length > 50"
+              :rows="50"
+            >
+              <Column field="srcid" header="srcid" :sortable="true" style="width: 6rem" />
+              <Column field="name" header="Granule Name" :sortable="true" />
+            </DataTable>
+          </div>
+          <div v-else class="sr-empty-cell">No granule names available</div>
+        </TabPanel>
+      </TabPanels>
+    </Tabs>
+  </Dialog>
   <!-- Custom Tooltip -->
   <SrCustomTooltip ref="tooltipRef" id="recTreeTooltip" />
 
@@ -784,5 +873,9 @@ watch(
   overflow-y: auto;
   font-size: 0.9rem;
   margin: 0;
+}
+
+.granule-table-wrapper {
+  padding: 0.5rem 0;
 }
 </style>

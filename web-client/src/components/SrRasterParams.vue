@@ -52,9 +52,18 @@
       />
       <Sr32BitFlag :disabled="!rasterParamsStore.withFlags" />
       <SrCheckbox
-        label="Force Single Sample"
+        label="Use Force Single Sample"
+        v-model="rasterParamsStore.useForceSingleSample"
+        tooltipText="Enable to force returning only a single sample per raster when multiple samples are available"
+      />
+      <Select
         v-model="rasterParamsStore.force_single_sample"
-        tooltipText="boolean whether to force returning only a single sample per raster (the closest one) when multiple samples are available"
+        :options="rasterParamsStore.forceSingleSampleOptions"
+        optionLabel="name"
+        optionValue="value"
+        size="small"
+        placeholder="Select Mode"
+        :disabled="!rasterParamsStore.useForceSingleSample"
       />
       <div class="sr-time-filter">
         <SrCheckbox label="Use Time Filter" v-model="rasterParamsStore.useTimeFilter" />
@@ -178,7 +187,9 @@ const addRasterParams = () => {
     key: rasterParamsStore.key,
     asset: rasterParamsStore.asset,
     algorithm: rasterParamsStore.algorithm,
-    force_single_sample: rasterParamsStore.force_single_sample,
+    force_single_sample: rasterParamsStore.useForceSingleSample
+      ? rasterParamsStore.force_single_sample
+      : '',
     radius: rasterParamsStore.radius,
     zonalStats: rasterParamsStore.zonalStats,
     withFlags: rasterParamsStore.withFlags,

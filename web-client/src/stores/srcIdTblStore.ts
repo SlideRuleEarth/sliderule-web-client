@@ -25,10 +25,27 @@ export const useSrcIdTblStore = defineStore('srcIdTblStore', () => {
     }
     await db.insertOpfsParquet(fileName)
     try {
-      const parsed = (await db.getJsonMetaDataForKey('meta', fileName)).parsedMetadata
+      const metaResult = await db.getJsonMetaDataForKey('meta', fileName)
+      logger.debug('setSrcIdTblWithFileName: raw metadata result', {
+        fileName,
+        metaResult: JSON.stringify(metaResult).substring(0, 500)
+      })
+      const parsed = metaResult.parsedMetadata
+      logger.debug('setSrcIdTblWithFileName: parsed metadata', {
+        fileName,
+        parsedKeys: parsed ? Object.keys(parsed) : 'null/undefined',
+        hasSrctbl: parsed ? !!parsed.srctbl : false,
+        srctblType: parsed?.srctbl ? typeof parsed.srctbl : 'N/A'
+      })
       if (parsed && parsed.srctbl && typeof parsed.srctbl === 'object') {
         // Convert object with numeric keys to an array
         const srcArray = Object.values(parsed.srctbl) as string[]
+        logger.debug('setSrcIdTblWithFileName: loaded granule names from srctbl', {
+          fileName,
+          granuleCount: srcArray.length,
+          firstFew: srcArray.slice(0, 5),
+          reqId
+        })
         if (reqId !== undefined) {
           sourceTables.value.set(reqId, srcArray)
         }
@@ -39,7 +56,8 @@ export const useSrcIdTblStore = defineStore('srcIdTblStore', () => {
         }
         sourceTable.value = []
         logger.warn('setSrcIdTblWithFileName: Missing or invalid srctbl field in JSON', {
-          fileName
+          fileName,
+          parsedMetadata: parsed ? JSON.stringify(parsed).substring(0, 300) : 'null/undefined'
         })
       }
     } catch (error) {
@@ -144,6 +162,7 @@ export const useSrcIdTblStore = defineStore('srcIdTblStore', () => {
   return {
     sourceTable,
     sourceTables,
+    setSourceTbl,
     getUniqueSourceCount,
     getTotalSourceCount,
     getSourceCounts,

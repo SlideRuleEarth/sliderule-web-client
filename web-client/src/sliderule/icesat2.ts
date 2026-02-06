@@ -28,13 +28,13 @@
 // ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //import { mitt } from 'mitt';
-import {core} from '../sliderule/index';
-import type { AtlxxReqParams } from '@/types/SrTypes';
-import { createLogger } from '@/utils/logger';
+import { core } from '../sliderule/index'
+import type { AtlxxReqParams } from '@/types/SrTypes'
+import { createLogger } from '@/utils/logger'
 //import {Callbacks} from '../sliderule/index';
 //import { error } from 'console';
 
-const logger = createLogger('IceSat2');
+const logger = createLogger('IceSat2')
 //------------------------------------
 // File Data
 //------------------------------------
@@ -42,35 +42,35 @@ const logger = createLogger('IceSat2');
 //
 // ICESat-2 Parameters
 //
-const CNF_POSSIBLE_TEP = -2;
-const CNF_NOT_CONSIDERED = -1;
-const CNF_BACKGROUND = 0;
-const CNF_WITHIN_10M = 1;
-const CNF_SURFACE_LOW = 2;
-const CNF_SURFACE_MEDIUM = 3;
-const CNF_SURFACE_HIGH = 4;
-const SRT_LAND = 0;
-const SRT_OCEAN = 1;
-const SRT_SEA_ICE = 2;
-const SRT_LAND_ICE = 3;
-const SRT_INLAND_WATER = 4;
-const MAX_COORDS_IN_POLYGON = 16384;
-const GT1L = 10;
-const GT1R = 20;
-const GT2L = 30;
-const GT2R = 40;
-const GT3L = 50;
-const GT3R = 60;
-const STRONG_SPOTS = [1, 3, 5];
-const WEAK_SPOTS = [2, 4, 6];
-const LEFT_PAIR = 0;
-const RIGHT_PAIR = 1;
-const SC_BACKWARD = 0;
-const SC_FORWARD = 1;
-const ATL08_WATER = 0;
-const ATL08_LAND = 1;
-const ATL08_SNOW = 2;
-const ATL08_ICE = 3;
+const CNF_POSSIBLE_TEP = -2
+const CNF_NOT_CONSIDERED = -1
+const CNF_BACKGROUND = 0
+const CNF_WITHIN_10M = 1
+const CNF_SURFACE_LOW = 2
+const CNF_SURFACE_MEDIUM = 3
+const CNF_SURFACE_HIGH = 4
+const SRT_LAND = 0
+const SRT_OCEAN = 1
+const SRT_SEA_ICE = 2
+const SRT_LAND_ICE = 3
+const SRT_INLAND_WATER = 4
+const MAX_COORDS_IN_POLYGON = 16384
+const GT1L = 10
+const GT1R = 20
+const GT2L = 30
+const GT2R = 40
+const GT3L = 50
+const GT3R = 60
+const STRONG_SPOTS = [1, 3, 5]
+const WEAK_SPOTS = [2, 4, 6]
+const LEFT_PAIR = 0
+const RIGHT_PAIR = 1
+const SC_BACKWARD = 0
+const SC_FORWARD = 1
+const ATL08_WATER = 0
+const ATL08_LAND = 1
+const ATL08_SNOW = 2
+const ATL08_ICE = 3
 
 //
 // PhoReal Percentiles
@@ -82,76 +82,91 @@ const ATL08_ICE = 3;
 // Exported Functions
 //------------------------------------
 
+export async function atlxx(
+  func: string,
+  atlxxReqParams: AtlxxReqParams,
+  callbacks: core.Callbacks
+): Promise<core.Sr_Results_type> {
+  logger.debug('atlxx params', { atlxxReqParams })
 
-export async function atlxx(func:string,atlxxReqParams: AtlxxReqParams, callbacks: core.Callbacks ) : Promise<core.Sr_Results_type>
-{
-    logger.debug('atlxx params', { atlxxReqParams });
-
-    if (callbacks == null) {
-        throw new Error("SlideRuleError: atlxx requires a callback function");
+  if (callbacks == null) {
+    throw new Error('SlideRuleError: atlxx requires a callback function')
+  }
+  try {
+    let sanityCheck = false
+    const hasFilter =
+      atlxxReqParams.parms.rgt &&
+      (atlxxReqParams.parms.cycle ||
+        atlxxReqParams.parms.region ||
+        (atlxxReqParams.parms.t0 && atlxxReqParams.parms.t1))
+    const hasPolygon =
+      (atlxxReqParams.parms.poly && atlxxReqParams.parms.poly.length > 0) ||
+      atlxxReqParams.parms.region_mask
+    if (func.includes('atl13')) {
+      const hasMapPin =
+        atlxxReqParams.parms.atl13?.coord &&
+        atlxxReqParams.parms.atl13?.coord?.lon &&
+        atlxxReqParams.parms.atl13?.coord?.lat
+      sanityCheck = hasMapPin || hasPolygon
+    } else {
+      sanityCheck =
+        (atlxxReqParams.parms.resources && atlxxReqParams.parms.resources.length > 0) ||
+        (atlxxReqParams.resources && atlxxReqParams.resources.length > 0) ||
+        hasPolygon ||
+        hasFilter
     }
-    try {
-        let sanityCheck = false;
-        const hasFilter = (atlxxReqParams.parms.rgt && (atlxxReqParams.parms.cycle || atlxxReqParams.parms.region || (atlxxReqParams.parms.t0 && atlxxReqParams.parms.t1)));
-        const hasPolygon = (atlxxReqParams.parms.poly && atlxxReqParams.parms.poly.length > 0) || (atlxxReqParams.parms.region_mask);
-        if(func.includes('atl13')){
-            const hasMapPin = atlxxReqParams.parms.atl13?.coord && atlxxReqParams.parms.atl13?.coord?.lon && atlxxReqParams.parms.atl13?.coord?.lat;
-            sanityCheck = (hasMapPin || hasPolygon );
-        } else {
-            sanityCheck = ((atlxxReqParams.resources && atlxxReqParams.resources.length > 0) || 
-            hasPolygon || 
-            hasFilter );
-        }
 
-        if(sanityCheck){
-            if(func.includes('atl03x-')){
-                func = 'atl03x'; // strip -surface or -phoreal
-                logger.debug('atl03x-<variant> detected, server uses atl03x');
-            }
-            const result = await core.source(func, atlxxReqParams, true, callbacks);
-            logger.debug('atlxx result', { result });
-            return result as core.Sr_Results_type;
-        } else {
-            logger.warn('atlxx error: requires either a map Pin, a polygon or a resource parameter or rgt with another filter (cycle/time/region)');
-            throw new Error("SlideRuleError: atlxx requires either a polygon or a resource parameter or rgt with another filter (cycle/time/region)");
-        }
-    } catch (error) {
-        logger.warn('atlxx error', { error: error instanceof Error ? error.message : String(error) });
-        throw error;
+    if (sanityCheck) {
+      if (func.includes('atl03x-')) {
+        func = 'atl03x' // strip -surface or -phoreal
+        logger.debug('atl03x-<variant> detected, server uses atl03x')
+      }
+      const result = await core.source(func, atlxxReqParams, true, callbacks)
+      logger.debug('atlxx result', { result })
+      return result as core.Sr_Results_type
+    } else {
+      logger.warn(
+        'atlxx error: requires either a map Pin, a polygon or a resource parameter or rgt with another filter (cycle/time/region)'
+      )
+      throw new Error(
+        'SlideRuleError: atlxx requires either a polygon or a resource parameter or rgt with another filter (cycle/time/region)'
+      )
     }
-};
-
+  } catch (error) {
+    logger.warn('atlxx error', { error: error instanceof Error ? error.message : String(error) })
+    throw error
+  }
+}
 
 // Export any other constants or functions if necessary
 export {
-    CNF_POSSIBLE_TEP,
-    CNF_NOT_CONSIDERED,
-    CNF_BACKGROUND,
-    CNF_WITHIN_10M,
-    CNF_SURFACE_LOW,
-    CNF_SURFACE_MEDIUM,
-    CNF_SURFACE_HIGH,
-    SRT_LAND,
-    SRT_OCEAN,
-    SRT_SEA_ICE,
-    SRT_LAND_ICE,
-    SRT_INLAND_WATER,
-    MAX_COORDS_IN_POLYGON,
-    GT1L,
-    GT1R,
-    GT2L,
-    GT2R,
-    GT3L,
-    GT3R,
-    STRONG_SPOTS,
-    WEAK_SPOTS,
-    LEFT_PAIR,
-    RIGHT_PAIR,
-    SC_BACKWARD,
-    SC_FORWARD,
-    ATL08_WATER,
-    ATL08_LAND,
-    ATL08_SNOW,
-    ATL08_ICE
-  };
-  
+  CNF_POSSIBLE_TEP,
+  CNF_NOT_CONSIDERED,
+  CNF_BACKGROUND,
+  CNF_WITHIN_10M,
+  CNF_SURFACE_LOW,
+  CNF_SURFACE_MEDIUM,
+  CNF_SURFACE_HIGH,
+  SRT_LAND,
+  SRT_OCEAN,
+  SRT_SEA_ICE,
+  SRT_LAND_ICE,
+  SRT_INLAND_WATER,
+  MAX_COORDS_IN_POLYGON,
+  GT1L,
+  GT1R,
+  GT2L,
+  GT2R,
+  GT3L,
+  GT3R,
+  STRONG_SPOTS,
+  WEAK_SPOTS,
+  LEFT_PAIR,
+  RIGHT_PAIR,
+  SC_BACKWARD,
+  SC_FORWARD,
+  ATL08_WATER,
+  ATL08_LAND,
+  ATL08_SNOW,
+  ATL08_ICE
+}

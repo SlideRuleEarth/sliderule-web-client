@@ -1625,21 +1625,17 @@ watch(
         {{ atlChartFilterStore.getMessage() }}
       </div>
       <SrCustomTooltip ref="tooltipRef" id="'elevationPlotTooltip'" />
-      <div
-        class="sr-run-control"
-        v-if="
-          mission === 'ICESat-2' &&
-          !(recTreeStore.selectedApi === 'atl03x') &&
-          !(recTreeStore.selectedApi === 'atl03sp') &&
-          !(recTreeStore.selectedApi === 'atl03vp')
-        "
-      >
+      <div class="sr-run-control" v-if="mission === 'ICESat-2'">
         <div
+          v-if="
+            !(recTreeStore.selectedApi === 'atl03x') &&
+            !(recTreeStore.selectedApi === 'atl03sp') &&
+            !(recTreeStore.selectedApi === 'atl03vp')
+          "
           @mouseover="tooltipRef.showTooltip($event, photonCloudBtnTooltip)"
           @mouseleave="tooltipRef.hideTooltip()"
         >
           <ToggleButton
-            v-if="mission === 'ICESat-2'"
             onIcon="pi pi-eye-slash"
             offIcon="pi pi-eye"
             class="sr-show-hide-button"
@@ -1682,7 +1678,15 @@ watch(
           />
           <label for="sslCheckbox" class="sr-checkbox-label">linear fit</label>
         </div>
-        <SrRunControl :includeAdvToggle="false" buttonLabel="Photon Cloud" />
+        <SrRunControl
+          v-if="
+            !(recTreeStore.selectedApi === 'atl03x') &&
+            !(recTreeStore.selectedApi === 'atl03sp') &&
+            !(recTreeStore.selectedApi === 'atl03vp')
+          "
+          :includeAdvToggle="false"
+          buttonLabel="Photon Cloud"
+        />
       </div>
       <div class="sr-multiselect-container">
         <div class="sr-multiselect-col">

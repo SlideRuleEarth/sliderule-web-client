@@ -8,7 +8,7 @@ export type RasterParams = {
   key: string
   asset: string
   algorithm: string
-  force_single_sample: boolean // Flag to indicate if single sample is forced
+  force_single_sample: string // Sampling mode: 'first', 'last', 'min', 'max'
   radius: number
   zonalStats: boolean
   withFlags: boolean
@@ -47,7 +47,14 @@ export const useRasterParamsStore = defineStore('rasterParams', {
     key: '' as RasterParams['key'],
     asset: '' as RasterParams['asset'],
     algorithm: '' as RasterParams['algorithm'],
-    force_single_sample: true as RasterParams['force_single_sample'], // Flag to indicate if single sample is forced
+    force_single_sample: 'first' as RasterParams['force_single_sample'], // Sampling mode: 'first', 'last', 'min', 'max'
+    useForceSingleSample: true as boolean, // Flag to indicate if force_single_sample is enabled
+    forceSingleSampleOptions: [
+      { name: 'first', value: 'first' },
+      { name: 'last', value: 'last' },
+      { name: 'min', value: 'min' },
+      { name: 'max', value: 'max' }
+    ] as SrMenuItem[],
     radius: 0 as RasterParams['radius'],
     zonalStats: false as RasterParams['zonalStats'],
     withFlags: false as RasterParams['withFlags'],
@@ -140,8 +147,7 @@ export const useRasterParamsStore = defineStore('rasterParams', {
 
         if (row.asset) entry.asset = row.asset
         if (row.algorithm) entry.algorithm = row.algorithm
-        if (row.force_single_sample !== undefined)
-          entry.force_single_sample = row.force_single_sample
+        if (row.force_single_sample) entry.force_single_sample = row.force_single_sample
         if (row.radius) entry.radius = row.radius
         if (row.zonalStats) entry.zonal_stats = row.zonalStats
         if (row.withFlags) entry.with_flags = row.withFlags
@@ -164,7 +170,8 @@ export const useRasterParamsStore = defineStore('rasterParams', {
         key,
         asset: entry.asset ?? '',
         algorithm: entry.algorithm ?? '',
-        force_single_sample: entry.force_single_sample ?? true,
+        force_single_sample:
+          entry.force_single_sample === true ? 'first' : (entry.force_single_sample ?? 'first'),
         radius: entry.radius ?? 0,
         zonalStats: entry.zonal_stats ?? false,
         withFlags: entry.with_flags ?? false,
