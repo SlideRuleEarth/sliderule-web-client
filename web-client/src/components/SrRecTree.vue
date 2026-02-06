@@ -399,23 +399,18 @@ watch(
       </template>
       <template #body="slotProps">
         <span
-          v-if="slotProps.node.data.status_details"
-          @mouseover="tooltipRef?.showTooltip($event, slotProps.node.data.status_details)"
+          @mouseover="
+            tooltipRef?.showTooltip(
+              $event,
+              slotProps.node.data.status_details || `Status: ${slotProps.node.data.status}`
+            )
+          "
           @mouseleave="tooltipRef?.hideTooltip"
           :class="{
             'status-error':
               slotProps.node.data.status !== 'success' && slotProps.node.data.status !== 'imported'
           }"
           style="cursor: help"
-        >
-          {{ slotProps.node.data.status }}
-        </span>
-        <span
-          v-else
-          :class="{
-            'status-error':
-              slotProps.node.data.status !== 'success' && slotProps.node.data.status !== 'imported'
-          }"
         >
           {{ slotProps.node.data.status }}
         </span>
