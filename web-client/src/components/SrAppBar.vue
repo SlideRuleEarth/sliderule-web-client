@@ -15,6 +15,7 @@ import { useRoute, useRouter } from 'vue-router'
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue'
 import SrUserUtilsDialog from '@/components/SrUserUtilsDialog.vue'
 import SrTokenUtilsDialog from '@/components/SrTokenUtilsDialog.vue'
+import SrMcpActivityIndicator from '@/components/SrMcpActivityIndicator.vue'
 import { createLogger } from '@/utils/logger'
 import { destroyCluster } from '@/utils/fetchUtils'
 
@@ -752,6 +753,7 @@ function hideTooltip() {
       </div>
     </div>
     <div class="right-content" id="sr-appbar-right-content">
+      <SrMcpActivityIndicator />
       <Button
         icon="pi pi-sliders-h"
         id="sr-request-button"
