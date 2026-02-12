@@ -95,45 +95,37 @@ See `sliderule-mcp-server/src/sliderule_mcp/server.py` for the full source.
 
 ### `pyproject.toml`
 
-```toml
-[project]
-name = "sliderule-mcp"
-version = "0.1.0"
-description = "MCP server bridging Claude Desktop to the SlideRule web client"
-requires-python = ">=3.10"
-dependencies = [
-    "mcp>=1.0.0",
-    "websockets>=12.0",
-]
+See `sliderule-mcp-server/pyproject.toml` for the full file. Two runtime dependencies: `mcp>=1.0.0` and `websockets>=12.0`. No infrastructure. No auth layer. No database.
 
-[project.scripts]
-sliderule-mcp = "sliderule_mcp.server:main"
+### Distribution
 
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+Published to PyPI as [`sliderule-mcp`](https://pypi.org/project/sliderule-mcp/). Users install nothing manually — `uvx` downloads, isolates, and runs it automatically.
+
+**Build:** The wheel must be built via the Python API (not `hatchling build` CLI, which has a bug with `src/` layout in subdirectories of a git repo). A build script is provided:
+
+```bash
+cd sliderule-mcp-server
+python -c "
+import os
+from hatchling.builders.wheel import WheelBuilder
+from hatchling.builders.sdist import SdistBuilder
+os.makedirs('dist', exist_ok=True)
+for a in WheelBuilder('.').build(directory='dist', versions=['standard']): print('wheel:', a)
+for a in SdistBuilder('.').build(directory='dist', versions=['standard']): print('sdist:', a)
+"
 ```
 
-Two dependencies. No infrastructure. No auth layer. No database.
+**Upload:** `python -m twine upload dist/*` (requires PyPI API token in `~/.pypirc`).
+
+**Version:** Bump `version` in `pyproject.toml` before each upload — PyPI rejects duplicate versions.
 
 ### Claude Desktop Configuration
 
-`~/Library/Application Support/Claude/claude_desktop_config.json`:
+Config file location:
+- **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
 
-For local development (run server.py directly):
-
-```json
-{
-  "mcpServers": {
-    "sliderule": {
-      "command": "/path/to/python",
-      "args": ["/path/to/sliderule-mcp-server/src/sliderule_mcp/server.py"]
-    }
-  }
-}
-```
-
-Once published to PyPI (zero-install via `uvx`):
+**For end users** (zero-install via PyPI + `uvx`):
 
 ```json
 {
@@ -146,6 +138,28 @@ Once published to PyPI (zero-install via `uvx`):
 }
 ```
 
+Requires `uv` installed (`brew install uv` on macOS).
+
+**For developers** (run from source + PyPI side-by-side):
+
+```json
+{
+  "mcpServers": {
+    "sliderule": {
+      "command": "uvx",
+      "args": ["sliderule-mcp"]
+    },
+    "sliderule-local-dev": {
+      "command": "/path/to/python",
+      "args": ["/path/to/sliderule-mcp-server/src/sliderule_mcp/server.py"],
+      "env": { "SR_MCP_PORT": "3003" }
+    }
+  }
+}
+```
+
+Toggle between them in Claude Desktop via **+** > **Connectors**. Only enable one at a time (they bind different WebSocket ports: 3002 default, 3003 for local dev).
+
 ---
 
 ## Browser Components
@@ -157,11 +171,12 @@ All tool logic lives in the browser, executing against the existing Pinia stores
 Browser-side WebSocket client that connects to the local MCP server.
 
 **Lifecycle:**
-- User clicks "Connect to MCP" in the app bar (requires app to be loaded)
-- Opens WebSocket to `ws://localhost:3002`
+- Connects automatically on app load (or manually via the activity indicator toggle)
+- Opens WebSocket to `ws://localhost:3002` (port configurable via `mcpStore.wsPort`)
 - Receives JSON-RPC requests, routes to MCP Handler
 - Sends JSON-RPC responses back
-- On disconnect: exponential backoff reconnect (1s, 2s, 4s, 8s, max 30s)
+- On disconnect: exponential backoff reconnect with jitter (1s, 2s, 4s, 8s, max 30s)
+- Manual disconnect suppresses auto-reconnect
 
 **State (reactive, for UI):**
 
@@ -171,10 +186,16 @@ interface McpState {
   status: "disconnected" | "connecting" | "connected" | "reconnecting"
   activityLog: {
     timestamp: number
+    direction: "inbound" | "outbound"
     method: string
     toolName?: string
     summary: string
+    durationMs?: number
+    isError?: boolean
   }[]
+  reconnectAttempts: number
+  lastError: string | null
+  wsPort: number  // default 3002, configurable via VITE_MCP_WS_PORT
 }
 ```
 
@@ -404,6 +425,19 @@ A build script (`scripts/build-docs-index.ts`) scrapes ReadTheDocs pages referen
 
 ---
 
+## MCP Client Compatibility
+
+| Client | Works? | Notes |
+|---|---|---|
+| **Claude Desktop — Chat mode** | Yes | Primary target. Local stdio MCP servers fully supported. |
+| **Claude Desktop — Cowork mode** | No | Known bug: local stdio MCP servers not loaded in Cowork. |
+| **claude.ai (web/mobile)** | No | Requires remote HTTPS + OAuth. Incompatible with localhost architecture. |
+| **ChatGPT Desktop** | No | Same — requires remote HTTPS endpoint for MCP servers. |
+
+The current architecture is designed for local use with Claude Desktop Chat mode. Supporting remote clients (claude.ai, ChatGPT) would require a fundamentally different server architecture with HTTPS, authentication, and a remote WebSocket relay.
+
+---
+
 ## Security
 
 Items marked **[active]** are enforced today. Others will be enforced when the corresponding tools are implemented.
@@ -426,7 +460,7 @@ Items marked **[active]** are enforced today. Others will be enforced when the c
 | File | Purpose |
 |---|---|
 | `sliderule-mcp-server/pyproject.toml` | Python package config with entry point |
-| `sliderule-mcp-server/src/sliderule_mcp/server.py` | MCP server process (~170 lines) |
+| `sliderule-mcp-server/src/sliderule_mcp/server.py` | MCP server process (~229 lines) |
 | `web-client/src/services/mcpClient.ts` | Browser-side WebSocket client |
 | `web-client/src/services/mcpHandler.ts` | JSON-RPC message router (tools/list, tools/call, ping) |
 | `web-client/src/services/toolExecutor.ts` | Tool execution registry (3 tools) |
@@ -476,14 +510,20 @@ Items marked **[active]** are enforced today. Others will be enforced when the c
 **Goal:** Prove the full round-trip: Claude Desktop → MCP server → browser → tool executes → result returns.
 
 **Deliverables:**
-- `sliderule-mcp-server/` — Python MCP server with `pyproject.toml`
-- `mcpClient.ts` + `mcpStore.ts` — WebSocket client with "Connect to MCP" button
+- `sliderule-mcp-server/` — Python MCP server published to PyPI as `sliderule-mcp`
+- `mcpClient.ts` + `mcpStore.ts` — WebSocket client with auto-connect and exponential backoff
 - `mcpHandler.ts` — handles `tools/list`, `tools/call`, `ping`
 - `toolExecutor.ts` + `toolDefinitions.ts` — **3 tools**: `set_mission`, `get_current_params`, `reset_params`
-- `SrMcpActivityIndicator.vue` — connection status dot in app bar
-- Claude Desktop config documented
+- `SrMcpActivityIndicator.vue` — connection status dot + activity log in app bar
+- Claude Desktop config documented for both end users (`uvx`) and developers (local source)
+- Published to PyPI — end users install with `uvx sliderule-mcp` (zero manual setup)
 
-**Done when:** Claude Desktop calls `set_mission({ mission: "ICESat-2" })`, and the browser UI updates the mission selector in real-time. `get_current_params` returns the current state. The researcher sees the tool call in the activity indicator.
+**Verified:** Claude Desktop connects, discovers tools, calls `set_mission({ mission: "ICESat-2" })`, browser UI updates the mission selector in real-time, `get_current_params` returns current state, `reset_params` shows confirmation dialog, activity indicator logs all calls.
+
+**Known limitations:**
+- Claude Desktop does not re-fetch tools after `notifications/tools/list_changed` — this is why the server has static bootstrap tools as a fallback
+- Claude Desktop Cowork mode does not support local stdio MCP servers (known bug)
+- claude.ai and ChatGPT Desktop require remote HTTPS + OAuth, incompatible with the local server architecture
 
 ---
 
@@ -552,9 +592,9 @@ Items marked **[active]** are enforced today. Others will be enforced when the c
 ### Milestone dependency map
 
 ```
-MVP 0: Connection + First Tools  ← COMPLETE
+MVP 0: Connection + First Tools  ✓ COMPLETE (verified with Claude Desktop)
   │
-  ├──► MVP 1: Parameter Control
+  ├──► MVP 1: Parameter Control  ← NEXT
   │      │
   │      └──► MVP 2: Request Execution + Data Analysis
   │
@@ -566,6 +606,8 @@ MVP 0: Connection + First Tools  ← COMPLETE
 **Critical path:** MVP 0 → MVP 1 → MVP 2. This is the shortest path to a researcher running a full workflow through Claude Desktop.
 
 **Parallel:** MVP 3 and 4 only depend on MVP 0. They can proceed alongside MVP 1–2. Within each MVP, tool groups are independent and can be built in any order.
+
+**Adding new tools only requires browser-side changes:** Add a definition to `toolDefinitions.ts`, add a handler to `toolExecutor.ts`, and register it. The MCP server is a transparent bridge — no server-side changes needed for new tools. The bootstrap tool list in `server.py` should be updated periodically to match, but it's not strictly required (tools will be fetched dynamically when the browser connects).
 
 ---
 
