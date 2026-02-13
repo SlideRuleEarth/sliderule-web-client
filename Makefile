@@ -87,7 +87,10 @@ convert-icons: ## Convert Maki SVG icons in src/assets/maki-svg to PNGs in publi
 	@echo "🔄 Converting Maki SVG icons to PNGs..."
 	node ./web-client/convert-maki-icons.js
 
-build: convert-icons ## Build the web client and update the dist folder
+build-docs: ## Scrape ReadTheDocs and extract tooltips into docs-index.json
+	cd web-client && npm run build:docs
+
+build: convert-icons build-docs ## Build the web client and update the dist folder
 	export VITE_BUILD_ENV=$(BUILD_ENV); \
 	export VITE_APP_BUILD_DATE=$$(date +"%Y-%m-%d %T"); \
 	export VITE_APP_VERSION=$$(git describe --tags --abbrev=0); \
@@ -158,7 +161,7 @@ deploy-docs-to-testsliderule: ## Deploy the docs to the testsliderule.org cloudf
 destroy-docs-testsliderule: ## Destroy the web client from the testsliderule.org cloudfront and remove the S3 bucket
 	make destroy DOMAIN=docs.testsliderule.org S3_BUCKET=testsliderule-docs DOMAIN_APEX=testsliderule.org 
 
-.PHONY: check-vars typecheck lint lint-fix lint-staged pre-commit-check test-unit test-unit-watch coverage-unit test-e2e test-all ci-check
+.PHONY: check-vars typecheck lint lint-fix lint-staged pre-commit-check test-unit test-unit-watch coverage-unit test-e2e test-all ci-check build-docs
 # =========================
 # Testing / Quality targets
 # =========================

@@ -410,5 +410,69 @@ export const toolDefinitions: ToolDefinition[] = [
       },
       required: ['req_id']
     }
+  },
+
+  // ── Documentation Tools ───────────────────────────────────────────
+  {
+    name: 'search_docs',
+    description:
+      'Search indexed SlideRule documentation using full-text search. Returns ranked results with snippets. Use this to find information about APIs, parameters, algorithms, and workflows.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description:
+            'Search query (e.g. "photon classification glacier", "atl06 surface fit algorithm").'
+        },
+        max_results: {
+          type: 'integer',
+          description: 'Maximum number of results to return (default 10, max 50).',
+          minimum: 1,
+          maximum: 50
+        }
+      },
+      required: ['query']
+    }
+  },
+  {
+    name: 'fetch_docs',
+    description:
+      'Fetch a SlideRule ReadTheDocs page, parse it to text, and index it for future searches. URL must be under slideruleearth.io.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        url: {
+          type: 'string',
+          description:
+            'URL to fetch (e.g. "https://slideruleearth.io/web/rtd/user_guide/icesat2.html").'
+        }
+      },
+      required: ['url']
+    }
+  },
+  {
+    name: 'get_param_help',
+    description:
+      'Get detailed help for a specific SlideRule parameter. Returns tooltip text, default values, valid values, and documentation URL.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        param_name: {
+          type: 'string',
+          description: 'Parameter name (e.g. "cnf", "srt", "length", "yapc_score", "surface_type").'
+        }
+      },
+      required: ['param_name']
+    }
+  },
+  {
+    name: 'list_doc_sections',
+    description:
+      'List all indexed documentation sections with their titles and chunk counts. Useful to discover what documentation is available for searching.',
+    inputSchema: {
+      type: 'object',
+      properties: {}
+    }
   }
 ]

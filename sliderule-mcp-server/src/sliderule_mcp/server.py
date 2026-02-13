@@ -430,9 +430,172 @@ BOOTSTRAP_TOOLS = [
             "required": ["req_id"],
         },
     ),
+    # ── Documentation Tools ─────────────────────────────────────
+    types.Tool(
+        name="search_docs",
+        description=(
+            "Search indexed SlideRule documentation using full-text search. "
+            "Returns ranked results with snippets. Use this to find information "
+            "about APIs, parameters, algorithms, and workflows."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": 'Search query (e.g. "photon classification glacier", "atl06 surface fit").',
+                },
+                "max_results": {
+                    "type": "integer",
+                    "description": "Maximum number of results (default 10, max 50).",
+                    "minimum": 1,
+                    "maximum": 50,
+                },
+            },
+            "required": ["query"],
+        },
+    ),
+    types.Tool(
+        name="fetch_docs",
+        description=(
+            "Fetch a SlideRule ReadTheDocs page, parse it to text, and index "
+            "it for future searches. URL must be under slideruleearth.io."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "url": {
+                    "type": "string",
+                    "description": 'URL to fetch (e.g. "https://slideruleearth.io/web/rtd/user_guide/icesat2.html").',
+                }
+            },
+            "required": ["url"],
+        },
+    ),
+    types.Tool(
+        name="get_param_help",
+        description=(
+            "Get detailed help for a specific SlideRule parameter. Returns "
+            "tooltip text, default values, valid values, and documentation URL."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "param_name": {
+                    "type": "string",
+                    "description": 'Parameter name (e.g. "cnf", "srt", "length", "yapc_score").',
+                }
+            },
+            "required": ["param_name"],
+        },
+    ),
+    types.Tool(
+        name="list_doc_sections",
+        description=(
+            "List all indexed documentation sections with their titles and "
+            "chunk counts. Useful to discover available documentation."
+        ),
+        inputSchema={"type": "object", "properties": {}},
+    ),
 ]
 
 cached_tools: list[types.Tool] = list(BOOTSTRAP_TOOLS)
+
+# ── Bootstrap resource definitions ────────────────────────────────
+# Same approach as tools: static bootstrap so Claude Desktop sees them
+# immediately.  Browser overrides these when it connects.
+BOOTSTRAP_RESOURCES = [
+    types.Resource(
+        uri="sliderule://params/current",
+        name="Current Parameters",
+        description="Full current parameter state from reqParamsStore",
+        mimeType="application/json",
+    ),
+    types.Resource(
+        uri="sliderule://requests/history",
+        name="Request History",
+        description="All request records with status, timing, and point counts",
+        mimeType="application/json",
+    ),
+    types.Resource(
+        uri="sliderule://map/viewport",
+        name="Map Viewport",
+        description="Current map center, zoom, projection, and visible extent",
+        mimeType="application/json",
+    ),
+    types.Resource(
+        uri="sliderule://catalog/products",
+        name="Available Products",
+        description="Available missions and their API endpoints",
+        mimeType="application/json",
+    ),
+    types.Resource(
+        uri="sliderule://auth/status",
+        name="Auth Status",
+        description="Current authentication state: username, org membership",
+        mimeType="application/json",
+    ),
+    types.Resource(
+        uri="sliderule://docs/index",
+        name="Documentation Index",
+        description="All indexed doc sections with titles and chunk counts",
+        mimeType="application/json",
+    ),
+    types.Resource(
+        uri="sliderule://docs/tooltips",
+        name="All Tooltips",
+        description="All in-app tooltip text organized by parameter",
+        mimeType="application/json",
+    ),
+]
+
+BOOTSTRAP_RESOURCE_TEMPLATES = [
+    types.ResourceTemplate(
+        uriTemplate="sliderule://requests/{id}/summary",
+        name="Request Summary",
+        description="Status, timing, row count for a specific request",
+        mimeType="application/json",
+    ),
+    types.ResourceTemplate(
+        uriTemplate="sliderule://data/{id}/schema",
+        name="Data Schema",
+        description="Column names and types for a result set",
+        mimeType="application/json",
+    ),
+    types.ResourceTemplate(
+        uriTemplate="sliderule://data/{id}/sample",
+        name="Data Sample",
+        description="First 20 rows of a result set",
+        mimeType="application/json",
+    ),
+    types.ResourceTemplate(
+        uriTemplate="sliderule://catalog/fields/{api}",
+        name="API Fields",
+        description="Available data fields for a specific API",
+        mimeType="application/json",
+    ),
+    types.ResourceTemplate(
+        uriTemplate="sliderule://docs/section/{section}",
+        name="Doc Section",
+        description="All chunks for a documentation section",
+        mimeType="application/json",
+    ),
+    types.ResourceTemplate(
+        uriTemplate="sliderule://docs/param/{name}",
+        name="Parameter Help",
+        description="Parameter help: tooltip, defaults, valid values, doc URL",
+        mimeType="application/json",
+    ),
+    types.ResourceTemplate(
+        uriTemplate="sliderule://docs/defaults/{mission}",
+        name="Server Defaults",
+        description="Server defaults for a mission (icesat2, gedi, core)",
+        mimeType="application/json",
+    ),
+]
+
+cached_resources: list[types.Resource] = list(BOOTSTRAP_RESOURCES)
+cached_resource_templates: list[types.ResourceTemplate] = list(BOOTSTRAP_RESOURCE_TEMPLATES)
 
 # ── MCP Server ───────────────────────────────────────────────────
 mcp_server = Server("sliderule-web")
@@ -441,6 +604,49 @@ mcp_server = Server("sliderule-web")
 @mcp_server.list_tools()
 async def handle_list_tools() -> list[types.Tool]:
     return cached_tools
+
+
+@mcp_server.list_resources()
+async def handle_list_resources() -> list[types.Resource]:
+    return cached_resources
+
+
+@mcp_server.list_resource_templates()
+async def handle_list_resource_templates() -> list[types.ResourceTemplate]:
+    return cached_resource_templates
+
+
+# Register read_resource manually so we can forward to the browser.
+async def _handle_read_resource(req: types.ReadResourceRequest) -> types.ServerResult:
+    uri = str(req.params.uri)
+
+    if browser_ws is None:
+        return types.ServerResult(
+            types.ReadResourceResult(
+                contents=[
+                    types.TextResourceContents(
+                        uri=uri,
+                        mimeType="text/plain",
+                        text="Browser not connected. Please open the SlideRule web client first.",
+                    )
+                ]
+            )
+        )
+
+    result = await _call_browser("resources/read", {"uri": uri})
+    contents = []
+    for item in result.get("contents", []):
+        contents.append(
+            types.TextResourceContents(
+                uri=item.get("uri", uri),
+                mimeType=item.get("mimeType", "application/json"),
+                text=item.get("text", ""),
+            )
+        )
+    return types.ServerResult(types.ReadResourceResult(contents=contents))
+
+
+mcp_server.request_handlers[types.ReadResourceRequest] = _handle_read_resource
 
 
 # Register call_tool manually to support isError on the result.
@@ -510,6 +716,40 @@ async def _fetch_and_cache_tools():
         log.exception("Failed to fetch tool definitions from browser")
 
 
+# ── Fetch resource definitions from the browser and cache them ───
+async def _fetch_and_cache_resources():
+    global cached_resources, cached_resource_templates
+    try:
+        result = await _call_browser("resources/list", {})
+        resources = [
+            types.Resource(
+                uri=r["uri"],
+                name=r.get("name", ""),
+                description=r.get("description", ""),
+                mimeType=r.get("mimeType", "application/json"),
+            )
+            for r in result.get("resources", [])
+        ]
+        templates = [
+            types.ResourceTemplate(
+                uriTemplate=t["uriTemplate"],
+                name=t.get("name", ""),
+                description=t.get("description", ""),
+                mimeType=t.get("mimeType", "application/json"),
+            )
+            for t in result.get("resourceTemplates", [])
+        ]
+        cached_resources = resources
+        cached_resource_templates = templates
+        log.info(
+            "Cached %d resources, %d templates from browser",
+            len(resources),
+            len(templates),
+        )
+    except Exception:
+        log.exception("Failed to fetch resource definitions from browser")
+
+
 # ── Forward a request to the browser and wait for response ───────
 async def _call_browser(method: str, params: dict) -> dict:
     if browser_ws is None:
@@ -534,7 +774,7 @@ async def _call_browser(method: str, params: dict) -> dict:
 
 # ── WebSocket — browser connects here ────────────────────────────
 async def _ws_handler(websocket):
-    global browser_ws, cached_tools
+    global browser_ws, cached_tools, cached_resources, cached_resource_templates
 
     if browser_ws is not None:
         await browser_ws.close(4000, "Replaced by new connection")
@@ -542,9 +782,10 @@ async def _ws_handler(websocket):
     browser_ws = websocket
     log.info("Browser connected on ws://localhost:%d", PORT)
 
-    # Fetch tool definitions in a background task so the message loop
-    # can process the response (avoids deadlock).
+    # Fetch definitions in background tasks so the message loop
+    # can process the responses (avoids deadlock).
     asyncio.create_task(_fetch_and_cache_tools())
+    asyncio.create_task(_fetch_and_cache_resources())
 
     try:
         async for raw in websocket:
@@ -565,7 +806,9 @@ async def _ws_handler(websocket):
         if browser_ws is websocket:
             browser_ws = None
             cached_tools = list(BOOTSTRAP_TOOLS)
-            log.info("Browser disconnected, restored %d bootstrap tools", len(cached_tools))
+            cached_resources = list(BOOTSTRAP_RESOURCES)
+            cached_resource_templates = list(BOOTSTRAP_RESOURCE_TEMPLATES)
+            log.info("Browser disconnected, restored bootstrap definitions")
 
 
 # ── Entry point ──────────────────────────────────────────────────
@@ -580,7 +823,10 @@ async def _run():
                 read_stream,
                 write_stream,
                 mcp_server.create_initialization_options(
-                    notification_options=NotificationOptions(tools_changed=True),
+                    notification_options=NotificationOptions(
+                    tools_changed=True,
+                    resources_changed=True,
+                ),
                 ),
             )
 

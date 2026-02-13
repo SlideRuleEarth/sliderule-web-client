@@ -57,6 +57,25 @@ export async function handleJsonRpcRequest(request: JsonRpcRequest): Promise<Jso
         break
       }
 
+      case 'resources/list': {
+        const { listResources, listResourceTemplates } = await import('./resourceResolver')
+        result = {
+          resources: listResources(),
+          resourceTemplates: listResourceTemplates()
+        }
+        break
+      }
+
+      case 'resources/read': {
+        const uri = request.params?.uri as string
+        if (!uri) {
+          throw new JsonRpcError(-32602, 'Missing uri in params')
+        }
+        const { readResource } = await import('./resourceResolver')
+        result = await readResource(uri)
+        break
+      }
+
       case 'ping':
         result = {}
         break
@@ -111,6 +130,17 @@ function formatResponseSummary(method: string, result: unknown): string {
     const content = (result as { content?: Array<{ text?: string }> })?.content
     if (Array.isArray(content) && content.length > 0) {
       const text = content[0]?.text || ''
+      return text.length > 80 ? text.substring(0, 80) + '...' : text
+    }
+  }
+  if (method === 'resources/list') {
+    const resources = (result as { resources?: unknown[] })?.resources
+    return `Listed ${Array.isArray(resources) ? resources.length : 0} resources`
+  }
+  if (method === 'resources/read') {
+    const contents = (result as { contents?: Array<{ text?: string }> })?.contents
+    if (Array.isArray(contents) && contents.length > 0) {
+      const text = contents[0]?.text || ''
       return text.length > 80 ? text.substring(0, 80) + '...' : text
     }
   }

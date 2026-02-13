@@ -853,6 +853,82 @@ async function handleExportData(args: Record<string, unknown>): Promise<ToolResu
   }
 }
 
+// ── Documentation Tool Handlers ──────────────────────────────────
+
+async function handleSearchDocs(args: Record<string, unknown>): Promise<ToolResult> {
+  const query = args.query as string
+  const maxResults = Math.min(Math.max((args.max_results as number) || 10, 1), 50)
+
+  if (!query || query.trim() === '') {
+    return err('Search query cannot be empty.')
+  }
+
+  const { searchDocs, ensureInitialized } = await import('./docSearchEngine')
+  await ensureInitialized()
+
+  const results = await searchDocs(query, maxResults)
+  if (results.length === 0) {
+    return ok(
+      `No results found for "${query}". Try different keywords or use fetch_docs to index more documentation.`
+    )
+  }
+
+  return ok(JSON.stringify({ query, results_count: results.length, results }, null, 2))
+}
+
+async function handleFetchDocs(args: Record<string, unknown>): Promise<ToolResult> {
+  const url = args.url as string
+
+  if (!url || !url.includes('slideruleearth.io')) {
+    return err('URL must be under slideruleearth.io domain.')
+  }
+
+  const { fetchAndIndexUrl, ensureInitialized } = await import('./docSearchEngine')
+  await ensureInitialized()
+
+  try {
+    const result = await fetchAndIndexUrl(url)
+    return ok(
+      JSON.stringify(
+        {
+          url,
+          chunks_indexed: result.chunkCount,
+          sections: result.sections,
+          message: `Indexed ${result.chunkCount} chunks from ${url}. Content is now searchable via search_docs.`
+        },
+        null,
+        2
+      )
+    )
+  } catch (e) {
+    return err(`Failed to fetch and index ${url}: ${e instanceof Error ? e.message : String(e)}`)
+  }
+}
+
+async function handleGetParamHelp(args: Record<string, unknown>): Promise<ToolResult> {
+  const paramName = args.param_name as string
+
+  const { getParamHelp, ensureInitialized } = await import('./docSearchEngine')
+  await ensureInitialized()
+
+  const help = await getParamHelp(paramName)
+  if (!help) {
+    return ok(
+      `No help found for parameter "${paramName}". Try search_docs to find related documentation.`
+    )
+  }
+
+  return ok(JSON.stringify(help, null, 2))
+}
+
+async function handleListDocSections(): Promise<ToolResult> {
+  const { listDocSections, ensureInitialized } = await import('./docSearchEngine')
+  await ensureInitialized()
+
+  const sections = await listDocSections()
+  return ok(JSON.stringify({ total_sections: sections.length, sections }, null, 2))
+}
+
 // ── Validation ───────────────────────────────────────────────────
 
 function validateArgs(toolName: string, args: Record<string, unknown>): string | null {
@@ -940,7 +1016,11 @@ const handlers: Record<string, ToolHandler> = {
   describe_data: handleDescribeData,
   get_elevation_stats: handleGetElevationStats,
   get_sample_data: handleGetSampleData,
-  export_data: handleExportData
+  export_data: handleExportData,
+  search_docs: handleSearchDocs,
+  fetch_docs: handleFetchDocs,
+  get_param_help: handleGetParamHelp,
+  list_doc_sections: handleListDocSections
 }
 
 for (const def of toolDefinitions) {
