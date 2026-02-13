@@ -256,15 +256,16 @@ All tools execute in the browser against existing stores and utilities. Tools ma
 | `set_mission` | **[implemented]** | `reqParamsStore.setMissionValue()` | Set mission to ICESat-2 or GEDI. Auto-resets API to mission default. |
 | `get_current_params` | **[implemented]** | `reqParamsStore` (reads state) | Return the complete current parameter state as JSON. |
 | `reset_params` | **[implemented]** | `reqParamsStore.reset()` | Reset all parameters to defaults. **Destructive — requires browser confirmation.** |
-| `set_api` | planned | `reqParamsStore.setIceSat2API()` / `setGediAPI()` | Set the processing API (atl03x, atl06, atl08p, gedi02ap, etc.). Auto-enables API-specific flags. |
+| `set_api` | **[implemented]** | `reqParamsStore.setIceSat2API()` / `setGediAPI()` | Set the processing API (atl03x, atl06, atl08p, gedi02ap, etc.). Auto-enables API-specific flags. |
 | `set_region` | planned | `reqParamsStore.setPoly()` | Set the geographic polygon for processing. |
-| `set_time_range` | planned | `reqParamsStore.setT0()`, `setT1()` | Set start/end time filter. |
-| `set_rgt` | planned | `reqParamsStore.setRgt()` | Set reference ground track filter. |
-| `set_cycle` | planned | `reqParamsStore.setCycle()` | Set 91-day repeat cycle filter. |
-| `set_beams` | planned | `reqParamsStore.setSelectedGtOptions()` | Select which beams/ground tracks to process. |
-| `set_surface_fit` | planned | `reqParamsStore.setUseSurfaceFitAlgorithm()`, `setMaxIterations()`, etc. | Enable/configure ATL06-SR surface fitting (maxi, h_win, sigma_r). |
-| `set_photon_params` | planned | `reqParamsStore.setLengthValue()`, `setStepValue()`, etc. | Set photon-level processing parameters (length, step, ats, cnt, cnf, YAPC). |
-| `set_output_config` | planned | `reqParamsStore` output settings | Set output format, GeoParquet, output location. |
+| `set_time_range` | **[implemented]** | `reqParamsStore.setT0()`, `setT1()` | Set start/end time filter. Auto-enables granule selection. |
+| `set_rgt` | **[implemented]** | `reqParamsStore.setRgt()` | Set reference ground track filter. Auto-enables granule selection. |
+| `set_cycle` | **[implemented]** | `reqParamsStore.setCycle()` | Set 91-day repeat cycle filter. Auto-enables granule selection. |
+| `set_beams` | **[implemented]** | `reqParamsStore.setSelectedGtOptions()` / `gediBeams` | Select which beams/ground tracks to process. Supports ICESat-2 GT names and GEDI beam numbers. |
+| `set_surface_fit` | **[implemented]** | `reqParamsStore.setUseSurfaceFitAlgorithm()`, `setMaxIterations()`, etc. | Enable/configure ATL06-SR surface fitting (maxi, h_win, sigma_r). Auto-disables PhoREAL. |
+| `set_photon_params` | **[implemented]** | `reqParamsStore.setLengthValue()`, `setStepValue()`, etc. | Set photon-level processing parameters (length, step, along-track spread, min photon count). |
+| `set_yapc` | **[implemented]** | `reqParamsStore.enableYAPC`, `setYAPCScore()`, etc. | Enable/configure YAPC photon classifier (score, knn, window height/width, version). |
+| `set_output_config` | **[implemented]** | `reqParamsStore` output settings | Set file output mode, GeoParquet format, checksum. |
 
 ### Request Lifecycle Tools (5, planned)
 
@@ -318,13 +319,13 @@ All tools execute in the browser against existing stores and utilities. Tools ma
 
 ### Summary
 
-- 12 parameter tools (3 implemented, 9 planned)
+- 12 parameter tools (11 implemented, 1 planned: `set_region`)
 - 5 request lifecycle tools (planned)
 - 5 data analysis tools (planned)
 - 6 map tools (planned)
 - 5 visualization tools (planned)
 - 4 documentation tools (planned)
-- **37 tools total (3 implemented)**
+- **37 tools total (11 implemented)**
 
 ---
 
@@ -463,7 +464,7 @@ Items marked **[active]** are enforced today. Others will be enforced when the c
 | `sliderule-mcp-server/src/sliderule_mcp/server.py` | MCP server process (~229 lines) |
 | `web-client/src/services/mcpClient.ts` | Browser-side WebSocket client |
 | `web-client/src/services/mcpHandler.ts` | JSON-RPC message router (tools/list, tools/call, ping) |
-| `web-client/src/services/toolExecutor.ts` | Tool execution registry (3 tools) |
+| `web-client/src/services/toolExecutor.ts` | Tool execution registry (12 tools) |
 | `web-client/src/services/toolDefinitions.ts` | Tool schemas (names, descriptions, JSON Schemas) |
 | `web-client/src/stores/mcpStore.ts` | Connection status, activity log |
 | `web-client/src/components/SrMcpActivityIndicator.vue` | App bar indicator (dot + dropdown) |
@@ -534,10 +535,11 @@ Items marked **[active]** are enforced today. Others will be enforced when the c
 **Goal:** Fully configure a SlideRule request via Claude Desktop.
 
 **Deliverables:**
-- Remaining 9 parameter tools: `set_api`, `set_region`, `set_time_range`, `set_rgt`, `set_cycle`, `set_beams`, `set_surface_fit`, `set_photon_params`, `set_output_config`
+- ~~9 parameter tools~~ — **Done:** `set_api`, `set_time_range`, `set_rgt`, `set_cycle`, `set_beams`, `set_surface_fit`, `set_photon_params`, `set_yapc`, `set_output_config`
+- Remaining: `set_region` (geographic polygon)
 - `sliderule://params/current` resource
 
-**Done when:** Claude says "Set up an ATL06 request for Greenland, January–March 2023, beams 1 and 3, with surface fitting enabled" and the browser shows all parameters correctly configured.
+**Done when:** Claude says "Set up an ATL06 request for Greenland, January–March 2023, beams 1 and 3, with surface fitting enabled" and the browser shows all parameters correctly configured. (Region tool needed for full completion.)
 
 ---
 
@@ -594,7 +596,7 @@ Items marked **[active]** are enforced today. Others will be enforced when the c
 ```
 MVP 0: Connection + First Tools  ✓ COMPLETE (verified with Claude Desktop)
   │
-  ├──► MVP 1: Parameter Control  ← NEXT
+  ├──► MVP 1: Parameter Control  (11/12 tools done, remaining: set_region)
   │      │
   │      └──► MVP 2: Request Execution + Data Analysis
   │
