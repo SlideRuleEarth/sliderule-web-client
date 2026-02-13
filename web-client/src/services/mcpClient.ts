@@ -103,6 +103,11 @@ export function disconnect(): void {
   logger.info('Manually disconnected')
 }
 
+export function reconnect(): void {
+  disconnect()
+  connect()
+}
+
 export function isConnected(): boolean {
   return ws !== null && ws.readyState === WebSocket.OPEN
 }

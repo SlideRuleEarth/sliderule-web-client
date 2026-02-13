@@ -1,9 +1,17 @@
 import { createLogger } from '@/utils/logger'
 import { useReqParamsStore } from '@/stores/reqParamsStore'
+import { useRequestsStore } from '@/stores/requestsStore'
+import { useServerStateStore } from '@/stores/serverStateStore'
 import { app } from '@/main'
 import { toolDefinitions, type ToolDefinition } from './toolDefinitions'
 import { iceSat2APIsItems, gediAPIsItems } from '@/types/SrStaticOptions'
 import { mapGtStringsToSrListNumberItems, gtsOptions } from '@/utils/parmUtils'
+// workerDomUtils and SrDuckDbUtils use module-level Pinia store calls
+// (transitively via SrMapUtils), so they cannot be imported statically here
+// (toolExecutor loads before Pinia is ready).
+// Use dynamic import() inside the handlers that need them instead.
+import { db } from '@/db/SlideRuleDb'
+import { createDuckDbClient } from '@/utils/SrDuckDb'
 
 const logger = createLogger('ToolExecutor')
 
@@ -431,6 +439,420 @@ async function handleResetParams(): Promise<ToolResult> {
   })
 }
 
+// ── Request Lifecycle Handlers ───────────────────────────────────
+
+async function handleSubmitRequest(): Promise<ToolResult> {
+  const serverStateStore = useServerStateStore()
+
+  if (serverStateStore.isFetching) {
+    return err('A request is already running. Wait for it to complete or cancel it first.')
+  }
+
+  const requestsStore = useRequestsStore()
+  await requestsStore.fetchReqs()
+  const beforeMaxId = requestsStore.reqs.reduce((max, r) => Math.max(max, r.req_id ?? 0), 0)
+
+  try {
+    const { processRunSlideRuleClicked } = await import('@/utils/workerDomUtils')
+    await processRunSlideRuleClicked()
+  } catch (e) {
+    return err(`Submit failed: ${e instanceof Error ? e.message : String(e)}`)
+  }
+
+  await requestsStore.fetchReqs()
+  const newReq = requestsStore.reqs.find((r) => (r.req_id ?? 0) > beforeMaxId)
+
+  if (newReq && newReq.req_id) {
+    return ok(
+      JSON.stringify(
+        {
+          req_id: newReq.req_id,
+          status: newReq.status ?? 'submitted',
+          message: `Request ${newReq.req_id} submitted. Use get_request_status to poll for completion.`
+        },
+        null,
+        2
+      )
+    )
+  }
+
+  return err(
+    'Request was not created. Check that parameters are configured correctly (mission, API, region).'
+  )
+}
+
+async function handleGetRequestStatus(args: Record<string, unknown>): Promise<ToolResult> {
+  const reqId = args.req_id as number
+  if (!Number.isInteger(reqId) || reqId <= 0) {
+    return err(`Invalid req_id: ${reqId}. Must be a positive integer.`)
+  }
+
+  const request = await db.getRequest(reqId)
+  if (!request) {
+    return err(`No request found with req_id ${reqId}.`)
+  }
+
+  const serverStateStore = useServerStateStore()
+  const statusInfo = {
+    req_id: reqId,
+    status: request.status ?? 'unknown',
+    func: request.func ?? '',
+    elapsed_time: request.elapsed_time ?? '',
+    cnt: request.cnt != null ? Number(request.cnt) : null,
+    num_bytes: request.num_bytes != null ? Number(request.num_bytes) : null,
+    num_gran: request.num_gran != null ? Number(request.num_gran) : null,
+    file: request.file ?? null,
+    status_details: request.status_details ?? null,
+    description: request.description ?? null,
+    is_currently_fetching: serverStateStore.isFetching
+  }
+
+  return ok(JSON.stringify(statusInfo, null, 2))
+}
+
+async function handleCancelRequest(): Promise<ToolResult> {
+  const serverStateStore = useServerStateStore()
+
+  if (!serverStateStore.isFetching) {
+    return err('No request is currently running.')
+  }
+
+  const { processAbortClicked } = await import('@/utils/workerDomUtils')
+  processAbortClicked()
+  return ok('Cancel signal sent. The running request will be aborted.')
+}
+
+async function handleListRequests(): Promise<ToolResult> {
+  const requestsStore = useRequestsStore()
+  await requestsStore.fetchReqs()
+  const reqs = requestsStore.reqs
+
+  if (reqs.length === 0) {
+    return ok('No requests found.')
+  }
+
+  const summary = reqs.map((req) => ({
+    req_id: req.req_id,
+    status: req.status ?? 'unknown',
+    func: req.func ?? '',
+    elapsed_time: req.elapsed_time ?? '',
+    cnt: req.cnt != null ? Number(req.cnt) : null,
+    num_bytes: req.num_bytes != null ? Number(req.num_bytes) : null,
+    description: req.description ?? ''
+  }))
+
+  return ok(JSON.stringify(summary, null, 2))
+}
+
+async function handleDeleteRequest(args: Record<string, unknown>): Promise<ToolResult> {
+  const reqId = args.req_id as number
+  if (!Number.isInteger(reqId) || reqId <= 0) {
+    return err(`Invalid req_id: ${reqId}. Must be a positive integer.`)
+  }
+
+  const request = await db.getRequest(reqId)
+  if (!request) {
+    return err(`No request found with req_id ${reqId}.`)
+  }
+
+  return new Promise((resolve) => {
+    const confirmService = app.config.globalProperties.$confirm
+
+    if (!confirmService) {
+      logger.error('ConfirmationService not available')
+      resolve(err('ConfirmationService not available in the browser.'))
+      return
+    }
+
+    confirmService.require({
+      group: 'mcp',
+      message: `Claude is requesting to delete request ${reqId} (${request.func ?? 'unknown'}) and all its data. Allow this?`,
+      header: 'MCP: Delete Request',
+      icon: 'pi pi-exclamation-triangle',
+      rejectLabel: 'Deny',
+      acceptLabel: 'Allow',
+      rejectClass: 'p-button-secondary',
+      acceptClass: 'p-button-danger',
+      accept: async () => {
+        const requestsStore = useRequestsStore()
+        const deleted = await requestsStore.deleteReq(reqId)
+        if (deleted) {
+          logger.info('Request deleted via MCP', { reqId })
+          resolve(ok(`Request ${reqId} and its data have been deleted.`))
+        } else {
+          resolve(err(`Failed to fully delete request ${reqId}. Some data may remain.`))
+        }
+      },
+      reject: () => {
+        logger.info('User denied MCP delete_request', { reqId })
+        resolve(err('User denied the delete operation.'))
+      }
+    })
+  })
+}
+
+// ── Data Analysis Handlers ──────────────────────────────────────
+
+function safeBigInt(value: unknown): unknown {
+  if (typeof value === 'bigint') {
+    return value <= Number.MAX_SAFE_INTEGER && value >= Number.MIN_SAFE_INTEGER
+      ? Number(value)
+      : value.toString()
+  }
+  return value
+}
+
+function safeRow(row: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(row)) {
+    out[key] = safeBigInt(value)
+  }
+  return out
+}
+
+async function loadDataForReq(reqId: number): Promise<{ fileName: string } | ToolResult> {
+  const fileName = await db.getFilename(reqId)
+  if (!fileName) {
+    return err(
+      `No data file found for req_id ${reqId}. The request may not have completed successfully.`
+    )
+  }
+
+  try {
+    const { duckDbLoadOpfsParquetFile } = await import('@/utils/SrDuckDbUtils')
+    await duckDbLoadOpfsParquetFile(fileName)
+  } catch (e) {
+    return err(
+      `Failed to load data for req_id ${reqId}: ${e instanceof Error ? e.message : String(e)}`
+    )
+  }
+
+  return { fileName }
+}
+
+function isToolResult(v: unknown): v is ToolResult {
+  return typeof v === 'object' && v !== null && 'content' in v
+}
+
+async function handleRunSql(args: Record<string, unknown>): Promise<ToolResult> {
+  const reqId = args.req_id as number
+  const sql = args.sql as string
+  const maxRows = Math.min(Math.max((args.max_rows as number) || 100, 1), 10000)
+
+  if (!Number.isInteger(reqId) || reqId <= 0) {
+    return err(`Invalid req_id: ${reqId}. Must be a positive integer.`)
+  }
+  if (!sql || sql.trim() === '') {
+    return err('SQL query cannot be empty.')
+  }
+
+  const loaded = await loadDataForReq(reqId)
+  if (isToolResult(loaded)) return loaded
+
+  const duckDbClient = await createDuckDbClient()
+  const timeoutMs = 30000
+
+  try {
+    const queryPromise = (async () => {
+      const result = await duckDbClient.query(sql)
+      const rows: Record<string, unknown>[] = []
+      let truncated = false
+
+      for await (const chunk of result.readRows()) {
+        for (const row of chunk) {
+          if (rows.length >= maxRows) {
+            truncated = true
+            break
+          }
+          rows.push(safeRow(row as Record<string, unknown>))
+        }
+        if (truncated) break
+      }
+
+      return {
+        columns: result.schema.map((col: { name: string; type: string; databaseType: string }) => ({
+          name: col.name,
+          type: col.databaseType
+        })),
+        rows,
+        row_count: rows.length,
+        truncated
+      }
+    })()
+
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Query timed out after 30 seconds')), timeoutMs)
+    )
+
+    const output = await Promise.race([queryPromise, timeoutPromise])
+    return ok(JSON.stringify(output, null, 2))
+  } catch (e) {
+    return err(`SQL error: ${e instanceof Error ? e.message : String(e)}`)
+  }
+}
+
+async function handleDescribeData(args: Record<string, unknown>): Promise<ToolResult> {
+  const reqId = args.req_id as number
+  if (!Number.isInteger(reqId) || reqId <= 0) {
+    return err(`Invalid req_id: ${reqId}. Must be a positive integer.`)
+  }
+
+  const request = await db.getRequest(reqId)
+  if (!request) {
+    return err(`No request found with req_id ${reqId}.`)
+  }
+
+  const loaded = await loadDataForReq(reqId)
+  if (isToolResult(loaded)) return loaded
+  const { fileName } = loaded
+
+  const duckDbClient = await createDuckDbClient()
+  const colTypes = await duckDbClient.queryColumnTypes(fileName)
+  const totalRows = await duckDbClient.getTotalRowCount(`SELECT * FROM '${fileName}'`)
+
+  const description = {
+    req_id: reqId,
+    table_name: fileName,
+    func: request.func ?? '',
+    status: request.status ?? '',
+    columns: colTypes,
+    total_rows: typeof totalRows === 'bigint' ? Number(totalRows) : totalRows,
+    usage_hint: `Use run_sql with: SELECT * FROM '${fileName}' LIMIT 10`
+  }
+
+  return ok(JSON.stringify(description, null, 2))
+}
+
+async function handleGetElevationStats(args: Record<string, unknown>): Promise<ToolResult> {
+  const reqId = args.req_id as number
+  if (!Number.isInteger(reqId) || reqId <= 0) {
+    return err(`Invalid req_id: ${reqId}. Must be a positive integer.`)
+  }
+
+  const loaded = await loadDataForReq(reqId)
+  if (isToolResult(loaded)) return loaded
+
+  const { readOrCacheSummary, getAllColumnMinMax } = await import('@/utils/SrDuckDbUtils')
+  const summary = await readOrCacheSummary(reqId)
+  const columnStats = await getAllColumnMinMax(reqId)
+
+  // Convert BigInt values in column stats
+  const safeColumnStats: Record<string, Record<string, unknown>> = {}
+  for (const [col, stats] of Object.entries(
+    columnStats as Record<string, Record<string, unknown>>
+  )) {
+    safeColumnStats[col] = {}
+    for (const [key, value] of Object.entries(stats)) {
+      safeColumnStats[col][key] = safeBigInt(value)
+    }
+  }
+
+  const result = {
+    req_id: reqId,
+    summary: summary
+      ? {
+          num_points: summary.numPoints,
+          lat_extent: summary.extLatLon,
+          height_extent: summary.extHMean
+        }
+      : null,
+    column_statistics: safeColumnStats
+  }
+
+  return ok(JSON.stringify(result, null, 2))
+}
+
+async function handleGetSampleData(args: Record<string, unknown>): Promise<ToolResult> {
+  const reqId = args.req_id as number
+  const numRows = Math.min(Math.max((args.num_rows as number) || 20, 1), 500)
+
+  if (!Number.isInteger(reqId) || reqId <= 0) {
+    return err(`Invalid req_id: ${reqId}. Must be a positive integer.`)
+  }
+
+  const loaded = await loadDataForReq(reqId)
+  if (isToolResult(loaded)) return loaded
+  const { fileName } = loaded
+
+  const duckDbClient = await createDuckDbClient()
+  const baseQuery = `SELECT * FROM '${fileName}'`
+  const totalRows = await duckDbClient.getTotalRowCount(baseQuery)
+  const total = typeof totalRows === 'bigint' ? Number(totalRows) : totalRows
+
+  let sampledQuery: string
+  if (total <= numRows) {
+    sampledQuery = baseQuery
+  } else {
+    const samplePercent = Math.min((numRows / total) * 150, 100)
+    sampledQuery = `${baseQuery} USING SAMPLE ${samplePercent}% (bernoulli)`
+  }
+
+  const finalQuery = `${sampledQuery} LIMIT ${numRows}`
+  const result = await duckDbClient.query(finalQuery)
+  const rows: Record<string, unknown>[] = []
+
+  for await (const chunk of result.readRows()) {
+    for (const row of chunk) {
+      rows.push(safeRow(row as Record<string, unknown>))
+    }
+  }
+
+  const output = {
+    req_id: reqId,
+    table_name: fileName,
+    total_rows: total,
+    sample_rows: rows.length,
+    columns: result.schema.map((col: { name: string; type: string }) => ({
+      name: col.name,
+      type: col.type
+    })),
+    rows
+  }
+
+  return ok(JSON.stringify(output, null, 2))
+}
+
+async function handleExportData(args: Record<string, unknown>): Promise<ToolResult> {
+  const reqId = args.req_id as number
+  const customSql = args.sql as string | undefined
+  const customFilename = args.filename as string | undefined
+
+  if (!Number.isInteger(reqId) || reqId <= 0) {
+    return err(`Invalid req_id: ${reqId}. Must be a positive integer.`)
+  }
+
+  const loaded = await loadDataForReq(reqId)
+  if (isToolResult(loaded)) return loaded
+  const { fileName } = loaded
+
+  const sql = customSql || `SELECT * FROM '${fileName}'`
+  const outputName = customFilename || `export_${reqId}.parquet`
+
+  const duckDbClient = await createDuckDbClient()
+
+  try {
+    await duckDbClient.copyQueryToParquet(sql, outputName)
+    const buffer = await duckDbClient.copyFileToBuffer(outputName)
+
+    const blob = new Blob([buffer.buffer as ArrayBuffer], { type: 'application/octet-stream' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = outputName
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+
+    await duckDbClient.dropVirtualFile(outputName)
+
+    const sizeKB = (buffer.byteLength / 1024).toFixed(1)
+    return ok(`Exported ${outputName} (${sizeKB} KB). Download triggered in the browser.`)
+  } catch (e) {
+    return err(`Export failed: ${e instanceof Error ? e.message : String(e)}`)
+  }
+}
+
 // ── Validation ───────────────────────────────────────────────────
 
 function validateArgs(toolName: string, args: Record<string, unknown>): string | null {
@@ -508,7 +930,17 @@ const handlers: Record<string, ToolHandler> = {
   set_yapc: handleSetYapc,
   set_output_config: handleSetOutputConfig,
   get_current_params: handleGetCurrentParams,
-  reset_params: handleResetParams
+  reset_params: handleResetParams,
+  submit_request: handleSubmitRequest,
+  get_request_status: handleGetRequestStatus,
+  cancel_request: handleCancelRequest,
+  list_requests: handleListRequests,
+  delete_request: handleDeleteRequest,
+  run_sql: handleRunSql,
+  describe_data: handleDescribeData,
+  get_elevation_stats: handleGetElevationStats,
+  get_sample_data: handleGetSampleData,
+  export_data: handleExportData
 }
 
 for (const def of toolDefinitions) {

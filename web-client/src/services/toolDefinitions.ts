@@ -248,5 +248,167 @@ export const toolDefinitions: ToolDefinition[] = [
       type: 'object',
       properties: {}
     }
+  },
+
+  // ── Request Lifecycle Tools ─────────────────────────────────────
+  {
+    name: 'submit_request',
+    description:
+      'Submit the current parameters as a SlideRule processing request. Returns immediately with a req_id. Use get_request_status to poll for completion. The request spawns a Web Worker that streams Parquet results to OPFS and loads them into DuckDB.',
+    inputSchema: {
+      type: 'object',
+      properties: {}
+    }
+  },
+  {
+    name: 'get_request_status',
+    description:
+      'Get the status of a processing request. Returns status (pending, started, progress, success, error, aborted), elapsed time, row count, granule count, byte count, and other details. Use this to poll after submit_request.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        req_id: {
+          type: 'integer',
+          description: 'The request ID returned by submit_request.'
+        }
+      },
+      required: ['req_id']
+    }
+  },
+  {
+    name: 'cancel_request',
+    description:
+      'Cancel a currently running request. Only works if a request is actively fetching data.',
+    inputSchema: {
+      type: 'object',
+      properties: {}
+    }
+  },
+  {
+    name: 'list_requests',
+    description:
+      'List all requests in the session with their status, API function, elapsed time, and point count. Returns newest first.',
+    inputSchema: {
+      type: 'object',
+      properties: {}
+    }
+  },
+  {
+    name: 'delete_request',
+    description:
+      'Delete a request and its associated data (summary, run context). This is a destructive operation that requires user confirmation in the browser.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        req_id: {
+          type: 'integer',
+          description: 'The request ID to delete.'
+        }
+      },
+      required: ['req_id']
+    }
+  },
+
+  // ── Data Analysis Tools ─────────────────────────────────────────
+  {
+    name: 'run_sql',
+    description:
+      "Execute a read-only SQL query against a request's result data using DuckDB WASM with spatial extension. Use describe_data first to learn the table name and schema. Results limited to max_rows (default 100). 30-second timeout.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        req_id: {
+          type: 'integer',
+          description: 'The request ID whose data to query.'
+        },
+        sql: {
+          type: 'string',
+          description:
+            "SQL query to execute. The table name is the parquet filename (use describe_data to find it). Example: SELECT * FROM 'filename.parquet' LIMIT 10"
+        },
+        max_rows: {
+          type: 'integer',
+          description: 'Maximum number of rows to return (default 100, max 10000).',
+          minimum: 1,
+          maximum: 10000
+        }
+      },
+      required: ['req_id', 'sql']
+    }
+  },
+  {
+    name: 'describe_data',
+    description:
+      "Get the schema (column names and types), row count, and table name for a request's result set. Use this before run_sql to learn the available columns and the correct table name.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        req_id: {
+          type: 'integer',
+          description: 'The request ID whose data to describe.'
+        }
+      },
+      required: ['req_id']
+    }
+  },
+  {
+    name: 'get_elevation_stats',
+    description:
+      "Compute statistics for a request's result set: min, max, 10th/90th percentile for all numeric columns. Also includes lat/lon extent and total point count.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        req_id: {
+          type: 'integer',
+          description: 'The request ID whose stats to compute.'
+        }
+      },
+      required: ['req_id']
+    }
+  },
+  {
+    name: 'get_sample_data',
+    description:
+      "Retrieve a random sample of rows from a request's result set. Uses DuckDB Bernoulli sampling for true randomness.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        req_id: {
+          type: 'integer',
+          description: 'The request ID whose data to sample.'
+        },
+        num_rows: {
+          type: 'integer',
+          description: 'Number of rows to return (default 20, max 500).',
+          minimum: 1,
+          maximum: 500
+        }
+      },
+      required: ['req_id']
+    }
+  },
+  {
+    name: 'export_data',
+    description:
+      'Export query results as a Parquet file for download. Triggers a browser download dialog. Optionally provide a custom SQL query; defaults to the full result set.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        req_id: {
+          type: 'integer',
+          description: 'The request ID whose data to export.'
+        },
+        sql: {
+          type: 'string',
+          description:
+            'Optional SQL query to export. Defaults to SELECT * FROM the full result set.'
+        },
+        filename: {
+          type: 'string',
+          description: 'Optional output filename (default: "export_<req_id>.parquet").'
+        }
+      },
+      required: ['req_id']
+    }
   }
 ]

@@ -55,6 +55,10 @@ export const useMcpStore = defineStore('mcp', () => {
     logger.warn('MCP error', error)
   }
 
+  function setWsPort(port: number) {
+    wsPort.value = port
+  }
+
   function clearLog() {
     activityLog.value = []
   }
@@ -72,6 +76,7 @@ export const useMcpStore = defineStore('mcp', () => {
     addActivity,
     incrementReconnectAttempts,
     setError,
+    setWsPort,
     clearLog
   }
 })

@@ -2,12 +2,26 @@
 import { computed, ref } from 'vue'
 import Button from 'primevue/button'
 import Popover from 'primevue/popover'
+import Checkbox from 'primevue/checkbox'
 import ConfirmDialog from 'primevue/confirmdialog'
 import { useMcpStore } from '@/stores/mcpStore'
-import { connect, disconnect } from '@/services/mcpClient'
+import { connect, disconnect, reconnect } from '@/services/mcpClient'
+
+const DEV_PORT = 3003
+const DEFAULT_PORT = 3002
 
 const mcpStore = useMcpStore()
 const popover = ref()
+
+const devMode = computed({
+  get: () => mcpStore.wsPort === DEV_PORT,
+  set: (val: boolean) => {
+    mcpStore.setWsPort(val ? DEV_PORT : DEFAULT_PORT)
+    if (mcpStore.status !== 'disconnected') {
+      reconnect()
+    }
+  }
+})
 
 const statusColor = computed(() => {
   switch (mcpStore.status) {
@@ -69,7 +83,13 @@ function formatTime(ts: number): string {
       <div class="sr-mcp-panel">
         <div class="sr-mcp-panel-header">
           <span class="sr-mcp-panel-status">{{ mcpStore.status }}</span>
-          <Button :label="toggleLabel" size="small" @click="toggleConnection" />
+          <div class="sr-mcp-panel-controls">
+            <label class="sr-mcp-dev-toggle">
+              <Checkbox v-model="devMode" :binary="true" />
+              <span>dev</span>
+            </label>
+            <Button :label="toggleLabel" size="small" @click="toggleConnection" />
+          </div>
         </div>
         <div v-if="mcpStore.lastError" class="sr-mcp-panel-error">
           {{ mcpStore.lastError }}
@@ -123,6 +143,18 @@ function formatTime(ts: number): string {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+.sr-mcp-panel-controls {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.sr-mcp-dev-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
 }
 .sr-mcp-panel-status {
   font-weight: 600;
