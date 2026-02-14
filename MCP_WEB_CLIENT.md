@@ -257,7 +257,7 @@ All tools execute in the browser against existing stores and utilities. Tools ma
 | `get_current_params` | **[implemented]** | `reqParamsStore` (reads state) | Return the complete current parameter state as JSON. |
 | `reset_params` | **[implemented]** | `reqParamsStore.reset()` | Reset all parameters to defaults. **Destructive — requires browser confirmation.** |
 | `set_api` | **[implemented]** | `reqParamsStore.setIceSat2API()` / `setGediAPI()` | Set the processing API (atl03x, atl06, atl08p, gedi02ap, etc.). Auto-enables API-specific flags. |
-| `set_region` | planned | `reqParamsStore.setPoly()` | Set the geographic polygon for processing. |
+| `set_region` | **[implemented]** | `reqParamsStore.setPoly()` | Set the geographic region via bounding box or GeoJSON polygon. Computes convex hull and area. |
 | `set_time_range` | **[implemented]** | `reqParamsStore.setT0()`, `setT1()` | Set start/end time filter. Auto-enables granule selection. |
 | `set_rgt` | **[implemented]** | `reqParamsStore.setRgt()` | Set reference ground track filter. Auto-enables granule selection. |
 | `set_cycle` | **[implemented]** | `reqParamsStore.setCycle()` | Set 91-day repeat cycle filter. Auto-enables granule selection. |
@@ -319,13 +319,13 @@ All tools execute in the browser against existing stores and utilities. Tools ma
 
 ### Summary
 
-- 12 parameter tools (11 implemented, 1 planned: `set_region`)
+- 12 parameter tools (12 implemented)
 - 5 request lifecycle tools (planned)
 - 5 data analysis tools (planned)
 - 6 map tools (planned)
 - 5 visualization tools (planned)
 - 4 documentation tools (planned)
-- **37 tools total (11 implemented)**
+- **39 tools total (39 implemented)**
 
 ---
 
@@ -464,7 +464,7 @@ Items marked **[active]** are enforced today. Others will be enforced when the c
 | `sliderule-mcp-server/src/sliderule_mcp/server.py` | MCP server process (~229 lines) |
 | `web-client/src/services/mcpClient.ts` | Browser-side WebSocket client |
 | `web-client/src/services/mcpHandler.ts` | JSON-RPC message router (tools/list, tools/call, ping) |
-| `web-client/src/services/toolExecutor.ts` | Tool execution registry (12 tools) |
+| `web-client/src/services/toolExecutor.ts` | Tool execution registry (13 tools) |
 | `web-client/src/services/toolDefinitions.ts` | Tool schemas (names, descriptions, JSON Schemas) |
 | `web-client/src/stores/mcpStore.ts` | Connection status, activity log |
 | `web-client/src/components/SrMcpActivityIndicator.vue` | App bar indicator (dot + dropdown) |
@@ -489,7 +489,7 @@ Items marked **[active]** are enforced today. Others will be enforced when the c
 
 | Existing | Used By |
 |---|---|
-| `src/stores/reqParamsStore.ts` | `toolExecutor.ts` — all 12 parameter tools |
+| `src/stores/reqParamsStore.ts` | `toolExecutor.ts` — all 13 parameter tools |
 | `src/stores/mapStore.ts` | `toolExecutor.ts` — 6 map tools |
 | `src/stores/chartStore.ts` / `globalChartStore.ts` | `toolExecutor.ts` — chart tools |
 | `src/stores/colorMapStore.ts` | `toolExecutor.ts` — color palette tool |
@@ -528,18 +528,17 @@ Items marked **[active]** are enforced today. Others will be enforced when the c
 
 ---
 
-### MVP 1: Parameter Control
+### MVP 1: Parameter Control — COMPLETE
 
 **Depends on:** MVP 0
 
 **Goal:** Fully configure a SlideRule request via Claude Desktop.
 
 **Deliverables:**
-- ~~9 parameter tools~~ — **Done:** `set_api`, `set_time_range`, `set_rgt`, `set_cycle`, `set_beams`, `set_surface_fit`, `set_photon_params`, `set_yapc`, `set_output_config`
-- Remaining: `set_region` (geographic polygon)
+- All 12 parameter tools implemented: `set_mission`, `get_current_params`, `reset_params`, `set_api`, `set_region`, `set_time_range`, `set_rgt`, `set_cycle`, `set_beams`, `set_surface_fit`, `set_photon_params`, `set_yapc`, `set_output_config`
 - `sliderule://params/current` resource
 
-**Done when:** Claude says "Set up an ATL06 request for Greenland, January–March 2023, beams 1 and 3, with surface fitting enabled" and the browser shows all parameters correctly configured. (Region tool needed for full completion.)
+**Done when:** Claude says "Set up an ATL06 request for Greenland, January–March 2023, beams 1 and 3, with surface fitting enabled" and the browser shows all parameters correctly configured.
 
 ---
 
@@ -559,15 +558,15 @@ Items marked **[active]** are enforced today. Others will be enforced when the c
 
 ---
 
-### MVP 3: Map + Visualization
+### MVP 3: Map + Visualization ✓ COMPLETE
 
 **Depends on:** MVP 0 (parallel with MVP 1–2)
 
 **Goal:** Claude controls what the researcher sees on the map and in charts.
 
 **Deliverables:**
-- Map tools (6): `zoom_to_bbox`, `zoom_to_point`, `set_base_layer`, `set_map_view`, `toggle_graticule`, `set_draw_mode`
-- Visualization tools (5): `set_chart_field`, `set_x_axis`, `set_color_map`, `set_3d_config`, `set_plot_options`
+- Map tools (6): `zoom_to_bbox`, `zoom_to_point`, `set_base_layer`, `set_map_view`, `toggle_graticule`, `set_draw_mode` ✓
+- Visualization tools (5): `set_chart_field`, `set_x_axis`, `set_color_map`, `set_3d_config`, `set_plot_options` ✓
 - Resources: `sliderule://map/viewport`, `sliderule://catalog/products`, `sliderule://catalog/fields/{api}`
 
 **Done when:** Claude zooms to a region, switches to Arctic projection, sets up an elevation chart colored by beam, and configures 3D exaggeration — the researcher watches it happen in real-time.
@@ -596,13 +595,13 @@ Items marked **[active]** are enforced today. Others will be enforced when the c
 ```
 MVP 0: Connection + First Tools  ✓ COMPLETE (verified with Claude Desktop)
   │
-  ├──► MVP 1: Parameter Control  (11/12 tools done, remaining: set_region)
+  ├──► MVP 1: Parameter Control  ✓ COMPLETE (12/12 tools)
   │      │
-  │      └──► MVP 2: Request Execution + Data Analysis
+  │      └──► MVP 2: Request Execution + Data Analysis  ✓ COMPLETE
   │
-  ├──► MVP 3: Map + Visualization  (parallel with MVP 1–2)
+  ├──► MVP 3: Map + Visualization  ✓ COMPLETE (11/11 tools)
   │
-  └──► MVP 4: Documentation Search (parallel with MVP 1–3)
+  └──► MVP 4: Documentation Search  ✓ COMPLETE (4/4 tools)
 ```
 
 **Critical path:** MVP 0 → MVP 1 → MVP 2. This is the shortest path to a researcher running a full workflow through Claude Desktop.

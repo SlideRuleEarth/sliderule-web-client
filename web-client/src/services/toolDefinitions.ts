@@ -92,6 +92,43 @@ export const toolDefinitions: ToolDefinition[] = [
     }
   },
   {
+    name: 'set_region',
+    description:
+      'Set the geographic region for processing. Provide EITHER a bounding box (bbox with min/max lat/lon) OR a GeoJSON polygon geometry. The region defines the area of interest for the SlideRule request. Setting a region computes the convex hull and area automatically.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        bbox: {
+          type: 'object',
+          description: 'Bounding box with min/max latitude and longitude. Alternative to geojson.',
+          properties: {
+            min_lat: { type: 'number', description: 'Minimum latitude (-90 to 90).' },
+            max_lat: { type: 'number', description: 'Maximum latitude (-90 to 90).' },
+            min_lon: { type: 'number', description: 'Minimum longitude (-180 to 180).' },
+            max_lon: { type: 'number', description: 'Maximum longitude (-180 to 180).' }
+          },
+          required: ['min_lat', 'max_lat', 'min_lon', 'max_lon']
+        },
+        geojson: {
+          type: 'object',
+          description:
+            'GeoJSON Polygon or MultiPolygon geometry object. Alternative to bbox. Coordinates are [lon, lat] arrays.',
+          properties: {
+            type: {
+              type: 'string',
+              enum: ['Polygon', 'MultiPolygon'],
+              description: 'GeoJSON geometry type.'
+            },
+            coordinates: {
+              description: 'GeoJSON coordinates array.'
+            }
+          },
+          required: ['type', 'coordinates']
+        }
+      }
+    }
+  },
+  {
     name: 'set_beams',
     description:
       'Set the selected beams. For ICESat-2, provide ground track names: "gt1l", "gt1r", "gt2l", "gt2r", "gt3l", "gt3r", or "all". For GEDI, provide beam numbers: 0, 1, 2, 3, 5, 6, 8, 11, or "all". Automatically enables granule selection.',
@@ -473,6 +510,236 @@ export const toolDefinitions: ToolDefinition[] = [
     inputSchema: {
       type: 'object',
       properties: {}
+    }
+  },
+
+  // ── Map Tools ──────────────────────────────────────────────────────
+  {
+    name: 'zoom_to_bbox',
+    description:
+      'Zoom the map to a bounding box defined by min/max latitude and longitude. Animates the map to fit the specified extent.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        min_lat: { type: 'number', description: 'Minimum latitude (-90 to 90).' },
+        max_lat: { type: 'number', description: 'Maximum latitude (-90 to 90).' },
+        min_lon: { type: 'number', description: 'Minimum longitude (-180 to 180).' },
+        max_lon: { type: 'number', description: 'Maximum longitude (-180 to 180).' }
+      },
+      required: ['min_lat', 'max_lat', 'min_lon', 'max_lon']
+    }
+  },
+  {
+    name: 'zoom_to_point',
+    description:
+      'Center the map on a specific latitude/longitude point with an optional zoom level.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        lat: { type: 'number', description: 'Latitude (-90 to 90).' },
+        lon: { type: 'number', description: 'Longitude (-180 to 180).' },
+        zoom: {
+          type: 'number',
+          description: 'Zoom level (0–23). Higher = more zoomed in. Default: 10.',
+          minimum: 0,
+          maximum: 23
+        }
+      },
+      required: ['lat', 'lon']
+    }
+  },
+  {
+    name: 'set_base_layer',
+    description:
+      'Change the map base layer (satellite imagery, topography, etc.). Available layers depend on the current projection/view. Common layers: "Esri World Topo", "Esri World Imagery", "OpenStreetMap Standard", "Google Satellite". Polar views have specialized layers like "Arctic Ocean Base", "Antarctic Imagery", "LIMA".',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        layer: {
+          type: 'string',
+          description: 'Base layer name (e.g. "Esri World Imagery", "OpenStreetMap Standard").'
+        }
+      },
+      required: ['layer']
+    }
+  },
+  {
+    name: 'set_map_view',
+    description:
+      'Switch the map projection/view. Changes coordinate system and available base layers. "Global Mercator" (EPSG:3857) for worldwide, "North Alaska" (EPSG:5936) for Arctic, "North Sea Ice" (EPSG:3413) for Arctic sea ice, "South" (EPSG:3031) for Antarctic.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        view: {
+          type: 'string',
+          enum: ['Global Mercator', 'North Alaska', 'North Sea Ice', 'South'],
+          description: 'Map view/projection name.'
+        }
+      },
+      required: ['view']
+    }
+  },
+  {
+    name: 'toggle_graticule',
+    description: 'Show or hide the latitude/longitude grid (graticule) overlay on the map.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        visible: {
+          type: 'boolean',
+          description: 'True to show the graticule, false to hide it.'
+        }
+      },
+      required: ['visible']
+    }
+  },
+  {
+    name: 'set_draw_mode',
+    description:
+      'Set the region drawing mode on the map. "Polygon" for freeform polygon, "Box" for rectangle, "" (empty string) to disable drawing.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        mode: {
+          type: 'string',
+          enum: ['Polygon', 'Box', ''],
+          description: 'Drawing mode: "Polygon", "Box", or "" to disable.'
+        }
+      },
+      required: ['mode']
+    }
+  },
+
+  // ── Visualization Tools ──────────────────────────────────────────
+  {
+    name: 'set_chart_field',
+    description:
+      'Set which data field to plot on the elevation chart Y-axis for a given request. Use describe_data to discover available column names first.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        req_id: {
+          type: 'integer',
+          description: 'The request ID whose chart to configure.'
+        },
+        field: {
+          type: 'string',
+          description: 'Column name for the Y-axis (e.g. "h_mean", "height", "h_canopy").'
+        }
+      },
+      required: ['req_id', 'field']
+    }
+  },
+  {
+    name: 'set_x_axis',
+    description:
+      'Set the X-axis field for the elevation chart. Common values: "x_atc" (along-track distance, default for most APIs), "latitude", "segment_dist_x", "time_ns_plot", "time_plot".',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        req_id: {
+          type: 'integer',
+          description: 'The request ID whose chart to configure.'
+        },
+        field: {
+          type: 'string',
+          description: 'Column name for the X-axis (e.g. "x_atc", "latitude", "time_ns_plot").'
+        }
+      },
+      required: ['req_id', 'field']
+    }
+  },
+  {
+    name: 'set_color_map',
+    description:
+      'Set the gradient color map used for elevation/data visualization. Available palettes include: viridis, jet, inferno, magma, plasma, hot, cool, rainbow, RdBu, bluered, earth, bathymetry, temperature, and many more.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        palette: {
+          type: 'string',
+          description: 'Color map name (e.g. "viridis", "jet", "inferno", "plasma", "rainbow").'
+        }
+      },
+      required: ['palette']
+    }
+  },
+  {
+    name: 'set_3d_config',
+    description:
+      'Configure the 3D elevation view (Deck.gl). Set vertical exaggeration, point size, field of view, and axes visibility.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        vertical_exaggeration: {
+          type: 'number',
+          description:
+            'Vertical exaggeration multiplier (default 1.0). Higher values emphasize elevation differences.'
+        },
+        point_size: {
+          type: 'number',
+          description: 'Point size multiplier (default 1.0).',
+          minimum: 0.1
+        },
+        fov: {
+          type: 'number',
+          description: 'Field of view in degrees (default 50).',
+          minimum: 10,
+          maximum: 120
+        },
+        show_axes: {
+          type: 'boolean',
+          description: 'Show or hide 3D axes.'
+        }
+      }
+    }
+  },
+  {
+    name: 'set_plot_options',
+    description:
+      'Configure chart plot options: color encoding field for data-driven coloring, symbol size, and tooltip visibility.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        req_id: {
+          type: 'integer',
+          description: 'The request ID whose plot to configure.'
+        },
+        color_field: {
+          type: 'string',
+          description:
+            'Field name for color encoding (e.g. "h_mean", "atl03_cnf"), or "solid" for single color.'
+        },
+        symbol_size: {
+          type: 'number',
+          description: 'Symbol/point size in pixels (default varies by API, typically 2–4).',
+          minimum: 1,
+          maximum: 20
+        },
+        show_tooltip: {
+          type: 'boolean',
+          description: 'Show or hide chart tooltips on hover.'
+        }
+      }
+    }
+  },
+
+  // ── UI Tools ──────────────────────────────────────────────────────
+  {
+    name: 'start_tour',
+    description:
+      'Start an interactive guided tour of the SlideRule web client UI. The tour highlights key UI elements and walks the user through the app. Use "quick" for the 4-step essentials (zoom, draw, run, analyze) or "long" for a comprehensive walkthrough of all controls and views.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        type: {
+          type: 'string',
+          enum: ['quick', 'long'],
+          description:
+            'Tour type. "quick" = 4-step essentials (zoom, draw, run, analyze). "long" = full walkthrough of all controls.'
+        }
+      },
+      required: ['type']
     }
   }
 ]

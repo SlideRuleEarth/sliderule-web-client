@@ -219,6 +219,20 @@ onMounted(async () => {
     void handleQuickTourButtonClick()
   }
 
+  // Watch for MCP-triggered tour requests
+  watch(
+    () => tourStore.requestedTour,
+    (type) => {
+      if (!type) return
+      tourStore.clearTourRequest()
+      if (type === 'long') {
+        void handleLongTourButtonClick()
+      } else {
+        void handleQuickTourButtonClick()
+      }
+    }
+  )
+
   // Mark as mounted
   isMounted.value = true
 

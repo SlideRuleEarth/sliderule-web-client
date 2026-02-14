@@ -6,6 +6,9 @@ import { app } from '@/main'
 import { toolDefinitions, type ToolDefinition } from './toolDefinitions'
 import { iceSat2APIsItems, gediAPIsItems } from '@/types/SrStaticOptions'
 import { mapGtStringsToSrListNumberItems, gtsOptions } from '@/utils/parmUtils'
+import { regionFromBounds, convexHull, calculatePolygonArea } from '@/composables/SrTurfUtils'
+import { extractSrRegionFromGeometry } from '@/utils/geojsonUploader'
+import { useAreaThresholdsStore } from '@/stores/areaThresholdsStore'
 // workerDomUtils and SrDuckDbUtils use module-level Pinia store calls
 // (transitively via SrMapUtils), so they cannot be imported statically here
 // (toolExecutor loads before Pinia is ready).
@@ -42,6 +45,35 @@ function ok(text: string): ToolResult {
 
 function err(text: string): ToolResult {
   return { content: [{ type: 'text', text }], isError: true }
+}
+
+/** Check area against per-API thresholds, return a status string for Claude. */
+function checkAreaThresholds(areaKm2: number): {
+  status: 'ok' | 'warning' | 'error'
+  message: string
+} {
+  const store = useReqParamsStore()
+  const api = store.getCurAPIObj()
+  if (!api) {
+    return { status: 'ok', message: '' }
+  }
+  const thresholds = useAreaThresholdsStore()
+  const errorLimit = thresholds.getAreaErrorThreshold(api)
+  const warnLimit = thresholds.getAreaWarningThreshold(api)
+
+  if (areaKm2 > errorLimit) {
+    return {
+      status: 'error',
+      message: `Area ${areaKm2.toFixed(1)} km² exceeds the ${errorLimit} km² limit for ${api}. The request will be rejected. Choose a smaller region or switch to a different API.`
+    }
+  }
+  if (areaKm2 > warnLimit) {
+    return {
+      status: 'warning',
+      message: `Area ${areaKm2.toFixed(1)} km² is large for ${api} (warning threshold: ${warnLimit} km², error threshold: ${errorLimit} km²). The request may be slow or fail.`
+    }
+  }
+  return { status: 'ok', message: '' }
 }
 
 // ── Tool Handlers ────────────────────────────────────────────────
@@ -144,6 +176,74 @@ async function handleSetCycle(args: Record<string, unknown>): Promise<ToolResult
   store.setUseCycle(true)
   store.setCycle(cycle)
   return Promise.resolve(ok(`Cycle set to ${cycle}. Granule selection enabled.`))
+}
+
+async function handleSetRegion(args: Record<string, unknown>): Promise<ToolResult> {
+  const store = useReqParamsStore()
+  const bboxArg = args.bbox as
+    | { min_lat: number; max_lat: number; min_lon: number; max_lon: number }
+    | undefined
+  const geojsonArg = args.geojson as { type: string; coordinates: unknown } | undefined
+
+  if (!bboxArg && !geojsonArg) {
+    return err('Provide either "bbox" (bounding box) or "geojson" (GeoJSON geometry).')
+  }
+  if (bboxArg && geojsonArg) {
+    return err('Provide either "bbox" or "geojson", not both.')
+  }
+
+  try {
+    let region: import('@/types/SrTypes').SrRegion | undefined
+
+    if (bboxArg) {
+      const { min_lat, max_lat, min_lon, max_lon } = bboxArg
+      if (
+        typeof min_lat !== 'number' ||
+        typeof max_lat !== 'number' ||
+        typeof min_lon !== 'number' ||
+        typeof max_lon !== 'number'
+      ) {
+        return err('bbox requires numeric min_lat, max_lat, min_lon, max_lon.')
+      }
+      region = regionFromBounds(min_lat, max_lat, min_lon, max_lon, { close: true })
+      if (!region) {
+        return err('Could not create region from the provided bounding box.')
+      }
+      store.setPolygonSource('box')
+    } else if (geojsonArg) {
+      if (geojsonArg.type !== 'Polygon' && geojsonArg.type !== 'MultiPolygon') {
+        return err(
+          `Unsupported geometry type "${geojsonArg.type}". Must be "Polygon" or "MultiPolygon".`
+        )
+      }
+      region = extractSrRegionFromGeometry(geojsonArg)
+      store.setPolygonSource('upload')
+    }
+
+    if (!region || region.length === 0) {
+      return err('Failed to create a valid region from the provided input.')
+    }
+
+    store.setPoly(region)
+    const hull = convexHull(region)
+    store.setConvexHull(hull)
+    const areaKm2 = calculatePolygonArea(hull.length > 0 ? hull : region)
+    store.setAreaOfConvexHull(areaKm2)
+
+    const numVertices = region.length
+    let msg = `Region set with ${numVertices} vertices. Area: ${areaKm2.toFixed(1)} km².`
+
+    const areaCheck = checkAreaThresholds(areaKm2)
+    if (areaCheck.status === 'error') {
+      msg += ` WARNING: ${areaCheck.message}`
+    } else if (areaCheck.status === 'warning') {
+      msg += ` Note: ${areaCheck.message}`
+    }
+
+    return ok(msg)
+  } catch (e) {
+    return err(`Failed to set region: ${e instanceof Error ? e.message : String(e)}`)
+  }
 }
 
 async function handleSetBeams(args: Record<string, unknown>): Promise<ToolResult> {
@@ -363,6 +463,8 @@ async function handleGetCurrentParams(): Promise<ToolResult> {
     url: store.urlValue,
     hasRegion: store.poly !== null && store.poly.length > 0,
     areaOfConvexHull: store.areaOfConvexHull,
+    areaCheck:
+      store.poly && store.poly.length > 0 ? checkAreaThresholds(store.areaOfConvexHull) : null,
     timeRange: {
       enabled: store.useTime,
       t0: store.t0Value,
@@ -929,6 +1031,223 @@ async function handleListDocSections(): Promise<ToolResult> {
   return ok(JSON.stringify({ total_sections: sections.length, sections }, null, 2))
 }
 
+// ── UI Tool Handlers ─────────────────────────────────────────────
+
+async function handleStartTour(args: Record<string, unknown>): Promise<ToolResult> {
+  const tourType = args.type as 'quick' | 'long'
+  if (tourType !== 'quick' && tourType !== 'long') {
+    return err(`Invalid tour type "${tourType}". Must be "quick" or "long".`)
+  }
+
+  const { useTourStore } = await import('@/stores/tourStore')
+  const tourStore = useTourStore()
+  tourStore.requestTour(tourType)
+
+  return ok(
+    `Started the ${tourType} tour in the browser. The user will see an interactive guided walkthrough of the app.`
+  )
+}
+
+// ── Map Tool Handlers ────────────────────────────────────────────
+
+async function handleZoomToBbox(args: Record<string, unknown>): Promise<ToolResult> {
+  const { min_lat, max_lat, min_lon, max_lon } = args as {
+    min_lat: number
+    max_lat: number
+    min_lon: number
+    max_lon: number
+  }
+
+  const { useMapStore } = await import('@/stores/mapStore')
+  const mapStore = useMapStore()
+  const map = mapStore.getMap()
+  if (!map) {
+    return err('Map is not available. The map view may not be initialized yet.')
+  }
+
+  const { transformExtent } = await import('ol/proj')
+  const view = map.getView()
+  const projection = view.getProjection().getCode()
+  const extent = transformExtent([min_lon, min_lat, max_lon, max_lat], 'EPSG:4326', projection)
+  view.fit(extent, { duration: 500, padding: [50, 50, 50, 50] })
+
+  return ok(`Map zoomed to bounding box: [${min_lat}, ${min_lon}] – [${max_lat}, ${max_lon}].`)
+}
+
+async function handleZoomToPoint(args: Record<string, unknown>): Promise<ToolResult> {
+  const lat = args.lat as number
+  const lon = args.lon as number
+  const zoom = (args.zoom as number) ?? 10
+
+  const { useMapStore } = await import('@/stores/mapStore')
+  const mapStore = useMapStore()
+  const map = mapStore.getMap()
+  if (!map) {
+    return err('Map is not available. The map view may not be initialized yet.')
+  }
+
+  const { fromLonLat } = await import('ol/proj')
+  const view = map.getView()
+  const projection = view.getProjection().getCode()
+  const center = fromLonLat([lon, lat], projection)
+  view.animate({ center, zoom, duration: 500 })
+
+  return ok(`Map centered on [${lat}, ${lon}] at zoom level ${zoom}.`)
+}
+
+async function handleSetBaseLayer(args: Record<string, unknown>): Promise<ToolResult> {
+  const layer = args.layer as string
+  const { useMapStore } = await import('@/stores/mapStore')
+  const mapStore = useMapStore()
+  mapStore.setSelectedBaseLayer(layer)
+  return ok(`Base layer set to "${layer}".`)
+}
+
+async function handleSetMapView(args: Record<string, unknown>): Promise<ToolResult> {
+  const view = args.view as string
+  const validViews = ['Global Mercator', 'North Alaska', 'North Sea Ice', 'South']
+  if (!validViews.includes(view)) {
+    return err(`Invalid view "${view}". Must be one of: ${validViews.join(', ')}.`)
+  }
+  const { useMapStore } = await import('@/stores/mapStore')
+  const mapStore = useMapStore()
+  mapStore.setSrView(view)
+  return ok(`Map view/projection set to "${view}".`)
+}
+
+async function handleToggleGraticule(args: Record<string, unknown>): Promise<ToolResult> {
+  const visible = args.visible as boolean
+  const { useMapStore } = await import('@/stores/mapStore')
+  const mapStore = useMapStore()
+  mapStore.setGraticuleState(visible)
+  return ok(`Graticule ${visible ? 'shown' : 'hidden'}.`)
+}
+
+async function handleSetDrawMode(args: Record<string, unknown>): Promise<ToolResult> {
+  const mode = args.mode as string
+  const validModes = ['Polygon', 'Box', '']
+  if (!validModes.includes(mode)) {
+    return err(
+      `Invalid draw mode "${mode}". Must be one of: "Polygon", "Box", or "" (empty to disable).`
+    )
+  }
+  const { useMapStore } = await import('@/stores/mapStore')
+  const mapStore = useMapStore()
+  mapStore.setDrawType(mode)
+  return ok(mode ? `Draw mode set to "${mode}".` : 'Draw mode disabled.')
+}
+
+// ── Visualization Tool Handlers ──────────────────────────────────
+
+async function handleSetChartField(args: Record<string, unknown>): Promise<ToolResult> {
+  const reqId = args.req_id as number
+  const field = args.field as string
+  const reqIdStr = String(reqId)
+
+  const { useChartStore } = await import('@/stores/chartStore')
+  const chartStore = useChartStore()
+  if (!chartStore.ensureState(reqIdStr)) {
+    return err(`Invalid req_id: ${reqId}.`)
+  }
+  chartStore.setSelectedYData(reqIdStr, field)
+  return ok(`Chart Y-axis field set to "${field}" for request ${reqId}.`)
+}
+
+async function handleSetXAxis(args: Record<string, unknown>): Promise<ToolResult> {
+  const reqId = args.req_id as number
+  const field = args.field as string
+  const reqIdStr = String(reqId)
+
+  const { useChartStore } = await import('@/stores/chartStore')
+  const chartStore = useChartStore()
+  if (!chartStore.ensureState(reqIdStr)) {
+    return err(`Invalid req_id: ${reqId}.`)
+  }
+  chartStore.stateByReqId[reqIdStr].xDataForChart = field
+  return ok(`Chart X-axis field set to "${field}" for request ${reqId}.`)
+}
+
+async function handleSetColorMap(args: Record<string, unknown>): Promise<ToolResult> {
+  const palette = args.palette as string
+  const { srColorMapNames } = await import('@/utils/colorUtils')
+
+  if (!srColorMapNames.includes(palette)) {
+    return err(`Invalid palette "${palette}". Valid options: ${srColorMapNames.join(', ')}.`)
+  }
+
+  // Apply to most recent request's gradient store
+  const requestsStore = useRequestsStore()
+  await requestsStore.fetchReqs()
+  const reqs = requestsStore.reqs
+  if (reqs.length === 0) {
+    return err('No requests found. Submit a request first so the color map has data to apply to.')
+  }
+  const latestReq = reqs[0]
+  const reqIdStr = String(latestReq.req_id)
+
+  const { useGradientColorMapStore } = await import('@/stores/gradientColorMapStore')
+  const gradientStore = useGradientColorMapStore(reqIdStr)
+  gradientStore.setSelectedGradientColorMapName(palette)
+  return ok(`Color map set to "${palette}" for request ${latestReq.req_id}.`)
+}
+
+async function handleSet3dConfig(args: Record<string, unknown>): Promise<ToolResult> {
+  const { useDeck3DConfigStore } = await import('@/stores/deck3DConfigStore')
+  const deck3DStore = useDeck3DConfigStore()
+  const details: string[] = []
+
+  if (args.vertical_exaggeration !== undefined) {
+    deck3DStore.verticalExaggeration = args.vertical_exaggeration as number
+    details.push(`vertical_exaggeration=${args.vertical_exaggeration}`)
+  }
+  if (args.point_size !== undefined) {
+    deck3DStore.pointSize = args.point_size as number
+    details.push(`point_size=${args.point_size}`)
+  }
+  if (args.fov !== undefined) {
+    deck3DStore.fovy = args.fov as number
+    details.push(`fov=${args.fov}`)
+  }
+  if (args.show_axes !== undefined) {
+    deck3DStore.showAxes = args.show_axes as boolean
+    details.push(`show_axes=${args.show_axes}`)
+  }
+
+  if (details.length === 0) {
+    return err('At least one 3D config parameter must be provided.')
+  }
+
+  return ok(`3D config updated: ${details.join(', ')}.`)
+}
+
+async function handleSetPlotOptions(args: Record<string, unknown>): Promise<ToolResult> {
+  const details: string[] = []
+
+  if (args.req_id !== undefined && args.color_field !== undefined) {
+    const reqIdStr = String(args.req_id as number)
+    const { useChartStore } = await import('@/stores/chartStore')
+    const chartStore = useChartStore()
+    if (!chartStore.ensureState(reqIdStr)) {
+      return err(`Invalid req_id: ${args.req_id}.`)
+    }
+    chartStore.setSelectedColorEncodeData(reqIdStr, args.color_field as string)
+    details.push(`color_field="${args.color_field}" for req ${args.req_id}`)
+  }
+
+  if (args.show_tooltip !== undefined) {
+    const { useGlobalChartStore } = await import('@/stores/globalChartStore')
+    const globalChartStore = useGlobalChartStore()
+    globalChartStore.showPlotTooltip = args.show_tooltip as boolean
+    details.push(`show_tooltip=${args.show_tooltip}`)
+  }
+
+  if (details.length === 0) {
+    return err('At least one plot option must be provided.')
+  }
+
+  return ok(`Plot options updated: ${details.join(', ')}.`)
+}
+
 // ── Validation ───────────────────────────────────────────────────
 
 function validateArgs(toolName: string, args: Record<string, unknown>): string | null {
@@ -1000,6 +1319,7 @@ const handlers: Record<string, ToolHandler> = {
   set_time_range: handleSetTimeRange,
   set_rgt: handleSetRgt,
   set_cycle: handleSetCycle,
+  set_region: handleSetRegion,
   set_beams: handleSetBeams,
   set_surface_fit: handleSetSurfaceFit,
   set_photon_params: handleSetPhotonParams,
@@ -1020,7 +1340,19 @@ const handlers: Record<string, ToolHandler> = {
   search_docs: handleSearchDocs,
   fetch_docs: handleFetchDocs,
   get_param_help: handleGetParamHelp,
-  list_doc_sections: handleListDocSections
+  list_doc_sections: handleListDocSections,
+  start_tour: handleStartTour,
+  zoom_to_bbox: handleZoomToBbox,
+  zoom_to_point: handleZoomToPoint,
+  set_base_layer: handleSetBaseLayer,
+  set_map_view: handleSetMapView,
+  toggle_graticule: handleToggleGraticule,
+  set_draw_mode: handleSetDrawMode,
+  set_chart_field: handleSetChartField,
+  set_x_axis: handleSetXAxis,
+  set_color_map: handleSetColorMap,
+  set_3d_config: handleSet3dConfig,
+  set_plot_options: handleSetPlotOptions
 }
 
 for (const def of toolDefinitions) {
