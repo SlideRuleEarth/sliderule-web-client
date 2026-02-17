@@ -76,6 +76,23 @@ export async function handleJsonRpcRequest(request: JsonRpcRequest): Promise<Jso
         break
       }
 
+      case 'prompts/list': {
+        const { listPrompts } = await import('./promptTemplates')
+        result = { prompts: listPrompts() }
+        break
+      }
+
+      case 'prompts/get': {
+        const promptName = request.params?.name as string
+        const promptArgs = (request.params?.arguments ?? {}) as Record<string, string>
+        if (!promptName) {
+          throw new JsonRpcError(-32602, 'Missing prompt name in params.name')
+        }
+        const { getPrompt } = await import('./promptTemplates')
+        result = getPrompt(promptName, promptArgs)
+        break
+      }
+
       case 'ping':
         result = {}
         break
@@ -141,6 +158,17 @@ function formatResponseSummary(method: string, result: unknown): string {
     const contents = (result as { contents?: Array<{ text?: string }> })?.contents
     if (Array.isArray(contents) && contents.length > 0) {
       const text = contents[0]?.text || ''
+      return text.length > 80 ? text.substring(0, 80) + '...' : text
+    }
+  }
+  if (method === 'prompts/list') {
+    const prompts = (result as { prompts?: unknown[] })?.prompts
+    return `Listed ${Array.isArray(prompts) ? prompts.length : 0} prompts`
+  }
+  if (method === 'prompts/get') {
+    const messages = (result as { messages?: Array<{ content?: { text?: string } }> })?.messages
+    if (Array.isArray(messages) && messages.length > 0) {
+      const text = messages[0]?.content?.text || ''
       return text.length > 80 ? text.substring(0, 80) + '...' : text
     }
   }

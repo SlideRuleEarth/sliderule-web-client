@@ -374,7 +374,7 @@ Resources are read-only data that the MCP client can access. Resolved from Pinia
 
 ---
 
-## Prompt Templates (planned)
+## Prompt Templates
 
 Prompt templates appear in Claude Desktop's interface and guide Claude through common workflows.
 
@@ -390,7 +390,7 @@ Prompt templates appear in Claude Desktop's interface and guide Claude through c
 
 ---
 
-## Documentation Search Engine (planned — `src/services/docSearchEngine.ts`)
+## Documentation Search Engine (`src/services/docSearchEngine.ts`)
 
 Indexes SlideRule documentation into DuckDB for full-text search. Uses the DuckDB WASM instance already running in the browser — no new infrastructure.
 

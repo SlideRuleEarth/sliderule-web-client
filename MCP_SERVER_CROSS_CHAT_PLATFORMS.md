@@ -1,8 +1,25 @@
 # MCP Server Cross-Platform Strategy — Research & Architecture
 
-## Status: Decision Pending
+## Status: Browser Tools Complete — Next Phase Pending
 
-The 9 parameter tools (MVP 1) are implemented and verified for Claude Desktop. The next question is transport/deployment architecture for multi-client support (ChatGPT + Claude Desktop) and desktop Python capabilities.
+All 42 browser tools (MVPs 0–4) are implemented, verified, and published to PyPI as `sliderule-mcp`. The pending decision is the **next phase**: desktop Python tools, ChatGPT/remote support, or both.
+
+### Current Implementation Summary
+
+| Category | Tools | Examples |
+|----------|-------|---------|
+| Parameter configuration | 13 | `set_mission`, `set_region`, `set_yapc`, `get_current_params` |
+| Request lifecycle | 5 | `submit_request`, `get_request_status`, `cancel_request` |
+| Data analysis | 5 | `run_sql`, `describe_data`, `get_elevation_stats`, `export_data` |
+| Documentation | 4 | `search_docs`, `fetch_docs`, `get_param_help` |
+| Map control | 6 | `zoom_to_bbox`, `set_base_layer`, `set_map_view`, `set_draw_mode` |
+| Visualization | 6 | `set_chart_field`, `set_color_map`, `set_3d_config`, `set_plot_options` |
+| UI & navigation | 3 | `start_tour`, `navigate`, `get_current_view` |
+| **Total** | **42** | |
+
+Additionally: 15 resource URIs + 7 resource templates defined in the server.
+
+**Architecture:** stdio (Claude Desktop) + WebSocket (browser on localhost:3002). Server is a transparent bridge — all tool logic lives in the browser (Pinia stores, DuckDB, OpenLayers).
 
 ---
 
@@ -111,12 +128,12 @@ ChatGPT ─────────┘                        ↑
 | ChatGPT support | Yes (remote server) |
 | Complexity | Highest — two servers to maintain |
 
-### Option D: Phased Approach
+### Option D: Phased Approach (chosen strategy)
 
-1. **Now:** Finish browser tools for Claude Desktop (done ✓)
-2. **Next:** Add SlideRule Python client tools for Claude Desktop (stdio, zero infra)
-3. **Then:** Add streamable HTTP transport (prepares for ChatGPT)
-4. **Later:** Build OAuth Lambda + ChatGPT support (once tool set is mature)
+1. **Phase 1:** Finish browser tools for Claude Desktop — **done ✓** (42 tools, all MVPs complete)
+2. **Phase 2:** Add SlideRule Python client tools for Claude Desktop (stdio, zero infra)
+3. **Phase 3:** Add streamable HTTP transport (prepares for ChatGPT)
+4. **Phase 4:** Build OAuth Lambda + ChatGPT support (once tool set is mature)
 
 ---
 
@@ -184,15 +201,15 @@ ChatGPT ─────────┘                        ↑
 
 ---
 
-## Key Design Decisions (Open)
+## Key Design Decisions
 
-1. **Local-first vs remote-first** deployment?
-2. **Priority:** desktop Python tools vs ChatGPT support?
-3. **Transport:** stdio only, HTTP only, or both?
-4. **OAuth:** extend existing auth Lambda vs Cognito vs Auth0?
-5. **Infrastructure as code:** CloudFormation (matches existing authenticator) vs Terraform?
-6. **Domain:** mcp.slideruleearth.io or other?
+1. ~~**Local-first vs remote-first** deployment?~~ **Decided — local-first.** Claude Desktop + stdio is the primary target.
+2. **Priority:** desktop Python tools vs ChatGPT support? *(open)*
+3. ~~**Transport:** stdio only, HTTP only, or both?~~ **Current — stdio only.** HTTP transport deferred to Phase 3.
+4. **OAuth:** extend existing auth Lambda vs Cognito vs Auth0? *(open — deferred to Phase 4)*
+5. **Infrastructure as code:** CloudFormation (matches existing authenticator) vs Terraform? *(open — deferred to Phase 4)*
+6. **Domain:** mcp.slideruleearth.io or other? *(open — deferred to Phase 4)*
 
 ---
 
-*Research conducted February 2026. Based on MCP specification 2025-03-26, ChatGPT Developer Mode (Sept 2025), and Claude Desktop streamable HTTP support.*
+*Research conducted February 2026. Implementation status updated February 2026. Based on MCP specification 2025-03-26, ChatGPT Developer Mode (Sept 2025), and Claude Desktop streamable HTTP support.*

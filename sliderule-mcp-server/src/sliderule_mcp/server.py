@@ -979,8 +979,92 @@ BOOTSTRAP_RESOURCE_TEMPLATES = [
     ),
 ]
 
+BOOTSTRAP_PROMPTS = [
+    types.Prompt(
+        name="analyze-region",
+        description="Full workflow: set region, configure params, submit, analyze results",
+        arguments=[
+            types.PromptArgument(
+                name="region_description",
+                description='Natural language description of the geographic region (e.g. "Juneau Icefield, Alaska")',
+                required=True,
+            ),
+            types.PromptArgument(
+                name="api",
+                description='SlideRule API to use (e.g. "atl06p", "atl08p", "gedi02ap"). Defaults to atl06p.',
+                required=False,
+            ),
+            types.PromptArgument(
+                name="time_range",
+                description='Time range for the data (e.g. "2020-01-01 to 2023-12-31")',
+                required=False,
+            ),
+        ],
+    ),
+    types.Prompt(
+        name="elevation-change",
+        description="Compare elevation data between two time periods to detect change",
+        arguments=[
+            types.PromptArgument(
+                name="region_description",
+                description="Natural language description of the geographic region",
+                required=True,
+            ),
+            types.PromptArgument(
+                name="period_1",
+                description='First time period (e.g. "2020-01-01 to 2020-12-31")',
+                required=True,
+            ),
+            types.PromptArgument(
+                name="period_2",
+                description='Second time period (e.g. "2023-01-01 to 2023-12-31")',
+                required=True,
+            ),
+        ],
+    ),
+    types.Prompt(
+        name="vegetation-analysis",
+        description="Analyze canopy height and vegetation structure using ICESat-2 ATL08/PhoREAL",
+        arguments=[
+            types.PromptArgument(
+                name="region_description",
+                description="Natural language description of the forested/vegetated region to analyze",
+                required=True,
+            ),
+        ],
+    ),
+    types.Prompt(
+        name="data-quality",
+        description="Assess data coverage, completeness, and quality for a region and API",
+        arguments=[
+            types.PromptArgument(
+                name="region_description",
+                description="Natural language description of the geographic region",
+                required=True,
+            ),
+            types.PromptArgument(
+                name="api",
+                description='SlideRule API to assess (e.g. "atl06p", "atl08p", "gedi02ap")',
+                required=True,
+            ),
+        ],
+    ),
+    types.Prompt(
+        name="explore-data",
+        description="Submit a request and interactively explore the results with SQL queries",
+        arguments=[
+            types.PromptArgument(
+                name="region_description",
+                description="Natural language description of the geographic region",
+                required=True,
+            ),
+        ],
+    ),
+]
+
 cached_resources: list[types.Resource] = list(BOOTSTRAP_RESOURCES)
 cached_resource_templates: list[types.ResourceTemplate] = list(BOOTSTRAP_RESOURCE_TEMPLATES)
+cached_prompts: list[types.Prompt] = list(BOOTSTRAP_PROMPTS)
 
 # ── MCP Server ───────────────────────────────────────────────────
 mcp_server = Server("sliderule-web")
@@ -999,6 +1083,11 @@ async def handle_list_resources() -> list[types.Resource]:
 @mcp_server.list_resource_templates()
 async def handle_list_resource_templates() -> list[types.ResourceTemplate]:
     return cached_resource_templates
+
+
+@mcp_server.list_prompts()
+async def handle_list_prompts() -> list[types.Prompt]:
+    return cached_prompts
 
 
 # Register read_resource manually so we can forward to the browser.
@@ -1064,6 +1153,43 @@ async def _handle_call_tool(req: types.CallToolRequest) -> types.ServerResult:
 
 
 mcp_server.request_handlers[types.CallToolRequest] = _handle_call_tool
+
+
+# Register get_prompt manually to forward to the browser.
+async def _handle_get_prompt(req: types.GetPromptRequest) -> types.ServerResult:
+    name = req.params.name
+    arguments = req.params.arguments or {}
+
+    if browser_ws is None:
+        return types.ServerResult(
+            types.GetPromptResult(
+                description=f"Prompt: {name}",
+                messages=[
+                    types.PromptMessage(
+                        role="user",
+                        content=types.TextContent(
+                            type="text",
+                            text="Browser not connected. Please open the SlideRule web client first.",
+                        ),
+                    )
+                ],
+            )
+        )
+
+    result = await _call_browser("prompts/get", {"name": name, "arguments": arguments})
+    messages = [
+        types.PromptMessage(
+            role=m.get("role", "user"),
+            content=types.TextContent(type="text", text=m["content"]["text"]),
+        )
+        for m in result.get("messages", [])
+    ]
+    return types.ServerResult(
+        types.GetPromptResult(description=result.get("description", ""), messages=messages)
+    )
+
+
+mcp_server.request_handlers[types.GetPromptRequest] = _handle_get_prompt
 
 
 # ── Notify Claude Desktop that the tool list changed ─────────────
@@ -1135,6 +1261,32 @@ async def _fetch_and_cache_resources():
         log.exception("Failed to fetch resource definitions from browser")
 
 
+# ── Fetch prompt definitions from the browser and cache them ─────
+async def _fetch_and_cache_prompts():
+    global cached_prompts
+    try:
+        result = await _call_browser("prompts/list", {})
+        prompts = [
+            types.Prompt(
+                name=p["name"],
+                description=p.get("description", ""),
+                arguments=[
+                    types.PromptArgument(
+                        name=a["name"],
+                        description=a.get("description", ""),
+                        required=a.get("required", False),
+                    )
+                    for a in p.get("arguments", [])
+                ],
+            )
+            for p in result.get("prompts", [])
+        ]
+        cached_prompts = prompts
+        log.info("Cached %d prompt definitions from browser", len(prompts))
+    except Exception:
+        log.exception("Failed to fetch prompt definitions from browser")
+
+
 # ── Forward a request to the browser and wait for response ───────
 async def _call_browser(method: str, params: dict) -> dict:
     if browser_ws is None:
@@ -1171,7 +1323,7 @@ ALLOWED_ORIGINS = {
 
 
 async def _ws_handler(websocket):
-    global browser_ws, cached_tools, cached_resources, cached_resource_templates
+    global browser_ws, cached_tools, cached_resources, cached_resource_templates, cached_prompts
 
     origin = websocket.request.headers.get("Origin", "")
     if origin and origin not in ALLOWED_ORIGINS:
@@ -1189,6 +1341,7 @@ async def _ws_handler(websocket):
     # can process the responses (avoids deadlock).
     asyncio.create_task(_fetch_and_cache_tools())
     asyncio.create_task(_fetch_and_cache_resources())
+    asyncio.create_task(_fetch_and_cache_prompts())
 
     try:
         async for raw in websocket:
@@ -1211,6 +1364,7 @@ async def _ws_handler(websocket):
             cached_tools = list(BOOTSTRAP_TOOLS)
             cached_resources = list(BOOTSTRAP_RESOURCES)
             cached_resource_templates = list(BOOTSTRAP_RESOURCE_TEMPLATES)
+            cached_prompts = list(BOOTSTRAP_PROMPTS)
             log.info("Browser disconnected, restored bootstrap definitions")
 
 
@@ -1227,6 +1381,7 @@ async def _run():
                 write_stream,
                 mcp_server.create_initialization_options(
                     notification_options=NotificationOptions(
+                    prompts_changed=True,
                     tools_changed=True,
                     resources_changed=True,
                 ),
