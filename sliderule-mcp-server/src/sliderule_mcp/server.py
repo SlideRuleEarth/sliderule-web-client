@@ -743,10 +743,29 @@ BOOTSTRAP_TOOLS = [
         },
     ),
     types.Tool(
+        name="get_elevation_plot_config",
+        description=(
+            "Get current elevation plot configuration: Y-axis field, X-axis field, "
+            "color encoding, symbol size/color, photon cloud, slope lines, tooltip, "
+            "and available field options."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "req_id": {
+                    "type": "integer",
+                    "description": "The request ID whose plot config to read.",
+                },
+            },
+            "required": ["req_id"],
+        },
+    ),
+    types.Tool(
         name="set_plot_options",
         description=(
-            "Configure chart plot options: color encoding field for data-driven "
-            "coloring, symbol size, and tooltip visibility."
+            "Configure chart plot options: color encoding, symbol size/color, "
+            "Y-axis field, time-based X-axis, photon cloud overlay, slope lines, "
+            "and tooltip visibility."
         ),
         inputSchema={
             "type": "object",
@@ -755,15 +774,35 @@ BOOTSTRAP_TOOLS = [
                     "type": "integer",
                     "description": "The request ID whose plot to configure.",
                 },
+                "y_field": {
+                    "type": "string",
+                    "description": 'Y-axis data field (e.g. "h_mean", "h_ph"). Use get_elevation_plot_config to see options.',
+                },
                 "color_field": {
                     "type": "string",
                     "description": 'Field name for color encoding (e.g. "h_mean"), or "solid" for single color.',
+                },
+                "solid_color": {
+                    "type": "string",
+                    "description": 'Solid symbol color when color_field is "solid" (e.g. "red", "#ff0000").',
                 },
                 "symbol_size": {
                     "type": "number",
                     "description": "Symbol/point size in pixels (default varies by API).",
                     "minimum": 1,
                     "maximum": 20,
+                },
+                "use_time_for_x_axis": {
+                    "type": "boolean",
+                    "description": "Use time instead of along-track distance for X-axis.",
+                },
+                "show_photon_cloud": {
+                    "type": "boolean",
+                    "description": "Show or hide ATL03 photon cloud overlay on the plot.",
+                },
+                "show_slope_lines": {
+                    "type": "boolean",
+                    "description": "Show or hide slope/segment lines on the plot.",
                 },
                 "show_tooltip": {
                     "type": "boolean",
@@ -1126,6 +1165,8 @@ ALLOWED_ORIGINS = {
     "http://127.0.0.1:5173",
     "http://127.0.0.1:4173",
     "http://127.0.0.1:3000",
+    "https://testsliderule.org",            # Deployed test site
+    "https://client.slideruleearth.io",     # Deployed production site
 }
 
 

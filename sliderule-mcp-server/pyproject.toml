@@ -1,6 +1,6 @@
 [project]
 name = "sliderule-mcp"
-version = "0.1.1"
+version = "0.2.1"
 description = "MCP server bridging Claude Desktop to the SlideRule web client"
 requires-python = ">=3.10"
 license = {text = "BSD-3-Clause"}

@@ -161,7 +161,32 @@ deploy-docs-to-testsliderule: ## Deploy the docs to the testsliderule.org cloudf
 destroy-docs-testsliderule: ## Destroy the web client from the testsliderule.org cloudfront and remove the S3 bucket
 	make destroy DOMAIN=docs.testsliderule.org S3_BUCKET=testsliderule-docs DOMAIN_APEX=testsliderule.org 
 
-.PHONY: check-vars typecheck lint lint-fix lint-staged pre-commit-check test-unit test-unit-watch coverage-unit test-e2e test-all ci-check build-docs
+MCP_SERVER_DIR = sliderule-mcp-server
+MCP_VERSION = $(shell grep '^version' $(MCP_SERVER_DIR)/pyproject.toml | sed 's/.*"\(.*\)"/\1/')
+
+mcp-build: ## Build the MCP server wheel and sdist
+	@echo "Building sliderule-mcp v$(MCP_VERSION)..."
+	cd $(MCP_SERVER_DIR) && rm -rf dist && python -c "\
+	import os; \
+	from hatchling.builders.wheel import WheelBuilder; \
+	from hatchling.builders.sdist import SdistBuilder; \
+	os.makedirs('dist', exist_ok=True); \
+	[print('wheel:', a) for a in WheelBuilder('.').build(directory='dist', versions=['standard'])]; \
+	[print('sdist:', a) for a in SdistBuilder('.').build(directory='dist', versions=['standard'])]"
+
+mcp-publish: mcp-build ## Build and upload the MCP server to PyPI
+	@echo "Uploading sliderule-mcp v$(MCP_VERSION) to PyPI..."
+	cd $(MCP_SERVER_DIR) && python -m twine upload dist/*
+	@echo "✅ Published sliderule-mcp v$(MCP_VERSION) — run 'make mcp-refresh' to update local uvx cache"
+
+mcp-refresh: ## Clear uvx cache so Claude Desktop picks up the latest PyPI version
+	@echo "Refreshing uvx cache for sliderule-mcp..."
+	uvx --refresh sliderule-mcp --version 2>/dev/null || true
+	@echo "✅ uvx cache refreshed — restart Claude Desktop to use v$(MCP_VERSION)"
+
+mcp-release: mcp-publish mcp-refresh ## Publish to PyPI and refresh local uvx cache
+
+.PHONY: check-vars typecheck lint lint-fix lint-staged pre-commit-check test-unit test-unit-watch coverage-unit test-e2e test-all ci-check build-docs mcp-build mcp-publish mcp-refresh mcp-release
 # =========================
 # Testing / Quality targets
 # =========================

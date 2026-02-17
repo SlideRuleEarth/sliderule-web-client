@@ -39,8 +39,8 @@ MCP (Model Context Protocol) support for the SlideRule web client allows Claude 
 │                                                                      │
 │  ┌──────────────┐    ┌────────────────┐    ┌──────────────────────┐ │
 │  │ MCP Client   │───→│ MCP Handler    │───→│ Tool Executor        │ │
-│  │ (WebSocket)  │    │ (JSON-RPC      │    │ (3 tools against     │ │
-│  └──────────────┘    │  router)       │    │  Pinia stores)       │ │
+│  │ (WebSocket)  │    │ (JSON-RPC      │    │ (42 tools against    │ │
+│  └──────────────┘    │  router)       │    │  Pinia/DuckDB/OL)    │ │
 │                      └────────────────┘    └──────────────────────┘ │
 │                                                                      │
 │  ┌──────────────────┐                                                │
@@ -207,9 +207,11 @@ Routes incoming JSON-RPC messages to the appropriate handler:
 |---|---|
 | `tools/list` | Return tool definitions from bundled catalog |
 | `tools/call` | Dispatch to Tool Executor, return result |
+| `resources/list` | Return resource definitions from Resource Resolver |
+| `resources/read` | Dispatch to Resource Resolver, return content |
 | `ping` | Return pong (keepalive) |
 
-Tool definitions are **bundled in the SPA**. The browser is where all the knowledge lives — the MCP server is just a pipe.
+Tool and resource definitions are **bundled in the SPA**. The browser is where all the knowledge lives — the MCP server is just a pipe.
 
 ### 3. Tool Executor (`src/services/toolExecutor.ts`)
 
@@ -247,37 +249,37 @@ Small indicator in `SrAppBar.vue` — a colored dot + expandable dropdown.
 
 ## Tool Definitions
 
-All tools execute in the browser against existing stores and utilities. Tools marked with **[implemented]** are working. All others are planned.
+All tools execute in the browser against existing stores and utilities. All tools are implemented and working.
 
-### Parameter Tools (12)
+### Parameter Tools (13)
 
-| Tool | Status | Backing Code | Description |
-|---|---|---|---|
-| `set_mission` | **[implemented]** | `reqParamsStore.setMissionValue()` | Set mission to ICESat-2 or GEDI. Auto-resets API to mission default. |
-| `get_current_params` | **[implemented]** | `reqParamsStore` (reads state) | Return the complete current parameter state as JSON. |
-| `reset_params` | **[implemented]** | `reqParamsStore.reset()` | Reset all parameters to defaults. **Destructive — requires browser confirmation.** |
-| `set_api` | **[implemented]** | `reqParamsStore.setIceSat2API()` / `setGediAPI()` | Set the processing API (atl03x, atl06, atl08p, gedi02ap, etc.). Auto-enables API-specific flags. |
-| `set_region` | **[implemented]** | `reqParamsStore.setPoly()` | Set the geographic region via bounding box or GeoJSON polygon. Computes convex hull and area. |
-| `set_time_range` | **[implemented]** | `reqParamsStore.setT0()`, `setT1()` | Set start/end time filter. Auto-enables granule selection. |
-| `set_rgt` | **[implemented]** | `reqParamsStore.setRgt()` | Set reference ground track filter. Auto-enables granule selection. |
-| `set_cycle` | **[implemented]** | `reqParamsStore.setCycle()` | Set 91-day repeat cycle filter. Auto-enables granule selection. |
-| `set_beams` | **[implemented]** | `reqParamsStore.setSelectedGtOptions()` / `gediBeams` | Select which beams/ground tracks to process. Supports ICESat-2 GT names and GEDI beam numbers. |
-| `set_surface_fit` | **[implemented]** | `reqParamsStore.setUseSurfaceFitAlgorithm()`, `setMaxIterations()`, etc. | Enable/configure ATL06-SR surface fitting (maxi, h_win, sigma_r). Auto-disables PhoREAL. |
-| `set_photon_params` | **[implemented]** | `reqParamsStore.setLengthValue()`, `setStepValue()`, etc. | Set photon-level processing parameters (length, step, along-track spread, min photon count). |
-| `set_yapc` | **[implemented]** | `reqParamsStore.enableYAPC`, `setYAPCScore()`, etc. | Enable/configure YAPC photon classifier (score, knn, window height/width, version). |
-| `set_output_config` | **[implemented]** | `reqParamsStore` output settings | Set file output mode, GeoParquet format, checksum. |
+| Tool | Backing Code | Description |
+|---|---|---|
+| `set_mission` | `reqParamsStore.setMissionValue()` | Set mission to ICESat-2 or GEDI. Auto-resets API to mission default. |
+| `get_current_params` | `reqParamsStore` (reads state) | Return the complete current parameter state as JSON. |
+| `reset_params` | `reqParamsStore.reset()` | Reset all parameters to defaults. **Destructive — requires browser confirmation.** |
+| `set_api` | `reqParamsStore.setIceSat2API()` / `setGediAPI()` | Set the processing API (atl03x, atl06, atl08p, gedi02ap, etc.). Auto-enables API-specific flags. |
+| `set_region` | `reqParamsStore.setPoly()` | Set the geographic region via bounding box or GeoJSON polygon. Computes convex hull and area. |
+| `set_time_range` | `reqParamsStore.setT0()`, `setT1()` | Set start/end time filter. Auto-enables granule selection. |
+| `set_rgt` | `reqParamsStore.setRgt()` | Set reference ground track filter. Auto-enables granule selection. |
+| `set_cycle` | `reqParamsStore.setCycle()` | Set 91-day repeat cycle filter. Auto-enables granule selection. |
+| `set_beams` | `reqParamsStore.setSelectedGtOptions()` / `gediBeams` | Select which beams/ground tracks to process. Supports ICESat-2 GT names and GEDI beam numbers. |
+| `set_surface_fit` | `reqParamsStore.setUseSurfaceFitAlgorithm()`, `setMaxIterations()`, etc. | Enable/configure ATL06-SR surface fitting (maxi, h_win, sigma_r). Auto-disables PhoREAL. |
+| `set_photon_params` | `reqParamsStore.setLengthValue()`, `setStepValue()`, etc. | Set photon-level processing parameters (length, step, along-track spread, min photon count). |
+| `set_yapc` | `reqParamsStore.enableYAPC`, `setYAPCScore()`, etc. | Enable/configure YAPC photon classifier (score, knn, window height/width, version). |
+| `set_output_config` | `reqParamsStore` output settings | Set file output mode, GeoParquet format, checksum. |
 
-### Request Lifecycle Tools (5, planned)
+### Request Lifecycle Tools (5)
 
 | Tool | Backing Code | Description |
 |---|---|---|
 | `submit_request` | `workerDomUtils.processRunSlideRuleClicked()` | Submit the current parameters as a SlideRule processing request. Spawns a Web Worker, streams Parquet results to OPFS, loads into DuckDB. |
-| `get_request_status` | `requestsStore.getReqById()` | Get status of a request: pending, running, success, error. Includes elapsed time, row count, granule count. |
+| `get_request_status` | `requestsStore.getReqById()` | Get status of a request: pending, running, success, error. Includes elapsed time, row count, granule count. Also returns `current_view` (active route name/path). |
 | `cancel_request` | `workerDomUtils.processAbortClicked()` | Cancel a running request. |
 | `list_requests` | `requestsStore.fetchReqs()` | List all requests in the session with their status. |
 | `delete_request` | `requestsStore.deleteReq()` | Delete a request and its data. **Destructive — requires browser confirmation.** |
 
-### Data Analysis Tools (5, planned)
+### Data Analysis Tools (5)
 
 | Tool | Backing Code | Description |
 |---|---|---|
@@ -287,7 +289,7 @@ All tools execute in the browser against existing stores and utilities. Tools ma
 | `get_sample_data` | `DuckDBClient.queryChunkSampled()` | Retrieve a random sample of rows from a result set. |
 | `export_data` | `DuckDBClient.copyQueryToParquet()` | Export query results as GeoParquet or other formats for download. |
 
-### Map Tools (6, planned)
+### Map Tools (6)
 
 | Tool | Backing Code | Description |
 |---|---|---|
@@ -298,40 +300,50 @@ All tools execute in the browser against existing stores and utilities. Tools ma
 | `toggle_graticule` | `mapStore.toggleGraticule()` | Show/hide the latitude/longitude grid. |
 | `set_draw_mode` | `mapStore.setDrawType()` | Set the region drawing mode (polygon, box, or none). |
 
-### Visualization Tools (5, planned)
+### Visualization Tools (6)
 
 | Tool | Backing Code | Description |
 |---|---|---|
-| `set_chart_field` | `chartStore.setYDataOptions()` | Set which fields to plot on the elevation chart. |
-| `set_x_axis` | `chartStore.setXDataForChart()` | Set the X-axis field (default: along-track distance). |
+| `set_chart_field` | `chartStore.setSelectedYData()` | Set which field to plot on the Y-axis of the elevation chart. |
+| `set_x_axis` | `chartStore.setXDataForChartUsingFunc()` | Set the X-axis field (default: along-track distance). |
 | `set_color_map` | `colorMapStore.setNamedColorPalette()` | Set the color palette for track/beam coloring. |
 | `set_3d_config` | `deck3DConfigStore` properties | Configure 3D view: vertical exaggeration, point size, axes, field of view. |
-| `set_plot_options` | `chartStore` actions | Configure plot options: axis ranges, legend, symbol encoding, track selection. |
+| `get_elevation_plot_config` | `chartStore`, `symbolStore`, `globalChartStore`, `atlChartFilterStore` | Read current elevation plot state: Y/X field, color encoding, symbol size/color, photon cloud, slope lines, tooltip, available field options. |
+| `set_plot_options` | `chartStore`, `symbolStore`, `globalChartStore`, `atlChartFilterStore` | Configure plot options: Y-axis field, color encoding, solid color, symbol size, time-based X-axis, photon cloud overlay, slope lines, tooltip. |
 
-### Documentation Tools (4, planned)
+### Documentation Tools (4)
 
 | Tool | Backing Code | Description |
 |---|---|---|
 | `search_docs` | DuckDB FTS query on `sr_docs` table | Full-text search across indexed SlideRule documentation. Returns ranked results with snippets. |
-| `fetch_docs` | Browser `fetch()` + DOMParser + DuckDB insert | Fetch a ReadTheDocs page, parse to text, index into DuckDB for future searches. URL must be under `slideruleearth.io`. |
+| `fetch_docs` | Browser `fetch()` + DOMParser + DuckDB insert | Fetch a ReadTheDocs page, parse to text, index into DuckDB for future searches. URL validated: must be HTTPS under `slideruleearth.io`. |
 | `get_param_help` | Tooltip text + `defaultsStore` + docs index | Get help for a specific parameter: description, valid values, defaults, linked documentation. |
 | `list_doc_sections` | Query `sr_docs` table | List all indexed documentation sections with titles and chunk counts. |
 
+### UI & Navigation Tools (3)
+
+| Tool | Backing Code | Description |
+|---|---|---|
+| `start_tour` | `SrAppTour` | Start an interactive guided tour of the UI. "quick" for 4-step essentials, "long" for full walkthrough. |
+| `navigate` | Vue Router `router.push()` | Navigate to a view: home, request, analyze (with req_id), settings, about, server, rectree, privacy. |
+| `get_current_view` | Vue Router `router.currentRoute` | Get the current view/page, route params, and list of all available views. |
+
 ### Summary
 
-- 12 parameter tools (12 implemented)
-- 5 request lifecycle tools (planned)
-- 5 data analysis tools (planned)
-- 6 map tools (planned)
-- 5 visualization tools (planned)
-- 4 documentation tools (planned)
-- **39 tools total (39 implemented)**
+- 13 parameter tools
+- 5 request lifecycle tools
+- 5 data analysis tools
+- 6 map tools
+- 6 visualization tools
+- 4 documentation tools
+- 3 UI & navigation tools
+- **42 tools total — all implemented**
 
 ---
 
-## Resource Definitions (planned)
+## Resource Definitions
 
-Resources are read-only data that the MCP client can access. Resolved from Pinia stores, DuckDB, and IndexedDB.
+Resources are read-only data that the MCP client can access. Resolved from Pinia stores, DuckDB, and IndexedDB via `resourceResolver.ts`. All resources are implemented.
 
 ### App Resources (10)
 
@@ -346,6 +358,7 @@ Resources are read-only data that the MCP client can access. Resolved from Pinia
 | `sliderule://catalog/products` | Available missions and APIs |
 | `sliderule://catalog/fields/{api}` | Available data fields for a specific API |
 | `sliderule://auth/status` | Current auth state: username, org membership |
+| `sliderule://app/current-view` | Current Vue Router route (name, path, params) + list of available views |
 
 ### Documentation Resources (5)
 
@@ -357,7 +370,7 @@ Resources are read-only data that the MCP client can access. Resolved from Pinia
 | `sliderule://docs/tooltips` | All in-app tooltip text organized by component/parameter |
 | `sliderule://docs/defaults/{mission}` | Server defaults for a mission (ICESat-2, GEDI, etc.) |
 
-**14 resource URIs total.**
+**15 resource URIs total — all implemented.**
 
 ---
 
@@ -441,16 +454,17 @@ The current architecture is designed for local use with Claude Desktop Chat mode
 
 ## Security
 
-Items marked **[active]** are enforced today. Others will be enforced when the corresponding tools are implemented.
+All items are actively enforced.
 
 1. **[active]** **Localhost only** — the MCP server's WebSocket binds to `localhost`, unreachable from the network. Only processes on the same machine can connect.
 2. **[active]** **User is present** — the researcher has the browser open and sees every tool call in the activity indicator. Nothing happens silently.
-3. **[active]** **Destructive actions require confirmation** — `reset_params` (and future `delete_request`) show a `ConfirmDialog` in the browser. Claude waits for the user to approve or deny. Denial returns an error to Claude.
+3. **[active]** **Destructive actions require confirmation** — `reset_params` and `delete_request` show a `ConfirmDialog` in the browser. Claude waits for the user to approve or deny. Denial returns an error to Claude.
 4. **[active]** **Input validation** — every tool has a JSON Schema. Arguments are validated before execution. Invalid args return a descriptive error.
 5. **[active]** **Request timeout** — the MCP server times out any browser call after 30 seconds, preventing hung connections.
 6. **[active]** **Browser-controlled tool surface** — tool definitions come from the browser's bundled `toolDefinitions.ts`. The server caches them and notifies Claude Desktop when they change. New tools can only be added by updating the deployed SPA.
-7. **SQL sandboxing** — DuckDB WASM operates on read-only in-memory data with a 30s timeout. No access to the local filesystem or external databases.
-8. **Domain-restricted fetch** — `fetch_docs` will only fetch URLs under `slideruleearth.io`. No arbitrary URL access.
+7. **[active]** **SQL sandboxing** — DuckDB WASM operates on read-only in-memory data with a 30s timeout. No access to the local filesystem or external databases.
+8. **[active]** **Domain-restricted fetch** — `fetch_docs` validates URLs with proper `URL` parsing: hostname must be exactly `slideruleearth.io` or a subdomain, and protocol must be HTTPS. No arbitrary URL access.
+9. **[active]** **WebSocket origin checking** — the MCP server validates the `Origin` header on WebSocket connections against an allowlist of allowed origins (localhost dev ports, `testsliderule.org`, `client.slideruleearth.io`). Connections from unknown origins are rejected with code 4003.
 
 ---
 
@@ -461,23 +475,22 @@ Items marked **[active]** are enforced today. Others will be enforced when the c
 | File | Purpose |
 |---|---|
 | `sliderule-mcp-server/pyproject.toml` | Python package config with entry point |
-| `sliderule-mcp-server/src/sliderule_mcp/server.py` | MCP server process (~229 lines) |
+| `sliderule-mcp-server/src/sliderule_mcp/server.py` | MCP server process (bootstrap tools, WebSocket bridge, origin checking) |
 | `web-client/src/services/mcpClient.ts` | Browser-side WebSocket client |
-| `web-client/src/services/mcpHandler.ts` | JSON-RPC message router (tools/list, tools/call, ping) |
-| `web-client/src/services/toolExecutor.ts` | Tool execution registry (13 tools) |
+| `web-client/src/services/mcpHandler.ts` | JSON-RPC message router (tools/list, tools/call, resources/list, resources/read, ping) |
+| `web-client/src/services/toolExecutor.ts` | Tool execution registry (42 tools) |
 | `web-client/src/services/toolDefinitions.ts` | Tool schemas (names, descriptions, JSON Schemas) |
+| `web-client/src/services/resourceResolver.ts` | Resource URI → Pinia/DuckDB/IndexedDB resolution (15 resources) |
 | `web-client/src/stores/mcpStore.ts` | Connection status, activity log |
 | `web-client/src/components/SrMcpActivityIndicator.vue` | App bar indicator (dot + dropdown) |
+| `web-client/src/assets/docs-index.json` | Bundled documentation chunks (generated at build time) |
+| `web-client/scripts/build-docs-index.ts` | Build script: scrape ReadTheDocs + extract tooltips → `docs-index.json` |
 
 ### Planned Files
 
 | File | Purpose |
 |---|---|
-| `web-client/src/services/resourceResolver.ts` | Resource URI → Pinia/DuckDB/IndexedDB resolution |
 | `web-client/src/services/promptTemplates.ts` | Prompt template catalog |
-| `web-client/src/services/docSearchEngine.ts` | Documentation indexing + DuckDB FTS |
-| `web-client/src/assets/docs-index.json` | Bundled documentation chunks |
-| `web-client/scripts/build-docs-index.ts` | Build script: scrape ReadTheDocs + extract tooltips |
 
 ### Modified Files
 
@@ -489,9 +502,11 @@ Items marked **[active]** are enforced today. Others will be enforced when the c
 
 | Existing | Used By |
 |---|---|
-| `src/stores/reqParamsStore.ts` | `toolExecutor.ts` — all 13 parameter tools |
+| `src/stores/reqParamsStore.ts` | `toolExecutor.ts` — 13 parameter tools |
 | `src/stores/mapStore.ts` | `toolExecutor.ts` — 6 map tools |
-| `src/stores/chartStore.ts` / `globalChartStore.ts` | `toolExecutor.ts` — chart tools |
+| `src/stores/chartStore.ts` / `globalChartStore.ts` | `toolExecutor.ts` — chart/plot tools |
+| `src/stores/symbolStore.ts` | `toolExecutor.ts` — plot symbol size |
+| `src/stores/atlChartFilterStore.ts` | `toolExecutor.ts` — photon cloud, slope lines |
 | `src/stores/colorMapStore.ts` | `toolExecutor.ts` — color palette tool |
 | `src/stores/deckStore.ts` + `deck3DConfigStore.ts` | `toolExecutor.ts` — 3D config tool |
 | `src/stores/requestsStore.ts` | `toolExecutor.ts` — request lifecycle tools |
@@ -499,7 +514,8 @@ Items marked **[active]** are enforced today. Others will be enforced when the c
 | `src/utils/workerDomUtils.ts` | `toolExecutor.ts` — request submission |
 | `src/db/SlideRuleDb.ts` | `resourceResolver.ts` — request history |
 | `src/stores/fieldNameStore.ts` | `resourceResolver.ts` — field catalog |
-| `src/stores/defaultsStore.ts` | `docSearchEngine.ts` — parameter defaults + descriptions |
+| `src/stores/defaultsStore.ts` | `toolExecutor.ts` + `resourceResolver.ts` — parameter defaults + descriptions |
+| `src/router/index.ts` | `toolExecutor.ts` + `resourceResolver.ts` — navigation + current view |
 | PrimeVue `ConfirmDialog` | `toolExecutor.ts` — destructive action confirmations |
 
 ---
@@ -542,19 +558,19 @@ Items marked **[active]** are enforced today. Others will be enforced when the c
 
 ---
 
-### MVP 2: Request Execution + Data Analysis
+### MVP 2: Request Execution + Data Analysis ✓ COMPLETE
 
 **Depends on:** MVP 1
 
 **Goal:** Submit a request and analyze results without touching the browser.
 
 **Deliverables:**
-- Request lifecycle tools (5): `submit_request`, `get_request_status`, `cancel_request`, `list_requests`, `delete_request`
-- Data analysis tools (5): `run_sql`, `describe_data`, `get_elevation_stats`, `get_sample_data`, `export_data`
-- Resources: `sliderule://requests/history`, `sliderule://requests/{id}/summary`, `sliderule://data/{id}/schema`, `sliderule://data/{id}/sample`
-- Destructive action confirmations (`delete_request` → ConfirmDialog)
+- Request lifecycle tools (5): `submit_request`, `get_request_status`, `cancel_request`, `list_requests`, `delete_request` ✓
+- Data analysis tools (5): `run_sql`, `describe_data`, `get_elevation_stats`, `get_sample_data`, `export_data` ✓
+- Resources: `sliderule://requests/history`, `sliderule://requests/{id}/summary`, `sliderule://data/{id}/schema`, `sliderule://data/{id}/sample` ✓
+- Destructive action confirmations (`delete_request` → ConfirmDialog) ✓
 
-**Done when:** Claude configures parameters, submits a request, polls until complete, runs SQL to compute elevation statistics by beam, and exports results as GeoParquet — all without the researcher touching the browser.
+**Verified:** Claude configures parameters, submits a request, polls until complete, runs SQL to compute elevation statistics by beam, and exports results as GeoParquet — all without the researcher touching the browser.
 
 ---
 
@@ -566,47 +582,46 @@ Items marked **[active]** are enforced today. Others will be enforced when the c
 
 **Deliverables:**
 - Map tools (6): `zoom_to_bbox`, `zoom_to_point`, `set_base_layer`, `set_map_view`, `toggle_graticule`, `set_draw_mode` ✓
-- Visualization tools (5): `set_chart_field`, `set_x_axis`, `set_color_map`, `set_3d_config`, `set_plot_options` ✓
-- Resources: `sliderule://map/viewport`, `sliderule://catalog/products`, `sliderule://catalog/fields/{api}`
+- Visualization tools (6): `set_chart_field`, `set_x_axis`, `set_color_map`, `set_3d_config`, `get_elevation_plot_config`, `set_plot_options` ✓
+- Resources: `sliderule://map/viewport`, `sliderule://catalog/products`, `sliderule://catalog/fields/{api}` ✓
+- UI & navigation tools (3): `start_tour`, `navigate`, `get_current_view` ✓
 
-**Done when:** Claude zooms to a region, switches to Arctic projection, sets up an elevation chart colored by beam, and configures 3D exaggeration — the researcher watches it happen in real-time.
+**Verified:** Claude zooms to a region, switches to Arctic projection, sets up an elevation chart colored by beam, reads/configures elevation plot options (symbol size, photon cloud, slope lines), navigates between views, and configures 3D exaggeration — the researcher watches it happen in real-time.
 
 ---
 
-### MVP 4: Documentation Search
+### MVP 4: Documentation Search ✓ COMPLETE
 
 **Depends on:** MVP 0 (parallel with MVP 1–3)
 
 **Goal:** Claude answers questions about SlideRule by searching indexed documentation.
 
 **Deliverables:**
-- `scripts/build-docs-index.ts` — scrapes ReadTheDocs + extracts tooltips
-- `src/assets/docs-index.json` — bundled doc chunks
-- `docSearchEngine.ts` — DuckDB FTS table, index loading, live fetch + parse
-- Documentation tools (4): `search_docs`, `fetch_docs`, `get_param_help`, `list_doc_sections`
-- Documentation resources (5)
+- `scripts/build-docs-index.ts` — scrapes ReadTheDocs + extracts tooltips ✓
+- `src/assets/docs-index.json` — bundled doc chunks ✓
+- DuckDB FTS table, index loading, live fetch + parse ✓
+- Documentation tools (4): `search_docs`, `fetch_docs`, `get_param_help`, `list_doc_sections` ✓
+- Documentation resources (5) ✓
 
-**Done when:** Claude answers "What photon classification should I use for glaciers?" by searching the docs, reading the relevant chunks, and synthesizing a contextual answer.
+**Verified:** Claude answers "What photon classification should I use for glaciers?" by searching the docs, reading the relevant chunks, and synthesizing a contextual answer.
 
 ---
 
 ### Milestone dependency map
 
 ```
-MVP 0: Connection + First Tools  ✓ COMPLETE (verified with Claude Desktop)
+MVP 0: Connection + First Tools  ✓ COMPLETE
   │
-  ├──► MVP 1: Parameter Control  ✓ COMPLETE (12/12 tools)
+  ├──► MVP 1: Parameter Control  ✓ COMPLETE (13 tools)
   │      │
-  │      └──► MVP 2: Request Execution + Data Analysis  ✓ COMPLETE
+  │      └──► MVP 2: Request Execution + Data Analysis  ✓ COMPLETE (10 tools)
   │
-  ├──► MVP 3: Map + Visualization  ✓ COMPLETE (11/11 tools)
+  ├──► MVP 3: Map + Visualization  ✓ COMPLETE (15 tools)
   │
-  └──► MVP 4: Documentation Search  ✓ COMPLETE (4/4 tools)
+  └──► MVP 4: Documentation Search  ✓ COMPLETE (4 tools)
+
+  ALL MILESTONES COMPLETE — 42 tools, 15 resources
 ```
-
-**Critical path:** MVP 0 → MVP 1 → MVP 2. This is the shortest path to a researcher running a full workflow through Claude Desktop.
-
-**Parallel:** MVP 3 and 4 only depend on MVP 0. They can proceed alongside MVP 1–2. Within each MVP, tool groups are independent and can be built in any order.
 
 **Adding new tools only requires browser-side changes:** Add a definition to `toolDefinitions.ts`, add a handler to `toolExecutor.ts`, and register it. The MCP server is a transparent bridge — no server-side changes needed for new tools. The bootstrap tool list in `server.py` should be updated periodically to match, but it's not strictly required (tools will be fetched dynamically when the browser connects).
 

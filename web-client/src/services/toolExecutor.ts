@@ -1316,25 +1316,104 @@ async function handleSet3dConfig(args: Record<string, unknown>): Promise<ToolRes
   return ok(`3D config updated: ${details.join(', ')}.`)
 }
 
+async function handleGetElevationPlotConfig(args: Record<string, unknown>): Promise<ToolResult> {
+  const reqIdStr = String(args.req_id as number)
+  const { useChartStore } = await import('@/stores/chartStore')
+  const chartStore = useChartStore()
+  if (!chartStore.ensureState(reqIdStr)) {
+    return err(`Invalid req_id: ${args.req_id}.`)
+  }
+
+  const { useSymbolStore } = await import('@/stores/symbolStore')
+  const symbolStore = useSymbolStore()
+  const { useGlobalChartStore } = await import('@/stores/globalChartStore')
+  const globalChartStore = useGlobalChartStore()
+  const { useAtlChartFilterStore } = await import('@/stores/atlChartFilterStore')
+  const atlChartFilterStore = useAtlChartFilterStore()
+
+  const config = {
+    req_id: args.req_id,
+    y_field: chartStore.getSelectedYData(reqIdStr),
+    y_field_options: chartStore.getYDataOptions(reqIdStr),
+    x_field: chartStore.getXDataForChart(reqIdStr),
+    color_field: chartStore.getSelectedColorEncodeData(reqIdStr),
+    solid_color: chartStore.getSolidSymbolColor(reqIdStr),
+    symbol_size: symbolStore.getSize(reqIdStr),
+    use_time_for_x_axis: globalChartStore.useTimeForXAxis,
+    show_tooltip: globalChartStore.showPlotTooltip,
+    show_photon_cloud: atlChartFilterStore.showPhotonCloud,
+    show_slope_lines: atlChartFilterStore.showSlopeLines,
+    title: globalChartStore.titleOfElevationPlot,
+    num_plotted_points: chartStore.getNumOfPlottedPnts(reqIdStr),
+    max_points_on_plot: globalChartStore.max_pnts_on_plot
+  }
+
+  return ok(JSON.stringify(config, null, 2))
+}
+
 async function handleSetPlotOptions(args: Record<string, unknown>): Promise<ToolResult> {
   const details: string[] = []
+  const reqIdStr = args.req_id !== undefined ? String(args.req_id as number) : undefined
 
-  if (args.req_id !== undefined && args.color_field !== undefined) {
-    const reqIdStr = String(args.req_id as number)
+  // Per-request options that need req_id + chartStore
+  if (reqIdStr !== undefined) {
     const { useChartStore } = await import('@/stores/chartStore')
     const chartStore = useChartStore()
     if (!chartStore.ensureState(reqIdStr)) {
       return err(`Invalid req_id: ${args.req_id}.`)
     }
-    chartStore.setSelectedColorEncodeData(reqIdStr, args.color_field as string)
-    details.push(`color_field="${args.color_field}" for req ${args.req_id}`)
+
+    if (args.color_field !== undefined) {
+      chartStore.setSelectedColorEncodeData(reqIdStr, args.color_field as string)
+      details.push(`color_field="${args.color_field}" for req ${args.req_id}`)
+    }
+    if (args.y_field !== undefined) {
+      chartStore.setSelectedYData(reqIdStr, args.y_field as string)
+      details.push(`y_field="${args.y_field}" for req ${args.req_id}`)
+    }
+    if (args.solid_color !== undefined) {
+      chartStore.setSolidSymbolColor(reqIdStr, args.solid_color as string)
+      details.push(`solid_color="${args.solid_color}" for req ${args.req_id}`)
+    }
+    if (args.symbol_size !== undefined) {
+      const { useSymbolStore } = await import('@/stores/symbolStore')
+      const symbolStore = useSymbolStore()
+      symbolStore.setSize(reqIdStr, args.symbol_size as number)
+      details.push(`symbol_size=${args.symbol_size} for req ${args.req_id}`)
+    }
+  } else if (
+    args.color_field !== undefined ||
+    args.y_field !== undefined ||
+    args.solid_color !== undefined ||
+    args.symbol_size !== undefined
+  ) {
+    return err('req_id is required when setting color_field, y_field, solid_color, or symbol_size.')
   }
 
+  // Global options
   if (args.show_tooltip !== undefined) {
     const { useGlobalChartStore } = await import('@/stores/globalChartStore')
     const globalChartStore = useGlobalChartStore()
     globalChartStore.showPlotTooltip = args.show_tooltip as boolean
     details.push(`show_tooltip=${args.show_tooltip}`)
+  }
+  if (args.use_time_for_x_axis !== undefined) {
+    const { useGlobalChartStore } = await import('@/stores/globalChartStore')
+    const globalChartStore = useGlobalChartStore()
+    globalChartStore.useTimeForXAxis = args.use_time_for_x_axis as boolean
+    details.push(`use_time_for_x_axis=${args.use_time_for_x_axis}`)
+  }
+  if (args.show_photon_cloud !== undefined) {
+    const { useAtlChartFilterStore } = await import('@/stores/atlChartFilterStore')
+    const atlChartFilterStore = useAtlChartFilterStore()
+    atlChartFilterStore.setShowPhotonCloud(args.show_photon_cloud as boolean)
+    details.push(`show_photon_cloud=${args.show_photon_cloud}`)
+  }
+  if (args.show_slope_lines !== undefined) {
+    const { useAtlChartFilterStore } = await import('@/stores/atlChartFilterStore')
+    const atlChartFilterStore = useAtlChartFilterStore()
+    atlChartFilterStore.showSlopeLines = args.show_slope_lines as boolean
+    details.push(`show_slope_lines=${args.show_slope_lines}`)
   }
 
   if (details.length === 0) {
@@ -1448,6 +1527,7 @@ const handlers: Record<string, ToolHandler> = {
   set_x_axis: handleSetXAxis,
   set_color_map: handleSetColorMap,
   set_3d_config: handleSet3dConfig,
+  get_elevation_plot_config: handleGetElevationPlotConfig,
   set_plot_options: handleSetPlotOptions,
   navigate: handleNavigate,
   get_current_view: handleGetCurrentView
