@@ -595,6 +595,16 @@ async function handleGetRequestStatus(args: Record<string, unknown>): Promise<To
   }
 
   const serverStateStore = useServerStateStore()
+
+  let currentView: { name: unknown; path: string } | null = null
+  try {
+    const { default: router } = await import('@/router')
+    const route = router.currentRoute.value
+    currentView = { name: route.name, path: route.path }
+  } catch {
+    // Router not available; omit current_view
+  }
+
   const statusInfo = {
     req_id: reqId,
     status: request.status ?? 'unknown',
@@ -606,7 +616,8 @@ async function handleGetRequestStatus(args: Record<string, unknown>): Promise<To
     file: request.file ?? null,
     status_details: request.status_details ?? null,
     description: request.description ?? null,
-    is_currently_fetching: serverStateStore.isFetching
+    is_currently_fetching: serverStateStore.isFetching,
+    current_view: currentView
   }
 
   return ok(JSON.stringify(statusInfo, null, 2))
@@ -1048,6 +1059,79 @@ async function handleStartTour(args: Record<string, unknown>): Promise<ToolResul
   )
 }
 
+async function handleNavigate(args: Record<string, unknown>): Promise<ToolResult> {
+  const view = args.view as string
+  const reqId = args.req_id as number | undefined
+
+  const { default: router } = await import('@/router')
+
+  try {
+    if (view === 'analyze') {
+      if (reqId == null || !Number.isInteger(reqId) || reqId <= 0) {
+        return err(
+          'req_id is required when navigating to "analyze". Provide a valid positive integer.'
+        )
+      }
+      await router.push(`/analyze/${reqId}`)
+    } else if (view === 'request' && reqId != null) {
+      await router.push(`/request/${reqId}`)
+    } else {
+      await router.push({ name: view })
+    }
+
+    const currentRoute = router.currentRoute.value
+    return ok(
+      JSON.stringify(
+        {
+          navigated: true,
+          route: {
+            name: currentRoute.name,
+            path: currentRoute.path,
+            params: currentRoute.params
+          }
+        },
+        null,
+        2
+      )
+    )
+  } catch (e) {
+    return err(`Navigation failed: ${e instanceof Error ? e.message : String(e)}`)
+  }
+}
+
+async function handleGetCurrentView(): Promise<ToolResult> {
+  const { default: router } = await import('@/router')
+  const currentRoute = router.currentRoute.value
+
+  const filteredNames = new Set(['NotFound', 'github-callback', 'request-with-params'])
+  const availableRoutes = router
+    .getRoutes()
+    .filter((r) => r.name && !filteredNames.has(r.name as string))
+    .map((r) => {
+      const result: Record<string, unknown> = { name: r.name, path: r.path }
+      const paramMatch = r.path.match(/:(\w+)/)
+      if (paramMatch) {
+        result.requiresParam = paramMatch[1]
+      }
+      return result
+    })
+
+  return ok(
+    JSON.stringify(
+      {
+        route: {
+          name: currentRoute.name ?? null,
+          path: currentRoute.path,
+          params: currentRoute.params
+        },
+        availableRoutes
+      },
+      null,
+      2
+    )
+  )
+}
+
 // ── Map Tool Handlers ────────────────────────────────────────────
 
 async function handleZoomToBbox(args: Record<string, unknown>): Promise<ToolResult> {
@@ -1352,7 +1436,9 @@ const handlers: Record<string, ToolHandler> = {
   set_x_axis: handleSetXAxis,
   set_color_map: handleSetColorMap,
   set_3d_config: handleSet3dConfig,
-  set_plot_options: handleSetPlotOptions
+  set_plot_options: handleSetPlotOptions,
+  navigate: handleNavigate,
+  get_current_view: handleGetCurrentView
 }
 
 for (const def of toolDefinitions) {

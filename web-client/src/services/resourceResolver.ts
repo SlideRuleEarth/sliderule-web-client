@@ -75,6 +75,12 @@ const RESOURCES: ResourceDefinition[] = [
     name: 'All Tooltips',
     description: 'All in-app tooltip text organized by parameter',
     mimeType: 'application/json'
+  },
+  {
+    uri: 'sliderule://app/current-view',
+    name: 'Current View',
+    description: 'Current Vue Router view name, path, params, and list of available routes',
+    mimeType: 'application/json'
   }
 ]
 
@@ -144,6 +150,7 @@ export async function readResource(uri: string): Promise<ResourceReadResult> {
   if (uri === 'sliderule://auth/status') return resolveAuthStatus(uri)
   if (uri === 'sliderule://docs/index') return await resolveDocsIndex(uri)
   if (uri === 'sliderule://docs/tooltips') return resolveDocsTooltips(uri)
+  if (uri === 'sliderule://app/current-view') return await resolveAppCurrentView(uri)
 
   // Templated resources
   let match: RegExpMatchArray | null
@@ -426,6 +433,36 @@ function resolveAuthStatus(uri: string): ResourceReadResult {
     authStatus: auth.authStatus,
     username: auth.username,
     isOrgMember: auth.isOrgMember
+  })
+}
+
+async function resolveAppCurrentView(uri: string): Promise<ResourceReadResult> {
+  const { default: router } = await import('@/router')
+  const currentRoute = router.currentRoute.value
+
+  const filteredNames = new Set(['NotFound', 'github-callback', 'request-with-params'])
+  const availableRoutes = router
+    .getRoutes()
+    .filter((r) => r.name && !filteredNames.has(r.name as string))
+    .map((r) => {
+      const result: Record<string, unknown> = {
+        name: r.name,
+        path: r.path
+      }
+      const paramMatch = r.path.match(/:(\w+)/)
+      if (paramMatch) {
+        result.requiresParam = paramMatch[1]
+      }
+      return result
+    })
+
+  return textResult(uri, {
+    route: {
+      name: currentRoute.name ?? null,
+      path: currentRoute.path,
+      params: currentRoute.params
+    },
+    availableRoutes
   })
 }
 

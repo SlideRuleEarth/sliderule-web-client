@@ -741,5 +741,39 @@ export const toolDefinitions: ToolDefinition[] = [
       },
       required: ['type']
     }
+  },
+  {
+    name: 'navigate',
+    description:
+      "Navigate to a view in the web client. Use 'analyze' with a req_id to view results, " +
+      "'request' to set up parameters, 'settings' for app configuration, 'rectree' for the " +
+      "request tree, 'server' for server management.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        view: {
+          type: 'string',
+          enum: ['home', 'request', 'analyze', 'settings', 'about', 'server', 'rectree', 'privacy'],
+          description: 'The view to navigate to.'
+        },
+        req_id: {
+          type: 'integer',
+          description:
+            "Required when navigating to 'analyze'. The request ID to view. " +
+            "Also accepted for 'request' to load a specific request's parameters."
+        }
+      },
+      required: ['view']
+    }
+  },
+  {
+    name: 'get_current_view',
+    description:
+      'Get the current view/page in the web client. Returns the active route name, ' +
+      'path, route params, and a list of all available views.',
+    inputSchema: {
+      type: 'object',
+      properties: {}
+    }
   }
 ]

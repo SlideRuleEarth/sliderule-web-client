@@ -797,6 +797,46 @@ BOOTSTRAP_TOOLS = [
             "required": ["type"],
         },
     ),
+    # ── Navigation Tools ──────────────────────────────────────────
+    types.Tool(
+        name="navigate",
+        description=(
+            "Navigate to a view in the web client. Use 'analyze' with a "
+            "req_id to view results, 'request' to set up parameters, "
+            "'settings' for app configuration, 'rectree' for the request "
+            "tree, 'server' for server management."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "view": {
+                    "type": "string",
+                    "enum": [
+                        "home", "request", "analyze", "settings",
+                        "about", "server", "rectree", "privacy",
+                    ],
+                    "description": "The view to navigate to.",
+                },
+                "req_id": {
+                    "type": "integer",
+                    "description": (
+                        "Required when navigating to 'analyze'. The request "
+                        "ID to view. Also accepted for 'request' to load a "
+                        "specific request's parameters."
+                    ),
+                },
+            },
+            "required": ["view"],
+        },
+    ),
+    types.Tool(
+        name="get_current_view",
+        description=(
+            "Get the current view/page in the web client. Returns the active "
+            "route name, path, route params, and a list of all available views."
+        ),
+        inputSchema={"type": "object", "properties": {}},
+    ),
 ]
 
 cached_tools: list[types.Tool] = list(BOOTSTRAP_TOOLS)
@@ -845,6 +885,12 @@ BOOTSTRAP_RESOURCES = [
         uri="sliderule://docs/tooltips",
         name="All Tooltips",
         description="All in-app tooltip text organized by parameter",
+        mimeType="application/json",
+    ),
+    types.Resource(
+        uri="sliderule://app/current-view",
+        name="Current View",
+        description="Current Vue Router view name, path, params, and list of available routes",
         mimeType="application/json",
     ),
 ]
