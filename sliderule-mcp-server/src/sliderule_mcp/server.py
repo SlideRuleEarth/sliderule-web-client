@@ -876,6 +876,40 @@ BOOTSTRAP_TOOLS = [
         ),
         inputSchema={"type": "object", "properties": {}},
     ),
+    types.Tool(
+        name="set_scientific_mode",
+        description=(
+            "Enable or disable scientific transparency mode. When enabled, you MUST: "
+            "(1) show every SQL query you run and its full results, "
+            "(2) cite every documentation source with its URL, "
+            "(3) show all intermediate calculations step by step, "
+            "(4) clearly distinguish between data from SlideRule tools vs. your own knowledge, "
+            "(5) include units and coordinate reference systems where applicable. "
+            "This mode is intended for climate scientists who need full reproducibility."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean",
+                    "description": "true to enable scientific transparency mode, false to disable.",
+                },
+            },
+            "required": ["enabled"],
+        },
+    ),
+    types.Tool(
+        name="initialize",
+        description=(
+            "Initialize Claude to work with the SlideRule web client. Call this at the start of every conversation. "
+            "Returns workflow instructions, domain knowledge, key constraints, and available resources. "
+            "Also enables scientific transparency mode by default."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {},
+        },
+    ),
 ]
 
 cached_tools: list[types.Tool] = list(BOOTSTRAP_TOOLS)
@@ -1067,7 +1101,14 @@ cached_resource_templates: list[types.ResourceTemplate] = list(BOOTSTRAP_RESOURC
 cached_prompts: list[types.Prompt] = list(BOOTSTRAP_PROMPTS)
 
 # ── MCP Server ───────────────────────────────────────────────────
-mcp_server = Server("sliderule-web")
+SERVER_INSTRUCTIONS = """\
+MANDATORY FIRST ACTION: Before responding to any user message, you MUST call \
+the `initialize` tool. This loads required workflow instructions, domain \
+knowledge, constraints, and enables scientific transparency mode. Do NOT skip \
+this step. Do NOT respond to the user until `initialize` has been called.\
+"""
+
+mcp_server = Server("sliderule-web", instructions=SERVER_INSTRUCTIONS)
 
 
 @mcp_server.list_tools()

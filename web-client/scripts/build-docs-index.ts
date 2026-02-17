@@ -202,15 +202,33 @@ function extractTags(section: string, title: string): string {
 
 // ── PDF parsing ─────────────────────────────────────────────────
 
+async function fetchWithRetry(url: string, retries = 3, delayMs = 2000): Promise<Response> {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(url)
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status} ${response.statusText}`)
+      }
+      return response
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      if (attempt < retries) {
+        const wait = delayMs * attempt
+        console.warn(`    Attempt ${attempt}/${retries} failed: ${msg}. Retrying in ${wait}ms...`)
+        await new Promise((r) => setTimeout(r, wait))
+      } else {
+        throw new Error(`All ${retries} attempts failed for ${url}: ${msg}`)
+      }
+    }
+  }
+  throw new Error('unreachable')
+}
+
 async function fetchAndChunkPdf(url: string): Promise<DocChunk[]> {
   console.log(`  Fetching PDF ${url}...`)
 
   try {
-    const response = await fetch(url)
-    if (!response.ok) {
-      console.warn(`  Warning: ${url} returned ${response.status}`)
-      return []
-    }
+    const response = await fetchWithRetry(url)
 
     const buffer = await response.arrayBuffer()
     const pdf = new PDFParse({ data: new Uint8Array(buffer) })
@@ -238,7 +256,7 @@ async function fetchAndChunkPdf(url: string): Promise<DocChunk[]> {
       tags: extractTags(section, title)
     }))
   } catch (e) {
-    console.warn(`  Warning: Failed to parse PDF ${url}: ${e}`)
+    console.error(`  ERROR: Failed to fetch/parse PDF ${url}: ${e}`)
     return []
   }
 }

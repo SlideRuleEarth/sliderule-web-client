@@ -813,5 +813,37 @@ export const toolDefinitions: ToolDefinition[] = [
       type: 'object',
       properties: {}
     }
+  },
+  {
+    name: 'set_scientific_mode',
+    description:
+      'Enable or disable scientific transparency mode. When enabled, you MUST: ' +
+      '(1) show every SQL query you run and its full results, ' +
+      '(2) cite every documentation source with its URL, ' +
+      '(3) show all intermediate calculations step by step, ' +
+      '(4) clearly distinguish between data from SlideRule tools vs. your own knowledge, ' +
+      '(5) include units and coordinate reference systems where applicable. ' +
+      'This mode is intended for climate scientists who need full reproducibility.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        enabled: {
+          type: 'boolean',
+          description: 'true to enable scientific transparency mode, false to disable.'
+        }
+      },
+      required: ['enabled']
+    }
+  },
+  {
+    name: 'initialize',
+    description:
+      'Initialize Claude to work with the SlideRule web client. Call this at the start of every conversation. ' +
+      'Returns workflow instructions, domain knowledge, key constraints, and available resources. ' +
+      'Also enables scientific transparency mode by default.',
+    inputSchema: {
+      type: 'object',
+      properties: {}
+    }
   }
 ]

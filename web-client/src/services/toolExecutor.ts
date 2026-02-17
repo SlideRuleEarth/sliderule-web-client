@@ -565,12 +565,21 @@ async function handleSubmitRequest(): Promise<ToolResult> {
   const newReq = requestsStore.reqs.find((r) => (r.req_id ?? 0) > beforeMaxId)
 
   if (newReq && newReq.req_id) {
+    const store = useReqParamsStore()
     return ok(
       JSON.stringify(
         {
           req_id: newReq.req_id,
           status: newReq.status ?? 'submitted',
-          message: `Request ${newReq.req_id} submitted. Use get_request_status to poll for completion.`
+          message: `Request ${newReq.req_id} submitted. Use get_request_status to poll for completion.`,
+          parameters: {
+            mission: store.missionValue,
+            api: store.getCurAPIStr(),
+            url: store.urlValue,
+            time_range: store.useTime ? { t0: store.t0Value, t1: store.t1Value } : null,
+            region_vertices: store.poly?.length ?? 0,
+            area_km2: store.areaOfConvexHull
+          }
         },
         null,
         2
@@ -783,6 +792,7 @@ async function handleRunSql(args: Record<string, unknown>): Promise<ToolResult> 
       }
 
       return {
+        sql_query: sql,
         columns: result.schema.map((col: { name: string; type: string; databaseType: string }) => ({
           name: col.name,
           type: col.databaseType
@@ -915,6 +925,8 @@ async function handleGetSampleData(args: Record<string, unknown>): Promise<ToolR
     table_name: fileName,
     total_rows: total,
     sample_rows: rows.length,
+    sampling_method: total <= numRows ? 'all_rows' : 'bernoulli',
+    sql_query: finalQuery,
     columns: result.schema.map((col: { name: string; type: string }) => ({
       name: col.name,
       type: col.type
@@ -1141,6 +1153,121 @@ async function handleGetCurrentView(): Promise<ToolResult> {
       null,
       2
     )
+  )
+}
+
+async function handleSetScientificMode(args: Record<string, unknown>): Promise<ToolResult> {
+  const enabled = args.enabled as boolean
+
+  if (enabled) {
+    return ok(
+      'Scientific transparency mode ENABLED. You MUST now follow these rules for the rest of this conversation:\n\n' +
+        '1. **Show all SQL**: Display every SQL query before showing results. Include the exact query text.\n' +
+        '2. **Cite all sources**: For every documentation reference, include the full URL. ' +
+        'For every data point, state which tool call and req_id produced it.\n' +
+        '3. **Show calculations**: Show all intermediate calculations step by step. ' +
+        'Do not summarize or skip steps.\n' +
+        '4. **Label data provenance**: Clearly mark whether information comes from ' +
+        'SlideRule tool results, SlideRule documentation, or your own knowledge. ' +
+        'Use prefixes like [SlideRule data], [SlideRule docs], or [Model knowledge].\n' +
+        '5. **Include units and CRS**: Always state units (meters, km², degrees) and ' +
+        'coordinate reference systems (EPSG codes) when reporting spatial or elevation data.\n' +
+        '6. **Reproducibility**: When presenting results, include enough detail ' +
+        '(parameters, queries, tool calls) that another scientist could reproduce them exactly.'
+    )
+  } else {
+    return ok(
+      'Scientific transparency mode DISABLED. You may return to concise responses without mandatory provenance annotations.'
+    )
+  }
+}
+
+async function handleInitialize(_args: Record<string, unknown>): Promise<ToolResult> {
+  return ok(
+    `SlideRule Web Client — Session Initialized
+
+You control the SlideRule web client via MCP tools and resources. SlideRule is a cloud-based data processing service for NASA satellite altimetry data (ICESat-2 and GEDI missions). The browser must be open at the web client URL for tools to work.
+
+## Scientific Transparency Mode: ENABLED
+
+You MUST follow these rules for the rest of this conversation:
+1. **Show all SQL**: Display every SQL query before showing results. Include the exact query text.
+2. **Cite all sources**: For every documentation reference, include the full URL. For every data point, state which tool call and req_id produced it.
+3. **Show calculations**: Show all intermediate calculations step by step. Do not summarize or skip steps.
+4. **Label data provenance**: Clearly mark whether information comes from SlideRule tool results, SlideRule documentation, or your own knowledge. Use prefixes like [SlideRule data], [SlideRule docs], or [Model knowledge].
+5. **Include units and CRS**: Always state units (meters, km², degrees) and coordinate reference systems (EPSG codes) when reporting spatial or elevation data.
+6. **Reproducibility**: When presenting results, include enough detail (parameters, queries, tool calls) that another scientist could reproduce them exactly.
+
+To disable scientific mode, call set_scientific_mode with enabled: false.
+
+## Workflow
+
+CONFIGURE: set_mission → set_api → set_time_range / set_rgt / set_cycle / set_beams → set_region (bbox or GeoJSON) or user draws in browser
+SUBMIT: submit_request → returns req_id immediately (async)
+POLL: get_request_status(req_id) — repeat every few seconds until status is "success" or "error"
+ANALYZE: describe_data(req_id) → run_sql / get_elevation_stats / get_sample_data → export_data
+
+Always call get_current_params first to see what's already configured before making changes.
+Before setting request parameters, navigate to the request view first.
+
+## Resources (read-only URIs)
+
+sliderule://params/current — full parameter state
+sliderule://requests/history — all request records
+sliderule://requests/{id}/summary — status/timing for one request
+sliderule://data/{id}/schema — column names and types for a result set
+sliderule://data/{id}/sample — first 20 rows of a result set
+sliderule://map/viewport — current map center, zoom, projection
+sliderule://catalog/products — available missions and API endpoints
+sliderule://catalog/fields/{api} — height/lat/lon field names for an API
+sliderule://auth/status — authentication state
+sliderule://docs/index — all indexed doc sections
+sliderule://docs/tooltips — all in-app tooltip text
+sliderule://docs/section/{section} — chunks for a doc section
+sliderule://docs/param/{name} — parameter help (tooltip + defaults + doc URL)
+sliderule://docs/defaults/{mission} — server defaults (icesat2, gedi, core)
+
+## Documentation Tools
+
+search_docs(query) — full-text search across indexed SlideRule documentation. Use this to answer questions about APIs, parameters, algorithms, and workflows.
+fetch_docs(url) — fetch and index a SlideRule ReadTheDocs page for future searches. URL must be under slideruleearth.io.
+get_param_help(param_name) — get tooltip text, default values, and documentation URL for a specific parameter.
+list_doc_sections — list all indexed documentation sections with chunk counts.
+
+Bundled documentation includes:
+- SlideRule ReadTheDocs pages (getting started, user guides, API reference)
+- NSIDC ATL03 Algorithm Theoretical Basis Document (ATBD v006)
+- NSIDC ATL03 User Guide (v006)
+- Tooltip descriptions from all UI components
+
+When the user asks about SlideRule concepts, parameters, or APIs, use search_docs or get_param_help first rather than relying solely on your training data.
+
+## Key Constraints
+
+- A geographic region must be set before submitting. Use set_region with a bounding box [west, south, east, north] or GeoJSON polygon, or the user can draw a region in the browser.
+- submit_request is fire-and-forget. Always poll get_request_status afterward.
+- describe_data returns the table name (a parquet filename). Use it before run_sql.
+- run_sql uses DuckDB SQL syntax. Table names must be quoted: SELECT * FROM 'filename.parquet'
+- Destructive tools (reset_params, delete_request) pop up a confirmation dialog in the browser — the user must click Allow.
+- cancel_request only works while a request is actively running.
+- Only one request can run at a time.
+
+## Domain Knowledge
+
+ICESat-2 APIs: atl06p (land ice elevation), atl06sp, atl06x, atl03x (photon cloud), atl03x-surface, atl03x-phoreal, atl03vp, atl08p (vegetation), atl08x, atl24x, atl13x
+GEDI APIs: gedi01bp (waveform), gedi02ap (footprint elevation), gedi04ap (biomass)
+Surface fit and PhoREAL are mutually exclusive for ICESat-2.
+YAPC is a photon classifier (score 0.0–1.0) for ICESat-2.
+ICESat-2 beams: gt1l, gt1r, gt2l, gt2r, gt3l, gt3r
+GEDI beams: 0, 1, 2, 3, 5, 6, 8, 11
+RGT (Reference Ground Track): 1–1387, specific to ICESat-2.
+Typical result columns: h_mean (elevation), latitude, longitude, rgt, cycle, spot, gt
+
+## Style
+
+When showing data analysis results, summarize key findings (elevation range, spatial extent, point count) rather than dumping raw JSON.
+If a request fails, check get_current_params to diagnose missing configuration.
+Suggest next steps after each action (e.g., after submit, say you'll poll for status).`
   )
 }
 
@@ -1530,7 +1657,9 @@ const handlers: Record<string, ToolHandler> = {
   get_elevation_plot_config: handleGetElevationPlotConfig,
   set_plot_options: handleSetPlotOptions,
   navigate: handleNavigate,
-  get_current_view: handleGetCurrentView
+  get_current_view: handleGetCurrentView,
+  set_scientific_mode: handleSetScientificMode,
+  initialize: handleInitialize
 }
 
 for (const def of toolDefinitions) {
