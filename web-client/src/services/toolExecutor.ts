@@ -992,8 +992,20 @@ async function handleSearchDocs(args: Record<string, unknown>): Promise<ToolResu
 async function handleFetchDocs(args: Record<string, unknown>): Promise<ToolResult> {
   const url = args.url as string
 
-  if (!url || !url.includes('slideruleearth.io')) {
-    return err('URL must be under slideruleearth.io domain.')
+  if (!url) {
+    return err('URL is required.')
+  }
+  try {
+    const parsed = new URL(url)
+    const host = parsed.hostname
+    if (host !== 'slideruleearth.io' && !host.endsWith('.slideruleearth.io')) {
+      return err('URL must be under slideruleearth.io domain.')
+    }
+    if (parsed.protocol !== 'https:') {
+      return err('URL must use HTTPS.')
+    }
+  } catch {
+    return err('Invalid URL.')
   }
 
   const { fetchAndIndexUrl, ensureInitialized } = await import('./docSearchEngine')

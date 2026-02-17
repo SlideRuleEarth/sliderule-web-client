@@ -1119,14 +1119,30 @@ async def _call_browser(method: str, params: dict) -> dict:
 
 
 # ── WebSocket — browser connects here ────────────────────────────
+ALLOWED_ORIGINS = {
+    "http://localhost:5173",   # Vite dev server
+    "http://localhost:4173",   # Vite preview
+    "http://localhost:3000",   # Alternative dev port
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:4173",
+    "http://127.0.0.1:3000",
+}
+
+
 async def _ws_handler(websocket):
     global browser_ws, cached_tools, cached_resources, cached_resource_templates
+
+    origin = websocket.request.headers.get("Origin", "")
+    if origin and origin not in ALLOWED_ORIGINS:
+        log.warning("Rejected WebSocket from origin: %s", origin)
+        await websocket.close(4003, "Origin not allowed")
+        return
 
     if browser_ws is not None:
         await browser_ws.close(4000, "Replaced by new connection")
 
     browser_ws = websocket
-    log.info("Browser connected on ws://localhost:%d", PORT)
+    log.info("Browser connected on ws://localhost:%d (origin: %s)", PORT, origin or "none")
 
     # Fetch definitions in background tasks so the message loop
     # can process the responses (avoids deadlock).
