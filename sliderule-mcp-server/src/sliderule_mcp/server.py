@@ -55,7 +55,8 @@ BOOTSTRAP_TOOLS = [
             "Set the active API for the current mission. For ICESat-2: atl06p, "
             "atl06sp, atl06x, atl03x, atl03x-surface, atl03x-phoreal, atl03vp, "
             "atl08p, atl08x, atl24x, atl13x. For GEDI: gedi01bp, gedi02ap, "
-            "gedi04ap. Setting the API auto-configures related parameters."
+            "gedi04ap. Setting the API auto-configures related parameters "
+            "(e.g. surface fit, PhoREAL)."
         ),
         inputSchema={
             "type": "object",
@@ -481,7 +482,7 @@ BOOTSTRAP_TOOLS = [
             "properties": {
                 "query": {
                     "type": "string",
-                    "description": 'Search query (e.g. "photon classification glacier", "atl06 surface fit").',
+                    "description": 'Search query (e.g. "photon classification glacier", "atl06 surface fit algorithm").',
                 },
                 "max_results": {
                     "type": "integer",
@@ -521,7 +522,7 @@ BOOTSTRAP_TOOLS = [
             "properties": {
                 "param_name": {
                     "type": "string",
-                    "description": 'Parameter name (e.g. "cnf", "srt", "length", "yapc_score").',
+                    "description": 'Parameter name (e.g. "cnf", "srt", "length", "yapc_score", "surface_type").',
                 }
             },
             "required": ["param_name"],
@@ -531,7 +532,8 @@ BOOTSTRAP_TOOLS = [
         name="list_doc_sections",
         description=(
             "List all indexed documentation sections with their titles and "
-            "chunk counts. Useful to discover available documentation."
+            "chunk counts. Useful to discover what documentation is available "
+            "for searching."
         ),
         inputSchema={"type": "object", "properties": {}},
     ),
@@ -578,6 +580,7 @@ BOOTSTRAP_TOOLS = [
         name="set_base_layer",
         description=(
             "Change the map base layer (satellite imagery, topography, etc.). "
+            "Available layers depend on the current projection/view. "
             'Common layers: "Esri World Topo", "Esri World Imagery", '
             '"OpenStreetMap Standard", "Google Satellite". Polar views have '
             'specialized layers like "Arctic Ocean Base", "Antarctic Imagery", "LIMA".'
@@ -596,7 +599,8 @@ BOOTSTRAP_TOOLS = [
     types.Tool(
         name="set_map_view",
         description=(
-            "Switch the map projection/view. "
+            "Switch the map projection/view. Changes coordinate system and "
+            "available base layers. "
             '"Global Mercator" (EPSG:3857) for worldwide, '
             '"North Alaska" (EPSG:5936) for Arctic, '
             '"North Sea Ice" (EPSG:3413) for Arctic sea ice, '
@@ -654,7 +658,8 @@ BOOTSTRAP_TOOLS = [
         name="set_chart_field",
         description=(
             "Set which data field to plot on the elevation chart Y-axis for "
-            "a given request. Use describe_data to discover available columns."
+            "a given request. Use describe_data to discover available column "
+            "names first."
         ),
         inputSchema={
             "type": "object",
@@ -665,7 +670,7 @@ BOOTSTRAP_TOOLS = [
                 },
                 "field": {
                     "type": "string",
-                    "description": 'Column name for the Y-axis (e.g. "h_mean", "height").',
+                    "description": 'Column name for the Y-axis (e.g. "h_mean", "height", "h_canopy").',
                 },
             },
             "required": ["req_id", "field"],
@@ -705,7 +710,7 @@ BOOTSTRAP_TOOLS = [
             "properties": {
                 "palette": {
                     "type": "string",
-                    "description": 'Color map name (e.g. "viridis", "jet", "inferno").',
+                    "description": 'Color map name (e.g. "viridis", "jet", "inferno", "plasma", "rainbow").',
                 }
             },
             "required": ["palette"],
@@ -722,7 +727,7 @@ BOOTSTRAP_TOOLS = [
             "properties": {
                 "vertical_exaggeration": {
                     "type": "number",
-                    "description": "Vertical exaggeration multiplier (default 1.0).",
+                    "description": "Vertical exaggeration multiplier (default 1.0). Higher values emphasize elevation differences.",
                 },
                 "point_size": {
                     "type": "number",
@@ -788,7 +793,7 @@ BOOTSTRAP_TOOLS = [
                 },
                 "symbol_size": {
                     "type": "number",
-                    "description": "Symbol/point size in pixels (default varies by API).",
+                    "description": "Symbol/point size in pixels (default varies by API, typically 2–4).",
                     "minimum": 1,
                     "maximum": 20,
                 },
