@@ -18,6 +18,8 @@ function onDrag(event: MouseEvent) {
   // Ensure the sidebar width stays within reasonable bounds
   const newWidth = Math.min(Math.max(event.clientX, 200), window.innerWidth - 200)
   sidebarWidth.value = newWidth
+  // Notify charts and other auto-resizing components of layout change
+  window.dispatchEvent(new Event('resize'))
 }
 
 onMounted(() => {
@@ -58,7 +60,7 @@ onBeforeUnmount(() => {
   overflow-x: auto;
   min-width: 200px;
   max-width: 80%;
-  padding-left: 0.5rem;
+  padding-left: 1rem;
 }
 
 /* Resizer styles */
