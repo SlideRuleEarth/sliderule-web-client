@@ -1187,16 +1187,16 @@ function handleSaveTooltip() {
 </template>
 
 <style scoped>
-:deep(.sr-analysis-map-panel) {
+.sr-analysis-map-panel {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
   position: relative;
   height: 100%;
   width: 100%;
   border-radius: 1rem;
-  margin: 1rem;
+  margin: 0.5rem 0;
   flex: 1 1 auto; /* grow, shrink, basis - let it stretch*/
 }
 .sr-analysis-map-header {
@@ -1246,12 +1246,12 @@ function handleSaveTooltip() {
   justify-content: center;
 }
 
-:deep(.sr-map-container) {
+.sr-map-container {
   margin-bottom: 0.5rem;
-  margin-left: 0.5rem;
-  margin-right: 0.5rem;
+  margin-left: 0;
+  margin-right: 0;
   margin-top: 0;
-  padding: 0.5rem;
+  padding: 0;
   display: flex;
   flex: 1 1 auto; /* let it stretch in a flex layout */
   width: 100%;
@@ -1268,7 +1268,7 @@ function handleSaveTooltip() {
   min-width: 15rem;
   min-height: 15rem;
   border-radius: var(--p-border-radius);
-  width: 45vw;
+  width: 100%;
   height: 45vh;
   overflow: hidden;
   resize: both;

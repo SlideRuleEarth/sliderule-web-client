@@ -1,56 +1,47 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 
-const sidebarWidth = ref(window.innerWidth * 0.5); // 50% of viewport width initially
-const isDragging = ref(false);
+const sidebarWidth = ref(window.innerWidth * 0.5) // 50% of viewport width initially
+const isDragging = ref(false)
 
 function startDrag() {
-  isDragging.value = true;
+  isDragging.value = true
 }
 
 function stopDrag() {
-  isDragging.value = false;
+  isDragging.value = false
 }
 
 function onDrag(event: MouseEvent) {
-  if (!isDragging.value) return;
+  if (!isDragging.value) return
 
   // Ensure the sidebar width stays within reasonable bounds
-  const newWidth = Math.min(Math.max(event.clientX, 200), window.innerWidth - 200);
-  sidebarWidth.value = newWidth;
+  const newWidth = Math.min(Math.max(event.clientX, 200), window.innerWidth - 200)
+  sidebarWidth.value = newWidth
 }
 
 onMounted(() => {
-  window.addEventListener('mousemove', onDrag);
-  window.addEventListener('mouseup', stopDrag);
-});
+  window.addEventListener('mousemove', onDrag)
+  window.addEventListener('mouseup', stopDrag)
+})
 
 onBeforeUnmount(() => {
-  window.removeEventListener('mousemove', onDrag);
-  window.removeEventListener('mouseup', stopDrag);
-});
+  window.removeEventListener('mousemove', onDrag)
+  window.removeEventListener('mouseup', stopDrag)
+})
 </script>
 
 <template>
   <div class="layout-container">
-    <div
-      class="sidebar-col"
-      :style="{ width: sidebarWidth + 'px' }"
-    >
+    <div class="sidebar-col" :style="{ width: sidebarWidth + 'px' }">
       <slot name="sidebar-col"></slot>
     </div>
 
-    <div
-      class="resizer-hotzone"
-      @mousedown="startDrag"
-    >
-      <div
-        class="resizer"
-        :class="{ dragging: isDragging }"
-      ></div>
+    <div class="resizer-hotzone" @mousedown="startDrag">
+      <div class="resizer" :class="{ dragging: isDragging }"></div>
     </div>
 
-    <main :style="{ width: `calc(100% - ${sidebarWidth}px)` }">
+    <main style="flex: 1; min-width: 0">
       <slot name="main"></slot>
     </main>
   </div>
@@ -67,6 +58,7 @@ onBeforeUnmount(() => {
   overflow-x: auto;
   min-width: 200px;
   max-width: 80%;
+  padding-left: 0.5rem;
 }
 
 /* Resizer styles */
