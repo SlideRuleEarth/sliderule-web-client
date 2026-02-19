@@ -431,30 +431,6 @@ async function handleSetYapc(args: Record<string, unknown>): Promise<ToolResult>
   return Promise.resolve(ok(details.join(' ')))
 }
 
-async function handleSetOutputConfig(args: Record<string, unknown>): Promise<ToolResult> {
-  const store = useReqParamsStore()
-  const details: string[] = []
-
-  if (args.file_output !== undefined) {
-    store.fileOutput = args.file_output as boolean
-    details.push(`file_output=${args.file_output}`)
-  }
-  if (args.geo_parquet !== undefined) {
-    store.isGeoParquet = args.geo_parquet as boolean
-    details.push(`geo_parquet=${args.geo_parquet}`)
-  }
-  if (args.checksum !== undefined) {
-    store.useChecksum = args.checksum as boolean
-    details.push(`checksum=${args.checksum}`)
-  }
-
-  if (details.length === 0) {
-    return Promise.resolve(err('At least one output config parameter must be provided.'))
-  }
-
-  return Promise.resolve(ok(`Output config updated: ${details.join(', ')}.`))
-}
-
 async function handleGetCurrentParams(): Promise<ToolResult> {
   const store = useReqParamsStore()
   const params = {
@@ -666,53 +642,6 @@ async function handleListRequests(): Promise<ToolResult> {
   return ok(JSON.stringify(summary, null, 2))
 }
 
-async function handleDeleteRequest(args: Record<string, unknown>): Promise<ToolResult> {
-  const reqId = args.req_id as number
-  if (!Number.isInteger(reqId) || reqId <= 0) {
-    return err(`Invalid req_id: ${reqId}. Must be a positive integer.`)
-  }
-
-  const request = await db.getRequest(reqId)
-  if (!request) {
-    return err(`No request found with req_id ${reqId}.`)
-  }
-
-  return new Promise((resolve) => {
-    const confirmService = app.config.globalProperties.$confirm
-
-    if (!confirmService) {
-      logger.error('ConfirmationService not available')
-      resolve(err('ConfirmationService not available in the browser.'))
-      return
-    }
-
-    confirmService.require({
-      group: 'mcp',
-      message: `Claude is requesting to delete request ${reqId} (${request.func ?? 'unknown'}) and all its data. Allow this?`,
-      header: 'MCP: Delete Request',
-      icon: 'pi pi-exclamation-triangle',
-      rejectLabel: 'Deny',
-      acceptLabel: 'Allow',
-      rejectClass: 'p-button-secondary',
-      acceptClass: 'p-button-danger',
-      accept: async () => {
-        const requestsStore = useRequestsStore()
-        const deleted = await requestsStore.deleteReq(reqId)
-        if (deleted) {
-          logger.info('Request deleted via MCP', { reqId })
-          resolve(ok(`Request ${reqId} and its data have been deleted.`))
-        } else {
-          resolve(err(`Failed to fully delete request ${reqId}. Some data may remain.`))
-        }
-      },
-      reject: () => {
-        logger.info('User denied MCP delete_request', { reqId })
-        resolve(err('User denied the delete operation.'))
-      }
-    })
-  })
-}
-
 // ── Data Analysis Handlers ──────────────────────────────────────
 
 function safeBigInt(value: unknown): unknown {
@@ -885,99 +814,6 @@ async function handleGetElevationStats(args: Record<string, unknown>): Promise<T
   return ok(JSON.stringify(result, null, 2))
 }
 
-async function handleGetSampleData(args: Record<string, unknown>): Promise<ToolResult> {
-  const reqId = args.req_id as number
-  const numRows = Math.min(Math.max((args.num_rows as number) || 20, 1), 500)
-
-  if (!Number.isInteger(reqId) || reqId <= 0) {
-    return err(`Invalid req_id: ${reqId}. Must be a positive integer.`)
-  }
-
-  const loaded = await loadDataForReq(reqId)
-  if (isToolResult(loaded)) return loaded
-  const { fileName } = loaded
-
-  const duckDbClient = await createDuckDbClient()
-  const baseQuery = `SELECT * FROM '${fileName}'`
-  const totalRows = await duckDbClient.getTotalRowCount(baseQuery)
-  const total = typeof totalRows === 'bigint' ? Number(totalRows) : totalRows
-
-  let sampledQuery: string
-  if (total <= numRows) {
-    sampledQuery = baseQuery
-  } else {
-    const samplePercent = Math.min((numRows / total) * 150, 100)
-    sampledQuery = `${baseQuery} USING SAMPLE ${samplePercent}% (bernoulli)`
-  }
-
-  const finalQuery = `${sampledQuery} LIMIT ${numRows}`
-  const result = await duckDbClient.query(finalQuery)
-  const rows: Record<string, unknown>[] = []
-
-  for await (const chunk of result.readRows()) {
-    for (const row of chunk) {
-      rows.push(safeRow(row as Record<string, unknown>))
-    }
-  }
-
-  const output = {
-    req_id: reqId,
-    table_name: fileName,
-    total_rows: total,
-    sample_rows: rows.length,
-    sampling_method: total <= numRows ? 'all_rows' : 'bernoulli',
-    sql_query: finalQuery,
-    columns: result.schema.map((col: { name: string; type: string }) => ({
-      name: col.name,
-      type: col.type
-    })),
-    rows
-  }
-
-  return ok(JSON.stringify(output, null, 2))
-}
-
-async function handleExportData(args: Record<string, unknown>): Promise<ToolResult> {
-  const reqId = args.req_id as number
-  const customSql = args.sql as string | undefined
-  const customFilename = args.filename as string | undefined
-
-  if (!Number.isInteger(reqId) || reqId <= 0) {
-    return err(`Invalid req_id: ${reqId}. Must be a positive integer.`)
-  }
-
-  const loaded = await loadDataForReq(reqId)
-  if (isToolResult(loaded)) return loaded
-  const { fileName } = loaded
-
-  const sql = customSql || `SELECT * FROM '${fileName}'`
-  const outputName = customFilename || `export_${reqId}.parquet`
-
-  const duckDbClient = await createDuckDbClient()
-
-  try {
-    await duckDbClient.copyQueryToParquet(sql, outputName)
-    const buffer = await duckDbClient.copyFileToBuffer(outputName)
-
-    const blob = new Blob([buffer.buffer as ArrayBuffer], { type: 'application/octet-stream' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = outputName
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-
-    await duckDbClient.dropVirtualFile(outputName)
-
-    const sizeKB = (buffer.byteLength / 1024).toFixed(1)
-    return ok(`Exported ${outputName} (${sizeKB} KB). Download triggered in the browser.`)
-  } catch (e) {
-    return err(`Export failed: ${e instanceof Error ? e.message : String(e)}`)
-  }
-}
-
 // ── Documentation Tool Handlers ──────────────────────────────────
 
 async function handleSearchDocs(args: Record<string, unknown>): Promise<ToolResult> {
@@ -1058,496 +894,35 @@ async function handleGetParamHelp(args: Record<string, unknown>): Promise<ToolRe
   return ok(JSON.stringify(help, null, 2))
 }
 
-async function handleListDocSections(): Promise<ToolResult> {
-  const { listDocSections, ensureInitialized } = await import('./docSearchEngine')
-  await ensureInitialized()
-
-  const sections = await listDocSections()
-  return ok(JSON.stringify({ total_sections: sections.length, sections }, null, 2))
-}
-
-// ── UI Tool Handlers ─────────────────────────────────────────────
-
-async function handleStartTour(args: Record<string, unknown>): Promise<ToolResult> {
-  const tourType = args.type as 'quick' | 'long'
-  if (tourType !== 'quick' && tourType !== 'long') {
-    return err(`Invalid tour type "${tourType}". Must be "quick" or "long".`)
-  }
-
-  const { useTourStore } = await import('@/stores/tourStore')
-  const tourStore = useTourStore()
-  tourStore.requestTour(tourType)
-
-  return ok(
-    `Started the ${tourType} tour in the browser. The user will see an interactive guided walkthrough of the app.`
-  )
-}
-
-async function handleNavigate(args: Record<string, unknown>): Promise<ToolResult> {
-  const view = args.view as string
-  const reqId = args.req_id as number | undefined
-
-  const { default: router } = await import('@/router')
-
-  try {
-    if (view === 'analyze') {
-      if (reqId == null || !Number.isInteger(reqId) || reqId <= 0) {
-        return err(
-          'req_id is required when navigating to "analyze". Provide a valid positive integer.'
-        )
-      }
-      await router.push(`/analyze/${reqId}`)
-    } else if (view === 'request' && reqId != null) {
-      await router.push(`/request/${reqId}`)
-    } else {
-      await router.push({ name: view })
-    }
-
-    const currentRoute = router.currentRoute.value
-    return ok(
-      JSON.stringify(
-        {
-          navigated: true,
-          route: {
-            name: currentRoute.name,
-            path: currentRoute.path,
-            params: currentRoute.params
-          }
-        },
-        null,
-        2
-      )
-    )
-  } catch (e) {
-    return err(`Navigation failed: ${e instanceof Error ? e.message : String(e)}`)
-  }
-}
-
-async function handleGetCurrentView(): Promise<ToolResult> {
-  const { default: router } = await import('@/router')
-  const currentRoute = router.currentRoute.value
-
-  const filteredNames = new Set(['NotFound', 'github-callback', 'request-with-params'])
-  const availableRoutes = router
-    .getRoutes()
-    .filter((r) => r.name && !filteredNames.has(r.name as string))
-    .map((r) => {
-      const result: Record<string, unknown> = { name: r.name, path: r.path }
-      const paramMatch = r.path.match(/:(\w+)/)
-      if (paramMatch) {
-        result.requiresParam = paramMatch[1]
-      }
-      return result
-    })
-
-  return ok(
-    JSON.stringify(
-      {
-        route: {
-          name: currentRoute.name ?? null,
-          path: currentRoute.path,
-          params: currentRoute.params
-        },
-        availableRoutes
-      },
-      null,
-      2
-    )
-  )
-}
-
-async function handleSetScientificMode(args: Record<string, unknown>): Promise<ToolResult> {
-  const enabled = args.enabled as boolean
-
-  if (enabled) {
-    return ok(
-      'Scientific transparency mode ENABLED. You MUST now follow these rules for the rest of this conversation:\n\n' +
-        '1. **Show all SQL**: Display every SQL query before showing results. Include the exact query text.\n' +
-        '2. **Cite all sources**: For every documentation reference, include the full URL. ' +
-        'For every data point, state which tool call and req_id produced it.\n' +
-        '3. **Show calculations**: Show all intermediate calculations step by step. ' +
-        'Do not summarize or skip steps.\n' +
-        '4. **Label data provenance**: Clearly mark whether information comes from ' +
-        'SlideRule tool results, SlideRule documentation, or your own knowledge. ' +
-        'Use prefixes like [SlideRule data], [SlideRule docs], or [Model knowledge].\n' +
-        '5. **Include units and CRS**: Always state units (meters, km², degrees) and ' +
-        'coordinate reference systems (EPSG codes) when reporting spatial or elevation data.\n' +
-        '6. **Reproducibility**: When presenting results, include enough detail ' +
-        '(parameters, queries, tool calls) that another scientist could reproduce them exactly.'
-    )
-  } else {
-    return ok(
-      'Scientific transparency mode DISABLED. You may return to concise responses without mandatory provenance annotations.'
-    )
-  }
-}
-
 async function handleInitialize(_args: Record<string, unknown>): Promise<ToolResult> {
   return ok(
     `SlideRule Web Client — Session Initialized
 
-You control the SlideRule web client via MCP tools and resources. SlideRule is a cloud-based data processing service for NASA satellite altimetry data (ICESat-2 and GEDI missions). The browser must be open at the web client URL for tools to work.
+You control the SlideRule web client via MCP tools. SlideRule processes NASA ICESat-2 and GEDI satellite altimetry data in the cloud. The browser must be open for tools to work.
 
-## Scientific Transparency Mode: ENABLED
+## Scientific Transparency
 
-You MUST follow these rules for the rest of this conversation:
-1. **Show all SQL**: Display every SQL query before showing results. Include the exact query text.
-2. **Cite all sources**: For every documentation reference, include the full URL. For every data point, state which tool call and req_id produced it.
-3. **Show calculations**: Show all intermediate calculations step by step. Do not summarize or skip steps.
-4. **Label data provenance**: Clearly mark whether information comes from SlideRule tool results, SlideRule documentation, or your own knowledge. Use prefixes like [SlideRule data], [SlideRule docs], or [Model knowledge].
-5. **Include units and CRS**: Always state units (meters, km², degrees) and coordinate reference systems (EPSG codes) when reporting spatial or elevation data.
-6. **Reproducibility**: When presenting results, include enough detail (parameters, queries, tool calls) that another scientist could reproduce them exactly.
-
-To disable scientific mode, call set_scientific_mode with enabled: false.
+Show all SQL queries. Include units (m, km², degrees) and CRS (EPSG codes). Label data provenance: [SlideRule data], [SlideRule docs], or [Model knowledge]. Include enough detail for reproducibility.
 
 ## Workflow
 
-CONFIGURE: set_mission → set_api → set_time_range / set_rgt / set_cycle / set_beams → set_region (bbox or GeoJSON) or user draws in browser
-SUBMIT: submit_request → returns req_id immediately (async)
-POLL: get_request_status(req_id) — repeat every few seconds until status is "success" or "error"
-ANALYZE: describe_data(req_id) → run_sql / get_elevation_stats / get_sample_data → export_data
+1. Call get_current_params to see what's already configured
+2. CONFIGURE: set_mission → set_api → set_time_range / set_rgt / set_cycle / set_beams → set_region
+3. SUBMIT: submit_request → returns req_id
+4. POLL: get_request_status(req_id) until "success" or "error"
+5. ANALYZE: describe_data(req_id) → run_sql / get_elevation_stats
 
-Always call get_current_params first to see what's already configured before making changes.
-Before setting request parameters, navigate to the request view first.
+## Key Rules
 
-## Resources (read-only URIs)
-
-sliderule://params/current — full parameter state
-sliderule://requests/history — all request records
-sliderule://requests/{id}/summary — status/timing for one request
-sliderule://data/{id}/schema — column names and types for a result set
-sliderule://data/{id}/sample — first 20 rows of a result set
-sliderule://map/viewport — current map center, zoom, projection
-sliderule://catalog/products — available missions and API endpoints
-sliderule://catalog/fields/{api} — height/lat/lon field names for an API
-sliderule://auth/status — authentication state
-sliderule://docs/index — all indexed doc sections
-sliderule://docs/tooltips — all in-app tooltip text
-sliderule://docs/section/{section} — chunks for a doc section
-sliderule://docs/param/{name} — parameter help (tooltip + defaults + doc URL)
-sliderule://docs/defaults/{mission} — server defaults (icesat2, gedi, core)
-
-## Documentation Tools
-
-search_docs(query) — full-text search across indexed SlideRule documentation. Use this to answer questions about APIs, parameters, algorithms, and workflows.
-fetch_docs(url) — fetch and index a SlideRule ReadTheDocs page for future searches. URL must be under slideruleearth.io.
-get_param_help(param_name) — get tooltip text, default values, and documentation URL for a specific parameter.
-list_doc_sections — list all indexed documentation sections with chunk counts.
-
-Bundled documentation includes:
-- SlideRule ReadTheDocs pages (getting started, user guides, API reference)
-- NSIDC ATL03 Algorithm Theoretical Basis Document (ATBD v006)
-- NSIDC ATL03 User Guide (v006)
-- Tooltip descriptions from all UI components
-
-When the user asks about SlideRule concepts, parameters, or APIs, use search_docs or get_param_help first rather than relying solely on your training data.
-
-## Key Constraints
-
-- A geographic region must be set before submitting. Use set_region with a bounding box [west, south, east, north] or GeoJSON polygon, or the user can draw a region in the browser.
-- submit_request is fire-and-forget. Always poll get_request_status afterward.
-- describe_data returns the table name (a parquet filename). Use it before run_sql.
-- run_sql uses DuckDB SQL syntax. Table names must be quoted: SELECT * FROM 'filename.parquet'
-- Destructive tools (reset_params, delete_request) pop up a confirmation dialog in the browser — the user must click Allow.
-- cancel_request only works while a request is actively running.
-- Only one request can run at a time.
-
-## Domain Knowledge
-
-ICESat-2 APIs: atl06p (land ice elevation), atl06sp, atl06x, atl03x (photon cloud), atl03x-surface, atl03x-phoreal, atl03vp, atl08p (vegetation), atl08x, atl24x, atl13x
-GEDI APIs: gedi01bp (waveform), gedi02ap (footprint elevation), gedi04ap (biomass)
-Surface fit and PhoREAL are mutually exclusive for ICESat-2.
-YAPC is a photon classifier (score 0.0–1.0) for ICESat-2.
-ICESat-2 beams: gt1l, gt1r, gt2l, gt2r, gt3l, gt3r
-GEDI beams: 0, 1, 2, 3, 5, 6, 8, 11
-RGT (Reference Ground Track): 1–1387, specific to ICESat-2.
-Typical result columns: h_mean (elevation), latitude, longitude, rgt, cycle, spot, gt
-
-## Style
-
-When showing data analysis results, summarize key findings (elevation range, spatial extent, point count) rather than dumping raw JSON.
-If a request fails, check get_current_params to diagnose missing configuration.
-Suggest next steps after each action (e.g., after submit, say you'll poll for status).`
+- Region required before submit. User can also draw in browser.
+- run_sql uses DuckDB syntax. Table names must be quoted: SELECT * FROM 'filename.parquet'
+- describe_data returns the table name. Always call it before run_sql.
+- Only one request at a time. Poll after submit.
+- reset_params requires user confirmation in the browser.
+- For visualizations, create charts in your response from run_sql data — no map/chart control tools exist.
+- For SlideRule questions, use search_docs or get_param_help before relying on training data.
+- Summarize findings (elevation range, extent, point count) rather than dumping raw JSON.`
   )
-}
-
-// ── Map Tool Handlers ────────────────────────────────────────────
-
-async function handleZoomToBbox(args: Record<string, unknown>): Promise<ToolResult> {
-  const { min_lat, max_lat, min_lon, max_lon } = args as {
-    min_lat: number
-    max_lat: number
-    min_lon: number
-    max_lon: number
-  }
-
-  const { useMapStore } = await import('@/stores/mapStore')
-  const mapStore = useMapStore()
-  const map = mapStore.getMap()
-  if (!map) {
-    return err('Map is not available. The map view may not be initialized yet.')
-  }
-
-  const { transformExtent } = await import('ol/proj')
-  const view = map.getView()
-  const projection = view.getProjection().getCode()
-  const extent = transformExtent([min_lon, min_lat, max_lon, max_lat], 'EPSG:4326', projection)
-  view.fit(extent, { duration: 500, padding: [50, 50, 50, 50] })
-
-  return ok(`Map zoomed to bounding box: [${min_lat}, ${min_lon}] – [${max_lat}, ${max_lon}].`)
-}
-
-async function handleZoomToPoint(args: Record<string, unknown>): Promise<ToolResult> {
-  const lat = args.lat as number
-  const lon = args.lon as number
-  const zoom = (args.zoom as number) ?? 10
-
-  const { useMapStore } = await import('@/stores/mapStore')
-  const mapStore = useMapStore()
-  const map = mapStore.getMap()
-  if (!map) {
-    return err('Map is not available. The map view may not be initialized yet.')
-  }
-
-  const { fromLonLat } = await import('ol/proj')
-  const view = map.getView()
-  const projection = view.getProjection().getCode()
-  const center = fromLonLat([lon, lat], projection)
-  view.animate({ center, zoom, duration: 500 })
-
-  return ok(`Map centered on [${lat}, ${lon}] at zoom level ${zoom}.`)
-}
-
-async function handleSetBaseLayer(args: Record<string, unknown>): Promise<ToolResult> {
-  const layer = args.layer as string
-  const { useMapStore } = await import('@/stores/mapStore')
-  const mapStore = useMapStore()
-  mapStore.setSelectedBaseLayer(layer)
-  return ok(`Base layer set to "${layer}".`)
-}
-
-async function handleSetMapView(args: Record<string, unknown>): Promise<ToolResult> {
-  const view = args.view as string
-  const validViews = ['Global Mercator', 'North Alaska', 'North Sea Ice', 'South']
-  if (!validViews.includes(view)) {
-    return err(`Invalid view "${view}". Must be one of: ${validViews.join(', ')}.`)
-  }
-  const { useMapStore } = await import('@/stores/mapStore')
-  const mapStore = useMapStore()
-  mapStore.setSrView(view)
-  return ok(`Map view/projection set to "${view}".`)
-}
-
-async function handleToggleGraticule(args: Record<string, unknown>): Promise<ToolResult> {
-  const visible = args.visible as boolean
-  const { useMapStore } = await import('@/stores/mapStore')
-  const mapStore = useMapStore()
-  mapStore.setGraticuleState(visible)
-  return ok(`Graticule ${visible ? 'shown' : 'hidden'}.`)
-}
-
-async function handleSetDrawMode(args: Record<string, unknown>): Promise<ToolResult> {
-  const mode = args.mode as string
-  const validModes = ['Polygon', 'Box', '']
-  if (!validModes.includes(mode)) {
-    return err(
-      `Invalid draw mode "${mode}". Must be one of: "Polygon", "Box", or "" (empty to disable).`
-    )
-  }
-  const { useMapStore } = await import('@/stores/mapStore')
-  const mapStore = useMapStore()
-  mapStore.setDrawType(mode)
-  return ok(mode ? `Draw mode set to "${mode}".` : 'Draw mode disabled.')
-}
-
-// ── Visualization Tool Handlers ──────────────────────────────────
-
-async function handleSetChartField(args: Record<string, unknown>): Promise<ToolResult> {
-  const reqId = args.req_id as number
-  const field = args.field as string
-  const reqIdStr = String(reqId)
-
-  const { useChartStore } = await import('@/stores/chartStore')
-  const chartStore = useChartStore()
-  if (!chartStore.ensureState(reqIdStr)) {
-    return err(`Invalid req_id: ${reqId}.`)
-  }
-  chartStore.setSelectedYData(reqIdStr, field)
-  return ok(`Chart Y-axis field set to "${field}" for request ${reqId}.`)
-}
-
-async function handleSetXAxis(args: Record<string, unknown>): Promise<ToolResult> {
-  const reqId = args.req_id as number
-  const field = args.field as string
-  const reqIdStr = String(reqId)
-
-  const { useChartStore } = await import('@/stores/chartStore')
-  const chartStore = useChartStore()
-  if (!chartStore.ensureState(reqIdStr)) {
-    return err(`Invalid req_id: ${reqId}.`)
-  }
-  chartStore.stateByReqId[reqIdStr].xDataForChart = field
-  return ok(`Chart X-axis field set to "${field}" for request ${reqId}.`)
-}
-
-async function handleSetColorMap(args: Record<string, unknown>): Promise<ToolResult> {
-  const palette = args.palette as string
-  const { srColorMapNames } = await import('@/utils/colorUtils')
-
-  if (!srColorMapNames.includes(palette)) {
-    return err(`Invalid palette "${palette}". Valid options: ${srColorMapNames.join(', ')}.`)
-  }
-
-  // Apply to most recent request's gradient store
-  const requestsStore = useRequestsStore()
-  await requestsStore.fetchReqs()
-  const reqs = requestsStore.reqs
-  if (reqs.length === 0) {
-    return err('No requests found. Submit a request first so the color map has data to apply to.')
-  }
-  const latestReq = reqs[0]
-  const reqIdStr = String(latestReq.req_id)
-
-  const { useGradientColorMapStore } = await import('@/stores/gradientColorMapStore')
-  const gradientStore = useGradientColorMapStore(reqIdStr)
-  gradientStore.setSelectedGradientColorMapName(palette)
-  return ok(`Color map set to "${palette}" for request ${latestReq.req_id}.`)
-}
-
-async function handleSet3dConfig(args: Record<string, unknown>): Promise<ToolResult> {
-  const { useDeck3DConfigStore } = await import('@/stores/deck3DConfigStore')
-  const deck3DStore = useDeck3DConfigStore()
-  const details: string[] = []
-
-  if (args.vertical_exaggeration !== undefined) {
-    deck3DStore.verticalExaggeration = args.vertical_exaggeration as number
-    details.push(`vertical_exaggeration=${args.vertical_exaggeration}`)
-  }
-  if (args.point_size !== undefined) {
-    deck3DStore.pointSize = args.point_size as number
-    details.push(`point_size=${args.point_size}`)
-  }
-  if (args.fov !== undefined) {
-    deck3DStore.fovy = args.fov as number
-    details.push(`fov=${args.fov}`)
-  }
-  if (args.show_axes !== undefined) {
-    deck3DStore.showAxes = args.show_axes as boolean
-    details.push(`show_axes=${args.show_axes}`)
-  }
-
-  if (details.length === 0) {
-    return err('At least one 3D config parameter must be provided.')
-  }
-
-  return ok(`3D config updated: ${details.join(', ')}.`)
-}
-
-async function handleGetElevationPlotConfig(args: Record<string, unknown>): Promise<ToolResult> {
-  const reqIdStr = String(args.req_id as number)
-  const { useChartStore } = await import('@/stores/chartStore')
-  const chartStore = useChartStore()
-  if (!chartStore.ensureState(reqIdStr)) {
-    return err(`Invalid req_id: ${args.req_id}.`)
-  }
-
-  const { useSymbolStore } = await import('@/stores/symbolStore')
-  const symbolStore = useSymbolStore()
-  const { useGlobalChartStore } = await import('@/stores/globalChartStore')
-  const globalChartStore = useGlobalChartStore()
-  const { useAtlChartFilterStore } = await import('@/stores/atlChartFilterStore')
-  const atlChartFilterStore = useAtlChartFilterStore()
-
-  const config = {
-    req_id: args.req_id,
-    y_field: chartStore.getSelectedYData(reqIdStr),
-    y_field_options: chartStore.getYDataOptions(reqIdStr),
-    x_field: chartStore.getXDataForChart(reqIdStr),
-    color_field: chartStore.getSelectedColorEncodeData(reqIdStr),
-    solid_color: chartStore.getSolidSymbolColor(reqIdStr),
-    symbol_size: symbolStore.getSize(reqIdStr),
-    use_time_for_x_axis: globalChartStore.useTimeForXAxis,
-    show_tooltip: globalChartStore.showPlotTooltip,
-    show_photon_cloud: atlChartFilterStore.showPhotonCloud,
-    show_slope_lines: atlChartFilterStore.showSlopeLines,
-    title: globalChartStore.titleOfElevationPlot,
-    num_plotted_points: chartStore.getNumOfPlottedPnts(reqIdStr),
-    max_points_on_plot: globalChartStore.max_pnts_on_plot
-  }
-
-  return ok(JSON.stringify(config, null, 2))
-}
-
-async function handleSetPlotOptions(args: Record<string, unknown>): Promise<ToolResult> {
-  const details: string[] = []
-  const reqIdStr = args.req_id !== undefined ? String(args.req_id as number) : undefined
-
-  // Per-request options that need req_id + chartStore
-  if (reqIdStr !== undefined) {
-    const { useChartStore } = await import('@/stores/chartStore')
-    const chartStore = useChartStore()
-    if (!chartStore.ensureState(reqIdStr)) {
-      return err(`Invalid req_id: ${args.req_id}.`)
-    }
-
-    if (args.color_field !== undefined) {
-      chartStore.setSelectedColorEncodeData(reqIdStr, args.color_field as string)
-      details.push(`color_field="${args.color_field}" for req ${args.req_id}`)
-    }
-    if (args.y_field !== undefined) {
-      chartStore.setSelectedYData(reqIdStr, args.y_field as string)
-      details.push(`y_field="${args.y_field}" for req ${args.req_id}`)
-    }
-    if (args.solid_color !== undefined) {
-      chartStore.setSolidSymbolColor(reqIdStr, args.solid_color as string)
-      details.push(`solid_color="${args.solid_color}" for req ${args.req_id}`)
-    }
-    if (args.symbol_size !== undefined) {
-      const { useSymbolStore } = await import('@/stores/symbolStore')
-      const symbolStore = useSymbolStore()
-      symbolStore.setSize(reqIdStr, args.symbol_size as number)
-      details.push(`symbol_size=${args.symbol_size} for req ${args.req_id}`)
-    }
-  } else if (
-    args.color_field !== undefined ||
-    args.y_field !== undefined ||
-    args.solid_color !== undefined ||
-    args.symbol_size !== undefined
-  ) {
-    return err('req_id is required when setting color_field, y_field, solid_color, or symbol_size.')
-  }
-
-  // Global options
-  if (args.show_tooltip !== undefined) {
-    const { useGlobalChartStore } = await import('@/stores/globalChartStore')
-    const globalChartStore = useGlobalChartStore()
-    globalChartStore.showPlotTooltip = args.show_tooltip as boolean
-    details.push(`show_tooltip=${args.show_tooltip}`)
-  }
-  if (args.use_time_for_x_axis !== undefined) {
-    const { useGlobalChartStore } = await import('@/stores/globalChartStore')
-    const globalChartStore = useGlobalChartStore()
-    globalChartStore.useTimeForXAxis = args.use_time_for_x_axis as boolean
-    details.push(`use_time_for_x_axis=${args.use_time_for_x_axis}`)
-  }
-  if (args.show_photon_cloud !== undefined) {
-    const { useAtlChartFilterStore } = await import('@/stores/atlChartFilterStore')
-    const atlChartFilterStore = useAtlChartFilterStore()
-    atlChartFilterStore.setShowPhotonCloud(args.show_photon_cloud as boolean)
-    details.push(`show_photon_cloud=${args.show_photon_cloud}`)
-  }
-  if (args.show_slope_lines !== undefined) {
-    const { useAtlChartFilterStore } = await import('@/stores/atlChartFilterStore')
-    const atlChartFilterStore = useAtlChartFilterStore()
-    atlChartFilterStore.showSlopeLines = args.show_slope_lines as boolean
-    details.push(`show_slope_lines=${args.show_slope_lines}`)
-  }
-
-  if (details.length === 0) {
-    return err('At least one plot option must be provided.')
-  }
-
-  return ok(`Plot options updated: ${details.join(', ')}.`)
 }
 
 // ── Validation ───────────────────────────────────────────────────
@@ -1626,39 +1001,18 @@ const handlers: Record<string, ToolHandler> = {
   set_surface_fit: handleSetSurfaceFit,
   set_photon_params: handleSetPhotonParams,
   set_yapc: handleSetYapc,
-  set_output_config: handleSetOutputConfig,
   get_current_params: handleGetCurrentParams,
   reset_params: handleResetParams,
   submit_request: handleSubmitRequest,
   get_request_status: handleGetRequestStatus,
   cancel_request: handleCancelRequest,
   list_requests: handleListRequests,
-  delete_request: handleDeleteRequest,
   run_sql: handleRunSql,
   describe_data: handleDescribeData,
   get_elevation_stats: handleGetElevationStats,
-  get_sample_data: handleGetSampleData,
-  export_data: handleExportData,
   search_docs: handleSearchDocs,
   fetch_docs: handleFetchDocs,
   get_param_help: handleGetParamHelp,
-  list_doc_sections: handleListDocSections,
-  start_tour: handleStartTour,
-  zoom_to_bbox: handleZoomToBbox,
-  zoom_to_point: handleZoomToPoint,
-  set_base_layer: handleSetBaseLayer,
-  set_map_view: handleSetMapView,
-  toggle_graticule: handleToggleGraticule,
-  set_draw_mode: handleSetDrawMode,
-  set_chart_field: handleSetChartField,
-  set_x_axis: handleSetXAxis,
-  set_color_map: handleSetColorMap,
-  set_3d_config: handleSet3dConfig,
-  get_elevation_plot_config: handleGetElevationPlotConfig,
-  set_plot_options: handleSetPlotOptions,
-  navigate: handleNavigate,
-  get_current_view: handleGetCurrentView,
-  set_scientific_mode: handleSetScientificMode,
   initialize: handleInitialize
 }
 

@@ -255,21 +255,6 @@ BOOTSTRAP_TOOLS = [
         },
     ),
     types.Tool(
-        name="set_output_config",
-        description=(
-            "Configure output format settings: file output mode, GeoParquet "
-            "format, and checksum generation."
-        ),
-        inputSchema={
-            "type": "object",
-            "properties": {
-                "file_output": {"type": "boolean", "description": "Enable or disable file output (server-side parquet generation)."},
-                "geo_parquet": {"type": "boolean", "description": "Use GeoParquet format (true) or plain Parquet (false)."},
-                "checksum": {"type": "boolean", "description": "Include checksum in output."},
-            },
-        },
-    ),
-    types.Tool(
         name="get_current_params",
         description=(
             "Get the current request parameter state including mission, API, "
@@ -331,24 +316,6 @@ BOOTSTRAP_TOOLS = [
             "elapsed time, and point count. Returns newest first."
         ),
         inputSchema={"type": "object", "properties": {}},
-    ),
-    types.Tool(
-        name="delete_request",
-        description=(
-            "Delete a request and its associated data (summary, run context). "
-            "This is a destructive operation that requires user confirmation "
-            "in the browser."
-        ),
-        inputSchema={
-            "type": "object",
-            "properties": {
-                "req_id": {
-                    "type": "integer",
-                    "description": "The request ID to delete.",
-                }
-            },
-            "required": ["req_id"],
-        },
     ),
     # ── Data Analysis Tools ──────────────────────────────────────
     types.Tool(
@@ -420,55 +387,6 @@ BOOTSTRAP_TOOLS = [
             "required": ["req_id"],
         },
     ),
-    types.Tool(
-        name="get_sample_data",
-        description=(
-            "Retrieve a random sample of rows from a request's result set. "
-            "Uses DuckDB Bernoulli sampling for true randomness."
-        ),
-        inputSchema={
-            "type": "object",
-            "properties": {
-                "req_id": {
-                    "type": "integer",
-                    "description": "The request ID whose data to sample.",
-                },
-                "num_rows": {
-                    "type": "integer",
-                    "description": "Number of rows to return (default 20, max 500).",
-                    "minimum": 1,
-                    "maximum": 500,
-                },
-            },
-            "required": ["req_id"],
-        },
-    ),
-    types.Tool(
-        name="export_data",
-        description=(
-            "Export query results as a Parquet file for download. Triggers a "
-            "browser download dialog. Optionally provide a custom SQL query; "
-            "defaults to the full result set."
-        ),
-        inputSchema={
-            "type": "object",
-            "properties": {
-                "req_id": {
-                    "type": "integer",
-                    "description": "The request ID whose data to export.",
-                },
-                "sql": {
-                    "type": "string",
-                    "description": "Optional SQL query to export. Defaults to SELECT * FROM the full result set.",
-                },
-                "filename": {
-                    "type": "string",
-                    "description": 'Optional output filename (default: "export_<req_id>.parquet").',
-                },
-            },
-            "required": ["req_id"],
-        },
-    ),
     # ── Documentation Tools ─────────────────────────────────────
     types.Tool(
         name="search_docs",
@@ -486,7 +404,7 @@ BOOTSTRAP_TOOLS = [
                 },
                 "max_results": {
                     "type": "integer",
-                    "description": "Maximum number of results (default 10, max 50).",
+                    "description": "Maximum number of results to return (default 10, max 50).",
                     "minimum": 1,
                     "maximum": 50,
                 },
@@ -529,381 +447,6 @@ BOOTSTRAP_TOOLS = [
         },
     ),
     types.Tool(
-        name="list_doc_sections",
-        description=(
-            "List all indexed documentation sections with their titles and "
-            "chunk counts. Useful to discover what documentation is available "
-            "for searching."
-        ),
-        inputSchema={"type": "object", "properties": {}},
-    ),
-    # ── Map Tools ──────────────────────────────────────────────
-    types.Tool(
-        name="zoom_to_bbox",
-        description=(
-            "Zoom the map to a bounding box defined by min/max latitude and "
-            "longitude. Animates the map to fit the specified extent."
-        ),
-        inputSchema={
-            "type": "object",
-            "properties": {
-                "min_lat": {"type": "number", "description": "Minimum latitude (-90 to 90)."},
-                "max_lat": {"type": "number", "description": "Maximum latitude (-90 to 90)."},
-                "min_lon": {"type": "number", "description": "Minimum longitude (-180 to 180)."},
-                "max_lon": {"type": "number", "description": "Maximum longitude (-180 to 180)."},
-            },
-            "required": ["min_lat", "max_lat", "min_lon", "max_lon"],
-        },
-    ),
-    types.Tool(
-        name="zoom_to_point",
-        description=(
-            "Center the map on a specific latitude/longitude point with an "
-            "optional zoom level."
-        ),
-        inputSchema={
-            "type": "object",
-            "properties": {
-                "lat": {"type": "number", "description": "Latitude (-90 to 90)."},
-                "lon": {"type": "number", "description": "Longitude (-180 to 180)."},
-                "zoom": {
-                    "type": "number",
-                    "description": "Zoom level (0–23). Higher = more zoomed in. Default: 10.",
-                    "minimum": 0,
-                    "maximum": 23,
-                },
-            },
-            "required": ["lat", "lon"],
-        },
-    ),
-    types.Tool(
-        name="set_base_layer",
-        description=(
-            "Change the map base layer (satellite imagery, topography, etc.). "
-            "Available layers depend on the current projection/view. "
-            'Common layers: "Esri World Topo", "Esri World Imagery", '
-            '"OpenStreetMap Standard", "Google Satellite". Polar views have '
-            'specialized layers like "Arctic Ocean Base", "Antarctic Imagery", "LIMA".'
-        ),
-        inputSchema={
-            "type": "object",
-            "properties": {
-                "layer": {
-                    "type": "string",
-                    "description": 'Base layer name (e.g. "Esri World Imagery").',
-                }
-            },
-            "required": ["layer"],
-        },
-    ),
-    types.Tool(
-        name="set_map_view",
-        description=(
-            "Switch the map projection/view. Changes coordinate system and "
-            "available base layers. "
-            '"Global Mercator" (EPSG:3857) for worldwide, '
-            '"North Alaska" (EPSG:5936) for Arctic, '
-            '"North Sea Ice" (EPSG:3413) for Arctic sea ice, '
-            '"South" (EPSG:3031) for Antarctic.'
-        ),
-        inputSchema={
-            "type": "object",
-            "properties": {
-                "view": {
-                    "type": "string",
-                    "enum": ["Global Mercator", "North Alaska", "North Sea Ice", "South"],
-                    "description": "Map view/projection name.",
-                }
-            },
-            "required": ["view"],
-        },
-    ),
-    types.Tool(
-        name="toggle_graticule",
-        description=(
-            "Show or hide the latitude/longitude grid (graticule) overlay "
-            "on the map."
-        ),
-        inputSchema={
-            "type": "object",
-            "properties": {
-                "visible": {
-                    "type": "boolean",
-                    "description": "True to show the graticule, false to hide it.",
-                }
-            },
-            "required": ["visible"],
-        },
-    ),
-    types.Tool(
-        name="set_draw_mode",
-        description=(
-            'Set the region drawing mode on the map. "Polygon" for freeform '
-            'polygon, "Box" for rectangle, "" (empty string) to disable drawing.'
-        ),
-        inputSchema={
-            "type": "object",
-            "properties": {
-                "mode": {
-                    "type": "string",
-                    "enum": ["Polygon", "Box", ""],
-                    "description": 'Drawing mode: "Polygon", "Box", or "" to disable.',
-                }
-            },
-            "required": ["mode"],
-        },
-    ),
-    # ── Visualization Tools ──────────────────────────────────────
-    types.Tool(
-        name="set_chart_field",
-        description=(
-            "Set which data field to plot on the elevation chart Y-axis for "
-            "a given request. Use describe_data to discover available column "
-            "names first."
-        ),
-        inputSchema={
-            "type": "object",
-            "properties": {
-                "req_id": {
-                    "type": "integer",
-                    "description": "The request ID whose chart to configure.",
-                },
-                "field": {
-                    "type": "string",
-                    "description": 'Column name for the Y-axis (e.g. "h_mean", "height", "h_canopy").',
-                },
-            },
-            "required": ["req_id", "field"],
-        },
-    ),
-    types.Tool(
-        name="set_x_axis",
-        description=(
-            "Set the X-axis field for the elevation chart. Common values: "
-            '"x_atc" (along-track distance), "latitude", "segment_dist_x", '
-            '"time_ns_plot", "time_plot".'
-        ),
-        inputSchema={
-            "type": "object",
-            "properties": {
-                "req_id": {
-                    "type": "integer",
-                    "description": "The request ID whose chart to configure.",
-                },
-                "field": {
-                    "type": "string",
-                    "description": 'Column name for the X-axis (e.g. "x_atc", "latitude").',
-                },
-            },
-            "required": ["req_id", "field"],
-        },
-    ),
-    types.Tool(
-        name="set_color_map",
-        description=(
-            "Set the gradient color map used for elevation/data visualization. "
-            "Palettes include: viridis, jet, inferno, magma, plasma, hot, cool, "
-            "rainbow, RdBu, bluered, earth, bathymetry, temperature, and more."
-        ),
-        inputSchema={
-            "type": "object",
-            "properties": {
-                "palette": {
-                    "type": "string",
-                    "description": 'Color map name (e.g. "viridis", "jet", "inferno", "plasma", "rainbow").',
-                }
-            },
-            "required": ["palette"],
-        },
-    ),
-    types.Tool(
-        name="set_3d_config",
-        description=(
-            "Configure the 3D elevation view (Deck.gl). Set vertical "
-            "exaggeration, point size, field of view, and axes visibility."
-        ),
-        inputSchema={
-            "type": "object",
-            "properties": {
-                "vertical_exaggeration": {
-                    "type": "number",
-                    "description": "Vertical exaggeration multiplier (default 1.0). Higher values emphasize elevation differences.",
-                },
-                "point_size": {
-                    "type": "number",
-                    "description": "Point size multiplier (default 1.0).",
-                    "minimum": 0.1,
-                },
-                "fov": {
-                    "type": "number",
-                    "description": "Field of view in degrees (default 50).",
-                    "minimum": 10,
-                    "maximum": 120,
-                },
-                "show_axes": {
-                    "type": "boolean",
-                    "description": "Show or hide 3D axes.",
-                },
-            },
-        },
-    ),
-    types.Tool(
-        name="get_elevation_plot_config",
-        description=(
-            "Get current elevation plot configuration: Y-axis field, X-axis field, "
-            "color encoding, symbol size/color, photon cloud, slope lines, tooltip, "
-            "and available field options."
-        ),
-        inputSchema={
-            "type": "object",
-            "properties": {
-                "req_id": {
-                    "type": "integer",
-                    "description": "The request ID whose plot config to read.",
-                },
-            },
-            "required": ["req_id"],
-        },
-    ),
-    types.Tool(
-        name="set_plot_options",
-        description=(
-            "Configure chart plot options: color encoding, symbol size/color, "
-            "Y-axis field, time-based X-axis, photon cloud overlay, slope lines, "
-            "and tooltip visibility."
-        ),
-        inputSchema={
-            "type": "object",
-            "properties": {
-                "req_id": {
-                    "type": "integer",
-                    "description": "The request ID whose plot to configure.",
-                },
-                "y_field": {
-                    "type": "string",
-                    "description": 'Y-axis data field (e.g. "h_mean", "h_ph"). Use get_elevation_plot_config to see options.',
-                },
-                "color_field": {
-                    "type": "string",
-                    "description": 'Field name for color encoding (e.g. "h_mean"), or "solid" for single color.',
-                },
-                "solid_color": {
-                    "type": "string",
-                    "description": 'Solid symbol color when color_field is "solid" (e.g. "red", "#ff0000").',
-                },
-                "symbol_size": {
-                    "type": "number",
-                    "description": "Symbol/point size in pixels (default varies by API, typically 2–4).",
-                    "minimum": 1,
-                    "maximum": 20,
-                },
-                "use_time_for_x_axis": {
-                    "type": "boolean",
-                    "description": "Use time instead of along-track distance for X-axis.",
-                },
-                "show_photon_cloud": {
-                    "type": "boolean",
-                    "description": "Show or hide ATL03 photon cloud overlay on the plot.",
-                },
-                "show_slope_lines": {
-                    "type": "boolean",
-                    "description": "Show or hide slope/segment lines on the plot.",
-                },
-                "show_tooltip": {
-                    "type": "boolean",
-                    "description": "Show or hide chart tooltips on hover.",
-                },
-            },
-        },
-    ),
-    # ── UI Tools ────────────────────────────────────────────────
-    types.Tool(
-        name="start_tour",
-        description=(
-            "Start an interactive guided tour of the SlideRule web client UI. "
-            'The tour highlights key UI elements and walks the user through '
-            'the app. Use "quick" for the 4-step essentials (zoom, draw, run, '
-            'analyze) or "long" for a comprehensive walkthrough of all controls '
-            "and views."
-        ),
-        inputSchema={
-            "type": "object",
-            "properties": {
-                "type": {
-                    "type": "string",
-                    "enum": ["quick", "long"],
-                    "description": (
-                        '"quick" = 4-step essentials (zoom, draw, run, analyze). '
-                        '"long" = full walkthrough of all controls.'
-                    ),
-                }
-            },
-            "required": ["type"],
-        },
-    ),
-    # ── Navigation Tools ──────────────────────────────────────────
-    types.Tool(
-        name="navigate",
-        description=(
-            "Navigate to a view in the web client. Use 'analyze' with a "
-            "req_id to view results, 'request' to set up parameters, "
-            "'settings' for app configuration, 'rectree' for the request "
-            "tree, 'server' for server management."
-        ),
-        inputSchema={
-            "type": "object",
-            "properties": {
-                "view": {
-                    "type": "string",
-                    "enum": [
-                        "home", "request", "analyze", "settings",
-                        "about", "server", "rectree", "privacy",
-                    ],
-                    "description": "The view to navigate to.",
-                },
-                "req_id": {
-                    "type": "integer",
-                    "description": (
-                        "Required when navigating to 'analyze'. The request "
-                        "ID to view. Also accepted for 'request' to load a "
-                        "specific request's parameters."
-                    ),
-                },
-            },
-            "required": ["view"],
-        },
-    ),
-    types.Tool(
-        name="get_current_view",
-        description=(
-            "Get the current view/page in the web client. Returns the active "
-            "route name, path, route params, and a list of all available views."
-        ),
-        inputSchema={"type": "object", "properties": {}},
-    ),
-    types.Tool(
-        name="set_scientific_mode",
-        description=(
-            "Enable or disable scientific transparency mode. When enabled, you MUST: "
-            "(1) show every SQL query you run and its full results, "
-            "(2) cite every documentation source with its URL, "
-            "(3) show all intermediate calculations step by step, "
-            "(4) clearly distinguish between data from SlideRule tools vs. your own knowledge, "
-            "(5) include units and coordinate reference systems where applicable. "
-            "This mode is intended for climate scientists who need full reproducibility."
-        ),
-        inputSchema={
-            "type": "object",
-            "properties": {
-                "enabled": {
-                    "type": "boolean",
-                    "description": "true to enable scientific transparency mode, false to disable.",
-                },
-            },
-            "required": ["enabled"],
-        },
-    ),
-    types.Tool(
         name="initialize",
         description=(
             "Initialize Claude to work with the SlideRule web client. Call this at the start of every conversation. "
@@ -919,192 +462,6 @@ BOOTSTRAP_TOOLS = [
 
 cached_tools: list[types.Tool] = list(BOOTSTRAP_TOOLS)
 
-# ── Bootstrap resource definitions ────────────────────────────────
-# Same approach as tools: static bootstrap so Claude Desktop sees them
-# immediately.  Browser overrides these when it connects.
-BOOTSTRAP_RESOURCES = [
-    types.Resource(
-        uri="sliderule://params/current",
-        name="Current Parameters",
-        description="Full current parameter state from reqParamsStore",
-        mimeType="application/json",
-    ),
-    types.Resource(
-        uri="sliderule://requests/history",
-        name="Request History",
-        description="All request records with status, timing, and point counts",
-        mimeType="application/json",
-    ),
-    types.Resource(
-        uri="sliderule://map/viewport",
-        name="Map Viewport",
-        description="Current map center, zoom, projection, and visible extent",
-        mimeType="application/json",
-    ),
-    types.Resource(
-        uri="sliderule://catalog/products",
-        name="Available Products",
-        description="Available missions and their API endpoints",
-        mimeType="application/json",
-    ),
-    types.Resource(
-        uri="sliderule://auth/status",
-        name="Auth Status",
-        description="Current authentication state: username, org membership",
-        mimeType="application/json",
-    ),
-    types.Resource(
-        uri="sliderule://docs/index",
-        name="Documentation Index",
-        description="All indexed doc sections with titles and chunk counts",
-        mimeType="application/json",
-    ),
-    types.Resource(
-        uri="sliderule://docs/tooltips",
-        name="All Tooltips",
-        description="All in-app tooltip text organized by parameter",
-        mimeType="application/json",
-    ),
-    types.Resource(
-        uri="sliderule://app/current-view",
-        name="Current View",
-        description="Current Vue Router view name, path, params, and list of available routes",
-        mimeType="application/json",
-    ),
-]
-
-BOOTSTRAP_RESOURCE_TEMPLATES = [
-    types.ResourceTemplate(
-        uriTemplate="sliderule://requests/{id}/summary",
-        name="Request Summary",
-        description="Status, timing, row count for a specific request",
-        mimeType="application/json",
-    ),
-    types.ResourceTemplate(
-        uriTemplate="sliderule://data/{id}/schema",
-        name="Data Schema",
-        description="Column names and types for a result set",
-        mimeType="application/json",
-    ),
-    types.ResourceTemplate(
-        uriTemplate="sliderule://data/{id}/sample",
-        name="Data Sample",
-        description="First 20 rows of a result set",
-        mimeType="application/json",
-    ),
-    types.ResourceTemplate(
-        uriTemplate="sliderule://catalog/fields/{api}",
-        name="API Fields",
-        description="Available data fields for a specific API",
-        mimeType="application/json",
-    ),
-    types.ResourceTemplate(
-        uriTemplate="sliderule://docs/section/{section}",
-        name="Doc Section",
-        description="All chunks for a documentation section",
-        mimeType="application/json",
-    ),
-    types.ResourceTemplate(
-        uriTemplate="sliderule://docs/param/{name}",
-        name="Parameter Help",
-        description="Parameter help: tooltip, defaults, valid values, doc URL",
-        mimeType="application/json",
-    ),
-    types.ResourceTemplate(
-        uriTemplate="sliderule://docs/defaults/{mission}",
-        name="Server Defaults",
-        description="Server defaults for a mission (icesat2, gedi, core)",
-        mimeType="application/json",
-    ),
-]
-
-BOOTSTRAP_PROMPTS = [
-    types.Prompt(
-        name="analyze-region",
-        description="Full workflow: set region, configure params, submit, analyze results",
-        arguments=[
-            types.PromptArgument(
-                name="region_description",
-                description='Natural language description of the geographic region (e.g. "Juneau Icefield, Alaska")',
-                required=True,
-            ),
-            types.PromptArgument(
-                name="api",
-                description='SlideRule API to use (e.g. "atl06p", "atl08p", "gedi02ap"). Defaults to atl06p.',
-                required=False,
-            ),
-            types.PromptArgument(
-                name="time_range",
-                description='Time range for the data (e.g. "2020-01-01 to 2023-12-31")',
-                required=False,
-            ),
-        ],
-    ),
-    types.Prompt(
-        name="elevation-change",
-        description="Compare elevation data between two time periods to detect change",
-        arguments=[
-            types.PromptArgument(
-                name="region_description",
-                description="Natural language description of the geographic region",
-                required=True,
-            ),
-            types.PromptArgument(
-                name="period_1",
-                description='First time period (e.g. "2020-01-01 to 2020-12-31")',
-                required=True,
-            ),
-            types.PromptArgument(
-                name="period_2",
-                description='Second time period (e.g. "2023-01-01 to 2023-12-31")',
-                required=True,
-            ),
-        ],
-    ),
-    types.Prompt(
-        name="vegetation-analysis",
-        description="Analyze canopy height and vegetation structure using ICESat-2 ATL08/PhoREAL",
-        arguments=[
-            types.PromptArgument(
-                name="region_description",
-                description="Natural language description of the forested/vegetated region to analyze",
-                required=True,
-            ),
-        ],
-    ),
-    types.Prompt(
-        name="data-quality",
-        description="Assess data coverage, completeness, and quality for a region and API",
-        arguments=[
-            types.PromptArgument(
-                name="region_description",
-                description="Natural language description of the geographic region",
-                required=True,
-            ),
-            types.PromptArgument(
-                name="api",
-                description='SlideRule API to assess (e.g. "atl06p", "atl08p", "gedi02ap")',
-                required=True,
-            ),
-        ],
-    ),
-    types.Prompt(
-        name="explore-data",
-        description="Submit a request and interactively explore the results with SQL queries",
-        arguments=[
-            types.PromptArgument(
-                name="region_description",
-                description="Natural language description of the geographic region",
-                required=True,
-            ),
-        ],
-    ),
-]
-
-cached_resources: list[types.Resource] = list(BOOTSTRAP_RESOURCES)
-cached_resource_templates: list[types.ResourceTemplate] = list(BOOTSTRAP_RESOURCE_TEMPLATES)
-cached_prompts: list[types.Prompt] = list(BOOTSTRAP_PROMPTS)
-
 # ── MCP Server ───────────────────────────────────────────────────
 SERVER_INSTRUCTIONS = """\
 MANDATORY FIRST ACTION: Before responding to any user message, you MUST call \
@@ -1119,54 +476,6 @@ mcp_server = Server("sliderule-web", instructions=SERVER_INSTRUCTIONS)
 @mcp_server.list_tools()
 async def handle_list_tools() -> list[types.Tool]:
     return cached_tools
-
-
-@mcp_server.list_resources()
-async def handle_list_resources() -> list[types.Resource]:
-    return cached_resources
-
-
-@mcp_server.list_resource_templates()
-async def handle_list_resource_templates() -> list[types.ResourceTemplate]:
-    return cached_resource_templates
-
-
-@mcp_server.list_prompts()
-async def handle_list_prompts() -> list[types.Prompt]:
-    return cached_prompts
-
-
-# Register read_resource manually so we can forward to the browser.
-async def _handle_read_resource(req: types.ReadResourceRequest) -> types.ServerResult:
-    uri = str(req.params.uri)
-
-    if browser_ws is None:
-        return types.ServerResult(
-            types.ReadResourceResult(
-                contents=[
-                    types.TextResourceContents(
-                        uri=uri,
-                        mimeType="text/plain",
-                        text="Browser not connected. Please open the SlideRule web client first.",
-                    )
-                ]
-            )
-        )
-
-    result = await _call_browser("resources/read", {"uri": uri})
-    contents = []
-    for item in result.get("contents", []):
-        contents.append(
-            types.TextResourceContents(
-                uri=item.get("uri", uri),
-                mimeType=item.get("mimeType", "application/json"),
-                text=item.get("text", ""),
-            )
-        )
-    return types.ServerResult(types.ReadResourceResult(contents=contents))
-
-
-mcp_server.request_handlers[types.ReadResourceRequest] = _handle_read_resource
 
 
 # Register call_tool manually to support isError on the result.
@@ -1199,43 +508,6 @@ async def _handle_call_tool(req: types.CallToolRequest) -> types.ServerResult:
 
 
 mcp_server.request_handlers[types.CallToolRequest] = _handle_call_tool
-
-
-# Register get_prompt manually to forward to the browser.
-async def _handle_get_prompt(req: types.GetPromptRequest) -> types.ServerResult:
-    name = req.params.name
-    arguments = req.params.arguments or {}
-
-    if browser_ws is None:
-        return types.ServerResult(
-            types.GetPromptResult(
-                description=f"Prompt: {name}",
-                messages=[
-                    types.PromptMessage(
-                        role="user",
-                        content=types.TextContent(
-                            type="text",
-                            text="Browser not connected. Please open the SlideRule web client first.",
-                        ),
-                    )
-                ],
-            )
-        )
-
-    result = await _call_browser("prompts/get", {"name": name, "arguments": arguments})
-    messages = [
-        types.PromptMessage(
-            role=m.get("role", "user"),
-            content=types.TextContent(type="text", text=m["content"]["text"]),
-        )
-        for m in result.get("messages", [])
-    ]
-    return types.ServerResult(
-        types.GetPromptResult(description=result.get("description", ""), messages=messages)
-    )
-
-
-mcp_server.request_handlers[types.GetPromptRequest] = _handle_get_prompt
 
 
 # ── Notify Claude Desktop that the tool list changed ─────────────
@@ -1271,66 +543,6 @@ async def _fetch_and_cache_tools():
         await _notify_tools_changed()
     except Exception:
         log.exception("Failed to fetch tool definitions from browser")
-
-
-# ── Fetch resource definitions from the browser and cache them ───
-async def _fetch_and_cache_resources():
-    global cached_resources, cached_resource_templates
-    try:
-        result = await _call_browser("resources/list", {})
-        resources = [
-            types.Resource(
-                uri=r["uri"],
-                name=r.get("name", ""),
-                description=r.get("description", ""),
-                mimeType=r.get("mimeType", "application/json"),
-            )
-            for r in result.get("resources", [])
-        ]
-        templates = [
-            types.ResourceTemplate(
-                uriTemplate=t["uriTemplate"],
-                name=t.get("name", ""),
-                description=t.get("description", ""),
-                mimeType=t.get("mimeType", "application/json"),
-            )
-            for t in result.get("resourceTemplates", [])
-        ]
-        cached_resources = resources
-        cached_resource_templates = templates
-        log.info(
-            "Cached %d resources, %d templates from browser",
-            len(resources),
-            len(templates),
-        )
-    except Exception:
-        log.exception("Failed to fetch resource definitions from browser")
-
-
-# ── Fetch prompt definitions from the browser and cache them ─────
-async def _fetch_and_cache_prompts():
-    global cached_prompts
-    try:
-        result = await _call_browser("prompts/list", {})
-        prompts = [
-            types.Prompt(
-                name=p["name"],
-                description=p.get("description", ""),
-                arguments=[
-                    types.PromptArgument(
-                        name=a["name"],
-                        description=a.get("description", ""),
-                        required=a.get("required", False),
-                    )
-                    for a in p.get("arguments", [])
-                ],
-            )
-            for p in result.get("prompts", [])
-        ]
-        cached_prompts = prompts
-        log.info("Cached %d prompt definitions from browser", len(prompts))
-    except Exception:
-        log.exception("Failed to fetch prompt definitions from browser")
 
 
 # ── Forward a request to the browser and wait for response ───────
@@ -1369,7 +581,7 @@ ALLOWED_ORIGINS = {
 
 
 async def _ws_handler(websocket):
-    global browser_ws, cached_tools, cached_resources, cached_resource_templates, cached_prompts
+    global browser_ws, cached_tools
 
     origin = websocket.request.headers.get("Origin", "")
     if origin and origin not in ALLOWED_ORIGINS:
@@ -1386,8 +598,6 @@ async def _ws_handler(websocket):
     # Fetch definitions in background tasks so the message loop
     # can process the responses (avoids deadlock).
     asyncio.create_task(_fetch_and_cache_tools())
-    asyncio.create_task(_fetch_and_cache_resources())
-    asyncio.create_task(_fetch_and_cache_prompts())
 
     try:
         async for raw in websocket:
@@ -1408,9 +618,6 @@ async def _ws_handler(websocket):
         if browser_ws is websocket:
             browser_ws = None
             cached_tools = list(BOOTSTRAP_TOOLS)
-            cached_resources = list(BOOTSTRAP_RESOURCES)
-            cached_resource_templates = list(BOOTSTRAP_RESOURCE_TEMPLATES)
-            cached_prompts = list(BOOTSTRAP_PROMPTS)
             log.info("Browser disconnected, restored bootstrap definitions")
 
 
@@ -1427,9 +634,7 @@ async def _run():
                 write_stream,
                 mcp_server.create_initialization_options(
                     notification_options=NotificationOptions(
-                    prompts_changed=True,
                     tools_changed=True,
-                    resources_changed=True,
                 ),
                 ),
             )
