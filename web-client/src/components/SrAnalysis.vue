@@ -1,6 +1,6 @@
 <template>
   <div class="sr-layout-wrapper">
-    <div class="sr-main-content card">
+    <div class="sr-main-content">
       <!-- v-model binds to activeIndex so we know which tab is selected -->
       <Tabs v-model:value="activeTabStore.activeTab">
         <TabList>
@@ -36,7 +36,7 @@
         </TabPanels>
       </Tabs>
     </div>
-    <div class="sr-elrng3d-panel">
+    <div v-if="shouldDisplay3DView || shouldDisplayCycleSelect" class="sr-elrng3d-panel">
       <SrElRng3D v-if="shouldDisplay3DView" />
       <SrCycleSelect v-if="shouldDisplayCycleSelect" />
     </div>
@@ -139,6 +139,12 @@ onUnmounted(() => {
   padding: 0.5rem 2rem;
 }
 
+:deep(.p-tabs),
+:deep(.p-tabpanels),
+:deep(.p-tabpanel) {
+  width: 100%;
+}
+
 :deep(.p-tabpanels) {
   margin: 0;
   padding-top: 0.5rem;
@@ -154,12 +160,12 @@ onUnmounted(() => {
 }
 
 .sr-main-content {
-  flex: 0 1 95%;
+  flex: 1 1 0;
   min-width: 0;
 }
 
 .sr-elrng3d-panel {
-  flex: 0 1 15%;
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: flex-start;
