@@ -118,7 +118,7 @@ const handleFileImported = (_reqId: string) => {
 .sr-analysis-opt-sidebar {
   display: flex;
   flex-direction: column;
-  width: auto;
+  width: 100%;
   overflow: auto;
 }
 .sr-analysis-opt-sidebar-container {
@@ -126,9 +126,8 @@ const handleFileImported = (_reqId: string) => {
   flex-direction: column;
   align-items: center;
   justify-content: space-between;
-  min-width: 20vw;
+  width: 100%;
   min-height: 20vh;
-  max-width: 75vw;
 }
 .sr-map-descr {
   display: flex;
