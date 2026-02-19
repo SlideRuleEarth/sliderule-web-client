@@ -1722,11 +1722,13 @@ watch(
 <style scoped>
 .sr-elevation-plot-container {
   display: block;
+  width: 100%;
 }
 
 .chart-wrapper {
   position: relative; /* Allows absolutely-positioned children to overlay */
-  width: 100%;
+  flex: 1 1 0;
+  min-width: 0;
   height: 60vh; /* or whatever size you want */
   margin: 0.25rem;
   padding: 0.25rem;
@@ -1847,12 +1849,11 @@ watch(
   flex-direction: row;
   justify-content: center;
   align-items: left;
-  margin: 0rem;
-  padding: 0rem;
-  overflow-y: auto;
-  overflow-x: auto;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
   height: 100%;
-  width: auto;
+  width: 100%;
 }
 
 .sr-legends-panel {
@@ -2070,14 +2071,9 @@ fieldset {
 .scatter-chart {
   height: 60vh;
   width: 100%;
-  margin-bottom: 0.5rem;
-  margin-left: 0rem;
-  margin-right: 0rem;
-  margin-top: 0rem;
-  margin-bottom: 0rem;
-  padding: 0rem;
+  margin: 0;
+  padding: 0;
   max-height: 50rem;
-  max-width: 80rem;
 }
 
 /* Allow dragging on touch devices */

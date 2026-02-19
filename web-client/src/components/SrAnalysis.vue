@@ -139,6 +139,12 @@ onUnmounted(() => {
   padding: 0.5rem 2rem;
 }
 
+:deep(.p-tabs),
+:deep(.p-tabpanels),
+:deep(.p-tabpanel) {
+  width: 100%;
+}
+
 :deep(.p-tabpanels) {
   margin: 0;
   padding-top: 0.5rem;

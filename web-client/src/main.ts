@@ -69,19 +69,12 @@ const SrPreset = definePreset(Lara, {
           }
         }
       }
+    },
+    tabs: {
+      tabpanel: {
+        padding: '0'
+      }
     }
-    // primvue: {
-    //   tabs: {
-    //     tab: {
-    //       background: {
-    //         color: {
-    //           dark: 'red',
-    //           light: 'red'
-    //         }
-    //       }
-    //     },
-    //   }
-    // }
   }
 })
 const pinia = createPinia()
