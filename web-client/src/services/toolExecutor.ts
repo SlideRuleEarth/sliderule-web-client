@@ -608,18 +608,6 @@ async function handleGetRequestStatus(args: Record<string, unknown>): Promise<To
   return ok(JSON.stringify(statusInfo, null, 2))
 }
 
-async function handleCancelRequest(): Promise<ToolResult> {
-  const serverStateStore = useServerStateStore()
-
-  if (!serverStateStore.isFetching) {
-    return err('No request is currently running.')
-  }
-
-  const { processAbortClicked } = await import('@/utils/workerDomUtils')
-  processAbortClicked()
-  return ok('Cancel signal sent. The running request will be aborted.')
-}
-
 async function handleListRequests(): Promise<ToolResult> {
   const requestsStore = useRequestsStore()
   await requestsStore.fetchReqs()
@@ -1005,7 +993,6 @@ const handlers: Record<string, ToolHandler> = {
   reset_params: handleResetParams,
   submit_request: handleSubmitRequest,
   get_request_status: handleGetRequestStatus,
-  cancel_request: handleCancelRequest,
   list_requests: handleListRequests,
   run_sql: handleRunSql,
   describe_data: handleDescribeData,

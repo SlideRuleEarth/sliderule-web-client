@@ -291,15 +291,6 @@ export const toolDefinitions: ToolDefinition[] = [
     }
   },
   {
-    name: 'cancel_request',
-    description:
-      'Cancel a currently running request. Only works if a request is actively fetching data.',
-    inputSchema: {
-      type: 'object',
-      properties: {}
-    }
-  },
-  {
     name: 'list_requests',
     description:
       'List all requests in the session with their status, API function, elapsed time, and point count. Returns newest first.',
