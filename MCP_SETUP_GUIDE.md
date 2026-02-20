@@ -10,7 +10,7 @@ Once set up, you can ask Claude things like:
 - "Get canopy heights for the Amazon rainforest"
 - "What's the average elevation in this region?"
 
-Claude sends your requests to the SlideRule web client running in your browser. The web client handles all the satellite data processing, mapping, and analysis — Claude just provides the conversational interface.
+Claude sends your requests to the SlideRule web client running in your browser. The web client handles all the satellite data processing, mapping, and analysis — Claude provides the conversational interface and an interactive UI/UX experience for analysis.
 
 ## Prerequisites
 
