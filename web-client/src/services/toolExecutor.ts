@@ -5,9 +5,6 @@ import { useServerStateStore } from '@/stores/serverStateStore'
 import { app } from '@/main'
 import { toolDefinitions, type ToolDefinition } from './toolDefinitions'
 import { iceSat2APIsItems, gediAPIsItems } from '@/types/SrStaticOptions'
-import { mapGtStringsToSrListNumberItems, gtsOptions } from '@/utils/parmUtils'
-import { regionFromBounds, convexHull, calculatePolygonArea } from '@/composables/SrTurfUtils'
-import { extractSrRegionFromGeometry } from '@/utils/geojsonUploader'
 import { useAreaThresholdsStore } from '@/stores/areaThresholdsStore'
 // workerDomUtils and SrDuckDbUtils use module-level Pinia store calls
 // (transitively via SrMapUtils), so they cannot be imported statically here
@@ -115,197 +112,15 @@ async function handleSetApi(args: Record<string, unknown>): Promise<ToolResult> 
   return Promise.resolve(ok(`API set to "${api}" for ${mission}.`))
 }
 
-async function handleSetTimeRange(args: Record<string, unknown>): Promise<ToolResult> {
+async function handleSetGeneralPreset(args: Record<string, unknown>): Promise<ToolResult> {
+  const label = args.preset as string
   const store = useReqParamsStore()
-  const t0Raw = args.t0 as string | undefined
-  const t1Raw = args.t1 as string | undefined
-
-  if (!t0Raw && !t1Raw) {
-    return Promise.resolve(err('At least one of "t0" or "t1" must be provided.'))
+  const result = store.applyGeneralPreset(label)
+  if (!result) {
+    const valid = store.getGeneralPresetLabels().join(', ')
+    return err(`Unknown preset "${label}". Valid presets: ${valid}`)
   }
-
-  let t0Date: Date | undefined
-  let t1Date: Date | undefined
-
-  if (t0Raw) {
-    t0Date = new Date(t0Raw)
-    if (isNaN(t0Date.getTime())) {
-      return Promise.resolve(err(`Invalid t0 date: "${t0Raw}". Use ISO 8601 format.`))
-    }
-  }
-  if (t1Raw) {
-    t1Date = new Date(t1Raw)
-    if (isNaN(t1Date.getTime())) {
-      return Promise.resolve(err(`Invalid t1 date: "${t1Raw}". Use ISO 8601 format.`))
-    }
-  }
-  if (t0Date && t1Date && t0Date >= t1Date) {
-    return Promise.resolve(err(`t0 (${t0Raw}) must be before t1 (${t1Raw}).`))
-  }
-
-  store.setEnableGranuleSelection(true)
-  store.setUseTime(true)
-  if (t0Date) store.setT0(t0Date)
-  if (t1Date) store.setT1(t1Date)
-
-  const parts: string[] = []
-  if (t0Date) parts.push(`t0=${t0Date.toISOString()}`)
-  if (t1Date) parts.push(`t1=${t1Date.toISOString()}`)
-  return Promise.resolve(ok(`Time range set: ${parts.join(', ')}. Granule selection enabled.`))
-}
-
-async function handleSetRgt(args: Record<string, unknown>): Promise<ToolResult> {
-  const rgt = args.rgt as number
-  if (!Number.isInteger(rgt) || rgt < 1 || rgt > 1387) {
-    return Promise.resolve(err(`Invalid RGT "${rgt}". Must be an integer from 1 to 1387.`))
-  }
-  const store = useReqParamsStore()
-  store.setEnableGranuleSelection(true)
-  store.setUseRgt(true)
-  store.setRgt(rgt)
-  return Promise.resolve(ok(`RGT set to ${rgt}. Granule selection enabled.`))
-}
-
-async function handleSetCycle(args: Record<string, unknown>): Promise<ToolResult> {
-  const cycle = args.cycle as number
-  if (!Number.isInteger(cycle) || cycle < 1) {
-    return Promise.resolve(err(`Invalid cycle "${cycle}". Must be a positive integer.`))
-  }
-  const store = useReqParamsStore()
-  store.setEnableGranuleSelection(true)
-  store.setUseCycle(true)
-  store.setCycle(cycle)
-  return Promise.resolve(ok(`Cycle set to ${cycle}. Granule selection enabled.`))
-}
-
-async function handleSetRegion(args: Record<string, unknown>): Promise<ToolResult> {
-  const store = useReqParamsStore()
-  const bboxArg = args.bbox as
-    | { min_lat: number; max_lat: number; min_lon: number; max_lon: number }
-    | undefined
-  const geojsonArg = args.geojson as { type: string; coordinates: unknown } | undefined
-
-  if (!bboxArg && !geojsonArg) {
-    return err('Provide either "bbox" (bounding box) or "geojson" (GeoJSON geometry).')
-  }
-  if (bboxArg && geojsonArg) {
-    return err('Provide either "bbox" or "geojson", not both.')
-  }
-
-  try {
-    let region: import('@/types/SrTypes').SrRegion | undefined
-
-    if (bboxArg) {
-      const { min_lat, max_lat, min_lon, max_lon } = bboxArg
-      if (
-        typeof min_lat !== 'number' ||
-        typeof max_lat !== 'number' ||
-        typeof min_lon !== 'number' ||
-        typeof max_lon !== 'number'
-      ) {
-        return err('bbox requires numeric min_lat, max_lat, min_lon, max_lon.')
-      }
-      region = regionFromBounds(min_lat, max_lat, min_lon, max_lon, { close: true })
-      if (!region) {
-        return err('Could not create region from the provided bounding box.')
-      }
-      store.setPolygonSource('box')
-    } else if (geojsonArg) {
-      if (geojsonArg.type !== 'Polygon' && geojsonArg.type !== 'MultiPolygon') {
-        return err(
-          `Unsupported geometry type "${geojsonArg.type}". Must be "Polygon" or "MultiPolygon".`
-        )
-      }
-      region = extractSrRegionFromGeometry(geojsonArg)
-      store.setPolygonSource('upload')
-    }
-
-    if (!region || region.length === 0) {
-      return err('Failed to create a valid region from the provided input.')
-    }
-
-    store.setPoly(region)
-    const hull = convexHull(region)
-    store.setConvexHull(hull)
-    const areaKm2 = calculatePolygonArea(hull.length > 0 ? hull : region)
-    store.setAreaOfConvexHull(areaKm2)
-
-    const numVertices = region.length
-    let msg = `Region set with ${numVertices} vertices. Area: ${areaKm2.toFixed(1)} km².`
-
-    const areaCheck = checkAreaThresholds(areaKm2)
-    if (areaCheck.status === 'error') {
-      msg += ` WARNING: ${areaCheck.message}`
-    } else if (areaCheck.status === 'warning') {
-      msg += ` Note: ${areaCheck.message}`
-    }
-
-    return ok(msg)
-  } catch (e) {
-    return err(`Failed to set region: ${e instanceof Error ? e.message : String(e)}`)
-  }
-}
-
-async function handleSetBeams(args: Record<string, unknown>): Promise<ToolResult> {
-  const store = useReqParamsStore()
-  const mission = store.missionValue
-  const beamsArg = args.beams
-
-  if (mission === 'ICESat-2') {
-    if (beamsArg === 'all') {
-      store.setEnableGranuleSelection(true)
-      store.setSelectAllBeams(true)
-      store.setSelectedGtOptions([...gtsOptions])
-      return Promise.resolve(
-        ok('All ICESat-2 beams selected (gt1l, gt1r, gt2l, gt2r, gt3l, gt3r).')
-      )
-    }
-
-    if (!Array.isArray(beamsArg) || beamsArg.length === 0) {
-      return Promise.resolve(
-        err('Beams must be "all" or an array of beam names (e.g. ["gt1l", "gt2r"]).')
-      )
-    }
-
-    const mapped = mapGtStringsToSrListNumberItems(beamsArg as (string | number)[])
-    if (mapped.length === 0) {
-      const validNames = gtsOptions.map((g) => g.label).join(', ')
-      return Promise.resolve(err(`No valid beams found. Valid ICESat-2 beams: ${validNames}`))
-    }
-
-    store.setEnableGranuleSelection(true)
-    store.setSelectAllBeams(mapped.length === gtsOptions.length)
-    store.setSelectedGtOptions(mapped)
-    const names = mapped.map((b) => b.label).join(', ')
-    return Promise.resolve(ok(`ICESat-2 beams set: ${names}. Granule selection enabled.`))
-  } else if (mission === 'GEDI') {
-    const validGediBeams = [0, 1, 2, 3, 5, 6, 8, 11]
-
-    if (beamsArg === 'all') {
-      store.gediBeams = [...validGediBeams]
-      return Promise.resolve(ok(`All GEDI beams selected: ${validGediBeams.join(', ')}.`))
-    }
-
-    if (!Array.isArray(beamsArg) || beamsArg.length === 0) {
-      return Promise.resolve(
-        err(
-          `Beams must be "all" or an array of beam numbers. Valid GEDI beams: ${validGediBeams.join(', ')}`
-        )
-      )
-    }
-
-    const invalid = (beamsArg as number[]).filter((b) => !validGediBeams.includes(b))
-    if (invalid.length > 0) {
-      return Promise.resolve(
-        err(`Invalid GEDI beam(s): ${invalid.join(', ')}. Valid: ${validGediBeams.join(', ')}`)
-      )
-    }
-
-    store.gediBeams = beamsArg as number[]
-    return Promise.resolve(ok(`GEDI beams set: ${(beamsArg as number[]).join(', ')}.`))
-  }
-
-  return Promise.resolve(err(`Unknown mission "${mission}". Set mission first.`))
+  return ok(`Preset "${label}" applied. Mission, API, and parameters configured.`)
 }
 
 async function handleSetSurfaceFit(args: Record<string, unknown>): Promise<ToolResult> {
@@ -429,6 +244,125 @@ async function handleSetYapc(args: Record<string, unknown>): Promise<ToolResult>
   }
 
   return Promise.resolve(ok(details.join(' ')))
+}
+
+async function handleSetRegion(args: Record<string, unknown>): Promise<ToolResult> {
+  const store = useReqParamsStore()
+  const { convexHull, regionFromBounds, calculatePolygonArea } = await import(
+    '@/composables/SrTurfUtils'
+  )
+  const { useMapStore } = await import('@/stores/mapStore')
+  const { renderRequestPolygon, clearPolyCoords } = await import('@/utils/SrMapUtils')
+
+  let poly: { lat: number; lon: number }[]
+
+  if (args.bounds) {
+    const b = args.bounds as { min_lat: number; max_lat: number; min_lon: number; max_lon: number }
+    const region = regionFromBounds(b.min_lat, b.max_lat, b.min_lon, b.max_lon)
+    if (!region)
+      return err(
+        'Invalid bounds. All four values (min_lat, max_lat, min_lon, max_lon) are required.'
+      )
+    poly = region
+    store.setPolygonSource('box')
+  } else if (args.coordinates) {
+    const coords = args.coordinates as { lon: number; lat: number }[]
+    if (coords.length < 3) return err('At least 3 coordinate points are required for a polygon.')
+    poly = coords.map((c) => ({ lat: c.lat, lon: c.lon }))
+    store.setPolygonSource('polygon')
+  } else {
+    return err('Provide either "bounds" (bounding box) or "coordinates" (polygon vertices).')
+  }
+
+  store.setPoly(poly)
+  const hull = convexHull(poly)
+  store.setConvexHull(hull)
+
+  const map = useMapStore().getMap()
+  if (map) {
+    clearPolyCoords()
+    renderRequestPolygon(map as any, poly, 'red')
+  }
+
+  const areaKm2 = calculatePolygonArea(hull)
+  const areaCheck = checkAreaThresholds(areaKm2)
+
+  let msg = `Region set with ${poly.length} vertices. Area: ${areaKm2.toFixed(1)} km².`
+  if (areaCheck.status !== 'ok') {
+    msg += ` ${areaCheck.message}`
+  }
+  return areaCheck.status === 'error' ? err(msg) : ok(msg)
+}
+
+async function handleZoomToLocation(args: Record<string, unknown>): Promise<ToolResult> {
+  const lon = args.lon as number
+  const lat = args.lat as number
+  const zoom = (args.zoom as number) ?? 10
+
+  if (lon < -180 || lon > 180)
+    return err(`Invalid longitude: ${lon}. Must be between -180 and 180.`)
+  if (lat < -90 || lat > 90) return err(`Invalid latitude: ${lat}. Must be between -90 and 90.`)
+
+  const { useMapStore } = await import('@/stores/mapStore')
+  const { useAnalysisMapStore } = await import('@/stores/analysisMapStore')
+  const { fromLonLat } = await import('ol/proj')
+  const { default: router } = await import('@/router')
+
+  // Pick the right map based on the current route
+  const route = router.currentRoute.value
+  let map
+  if (route.path.startsWith('/analyze')) {
+    map = useAnalysisMapStore().map
+  } else {
+    map = useMapStore().getMap()
+  }
+
+  if (!map) return err('Map is not available. Make sure the browser is open with the map visible.')
+
+  const view = map.getView()
+  if (!view) return err('Map view is not available.')
+
+  const projection = view.getProjection()
+  const center = fromLonLat([lon, lat], projection)
+
+  view.animate({ center, zoom, duration: 1000 })
+
+  return ok(`Map zoomed to lon=${lon}, lat=${lat} at zoom level ${zoom}.`)
+}
+
+async function handleGetAreaThresholds(args: Record<string, unknown>): Promise<ToolResult> {
+  const reqStore = useReqParamsStore()
+  const thresholds = useAreaThresholdsStore()
+
+  const apiName = (args.api as string) || reqStore.getCurAPIObj()
+  if (!apiName) {
+    return err('No API is currently selected and none was provided.')
+  }
+
+  const warning = thresholds.getAreaWarningThreshold(
+    apiName as Parameters<typeof thresholds.getAreaWarningThreshold>[0]
+  )
+  const error = thresholds.getAreaErrorThreshold(
+    apiName as Parameters<typeof thresholds.getAreaErrorThreshold>[0]
+  )
+
+  const currentArea = reqStore.poly && reqStore.poly.length > 0 ? reqStore.areaOfConvexHull : null
+  const areaCheck = currentArea !== null ? checkAreaThresholds(currentArea) : null
+
+  return ok(
+    JSON.stringify(
+      {
+        api: apiName,
+        warning_threshold_km2: warning,
+        error_threshold_km2: error,
+        current_region_area_km2: currentArea,
+        area_status: areaCheck?.status ?? 'no_region',
+        area_message: areaCheck?.message ?? 'No region set.'
+      },
+      null,
+      2
+    )
+  )
 }
 
 async function handleGetCurrentParams(): Promise<ToolResult> {
@@ -883,6 +817,9 @@ async function handleGetParamHelp(args: Record<string, unknown>): Promise<ToolRe
 }
 
 async function handleInitialize(_args: Record<string, unknown>): Promise<ToolResult> {
+  const store = useReqParamsStore()
+  const presets = store.getGeneralPresetLabels()
+
   return ok(
     `SlideRule Web Client — Session Initialized
 
@@ -895,14 +832,20 @@ Show all SQL queries. Include units (m, km², degrees) and CRS (EPSG codes). Lab
 ## Workflow
 
 1. Call get_current_params to see what's already configured
-2. CONFIGURE: set_mission → set_api → set_time_range / set_rgt / set_cycle / set_beams → set_region
+2. CONFIGURE: a region is required, if needed use set_region. If the user describes a science goal (e.g. "canopy heights", "ice sheet elevations", "bathymetry"), use set_general_preset to configure.
 3. SUBMIT: submit_request → returns req_id
 4. POLL: get_request_status(req_id) until "success" or "error"
 5. ANALYZE: describe_data(req_id) → run_sql / get_elevation_stats
 
+## General Presets
+
+Use set_general_preset with one of these labels to configure mission, API, and processing parameters in one step:
+${presets.map((p) => `- ${p}`).join('\n')}
+
 ## Key Rules
 
 - Region required before submit. User can also draw in browser.
+- Do not set parameters the user didn't ask for. Defaults are already good.
 - run_sql uses DuckDB syntax. Table names must be quoted: SELECT * FROM 'filename.parquet'
 - describe_data returns the table name. Always call it before run_sql.
 - Only one request at a time. Poll after submit.
@@ -981,14 +924,13 @@ export function getToolDefinitions(): ToolDefinition[] {
 const handlers: Record<string, ToolHandler> = {
   set_mission: handleSetMission,
   set_api: handleSetApi,
-  set_time_range: handleSetTimeRange,
-  set_rgt: handleSetRgt,
-  set_cycle: handleSetCycle,
-  set_region: handleSetRegion,
-  set_beams: handleSetBeams,
+  set_general_preset: handleSetGeneralPreset,
   set_surface_fit: handleSetSurfaceFit,
   set_photon_params: handleSetPhotonParams,
   set_yapc: handleSetYapc,
+  set_region: handleSetRegion,
+  zoom_to_location: handleZoomToLocation,
+  get_area_thresholds: handleGetAreaThresholds,
   get_current_params: handleGetCurrentParams,
   reset_params: handleResetParams,
   submit_request: handleSubmitRequest,

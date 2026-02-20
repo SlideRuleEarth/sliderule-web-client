@@ -41,121 +41,29 @@ export const toolDefinitions: ToolDefinition[] = [
     }
   },
   {
-    name: 'set_time_range',
+    name: 'set_general_preset',
     description:
-      'Set the time range for granule filtering. Automatically enables granule selection. Provide one or both of t0 and t1 as ISO 8601 date strings.',
+      'Apply a general preset that configures mission, API, and processing parameters in one step. Use this when the user describes a science goal. Resets parameters, preserves the current region.',
     inputSchema: {
       type: 'object',
       properties: {
-        t0: {
+        preset: {
           type: 'string',
-          description: 'Start time in ISO 8601 format (e.g. "2020-01-01T00:00:00Z").'
-        },
-        t1: {
-          type: 'string',
-          description: 'End time in ISO 8601 format (e.g. "2023-12-31T23:59:59Z").'
-        }
-      }
-    }
-  },
-  {
-    name: 'set_rgt',
-    description:
-      'Set the ICESat-2 Reference Ground Track number. Automatically enables granule selection and RGT filtering.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        rgt: {
-          type: 'integer',
-          description: 'Reference Ground Track number (1–1387).',
-          minimum: 1,
-          maximum: 1387
+          enum: [
+            'ICESat-2 Surface Elevations',
+            'ICESat-2 Land Ice Sheet',
+            'ICESat-2 Canopy Heights',
+            'ICESat-2 Coastal Bathymetry',
+            'ICESat-2 Geolocated Photons',
+            'ICESat-2 Inland Bodies of Water',
+            'GEDI Biomass Density',
+            'GEDI Elevations w/Canopy',
+            'GEDI Geolocated Waveforms'
+          ],
+          description: 'The preset label to apply.'
         }
       },
-      required: ['rgt']
-    }
-  },
-  {
-    name: 'set_cycle',
-    description:
-      'Set the ICESat-2 orbital repeat cycle number. Automatically enables granule selection and cycle filtering.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        cycle: {
-          type: 'integer',
-          description: 'Orbital repeat cycle number (>= 1).',
-          minimum: 1
-        }
-      },
-      required: ['cycle']
-    }
-  },
-  {
-    name: 'set_region',
-    description:
-      'Set the geographic region for processing. Provide EITHER a bounding box (bbox with min/max lat/lon) OR a GeoJSON polygon geometry. The region defines the area of interest for the SlideRule request. Setting a region computes the convex hull and area automatically.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        bbox: {
-          type: 'object',
-          description: 'Bounding box with min/max latitude and longitude. Alternative to geojson.',
-          properties: {
-            min_lat: { type: 'number', description: 'Minimum latitude (-90 to 90).' },
-            max_lat: { type: 'number', description: 'Maximum latitude (-90 to 90).' },
-            min_lon: { type: 'number', description: 'Minimum longitude (-180 to 180).' },
-            max_lon: { type: 'number', description: 'Maximum longitude (-180 to 180).' }
-          },
-          required: ['min_lat', 'max_lat', 'min_lon', 'max_lon']
-        },
-        geojson: {
-          type: 'object',
-          description:
-            'GeoJSON Polygon or MultiPolygon geometry object. Alternative to bbox. Coordinates are [lon, lat] arrays.',
-          properties: {
-            type: {
-              type: 'string',
-              enum: ['Polygon', 'MultiPolygon'],
-              description: 'GeoJSON geometry type.'
-            },
-            coordinates: {
-              description: 'GeoJSON coordinates array.'
-            }
-          },
-          required: ['type', 'coordinates']
-        }
-      }
-    }
-  },
-  {
-    name: 'set_beams',
-    description:
-      'Set the selected beams. For ICESat-2, provide ground track names: "gt1l", "gt1r", "gt2l", "gt2r", "gt3l", "gt3r", or "all". For GEDI, provide beam numbers: 0, 1, 2, 3, 5, 6, 8, 11, or "all". Automatically enables granule selection.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        beams: {
-          oneOf: [
-            {
-              type: 'array',
-              items: { type: 'string' },
-              description: 'ICESat-2 beam names (e.g. ["gt1l", "gt2r"]).'
-            },
-            {
-              type: 'array',
-              items: { type: 'integer' },
-              description: 'GEDI beam numbers (e.g. [0, 1, 2]).'
-            },
-            {
-              type: 'string',
-              enum: ['all'],
-              description: 'Select all beams.'
-            }
-          ]
-        }
-      },
-      required: ['beams']
+      required: ['preset']
     }
   },
   {
@@ -244,6 +152,78 @@ export const toolDefinitions: ToolDefinition[] = [
         }
       },
       required: ['enabled']
+    }
+  },
+  {
+    name: 'set_region',
+    description:
+      'Set the region of interest as a bounding box or polygon. Coordinates are in degrees (lon/lat, EPSG:4326). Sets the polygon, computes convex hull and area, and renders it on the map.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        bounds: {
+          type: 'object',
+          description: 'Bounding box with min/max lat/lon. Use this for rectangular regions.',
+          properties: {
+            min_lat: { type: 'number', description: 'Southern latitude (-90 to 90).' },
+            max_lat: { type: 'number', description: 'Northern latitude (-90 to 90).' },
+            min_lon: { type: 'number', description: 'Western longitude (-180 to 180).' },
+            max_lon: { type: 'number', description: 'Eastern longitude (-180 to 180).' }
+          },
+          required: ['min_lat', 'max_lat', 'min_lon', 'max_lon']
+        },
+        coordinates: {
+          type: 'array',
+          description:
+            'Array of {lon, lat} objects defining a polygon. Use this for non-rectangular regions. At least 3 points required.',
+          items: {
+            type: 'object',
+            properties: {
+              lon: { type: 'number' },
+              lat: { type: 'number' }
+            },
+            required: ['lon', 'lat']
+          }
+        }
+      }
+    }
+  },
+  {
+    name: 'zoom_to_location',
+    description:
+      'Zoom the map to a specific longitude/latitude location. Useful for navigating to a place by name or coordinates before drawing a region.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        lon: {
+          type: 'number',
+          description: 'Longitude in degrees (-180 to 180).'
+        },
+        lat: {
+          type: 'number',
+          description: 'Latitude in degrees (-90 to 90).'
+        },
+        zoom: {
+          type: 'number',
+          description: 'Zoom level (default 10). Higher values zoom in closer.'
+        }
+      },
+      required: ['lon', 'lat']
+    }
+  },
+  {
+    name: 'get_area_thresholds',
+    description:
+      'Get the area warning and error thresholds (in km²) for the current API or a specified API. Use this to check if a region is too large before submitting a request.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        api: {
+          type: 'string',
+          description:
+            'Optional API name to check thresholds for. If omitted, uses the currently selected API.'
+        }
+      }
     }
   },
   {

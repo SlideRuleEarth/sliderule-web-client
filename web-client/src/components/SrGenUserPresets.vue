@@ -128,78 +128,8 @@ const selectBox = (boxId: number) => {
     logger.error('Unknown selection', { boxId })
     return
   }
-  // initial setup
-  let savedPoly = reqParameterStore.poly
-  let savedConvexHull = reqParameterStore.convexHull
-  reqParameterStore.reset()
-  reqParameterStore.setUseSurfaceFitAlgorithm(false)
-  reqParameterStore.setEnablePhoReal(false)
-
-  if (selectedBoxInfo?.name) {
-    logger.debug('Box selected', { name: selectedBoxInfo.name })
-    switch (selectedBoxInfo.name) {
-      case 'ICESat-2 Surface Elevations':
-        reqParameterStore.setMissionValue('ICESat-2')
-        reqParameterStore.setIceSat2API('atl03x-surface')
-        reqParameterStore.setUseSurfaceFitAlgorithm(true)
-        break
-      case 'ICESat-2 Land Ice Sheet':
-        reqParameterStore.setMissionValue('ICESat-2')
-        reqParameterStore.setIceSat2API('atl06sp')
-        break
-      case 'ICESat-2 Canopy Heights':
-        reqParameterStore.setMissionValue('ICESat-2')
-        reqParameterStore.setIceSat2API('atl03x-phoreal')
-        reqParameterStore.setEnablePhoReal(true)
-        break
-      case 'ICESat-2 Coastal Bathymetry':
-        reqParameterStore.setMissionValue('ICESat-2')
-        reqParameterStore.setIceSat2API('atl24x')
-        break
-      case 'ICESat-2 Geolocated Photons':
-        reqParameterStore.setMissionValue('ICESat-2')
-        reqParameterStore.setIceSat2API('atl03x')
-        break
-      case 'ICESat-2 Inland Bodies of Water':
-        //console.log("ICESat-2 Inland Bodies of Water selected.");
-        // This is a special case, it uses the atl13x API
-        reqParameterStore.setMissionValue('ICESat-2')
-        reqParameterStore.setIceSat2API('atl13x')
-        break
-      case 'GEDI Biomass Density':
-        reqParameterStore.setMissionValue('GEDI')
-        reqParameterStore.setGediAPI('gedi04ap')
-        break
-      case 'GEDI Elevations w/Canopy':
-        reqParameterStore.setMissionValue('GEDI')
-        reqParameterStore.setGediAPI('gedi02ap')
-        break
-      case 'GEDI Geolocated Waveforms':
-        reqParameterStore.setMissionValue('GEDI')
-        reqParameterStore.setGediAPI('gedi01bp')
-        break
-      default:
-        logger.error('Unknown selection', { name: selectedBoxInfo.name })
-        break
-    }
-    // console.log("GenUserOptions selection complete. BEFORE reqParameterStore.poly:", reqParameterStore.poly);
-    // console.log("GenUserOptions selection complete. BEFORE reqParameterStore.missionValue:", reqParameterStore.missionValue);
-    // console.log("GenUserOptions selection complete. BEFORE reqParameterStore.iceSat2SelectedAPI:", reqParameterStore.iceSat2SelectedAPI);
-    if (
-      !(
-        reqParameterStore.getIceSat2API() == 'atl13x' &&
-        reqParameterStore.getMissionValue() == 'ICESat-2'
-      )
-    ) {
-      reqParameterStore.setPoly(savedPoly)
-      reqParameterStore.setConvexHull(savedConvexHull)
-    } else {
-      // If the user selected the atl13x API, we need to reset the polygon and convex hull
-      reqParameterStore.setPoly([])
-      reqParameterStore.setConvexHull([])
-    }
-  }
-  //console.log("GenUserOptions selection complete. AFTER reqParameterStore.poly:", reqParameterStore.poly);
+  logger.debug('Box selected', { name: selectedBoxInfo.name })
+  reqParameterStore.applyGeneralPreset(selectedBoxInfo.name)
 }
 let defaultPhoreal = {} as SrPhoreal
 
