@@ -816,12 +816,13 @@ async function handleGetParamHelp(args: Record<string, unknown>): Promise<ToolRe
   return ok(JSON.stringify(help, null, 2))
 }
 
-async function handleInitialize(_args: Record<string, unknown>): Promise<ToolResult> {
+async function handleInitialize(args: Record<string, unknown>): Promise<ToolResult> {
   const store = useReqParamsStore()
   const presets = store.getGeneralPresetLabels()
+  const serverVersion = (args._server_version as string) || 'unknown'
 
   return ok(
-    `SlideRule Web Client — Session Initialized
+    `SlideRule Web Client — Session Initialized (MCP server v${serverVersion})
 
 You control the SlideRule web client via MCP tools. SlideRule processes NASA ICESat-2 and GEDI satellite altimetry data in the cloud. The browser must be open for tools to work.
 

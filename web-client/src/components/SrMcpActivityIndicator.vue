@@ -79,7 +79,7 @@ function formatTime(ts: number): string {
         <span class="sr-mcp-dot" :style="{ backgroundColor: statusColor }"></span>
       </template>
     </Button>
-    <Popover ref="popover" :style="{ width: '380px' }">
+    <Popover ref="popover" :style="{ width: '480px' }">
       <div class="sr-mcp-panel">
         <div class="sr-mcp-panel-header">
           <span class="sr-mcp-panel-status">{{ mcpStore.status }}</span>
@@ -134,7 +134,6 @@ function formatTime(ts: number): string {
   margin-right: 4px;
 }
 .sr-mcp-panel {
-  max-height: 350px;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -143,6 +142,8 @@ function formatTime(ts: number): string {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--p-primary-color) 30%, transparent);
 }
 .sr-mcp-panel-controls {
   display: flex;
@@ -155,6 +156,7 @@ function formatTime(ts: number): string {
   gap: 4px;
   font-size: 0.8rem;
   cursor: pointer;
+  color: var(--p-text-muted-color);
 }
 .sr-mcp-panel-status {
   font-weight: 600;
@@ -163,25 +165,36 @@ function formatTime(ts: number): string {
 .sr-mcp-panel-error {
   font-size: 0.8rem;
   color: var(--p-red-400);
+  background: color-mix(in srgb, var(--p-red-400) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--p-red-400) 30%, transparent);
+  border-radius: var(--p-border-radius);
+  padding: 0.25rem 0.5rem;
 }
 .sr-mcp-panel-log {
-  max-height: 260px;
+  max-height: 400px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 2px;
+  background: color-mix(in srgb, var(--p-primary-color) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--p-primary-color) 20%, transparent);
+  border-radius: var(--p-border-radius);
+  padding: 0.25rem;
 }
 .sr-mcp-log-entry {
   font-size: 0.75rem;
   font-family: monospace;
-  padding: 2px 4px;
-  border-radius: 2px;
+  padding: 0.2rem 0.35rem;
+  border-radius: var(--p-border-radius);
   display: flex;
   gap: 4px;
   align-items: baseline;
 }
 .sr-mcp-log-entry:nth-child(odd) {
-  background: var(--p-surface-50);
+  background: color-mix(in srgb, var(--p-primary-color) 10%, transparent);
+}
+.sr-mcp-log-entry:hover {
+  background: color-mix(in srgb, var(--p-primary-color) 20%, transparent);
 }
 .sr-mcp-log-time {
   color: var(--p-text-muted-color);
@@ -189,16 +202,17 @@ function formatTime(ts: number): string {
 }
 .sr-mcp-log-direction {
   flex-shrink: 0;
+  color: var(--p-primary-color);
 }
 .sr-mcp-log-summary {
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-x: auto;
   white-space: nowrap;
   flex: 1;
 }
 .sr-mcp-log-duration {
   color: var(--p-text-muted-color);
   flex-shrink: 0;
+  font-style: italic;
 }
 .sr-mcp-log-error {
   color: var(--p-red-400);

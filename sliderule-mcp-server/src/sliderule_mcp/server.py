@@ -13,6 +13,7 @@ from mcp.server.lowlevel import NotificationOptions, Server
 from mcp.server.stdio import stdio_server
 from mcp.shared.message import SessionMessage
 import mcp.types as types
+from importlib.metadata import version as pkg_version
 
 log = logging.getLogger("sliderule-mcp")
 
@@ -474,6 +475,12 @@ async def _handle_call_tool(req: types.CallToolRequest) -> types.ServerResult:
                 isError=True,
             )
         )
+
+    if name == "initialize":
+        try:
+            arguments["_server_version"] = pkg_version("sliderule-mcp")
+        except Exception:
+            arguments["_server_version"] = "unknown"
 
     result = await _call_browser("tools/call", {"name": name, "arguments": arguments})
     content = [

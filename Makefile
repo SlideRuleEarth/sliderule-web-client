@@ -181,8 +181,8 @@ mcp-publish: mcp-build ## Build and upload the MCP server to PyPI
 
 mcp-refresh: ## Clear uvx cache so Claude Desktop picks up the latest PyPI version
 	@echo "Refreshing uvx cache for sliderule-mcp..."
-	uvx --refresh sliderule-mcp --version 2>/dev/null || true
-	@echo "✅ uvx cache refreshed — restart Claude Desktop to use v$(MCP_VERSION)"
+	uv cache clean sliderule-mcp --force 2>/dev/null || true
+	@echo "✅ uvx cache cleared — restart Claude Desktop to use v$(MCP_VERSION)"
 
 mcp-release: mcp-publish mcp-refresh ## Publish to PyPI and refresh local uvx cache
 
