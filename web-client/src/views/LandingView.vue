@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { marked } from 'marked'
 import SelectButton from 'primevue/selectbutton'
 import wallpaperUrl from '@/assets/landing_wallpaper.jpg'
@@ -26,6 +26,86 @@ const panelHtml = computed(() => {
       return ''
   }
 })
+
+// --- News ---
+
+const ARTICLES_INDEX_URL = 'https://docs.slideruleearth.io/developer_guide/articles/articles.html'
+const ARTICLES_BASE_URL = 'https://docs.slideruleearth.io/developer_guide/articles/'
+
+interface NewsArticle {
+  title: string
+  date: string
+  url: string
+}
+
+const newsArticles = ref<NewsArticle[]>([])
+const selectedArticle = ref<NewsArticle | null>(null)
+const articleHtml = ref('')
+const newsLoading = ref(false)
+const newsError = ref('')
+
+async function fetchNewsIndex() {
+  newsLoading.value = true
+  newsError.value = ''
+  newsArticles.value = []
+  try {
+    const res = await fetch(ARTICLES_INDEX_URL)
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const html = await res.text()
+    const doc = new DOMParser().parseFromString(html, 'text/html')
+    const articles: NewsArticle[] = []
+    doc.querySelectorAll('[role="main"] a[href]').forEach((el) => {
+      const href = el.getAttribute('href') ?? ''
+      if (!href.endsWith('.html') || href.startsWith('http')) return
+      const text = el.textContent?.trim() ?? ''
+      // Expected format: "YYYY-MM-DD: Title"
+      const match = text.match(/^(\d{4}-\d{2}-\d{2}):\s*(.+)$/)
+      if (match) {
+        articles.push({ date: match[1], title: match[2], url: href })
+      }
+    })
+    // Sort newest first
+    articles.sort((a, b) => b.date.localeCompare(a.date))
+    newsArticles.value = articles
+  } catch {
+    newsError.value = 'Failed to load articles. Please try again later.'
+  } finally {
+    newsLoading.value = false
+  }
+}
+
+async function fetchArticle(article: NewsArticle) {
+  selectedArticle.value = article
+  articleHtml.value = ''
+  newsLoading.value = true
+  newsError.value = ''
+  try {
+    const res = await fetch(ARTICLES_BASE_URL + article.url)
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const html = await res.text()
+    const doc = new DOMParser().parseFromString(html, 'text/html')
+    const main = doc.querySelector('[role="main"]')
+    if (main) {
+      // Remove prev/next navigation links common in Sphinx
+      main.querySelectorAll('.rst-footer-buttons, .footer, nav').forEach((n) => n.remove())
+      articleHtml.value = main.innerHTML
+    } else {
+      articleHtml.value = '<p>Could not extract article content.</p>'
+    }
+  } catch {
+    newsError.value = 'Failed to load article. Please try again later.'
+    selectedArticle.value = null
+  } finally {
+    newsLoading.value = false
+  }
+}
+
+watch(selectedTab, (tab) => {
+  if (tab === 'News') {
+    selectedArticle.value = null
+    void fetchNewsIndex()
+  }
+})
 </script>
 
 <template>
@@ -40,11 +120,28 @@ const panelHtml = computed(() => {
           <SelectButton v-model="selectedTab" :options="tabOptions" :allowEmpty="false" />
         </div>
       </div>
-      <div class="sr-landing-panel">
+      <!-- About / Contact -->
+      <div v-if="selectedTab !== 'News'" class="sr-landing-panel">
         <div v-if="panelHtml" class="sr-landing-panel-content" v-html="panelHtml" />
         <div v-else class="sr-landing-panel-content">
           <p>Coming soon.</p>
         </div>
+      </div>
+
+      <!-- News -->
+      <div v-else class="sr-landing-panel">
+        <div v-if="newsLoading" class="sr-news-status">Loading...</div>
+        <div v-else-if="newsError" class="sr-news-status sr-news-error">{{ newsError }}</div>
+        <div v-else-if="selectedArticle" class="sr-landing-panel-content">
+          <button class="sr-news-back" @click="selectedArticle = null">← Back</button>
+          <div v-html="articleHtml" />
+        </div>
+        <ul v-else class="sr-news-list">
+          <li v-for="a in newsArticles" :key="a.url" @click="fetchArticle(a)">
+            <span class="sr-news-date">{{ a.date }}</span>
+            <span class="sr-news-title">{{ a.title }}</span>
+          </li>
+        </ul>
       </div>
     </div>
   </div>
@@ -160,6 +257,60 @@ const panelHtml = computed(() => {
 .sr-landing-panel-content :deep(a) {
   color: var(--p-primary-color, #60a5fa);
   text-decoration: underline;
+}
+
+.sr-news-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sr-news-list li {
+  display: flex;
+  gap: 1.5rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.sr-news-list li:hover .sr-news-title {
+  color: #ffffff;
+}
+
+.sr-news-date {
+  color: rgba(255, 255, 255, 0.45);
+  white-space: nowrap;
+  font-size: 0.85rem;
+  padding-top: 0.1rem;
+}
+
+.sr-news-title {
+  color: #e0e0e0;
+  transition: color 0.2s ease;
+}
+
+.sr-news-back {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+  padding: 0 0 1rem 0;
+  font-size: 0.9rem;
+  transition: color 0.2s ease;
+}
+
+.sr-news-back:hover {
+  color: #ffffff;
+}
+
+.sr-news-status {
+  padding: 1rem 0;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.sr-news-error {
+  color: #f87171;
 }
 
 @media (max-width: 768px) {
