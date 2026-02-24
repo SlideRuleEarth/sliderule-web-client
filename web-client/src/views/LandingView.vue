@@ -252,6 +252,7 @@ watch(selectedTab, (tab) => {
 
 .sr-landing-panel-content {
   max-width: 60rem;
+  margin: 0 auto;
 }
 
 .sr-landing-panel-content :deep(a) {
@@ -262,7 +263,8 @@ watch(selectedTab, (tab) => {
 .sr-news-list {
   list-style: none;
   padding: 0;
-  margin: 0;
+  margin: 0 auto;
+  max-width: 60rem;
 }
 
 .sr-news-list li {
@@ -305,6 +307,8 @@ watch(selectedTab, (tab) => {
 }
 
 .sr-news-status {
+  max-width: 60rem;
+  margin: 0 auto;
   padding: 1rem 0;
   color: rgba(255, 255, 255, 0.5);
 }
