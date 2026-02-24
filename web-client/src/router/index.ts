@@ -71,6 +71,11 @@ const router = createRouter({
       component: () => import('@/views/GitHubCallbackView.vue')
     },
     {
+      path: '/landing',
+      name: 'landing',
+      component: () => import('@/views/LandingView.vue')
+    },
+    {
       path: '/:pathMatch(.*)*',
       name: 'NotFound',
       component: () => import('@/components/NotFoundComponent.vue')
