@@ -85,37 +85,6 @@ const toggleTourMenu = (event: Event) => {
 const aboutMenu = ref<InstanceType<typeof Menu> | null>(null)
 const aboutMenuItems = [
   {
-    label: 'About SlideRule Web Client',
-    icon: 'pi pi-info-circle',
-    command: () => {
-      emit('client-version-button-click')
-    }
-  },
-  {
-    label: 'About SlideRule Server',
-    icon: 'pi pi-info-circle',
-    command: () => {
-      emit('server-version-button-click')
-    }
-  },
-  {
-    label: 'About SlideRule',
-    icon: 'pi pi-info-circle',
-    command: () => {
-      window.open('https://slideruleearth.io')
-    }
-  },
-  {
-    label: 'SlideRule Buzz',
-    icon: 'pi pi-calculator',
-    command: () => {
-      emit('sliderule-buzz-button-click')
-    }
-  },
-  {
-    separator: true
-  },
-  {
     label: 'Documentation',
     icon: 'pi pi-book',
     items: [
@@ -150,17 +119,17 @@ const aboutMenuItems = [
     separator: true
   },
   {
-    label: 'Report an Issue',
-    icon: 'pi pi-exclamation-circle',
+    label: 'Open a Web Client GitHub Issue',
+    icon: 'pi pi-github',
     command: () => {
       window.open('https://github.com/SlideRuleEarth/sliderule-web-client/issues', '_blank')
     }
   },
   {
-    label: 'Contact Support',
-    icon: 'pi pi-envelope',
+    label: 'SlideRule Buzz',
+    icon: 'pi pi-calculator',
     command: () => {
-      window.location.href = 'mailto:support@mail.slideruleearth.io'
+      emit('sliderule-buzz-button-click')
     }
   }
 ]
@@ -574,7 +543,7 @@ const mobileMenuItems = computed(() => {
       command: handleSettingsButtonClick
     },
     {
-      label: 'About',
+      label: 'Docs',
       icon: 'pi pi-info-circle',
       items: aboutMenuItems
     }
@@ -804,7 +773,7 @@ function hideTooltip() {
       <Button
         icon="pi pi-info-circle"
         id="sr-about-button"
-        label="About"
+        label="Docs"
         class="p-button-rounded p-button-text desktop-only tablet-icon-only"
         @click="toggleAboutMenu"
       >
