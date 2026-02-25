@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import Button from 'primevue/button'
 import Menu from 'primevue/menu'
+import type { MenuItem } from 'primevue/menuitem'
 import ConfirmDialog from 'primevue/confirmdialog'
 import { ref, computed, onMounted } from 'vue'
 import { useToast } from 'primevue/usetoast'
@@ -82,60 +83,8 @@ const toggleTourMenu = (event: Event) => {
   tourMenu.value?.toggle(event)
 }
 
-const aboutMenu = ref<InstanceType<typeof Menu> | null>(null)
-const aboutMenuItems = [
-  {
-    label: 'Documentation',
-    icon: 'pi pi-book',
-    items: [
-      {
-        label: 'SlideRule Python Client Documentation',
-        icon: 'pi pi-book',
-        command: () => {
-          window.open('https://slideruleearth.io/web/rtd/')
-        }
-      },
-      {
-        label: 'ATLAS/ICESat-2 Photon Data User Guide',
-        icon: 'pi pi-book',
-        command: () => {
-          window.open(
-            'https://nsidc.org/sites/default/files/documents/user-guide/atl03-v006-userguide.pdf'
-          )
-        }
-      },
-      {
-        label: 'Algorithm Theoretical Basis Document Atl03',
-        icon: 'pi pi-book',
-        command: () => {
-          window.open(
-            'https://nsidc.org/sites/default/files/documents/technical-reference/icesat2_atl03_atbd_v006.pdf'
-          )
-        }
-      }
-    ]
-  },
-  {
-    separator: true
-  },
-  {
-    label: 'Open a Web Client GitHub Issue',
-    icon: 'pi pi-github',
-    command: () => {
-      window.open('https://github.com/SlideRuleEarth/sliderule-web-client/issues', '_blank')
-    }
-  },
-  {
-    label: 'SlideRule Buzz',
-    icon: 'pi pi-calculator',
-    command: () => {
-      emit('sliderule-buzz-button-click')
-    }
-  }
-]
-
-const toggleAboutMenu = (event: Event) => {
-  aboutMenu.value?.toggle(event)
+const openDocs = () => {
+  window.open('https://docs.slideruleearth.io/', '_blank')
 }
 
 // User menu for logged-in users
@@ -516,7 +465,7 @@ function handleDestroyCluster() {
 const mobileMenu = ref<InstanceType<typeof Menu> | null>(null)
 
 const mobileMenuItems = computed(() => {
-  const items = [
+  const items: MenuItem[] = [
     {
       label: 'Home',
       icon: 'pi pi-home',
@@ -545,7 +494,7 @@ const mobileMenuItems = computed(() => {
     {
       label: 'Docs',
       icon: 'pi pi-info-circle',
-      items: aboutMenuItems
+      command: openDocs
     }
   ]
 
@@ -595,8 +544,25 @@ onMounted(async () => {
   dumpRouteInfo()
 })
 
-const openMailClient = () => {
-  window.location.href = 'mailto:support@mail.slideruleearth.io'
+const feedbackMenu = ref<InstanceType<typeof Menu> | null>(null)
+const feedbackMenuItems = [
+  {
+    label: 'support@mail.slideruleearth.io',
+    icon: 'pi pi-envelope',
+    command: () => {
+      window.location.href = 'mailto:support@mail.slideruleearth.io'
+    }
+  },
+  {
+    label: 'Open a GitHub Issue',
+    icon: 'pi pi-github',
+    command: () => {
+      window.open('https://github.com/SlideRuleEarth/sliderule-web-client/issues/new', '_blank')
+    }
+  }
+]
+const toggleFeedbackMenu = (event: Event) => {
+  feedbackMenu.value?.toggle(event)
 }
 const isHovering = ref(false)
 let showTooltipTimeout: number | null = null
@@ -707,7 +673,7 @@ function hideTooltip() {
         @mouseover="
           tooltipRef.showTooltip(
             $event,
-            'Got a question about SlideRule?<br>Something not working?<br>Want a new feature?<br>Click here to send us an email.<br>We want to hear from you!<br><br>Remember: The squeaky wheel gets the oil!'
+            'Got a question about SlideRule?<br>Something not working?<br>Want a new feature?<br>Click here to send us an email or open a GitHub issue.<br>We want to hear from you!<br><br>Remember: The squeaky wheel gets the oil!'
           )
         "
         @mouseleave="hideTooltip()"
@@ -717,8 +683,9 @@ function hideTooltip() {
           label="Feedback"
           id="sr-feedback-button"
           class="p-button-rounded p-button-text desktop-only tablet-icon-only"
-          @click="openMailClient"
+          @click="toggleFeedbackMenu"
         ></Button>
+        <Menu :model="feedbackMenuItems" popup ref="feedbackMenu" />
       </div>
     </div>
     <div class="middle-content">
@@ -775,10 +742,9 @@ function hideTooltip() {
         id="sr-about-button"
         label="Docs"
         class="p-button-rounded p-button-text desktop-only tablet-icon-only"
-        @click="toggleAboutMenu"
+        @click="openDocs"
       >
       </Button>
-      <Menu :model="aboutMenuItems" popup ref="aboutMenu" />
       <Button
         v-if="!isGitHubAuthenticated"
         icon="pi pi-github"

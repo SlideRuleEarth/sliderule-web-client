@@ -104,10 +104,11 @@ resource "aws_cloudfront_origin_access_identity" "origin_access_identity" {
   comment = "access-identity-${replace(var.domainName, ".", "-")}.s3.amazonaws.com"
 }
 
-# --- client.<domainApex> → <domainApex>/request redirect ---
+# --- <domainApex> → <domainName>/landing redirect ---
 
-resource "aws_cloudfront_function" "client_redirect" {
-  name    = "${replace(var.domainApex, ".", "-")}-client-redirect"
+resource "aws_cloudfront_function" "apex_redirect" {
+  count   = var.domainName != var.domainApex ? 1 : 0
+  name    = "${replace(var.domainName, ".", "-")}-apex-redirect"
   runtime = "cloudfront-js-2.0"
   code    = <<-EOF
     function handler(event) {
@@ -115,22 +116,23 @@ resource "aws_cloudfront_function" "client_redirect" {
         statusCode: 301,
         statusDescription: 'Moved Permanently',
         headers: {
-          'location': { value: 'https://${var.domainApex}/request' }
+          'location': { value: 'https://${var.domainName}/landing' }
         }
       };
     }
   EOF
 }
 
-resource "aws_cloudfront_distribution" "client_redirect" {
+resource "aws_cloudfront_distribution" "apex_redirect" {
+  count      = var.domainName != var.domainApex ? 1 : 0
   depends_on = [aws_s3_bucket.this_site_bucket]
   enabled    = true
-  aliases    = ["client.${var.domainApex}"]
+  aliases    = [var.domainApex]
 
   # Origin is required by CloudFront but never reached (function returns before it)
   origin {
     domain_name = aws_s3_bucket.this_site_bucket.bucket_regional_domain_name
-    origin_id   = "dummy-origin-client-redirect"
+    origin_id   = "dummy-origin-apex-redirect"
 
     s3_origin_config {
       origin_access_identity = aws_cloudfront_origin_access_identity.origin_access_identity.cloudfront_access_identity_path
@@ -140,7 +142,7 @@ resource "aws_cloudfront_distribution" "client_redirect" {
   default_cache_behavior {
     allowed_methods        = ["GET", "HEAD"]
     cached_methods         = ["GET", "HEAD"]
-    target_origin_id       = "dummy-origin-client-redirect"
+    target_origin_id       = "dummy-origin-apex-redirect"
     viewer_protocol_policy = "redirect-to-https"
 
     forwarded_values {
@@ -152,7 +154,7 @@ resource "aws_cloudfront_distribution" "client_redirect" {
 
     function_association {
       event_type   = "viewer-request"
-      function_arn = aws_cloudfront_function.client_redirect.arn
+      function_arn = aws_cloudfront_function.apex_redirect[0].arn
     }
   }
 

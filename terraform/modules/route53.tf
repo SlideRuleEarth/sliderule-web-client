@@ -57,15 +57,17 @@ resource "aws_route53_record" "web" {
   }
 }
 
-# Alias record for client.<domainApex> redirect
-resource "aws_route53_record" "client_redirect" {
+# Alias record for <domainApex> → <domainName>/landing redirect
+# Only created when domainName != domainApex (e.g., client.testsliderule.org != testsliderule.org)
+resource "aws_route53_record" "apex_redirect" {
+  count   = var.domainName != var.domainApex ? 1 : 0
   zone_id = data.aws_route53_zone.public.id
-  name    = "client.${var.domainApex}"
+  name    = var.domainApex
   type    = "A"
 
   alias {
-    name                   = aws_cloudfront_distribution.client_redirect.domain_name
-    zone_id                = aws_cloudfront_distribution.client_redirect.hosted_zone_id
+    name                   = aws_cloudfront_distribution.apex_redirect[0].domain_name
+    zone_id                = aws_cloudfront_distribution.apex_redirect[0].hosted_zone_id
     evaluate_target_health = false
   }
 }
