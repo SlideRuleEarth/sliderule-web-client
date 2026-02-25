@@ -21,7 +21,7 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: () => import('@/views/RequestView.vue')
+      component: () => import('@/views/LandingView.vue')
     },
     {
       path: '/privacy',

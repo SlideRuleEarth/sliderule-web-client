@@ -103,3 +103,70 @@ resource "aws_cloudfront_distribution" "my_cloudfront" {
 resource "aws_cloudfront_origin_access_identity" "origin_access_identity" {
   comment = "access-identity-${replace(var.domainName, ".", "-")}.s3.amazonaws.com"
 }
+
+# --- client.<domainApex> → <domainApex>/request redirect ---
+
+resource "aws_cloudfront_function" "client_redirect" {
+  name    = "${replace(var.domainApex, ".", "-")}-client-redirect"
+  runtime = "cloudfront-js-2.0"
+  code    = <<-EOF
+    function handler(event) {
+      return {
+        statusCode: 301,
+        statusDescription: 'Moved Permanently',
+        headers: {
+          'location': { value: 'https://${var.domainApex}/request' }
+        }
+      };
+    }
+  EOF
+}
+
+resource "aws_cloudfront_distribution" "client_redirect" {
+  depends_on = [aws_s3_bucket.this_site_bucket]
+  enabled    = true
+  aliases    = ["client.${var.domainApex}"]
+
+  # Origin is required by CloudFront but never reached (function returns before it)
+  origin {
+    domain_name = aws_s3_bucket.this_site_bucket.bucket_regional_domain_name
+    origin_id   = "dummy-origin-client-redirect"
+
+    s3_origin_config {
+      origin_access_identity = aws_cloudfront_origin_access_identity.origin_access_identity.cloudfront_access_identity_path
+    }
+  }
+
+  default_cache_behavior {
+    allowed_methods        = ["GET", "HEAD"]
+    cached_methods         = ["GET", "HEAD"]
+    target_origin_id       = "dummy-origin-client-redirect"
+    viewer_protocol_policy = "redirect-to-https"
+
+    forwarded_values {
+      query_string = false
+      cookies {
+        forward = "none"
+      }
+    }
+
+    function_association {
+      event_type   = "viewer-request"
+      function_arn = aws_cloudfront_function.client_redirect.arn
+    }
+  }
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+
+  viewer_certificate {
+    acm_certificate_arn      = aws_acm_certificate.mysite.arn
+    ssl_support_method       = "sni-only"
+    minimum_protocol_version = "TLSv1.2_2021"
+  }
+
+  price_class = "PriceClass_100"
+}
