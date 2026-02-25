@@ -348,6 +348,13 @@ watch(selectedTab, (tab) => {
   color: #f87171;
 }
 
+/* iOS/tablet: background-attachment:fixed is broken, disable parallax */
+@media (hover: none) and (pointer: coarse) {
+  .sr-landing {
+    background-attachment: scroll;
+  }
+}
+
 @media (max-width: 768px) {
   .sr-landing-hero {
     padding: 1.5rem 1.5rem;
