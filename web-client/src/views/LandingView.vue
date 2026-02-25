@@ -352,6 +352,8 @@ watch(selectedTab, (tab) => {
 @media (hover: none) and (pointer: coarse) {
   .sr-landing {
     background-attachment: scroll;
+    background-size: auto 140%;
+    background-position: center 90%;
   }
 }
 
