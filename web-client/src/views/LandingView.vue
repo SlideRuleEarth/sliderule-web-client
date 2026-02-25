@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { marked } from 'marked'
 import SelectButton from 'primevue/selectbutton'
 import wallpaperUrl from '@/assets/landing_wallpaper.jpg'
 import aboutRaw from '@/assets/content/about.md?raw'
 import contactRaw from '@/assets/content/contact.md?raw'
-import systemOverviewImg from '@/assets/sliderule_system_overview.png'
 
 function stripFrontmatter(md: string): string {
   return md.replace(/^---[\s\S]*?---\n*/, '')
@@ -101,6 +100,21 @@ async function fetchArticle(article: NewsArticle) {
   }
 }
 
+const panelRef = ref<HTMLElement | null>(null)
+
+onMounted(() => {
+  if (panelRef.value) {
+    const scrollContainer = panelRef.value.closest('.sliderule-content')
+    if (scrollContainer) {
+      const panelTop = panelRef.value.offsetTop
+      scrollContainer.scrollTo({
+        top: panelTop - scrollContainer.clientHeight * 0.65,
+        behavior: 'instant' as ScrollBehavior
+      })
+    }
+  }
+})
+
 watch(selectedTab, (tab) => {
   if (tab === 'News') {
     selectedArticle.value = null
@@ -122,17 +136,9 @@ watch(selectedTab, (tab) => {
         </div>
       </div>
       <!-- About / Contact -->
-      <div v-if="selectedTab !== 'News'" class="sr-landing-panel">
+      <div v-if="selectedTab !== 'News'" ref="panelRef" class="sr-landing-panel">
         <div v-if="panelHtml" class="sr-landing-panel-content">
           <div v-html="panelHtml" />
-          <div v-if="selectedTab === 'About'" class="sr-system-overview">
-            <h2>System Overview</h2>
-            <img
-              :src="systemOverviewImg"
-              alt="SlideRule System Overview"
-              class="sr-system-overview-img"
-            />
-          </div>
         </div>
         <div v-else class="sr-landing-panel-content">
           <p>Coming soon.</p>
@@ -161,15 +167,15 @@ watch(selectedTab, (tab) => {
 <style scoped>
 .sr-landing {
   width: 100%;
-  height: calc(100vh - 4rem);
+  min-height: calc(100vh - 4rem);
   background-size: cover;
-  background-position: center;
+  background-position: center 70%;
   background-repeat: no-repeat;
+  background-attachment: fixed;
 }
 
 .sr-landing-overlay {
   width: 100%;
-  height: 100%;
   display: flex;
   flex-direction: column;
   background: linear-gradient(
@@ -181,11 +187,12 @@ watch(selectedTab, (tab) => {
 }
 
 .sr-landing-hero {
-  flex: 1 1 auto;
+  min-height: calc(100vh - 4rem);
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-end;
   align-items: flex-start;
+  text-align: left;
   padding: 2rem 4rem;
 }
 
@@ -209,8 +216,9 @@ watch(selectedTab, (tab) => {
 .sr-landing-tabs {
   display: flex;
   justify-content: center;
+  align-self: center;
   width: 100%;
-  margin-bottom: 0.5rem;
+  margin-bottom: 1.5rem;
 }
 
 .sr-landing-tabs :deep(.p-selectbutton) {
@@ -252,8 +260,6 @@ watch(selectedTab, (tab) => {
 }
 
 .sr-landing-panel {
-  flex: 0 0 40%;
-  overflow-y: auto;
   background: rgba(0, 0, 0, 0.75);
   padding: 1.5rem 4rem;
   color: #e0e0e0;
@@ -342,11 +348,20 @@ watch(selectedTab, (tab) => {
   color: #f87171;
 }
 
+/* iOS/tablet: background-attachment:fixed is broken, disable parallax */
+@media (hover: none) and (pointer: coarse) {
+  .sr-landing {
+    background-attachment: scroll;
+    background-size: auto 140%;
+    background-position: center 90%;
+  }
+}
+
 @media (max-width: 768px) {
   .sr-landing-hero {
     padding: 1.5rem 1.5rem;
-    align-items: center;
-    text-align: center;
+    align-items: flex-start;
+    text-align: left;
   }
 
   .sr-landing-title {
