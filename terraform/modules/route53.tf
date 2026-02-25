@@ -57,7 +57,7 @@ resource "aws_route53_record" "web" {
   }
 }
 
-# Alias record for <domainApex> → client.<domainApex>/landing redirect
+# Alias record for <domainApex> → <domainName>/landing redirect
 resource "aws_route53_record" "apex_redirect" {
   zone_id = data.aws_route53_zone.public.id
   name    = var.domainApex
