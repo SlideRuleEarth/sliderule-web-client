@@ -36,6 +36,7 @@ interface NewsArticle {
   title: string
   date: string
   url: string
+  snippet?: string
 }
 
 const newsArticles = ref<NewsArticle[]>([])
@@ -67,11 +68,42 @@ async function fetchNewsIndex() {
     // Sort newest first
     articles.sort((a, b) => b.date.localeCompare(a.date))
     newsArticles.value = articles
+    void fetchSnippets()
   } catch {
     newsError.value = 'Failed to load articles. Please try again later.'
   } finally {
     newsLoading.value = false
   }
+}
+
+async function fetchSnippets() {
+  const MAX_SNIPPET_LENGTH = 200
+  await Promise.allSettled(
+    newsArticles.value.map(async (article, index) => {
+      try {
+        const res = await fetch(ARTICLES_BASE_URL + article.url)
+        if (!res.ok) return
+        const html = await res.text()
+        const doc = new DOMParser().parseFromString(html, 'text/html')
+        const main = doc.querySelector('[role="main"]')
+        if (!main) return
+        const paragraphs = Array.from(main.querySelectorAll('p'))
+        for (const p of paragraphs) {
+          const text = p.textContent?.trim()
+          if (text && text.length > 10) {
+            newsArticles.value[index] = {
+              ...article,
+              snippet:
+                text.length > MAX_SNIPPET_LENGTH ? text.slice(0, MAX_SNIPPET_LENGTH) + '...' : text
+            }
+            break
+          }
+        }
+      } catch {
+        // Snippet fetch failures are non-critical — just leave snippet empty
+      }
+    })
+  )
 }
 
 async function fetchArticle(article: NewsArticle) {
@@ -156,7 +188,10 @@ watch(selectedTab, (tab) => {
         <ul v-else class="sr-news-list">
           <li v-for="a in newsArticles" :key="a.url" @click="fetchArticle(a)">
             <span class="sr-news-date">{{ a.date }}</span>
-            <span class="sr-news-title">{{ a.title }}</span>
+            <div class="sr-news-body">
+              <span class="sr-news-title">{{ a.title }}</span>
+              <span v-if="a.snippet" class="sr-news-snippet">{{ a.snippet }}</span>
+            </div>
           </li>
         </ul>
       </div>
@@ -318,9 +353,27 @@ watch(selectedTab, (tab) => {
   padding-top: 0.1rem;
 }
 
+.sr-news-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
 .sr-news-title {
   color: #e0e0e0;
   transition: color 0.2s ease;
+}
+
+.sr-news-snippet {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.85rem;
+  line-height: 1.4;
+  margin-top: 0.2rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .sr-news-back {
