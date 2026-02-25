@@ -852,7 +852,7 @@ function hideTooltip() {
 
 .right-content {
   display: flex;
-  align-items: right;
+  align-items: center;
 }
 
 .left-content {

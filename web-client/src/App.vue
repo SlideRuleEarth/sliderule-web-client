@@ -722,6 +722,7 @@ async function handleLongTourButtonClick() {
   right: 0;
   height: 4rem;
   z-index: 1000;
+  background: var(--p-surface-ground, #121212);
 }
 
 .sliderule-content {
