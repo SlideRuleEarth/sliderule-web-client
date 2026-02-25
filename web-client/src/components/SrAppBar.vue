@@ -85,37 +85,6 @@ const toggleTourMenu = (event: Event) => {
 const aboutMenu = ref<InstanceType<typeof Menu> | null>(null)
 const aboutMenuItems = [
   {
-    label: 'About SlideRule Web Client',
-    icon: 'pi pi-info-circle',
-    command: () => {
-      emit('client-version-button-click')
-    }
-  },
-  {
-    label: 'About SlideRule Server',
-    icon: 'pi pi-info-circle',
-    command: () => {
-      emit('server-version-button-click')
-    }
-  },
-  {
-    label: 'About SlideRule',
-    icon: 'pi pi-info-circle',
-    command: () => {
-      window.open('https://slideruleearth.io')
-    }
-  },
-  {
-    label: 'SlideRule Buzz',
-    icon: 'pi pi-calculator',
-    command: () => {
-      emit('sliderule-buzz-button-click')
-    }
-  },
-  {
-    separator: true
-  },
-  {
     label: 'Documentation',
     icon: 'pi pi-book',
     items: [
@@ -150,17 +119,17 @@ const aboutMenuItems = [
     separator: true
   },
   {
-    label: 'Report an Issue',
-    icon: 'pi pi-exclamation-circle',
+    label: 'Open a Web Client GitHub Issue',
+    icon: 'pi pi-github',
     command: () => {
       window.open('https://github.com/SlideRuleEarth/sliderule-web-client/issues', '_blank')
     }
   },
   {
-    label: 'Contact Support',
-    icon: 'pi pi-envelope',
+    label: 'SlideRule Buzz',
+    icon: 'pi pi-calculator',
     command: () => {
-      window.location.href = 'mailto:support@mail.slideruleearth.io'
+      emit('sliderule-buzz-button-click')
     }
   }
 ]
@@ -223,6 +192,7 @@ function navigateToServer() {
 const emit = defineEmits([
   'server-version-button-click',
   'client-version-button-click',
+  'home-button-click',
   'request-button-click',
   'record-button-click',
   'rectree-button-click',
@@ -248,6 +218,9 @@ const nodeBadgeSeverity = computed(() => {
 
 const badgeLabel = computed(() => 'server')
 
+const handleHomeButtonClick = () => {
+  emit('home-button-click')
+}
 const handleRequestButtonClick = () => {
   emit('request-button-click')
 }
@@ -545,6 +518,11 @@ const mobileMenu = ref<InstanceType<typeof Menu> | null>(null)
 const mobileMenuItems = computed(() => {
   const items = [
     {
+      label: 'Home',
+      icon: 'pi pi-home',
+      command: handleHomeButtonClick
+    },
+    {
       label: 'Request',
       icon: 'pi pi-sliders-h',
       command: handleRequestButtonClick
@@ -565,7 +543,7 @@ const mobileMenuItems = computed(() => {
       command: handleSettingsButtonClick
     },
     {
-      label: 'About',
+      label: 'Docs',
       icon: 'pi pi-info-circle',
       items: aboutMenuItems
     }
@@ -716,18 +694,14 @@ function hideTooltip() {
         @click="handleClientVersionButtonClick"
       >
       </Button>
-    </div>
-    <div class="middle-content">
       <Button
-        icon="pi pi-map"
-        id="sr-tour-button"
-        v-if="displayTour"
-        label="Tour"
+        icon="pi pi-home"
+        id="sr-home-button"
+        label="Home"
         class="p-button-rounded p-button-text desktop-only"
-        @click="toggleTourMenu"
+        @click="handleHomeButtonClick"
       >
       </Button>
-      <Menu :model="tourMenuItems" popup ref="tourMenu" />
       <div
         class="sr-megaphone"
         @mouseover="
@@ -746,6 +720,18 @@ function hideTooltip() {
           @click="openMailClient"
         ></Button>
       </div>
+    </div>
+    <div class="middle-content">
+      <Button
+        icon="pi pi-map"
+        id="sr-tour-button"
+        v-if="displayTour"
+        label="Tour"
+        class="p-button-rounded p-button-text desktop-only"
+        @click="toggleTourMenu"
+      >
+      </Button>
+      <Menu :model="tourMenuItems" popup ref="tourMenu" />
       <span v-if="showBanner" class="sr-banner-text">{{ bannerText }}</span>
       <div class="sr-tooltip-style" id="tooltip">
         <SrCustomTooltip ref="tooltipRef" id="appBarTooltip" />
@@ -787,7 +773,7 @@ function hideTooltip() {
       <Button
         icon="pi pi-info-circle"
         id="sr-about-button"
-        label="About"
+        label="Docs"
         class="p-button-rounded p-button-text desktop-only tablet-icon-only"
         @click="toggleAboutMenu"
       >

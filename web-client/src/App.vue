@@ -273,6 +273,10 @@ onUnmounted(() => {
   }
 })
 
+const homeButtonClick = () => {
+  void router.push('/landing')
+}
+
 const requestButtonClick = () => {
   //logger.debug('Request button clicked');
   void router.push('/request')
@@ -548,6 +552,7 @@ async function handleLongTourButtonClick() {
     </div>
     <header class="app-header">
       <SrAppBar
+        @home-button-click="homeButtonClick"
         @request-button-click="requestButtonClick"
         @record-button-click="recordButtonClick"
         @rectree-button-click="rectreeButtonClick"

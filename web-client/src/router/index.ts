@@ -21,12 +21,7 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: () => import('@/views/RequestView.vue')
-    },
-    {
-      path: '/about',
-      name: 'about',
-      component: () => import('@/views/AboutView.vue')
+      component: () => import('@/views/LandingView.vue')
     },
     {
       path: '/privacy',
@@ -69,6 +64,11 @@ const router = createRouter({
       path: '/auth/github/callback',
       name: 'github-callback',
       component: () => import('@/views/GitHubCallbackView.vue')
+    },
+    {
+      path: '/landing',
+      name: 'landing',
+      component: () => import('@/views/LandingView.vue')
     },
     {
       path: '/:pathMatch(.*)*',
