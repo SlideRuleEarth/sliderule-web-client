@@ -5,6 +5,7 @@ import SelectButton from 'primevue/selectbutton'
 import wallpaperUrl from '@/assets/landing_wallpaper.jpg'
 import aboutRaw from '@/assets/content/about.md?raw'
 import contactRaw from '@/assets/content/contact.md?raw'
+import systemOverviewImg from '@/assets/sliderule_system_overview.png'
 
 function stripFrontmatter(md: string): string {
   return md.replace(/^---[\s\S]*?---\n*/, '')
@@ -122,7 +123,17 @@ watch(selectedTab, (tab) => {
       </div>
       <!-- About / Contact -->
       <div v-if="selectedTab !== 'News'" class="sr-landing-panel">
-        <div v-if="panelHtml" class="sr-landing-panel-content" v-html="panelHtml" />
+        <div v-if="panelHtml" class="sr-landing-panel-content">
+          <div v-html="panelHtml" />
+          <div v-if="selectedTab === 'About'" class="sr-system-overview">
+            <h2>System Overview</h2>
+            <img
+              :src="systemOverviewImg"
+              alt="SlideRule System Overview"
+              class="sr-system-overview-img"
+            />
+          </div>
+        </div>
         <div v-else class="sr-landing-panel-content">
           <p>Coming soon.</p>
         </div>
@@ -258,6 +269,20 @@ watch(selectedTab, (tab) => {
 .sr-landing-panel-content :deep(a) {
   color: var(--p-primary-color, #60a5fa);
   text-decoration: underline;
+}
+
+.sr-system-overview {
+  margin-top: 2rem;
+  text-align: center;
+}
+
+.sr-system-overview h2 {
+  margin-bottom: 1rem;
+}
+
+.sr-system-overview-img {
+  max-width: 100%;
+  border-radius: 4px;
 }
 
 .sr-news-list {
