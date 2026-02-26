@@ -69,6 +69,16 @@ export function connect(): void {
       return
     }
 
+    // Server closed with 4000 = "Replaced by new connection" (another tab took over)
+    if (event.code === 4000) {
+      mcpStore.setStatus('disconnected')
+      mcpStore.setError(
+        'MCP connection taken by another browser tab. Only one tab can be connected at a time.'
+      )
+      logger.info('Connection replaced by another client, not reconnecting')
+      return
+    }
+
     mcpStore.setStatus('reconnecting')
     mcpStore.incrementReconnectAttempts()
     const delay = getReconnectDelay(mcpStore.reconnectAttempts)

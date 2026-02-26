@@ -1,17 +1,35 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import Button from 'primevue/button'
 import Popover from 'primevue/popover'
 import Checkbox from 'primevue/checkbox'
 import ConfirmDialog from 'primevue/confirmdialog'
+import { useToast } from 'primevue/usetoast'
 import { useMcpStore } from '@/stores/mcpStore'
+import { useSrToastStore } from '@/stores/srToastStore'
 import { connect, disconnect, reconnect } from '@/services/mcpClient'
 
 const DEV_PORT = 3003
 const DEFAULT_PORT = 3002
 
 const mcpStore = useMcpStore()
+const toast = useToast()
+const srToastStore = useSrToastStore()
 const popover = ref()
+
+watch(
+  () => mcpStore.lastError,
+  (err) => {
+    if (err) {
+      toast.add({
+        severity: 'warn',
+        summary: 'MCP Disconnected',
+        detail: err,
+        life: srToastStore.getLife()
+      })
+    }
+  }
+)
 
 const devMode = computed({
   get: () => mcpStore.wsPort === DEV_PORT,
