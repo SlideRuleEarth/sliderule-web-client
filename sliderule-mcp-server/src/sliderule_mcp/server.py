@@ -562,6 +562,8 @@ ALLOWED_ORIGINS = {
     "http://127.0.0.1:4173",
     "http://127.0.0.1:3000",
     "https://testsliderule.org",            # Deployed test site
+    "https://client.testsliderule.org",     # Deployed test client
+    "https://ai.testsliderule.org",         # Deployed AI client
     "https://client.slideruleearth.io",     # Deployed production site
 }
 
