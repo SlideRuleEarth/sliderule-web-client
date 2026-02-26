@@ -30,3 +30,9 @@ variable "cost_grouping" {
   type        = string
   default     = "web-client"
 }
+
+variable "create_apex_redirect" {
+  description = "Whether to create the apex redirect CloudFront distribution. Set to false when another deployment already owns the apex CNAME."
+  type        = bool
+  default     = true
+}

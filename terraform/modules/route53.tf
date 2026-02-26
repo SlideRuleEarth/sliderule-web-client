@@ -60,7 +60,7 @@ resource "aws_route53_record" "web" {
 # Alias record for <domainApex> → <domainName>/landing redirect
 # Only created when domainName != domainApex (e.g., client.testsliderule.org != testsliderule.org)
 resource "aws_route53_record" "apex_redirect" {
-  count   = var.domainName != var.domainApex ? 1 : 0
+  count   = var.create_apex_redirect && var.domainName != var.domainApex ? 1 : 0
   zone_id = data.aws_route53_zone.public.id
   name    = var.domainApex
   type    = "A"

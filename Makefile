@@ -14,6 +14,7 @@ DISTRIBUTION_ID = $(shell aws cloudfront list-distributions --query "Distributio
 BUILD_ENV = $(shell git --git-dir .git --work-tree . describe --abbrev --dirty --always --tags --long)
 VERSION ?= latest
 BANNER_TEXT ?=
+CREATE_APEX_REDIRECT ?= true
 
 
 clean-all: # Clean up the web client dependencies 
@@ -73,10 +74,13 @@ verify-s3-assets: ## Check that all index-*.js and index-*.css files referenced 
 verify-s3-assets-testsliderule:
 	make verify-s3-assets S3_BUCKET=testsliderule-webclient
 
-live-update-testsliderule: ## Update the web client at testsliderule.org with new build
+live-update-client-testsliderule: ## Update the web client at client.testsliderule.org with new build
 	make live-update S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org DOMAIN=client.testsliderule.org 
 
-live-update-slideruleearth: ## Update the web client at slideruleearth.io with new build
+live-update-ai-testsliderule: ## Update the web client at ai.testsliderule.org with new build
+	make live-update S3_BUCKET=testsliderule-ai-webclient DOMAIN_APEX=testsliderule.org DOMAIN=ai.testsliderule.org
+
+live-update-client-slideruleearth: ## Update the web client at client.slideruleearth.io with new build
 	make live-update S3_BUCKET=slideruleearth-webclient DOMAIN_APEX=slideruleearth.io DOMAIN=client.slideruleearth.io 
 
 convert-icons: ## Convert Maki SVG icons in src/assets/maki-svg to PNGs in public/icons
@@ -115,11 +119,11 @@ preview: build ## Preview the web client production build locally for developmen
 
 deploy: # Deploy the web client to the S3 bucket
 	mkdir -p terraform/ && cd terraform/ && terraform init && terraform workspace select $(DOMAIN)-web-client || terraform workspace new $(DOMAIN)-web-client && terraform validate && \
-	terraform apply -var domainName=$(DOMAIN) -var domainApex=$(DOMAIN_APEX) -var domain_root=$(DOMAIN_ROOT) -var s3_bucket_name=$(S3_BUCKET)
+	terraform apply -var domainName=$(DOMAIN) -var domainApex=$(DOMAIN_APEX) -var domain_root=$(DOMAIN_ROOT) -var s3_bucket_name=$(S3_BUCKET) -var create_apex_redirect=$(CREATE_APEX_REDIRECT)
 
-destroy: # Destroy the web client 
+destroy: # Destroy the web client
 	mkdir -p terraform/ && cd terraform/ && terraform init && terraform workspace select $(DOMAIN)-web-client || terraform workspace new $(DOMAIN)-web-client && terraform validate && \
-	terraform destroy -var domainName=$(DOMAIN) -var domainApex=$(DOMAIN_APEX) -var domain_root=$(DOMAIN_ROOT) -var s3_bucket_name=$(S3_BUCKET)
+	terraform destroy -var domainName=$(DOMAIN) -var domainApex=$(DOMAIN_APEX) -var domain_root=$(DOMAIN_ROOT) -var s3_bucket_name=$(S3_BUCKET) -var create_apex_redirect=$(CREATE_APEX_REDIRECT)
 
 deploy-client-to-testsliderule: ## Deploy the web client to the testsliderule.org cloudfront and update the s3 bucket
 	make deploy DOMAIN=client.testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org && \
@@ -147,6 +151,14 @@ deploy-client-to-slideruleearth: ## Deploy the web client to the slideruleearth.
 
 destroy-client-slideruleearth: ## Destroy the web client from the slideruleearth.io cloudfront and remove the S3 bucket
 	make destroy DOMAIN=client.slideruleearth.io S3_BUCKET=slideruleearth-webclient DOMAIN_APEX=slideruleearth.io
+
+deploy-ai-client-to-testsliderule: ## Deploy the web client to the testsliderule.org cloudfront and update the s3 bucket
+	make deploy DOMAIN=ai.testsliderule.org S3_BUCKET=testsliderule-ai-webclient DOMAIN_APEX=testsliderule.org CREATE_APEX_REDIRECT=false && \
+	make live-update DOMAIN=ai.testsliderule.org S3_BUCKET=testsliderule-ai-webclient DOMAIN_APEX=testsliderule.org
+
+destroy-ai-client-testsliderule: ## Destroy the web client from the testsliderule.org cloudfront and remove the S3 bucket
+	make destroy DOMAIN=ai.testsliderule.org S3_BUCKET=testsliderule-ai-webclient DOMAIN_APEX=testsliderule.org CREATE_APEX_REDIRECT=false
+
 
 MCP_SERVER_DIR = sliderule-mcp-server
 MCP_VERSION = $(shell grep '^version' $(MCP_SERVER_DIR)/pyproject.toml | sed 's/.*"\(.*\)"/\1/')

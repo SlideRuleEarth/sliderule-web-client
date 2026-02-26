@@ -107,7 +107,7 @@ resource "aws_cloudfront_origin_access_identity" "origin_access_identity" {
 # --- <domainApex> → <domainName>/landing redirect ---
 
 resource "aws_cloudfront_function" "apex_redirect" {
-  count   = var.domainName != var.domainApex ? 1 : 0
+  count   = var.create_apex_redirect && var.domainName != var.domainApex ? 1 : 0
   name    = "${replace(var.domainName, ".", "-")}-apex-redirect"
   runtime = "cloudfront-js-2.0"
   code    = <<-EOF
@@ -124,7 +124,7 @@ resource "aws_cloudfront_function" "apex_redirect" {
 }
 
 resource "aws_cloudfront_distribution" "apex_redirect" {
-  count      = var.domainName != var.domainApex ? 1 : 0
+  count      = var.create_apex_redirect && var.domainName != var.domainApex ? 1 : 0
   depends_on = [aws_s3_bucket.this_site_bucket]
   enabled    = true
   aliases    = [var.domainApex]
