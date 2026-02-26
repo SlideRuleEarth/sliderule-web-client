@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import Button from 'primevue/button'
 import Menu from 'primevue/menu'
+import type { MenuItem } from 'primevue/menuitem'
 import ConfirmDialog from 'primevue/confirmdialog'
 import { ref, computed, onMounted } from 'vue'
 import { useToast } from 'primevue/usetoast'
@@ -83,91 +84,8 @@ const toggleTourMenu = (event: Event) => {
   tourMenu.value?.toggle(event)
 }
 
-const aboutMenu = ref<InstanceType<typeof Menu> | null>(null)
-const aboutMenuItems = [
-  {
-    label: 'About SlideRule Web Client',
-    icon: 'pi pi-info-circle',
-    command: () => {
-      emit('client-version-button-click')
-    }
-  },
-  {
-    label: 'About SlideRule Server',
-    icon: 'pi pi-info-circle',
-    command: () => {
-      emit('server-version-button-click')
-    }
-  },
-  {
-    label: 'About SlideRule',
-    icon: 'pi pi-info-circle',
-    command: () => {
-      window.open('https://slideruleearth.io')
-    }
-  },
-  {
-    label: 'SlideRule Buzz',
-    icon: 'pi pi-calculator',
-    command: () => {
-      emit('sliderule-buzz-button-click')
-    }
-  },
-  {
-    separator: true
-  },
-  {
-    label: 'Documentation',
-    icon: 'pi pi-book',
-    items: [
-      {
-        label: 'SlideRule Python Client Documentation',
-        icon: 'pi pi-book',
-        command: () => {
-          window.open('https://slideruleearth.io/web/rtd/')
-        }
-      },
-      {
-        label: 'ATLAS/ICESat-2 Photon Data User Guide',
-        icon: 'pi pi-book',
-        command: () => {
-          window.open(
-            'https://nsidc.org/sites/default/files/documents/user-guide/atl03-v006-userguide.pdf'
-          )
-        }
-      },
-      {
-        label: 'Algorithm Theoretical Basis Document Atl03',
-        icon: 'pi pi-book',
-        command: () => {
-          window.open(
-            'https://nsidc.org/sites/default/files/documents/technical-reference/icesat2_atl03_atbd_v006.pdf'
-          )
-        }
-      }
-    ]
-  },
-  {
-    separator: true
-  },
-  {
-    label: 'Report an Issue',
-    icon: 'pi pi-exclamation-circle',
-    command: () => {
-      window.open('https://github.com/SlideRuleEarth/sliderule-web-client/issues', '_blank')
-    }
-  },
-  {
-    label: 'Contact Support',
-    icon: 'pi pi-envelope',
-    command: () => {
-      window.location.href = 'mailto:support@mail.slideruleearth.io'
-    }
-  }
-]
-
-const toggleAboutMenu = (event: Event) => {
-  aboutMenu.value?.toggle(event)
+const openDocs = () => {
+  window.open('https://docs.slideruleearth.io/', '_blank')
 }
 
 // User menu for logged-in users
@@ -224,6 +142,7 @@ function navigateToServer() {
 const emit = defineEmits([
   'server-version-button-click',
   'client-version-button-click',
+  'home-button-click',
   'request-button-click',
   'record-button-click',
   'rectree-button-click',
@@ -249,6 +168,9 @@ const nodeBadgeSeverity = computed(() => {
 
 const badgeLabel = computed(() => 'server')
 
+const handleHomeButtonClick = () => {
+  emit('home-button-click')
+}
 const handleRequestButtonClick = () => {
   emit('request-button-click')
 }
@@ -544,7 +466,12 @@ function handleDestroyCluster() {
 const mobileMenu = ref<InstanceType<typeof Menu> | null>(null)
 
 const mobileMenuItems = computed(() => {
-  const items = [
+  const items: MenuItem[] = [
+    {
+      label: 'Home',
+      icon: 'pi pi-home',
+      command: handleHomeButtonClick
+    },
     {
       label: 'Request',
       icon: 'pi pi-sliders-h',
@@ -566,9 +493,9 @@ const mobileMenuItems = computed(() => {
       command: handleSettingsButtonClick
     },
     {
-      label: 'About',
+      label: 'Docs',
       icon: 'pi pi-info-circle',
-      items: aboutMenuItems
+      command: openDocs
     }
   ]
 
@@ -618,8 +545,25 @@ onMounted(async () => {
   dumpRouteInfo()
 })
 
-const openMailClient = () => {
-  window.location.href = 'mailto:support@mail.slideruleearth.io'
+const feedbackMenu = ref<InstanceType<typeof Menu> | null>(null)
+const feedbackMenuItems = [
+  {
+    label: 'support@mail.slideruleearth.io',
+    icon: 'pi pi-envelope',
+    command: () => {
+      window.location.href = 'mailto:support@mail.slideruleearth.io'
+    }
+  },
+  {
+    label: 'Open a GitHub Issue',
+    icon: 'pi pi-github',
+    command: () => {
+      window.open('https://github.com/SlideRuleEarth/sliderule-web-client/issues/new', '_blank')
+    }
+  }
+]
+const toggleFeedbackMenu = (event: Event) => {
+  feedbackMenu.value?.toggle(event)
 }
 const isHovering = ref(false)
 let showTooltipTimeout: number | null = null
@@ -717,6 +661,33 @@ function hideTooltip() {
         @click="handleClientVersionButtonClick"
       >
       </Button>
+      <Button
+        icon="pi pi-home"
+        id="sr-home-button"
+        label="Home"
+        class="p-button-rounded p-button-text desktop-only"
+        @click="handleHomeButtonClick"
+      >
+      </Button>
+      <div
+        class="sr-megaphone"
+        @mouseover="
+          tooltipRef.showTooltip(
+            $event,
+            'Got a question about SlideRule?<br>Something not working?<br>Want a new feature?<br>Click here to send us an email or open a GitHub issue.<br>We want to hear from you!<br><br>Remember: The squeaky wheel gets the oil!'
+          )
+        "
+        @mouseleave="hideTooltip()"
+      >
+        <Button
+          icon="pi pi-megaphone"
+          label="Feedback"
+          id="sr-feedback-button"
+          class="p-button-rounded p-button-text desktop-only tablet-icon-only"
+          @click="toggleFeedbackMenu"
+        ></Button>
+        <Menu :model="feedbackMenuItems" popup ref="feedbackMenu" />
+      </div>
     </div>
     <div class="middle-content">
       <Button
@@ -729,24 +700,6 @@ function hideTooltip() {
       >
       </Button>
       <Menu :model="tourMenuItems" popup ref="tourMenu" />
-      <div
-        class="sr-megaphone"
-        @mouseover="
-          tooltipRef.showTooltip(
-            $event,
-            'Got a question about SlideRule?<br>Something not working?<br>Want a new feature?<br>Click here to send us an email.<br>We want to hear from you!<br><br>Remember: The squeaky wheel gets the oil!'
-          )
-        "
-        @mouseleave="hideTooltip()"
-      >
-        <Button
-          icon="pi pi-megaphone"
-          label="Feedback"
-          id="sr-feedback-button"
-          class="p-button-rounded p-button-text desktop-only tablet-icon-only"
-          @click="openMailClient"
-        ></Button>
-      </div>
       <span v-if="showBanner" class="sr-banner-text">{{ bannerText }}</span>
       <div class="sr-tooltip-style" id="tooltip">
         <SrCustomTooltip ref="tooltipRef" id="appBarTooltip" />
@@ -789,12 +742,11 @@ function hideTooltip() {
       <Button
         icon="pi pi-info-circle"
         id="sr-about-button"
-        label="About"
+        label="Docs"
         class="p-button-rounded p-button-text desktop-only tablet-icon-only"
-        @click="toggleAboutMenu"
+        @click="openDocs"
       >
       </Button>
-      <Menu :model="aboutMenuItems" popup ref="aboutMenu" />
       <Button
         v-if="!isGitHubAuthenticated"
         icon="pi pi-github"
@@ -902,7 +854,7 @@ function hideTooltip() {
 
 .right-content {
   display: flex;
-  align-items: right;
+  align-items: center;
 }
 
 .left-content {

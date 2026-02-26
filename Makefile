@@ -73,15 +73,11 @@ verify-s3-assets: ## Check that all index-*.js and index-*.css files referenced 
 verify-s3-assets-testsliderule:
 	make verify-s3-assets S3_BUCKET=testsliderule-webclient
 
-
 live-update-testsliderule: ## Update the web client at testsliderule.org with new build
-	make live-update S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org DOMAIN=testsliderule.org 
+	make live-update S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org DOMAIN=client.testsliderule.org 
 
-# live-update-demo-dot-slideruleearth: ## Update the web client at demo.slideruleearth.io with new build
-# 	make live-update S3_BUCKET=slideruleearth-demo-dot DOMAIN_APEX=slideruleearth.io DOMAIN=demo.slideruleearth.io
-
-live-update-client-dot-slideruleearth: ## Update the web client at client.slideruleearth.io with new build
-	make live-update S3_BUCKET=slideruleearth-webclient-dot DOMAIN_APEX=slideruleearth.io DOMAIN=client.slideruleearth.io 
+live-update-slideruleearth: ## Update the web client at slideruleearth.io with new build
+	make live-update S3_BUCKET=slideruleearth-webclient DOMAIN_APEX=slideruleearth.io DOMAIN=client.slideruleearth.io 
 
 convert-icons: ## Convert Maki SVG icons in src/assets/maki-svg to PNGs in public/icons
 	@echo "🔄 Converting Maki SVG icons to PNGs..."
@@ -126,14 +122,14 @@ destroy: # Destroy the web client
 	terraform destroy -var domainName=$(DOMAIN) -var domainApex=$(DOMAIN_APEX) -var domain_root=$(DOMAIN_ROOT) -var s3_bucket_name=$(S3_BUCKET)
 
 deploy-client-to-testsliderule: ## Deploy the web client to the testsliderule.org cloudfront and update the s3 bucket
-	make deploy DOMAIN=testsliderule.org S3_BUCKET=testsliderule-webclient && \
-	make live-update DOMAIN=testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org 
+	make deploy DOMAIN=client.testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org && \
+	make live-update DOMAIN=client.testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org 
 
 destroy-client-testsliderule: ## Destroy the web client from the testsliderule.org cloudfront and remove the S3 bucket
-	make destroy DOMAIN=testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org
+	make destroy DOMAIN=client.testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org
 
 release-live-update-to-testsliderule: src-tag-and-push ## Release the web client to the live environment NEEDS VERSION
-	make live-update DOMAIN=testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org 
+	make live-update DOMAIN=client.testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org 
 
 # deploy-client-to-demo-dot-slideruleearth: ## Deploy the web client to the demo.slideruleearth.io cloudfront and update the s3 bucket
 # 	make deploy DOMAIN=demo.slideruleearth.io S3_BUCKET=slideruleearth-demo-dot DOMAIN_APEX=slideruleearth.io && \
@@ -145,21 +141,12 @@ destroy-demo-dot-slideruleearth: ## Destroy the web client from the demo.slideru
 release-live-update-to-demo-dot-slideruleearth: src-tag-and-push ## Release the web client to the live environment NEEDS VERSION
 	make live-update DOMAIN=demo.slideruleearth.io S3_BUCKET=slideruleearth-demo-dot DOMAIN_APEX=slideruleearth.io
 
-destroy-client-dot-testsliderule: ## Destroy the web client from the testsliderule.org cloudfront and remove the S3 bucket
-	make destroy DOMAIN=client.testsliderule.org S3_BUCKET=testsliderule-webclient-dot DOMAIN_APEX=testsliderule.org
+deploy-client-to-slideruleearth: ## Deploy the web client to the slideruleearth.io cloudfront and update the s3 bucket
+	make deploy DOMAIN=client.slideruleearth.io S3_BUCKET=slideruleearth-webclient DOMAIN_APEX=slideruleearth.io && \
+	make live-update DOMAIN=client.slideruleearth.io S3_BUCKET=slideruleearth-webclient DOMAIN_APEX=slideruleearth.io
 
-deploy-client-to-client-dot-slideruleearth: ## Deploy the web client to the client.slideruleearth.io cloudfront and update the s3 bucket
-	make deploy DOMAIN=client.slideruleearth.io S3_BUCKET=slideruleearth-webclient-dot DOMAIN_APEX=slideruleearth.io && \
-	make live-update DOMAIN=client.slideruleearth.io S3_BUCKET=slideruleearth-webclient-dot DOMAIN_APEX=slideruleearth.io
-
-destroy-client-dot-slideruleearth: ## Destroy the web client from the client.slideruleearth.io cloudfront and remove the S3 bucket
-	make destroy DOMAIN=client.slideruleearth.io S3_BUCKET=slideruleearth-webclient-dot DOMAIN_APEX=slideruleearth.io
-
-deploy-docs-to-testsliderule: ## Deploy the docs to the testsliderule.org cloudfront and update the s3 bucket
-	make deploy DOMAIN=docs.testsliderule.org S3_BUCKET=testsliderule-docs DOMAIN_APEX=testsliderule.org  
-
-destroy-docs-testsliderule: ## Destroy the web client from the testsliderule.org cloudfront and remove the S3 bucket
-	make destroy DOMAIN=docs.testsliderule.org S3_BUCKET=testsliderule-docs DOMAIN_APEX=testsliderule.org 
+destroy-client-slideruleearth: ## Destroy the web client from the slideruleearth.io cloudfront and remove the S3 bucket
+	make destroy DOMAIN=client.slideruleearth.io S3_BUCKET=slideruleearth-webclient DOMAIN_APEX=slideruleearth.io
 
 MCP_SERVER_DIR = sliderule-mcp-server
 MCP_VERSION = $(shell grep '^version' $(MCP_SERVER_DIR)/pyproject.toml | sed 's/.*"\(.*\)"/\1/')

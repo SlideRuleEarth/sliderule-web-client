@@ -13,6 +13,7 @@ import SrColorPalette from '@/components/SrColorPalette.vue'
 import SrGoogleApiKeyInput from '@/components/SrGoogleApiKeyInput.vue'
 import SrPrivacySettings from '@/components/SrPrivacySettings.vue'
 import Card from 'primevue/card'
+import buzzSlideRuleImg from '@/assets/BuzzSlideRule.jpg'
 </script>
 
 <template>
@@ -38,6 +39,20 @@ import Card from 'primevue/card'
               </AccordionPanel>
 
               <AccordionPanel value="1">
+                <AccordionHeader>SlideRule Buzz</AccordionHeader>
+                <AccordionContent>
+                  <div class="sr-buzz-content">
+                    <h3>Buzz Aldrin using a Slide Rule</h3>
+                    <img
+                      :src="buzzSlideRuleImg"
+                      alt="Buzz Aldrin using a Slide Rule"
+                      class="sr-buzz-image"
+                    />
+                  </div>
+                </AccordionContent>
+              </AccordionPanel>
+
+              <AccordionPanel value="2">
                 <AccordionHeader>Storage Usage</AccordionHeader>
                 <AccordionContent>
                   <SrStorageUsage />
@@ -45,35 +60,35 @@ import Card from 'primevue/card'
                 </AccordionContent>
               </AccordionPanel>
 
-              <AccordionPanel value="2">
+              <AccordionPanel value="3">
                 <AccordionHeader>Advanced</AccordionHeader>
                 <AccordionContent>
                   <SrAdvOptPanel />
                 </AccordionContent>
               </AccordionPanel>
 
-              <AccordionPanel value="3">
+              <AccordionPanel value="4">
                 <AccordionHeader>Plot Defaults</AccordionHeader>
                 <AccordionContent>
                   <SrPlotCfgEdit />
                 </AccordionContent>
               </AccordionPanel>
 
-              <AccordionPanel value="4">
+              <AccordionPanel value="5">
                 <AccordionHeader>Color Palette</AccordionHeader>
                 <AccordionContent>
                   <SrColorPalette />
                 </AccordionContent>
               </AccordionPanel>
 
-              <AccordionPanel value="5">
+              <AccordionPanel value="6">
                 <AccordionHeader>Defaults</AccordionHeader>
                 <AccordionContent>
                   <SrDefaults />
                 </AccordionContent>
               </AccordionPanel>
 
-              <AccordionPanel value="6">
+              <AccordionPanel value="7">
                 <AccordionHeader>Privacy & Data</AccordionHeader>
                 <AccordionContent>
                   <SrPrivacySettings />
@@ -137,5 +152,18 @@ import Card from 'primevue/card'
 :deep(.p-accordion-panel) {
   width: 100%;
   max-width: 100%;
+}
+
+.sr-buzz-content {
+  text-align: center;
+}
+
+.sr-buzz-content h3 {
+  margin-bottom: 0.75rem;
+}
+
+.sr-buzz-image {
+  max-width: 100%;
+  border-radius: 4px;
 }
 </style>

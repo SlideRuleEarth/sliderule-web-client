@@ -51,6 +51,7 @@
     "jszip": "^3.10.1",
     "lodash-es": "^4.17.21",
     "loglevel": "^1.9.2",
+    "marked": "^17.0.3",
     "mitt": "^3.0.1",
     "ol": "^10.7.0",
     "ol-contextmenu": "^5.5.0",
