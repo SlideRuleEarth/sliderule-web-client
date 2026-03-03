@@ -84,6 +84,11 @@ function safeToNumber(value: any): number {
   return value
 }
 
+/** Escape a value for use as a SQL string literal (single-quoted). */
+function sqlStr(value: string): string {
+  return `'${value.replace(/'/g, "''")}'`
+}
+
 /**
  * Count invalid geometries in a parquet file (null, empty, or with non-finite coordinates).
  * Returns the count of records that will be filtered out.
@@ -93,7 +98,7 @@ async function countInvalidGeometries(filename: string): Promise<number> {
   try {
     const query = `
       SELECT COUNT(*) as invalid_count
-      FROM read_parquet('${filename}')
+      FROM read_parquet(${sqlStr(filename)})
       WHERE geometry IS NULL
          OR ST_IsEmpty(geometry)
          OR NOT isfinite(ST_X(geometry))
@@ -330,7 +335,7 @@ async function _duckDbReadOrCacheSummary(req_id: number): Promise<SrRequestSumma
             SELECT
                 ${aggClauses.join(',\n')},
                 COUNT(*) AS numPoints
-            FROM '${fileName}'
+            FROM ${sqlStr(fileName)}
         `
 
     const results = await duckDbClient.query(summaryQuery)
@@ -613,7 +618,7 @@ export const getColsForRgtYatcFromFile = async (
     const columnStr = cols.join(', ')
     const queryStr = `
             SELECT DISTINCT ${columnStr}
-            FROM read_parquet('${filename}')
+            FROM read_parquet(${sqlStr(filename)})
             WHERE rgt = ${rgt}
             AND y_atc BETWEEN (${selected_y_atc} - ${y_atc_margin})
                             AND (${selected_y_atc} + ${y_atc_margin})
@@ -699,13 +704,13 @@ export async function getRepresentativeElevationPointForReq(
     const sql = `
       WITH top_combo AS (
         SELECT ${esc(rgtCol)} AS rgt, ${esc(cycleCol)} AS cycle, ${esc(spotCol)} AS spot
-        FROM '${fileName}'
+        FROM ${sqlStr(fileName)}
         GROUP BY ${esc(rgtCol)}, ${esc(cycleCol)}, ${esc(spotCol)}
         ORDER BY COUNT(*) DESC
         LIMIT 1
       )
       SELECT t.*
-      FROM '${fileName}' t
+      FROM ${sqlStr(fileName)} t
       JOIN top_combo tc
         ON t.${esc(rgtCol)} = tc.rgt
        AND t.${esc(cycleCol)} = tc.cycle
@@ -895,7 +900,7 @@ export const duckDbReadAndUpdateElevationData = async (
       }
       whereConditions.push(buildHeightNaNFilter(heightExpr))
       const whereClause = ` WHERE ${whereConditions.join(' AND ')}`
-      const queryStr = `SELECT ${selectClause} FROM read_parquet('${filename}')${whereClause}`
+      const queryStr = `SELECT ${selectClause} FROM read_parquet(${sqlStr(filename)})${whereClause}`
       const result = await duckDbClient.queryChunkSampled(queryStr, sample_fraction)
 
       // Fall back to filtered query count if file summary was unavailable
@@ -1140,7 +1145,7 @@ export const duckDbReadAndUpdateSelectedLayer = async (req_id: number, layerName
     // Build query with geometry filter if applicable
     const geometryFilter = hasGeometry ? `AND ${VALID_GEOMETRY_FILTER}` : ''
     queryStr = `
-            SELECT ${selectClause} FROM read_parquet('${filename}')
+            SELECT ${selectClause} FROM read_parquet(${sqlStr(filename)})
             WHERE ${utfn} = ${rgt}
             AND ${uofn} IN (${cycles.join(', ')})
             AND ${usfn} IN (${spots.join(', ')})
@@ -1325,7 +1330,7 @@ export async function getAllRgtOptionsInFile(req_id: number): Promise<SrListNumb
   try {
     const utfn = useFieldNameStore().getUniqueTrkFieldName(req_id)
 
-    const query = `SELECT DISTINCT ${utfn} FROM '${fileName}' order by  ${utfn} ASC`
+    const query = `SELECT DISTINCT ${utfn} FROM ${sqlStr(fileName)} order by  ${utfn} ASC`
     const queryResult: QueryResult = await duckDbClient.query(query)
     //console.log('getAllRgtOptionsInFile queryResult:', queryResult);
     for await (const rowChunk of queryResult.readRows()) {
@@ -1362,7 +1367,7 @@ export async function getPairs(req_id: number): Promise<number[]> {
   await duckDbClient.insertOpfsParquet(fileName)
   const pairs = [] as number[]
   try {
-    const query = `SELECT DISTINCT pair FROM '${fileName}' order by pair ASC`
+    const query = `SELECT DISTINCT pair FROM ${sqlStr(fileName)} order by pair ASC`
     const queryResult: QueryResult = await duckDbClient.query(query)
     for await (const rowChunk of queryResult.readRows()) {
       for (const row of rowChunk) {
@@ -1399,7 +1404,7 @@ export async function getTracks(req_id: number): Promise<number[]> {
   const duckDbClient = await createDuckDbClient()
   const tracks = [] as number[]
   try {
-    const query = `SELECT DISTINCT track FROM '${fileName}' order by track ASC`
+    const query = `SELECT DISTINCT track FROM ${sqlStr(fileName)} order by track ASC`
     const queryResult: QueryResult = await duckDbClient.query(query)
     for await (const rowChunk of queryResult.readRows()) {
       for (const row of rowChunk) {
@@ -1435,7 +1440,7 @@ export async function getScOrient(req_id: number): Promise<number[]> {
   const duckDbClient = await createDuckDbClient()
   const scOrients = [] as number[]
   try {
-    const query = `SELECT DISTINCT sc_orient FROM '${fileName}' order by sc_orient ASC`
+    const query = `SELECT DISTINCT sc_orient FROM ${sqlStr(fileName)} order by sc_orient ASC`
     const queryResult: QueryResult = await duckDbClient.query(query)
     for await (const rowChunk of queryResult.readRows()) {
       for (const row of rowChunk) {
@@ -1488,7 +1493,7 @@ export async function getAllCycleOptionsInFile(
             SELECT 
                 ${uofn},
                 ANY_VALUE(${duckDbClient.escape(time_fieldname)}) AS time  -- We only need any single time
-            FROM '${fileName}'
+            FROM ${sqlStr(fileName)}
             GROUP BY ${uofn}
             ORDER BY ${uofn} ASC;
         `
@@ -1565,7 +1570,7 @@ export async function getAllFilteredCycleOptionsFromFile(
             SELECT 
             ${uofn} AS cycle, 
             ANY_VALUE(${duckDbClient.escape(time_fieldname)}) AS time 
-            FROM '${fileName}'
+            FROM ${sqlStr(fileName)}
             ${whereClause}
             GROUP BY ${uofn} 
             ORDER BY ${uofn} ASC;
@@ -1918,10 +1923,10 @@ export async function fetchScatterData(
       // For percentiles, we need to use UNNEST - use a subquery approach
       // Use APPROX_QUANTILE on the flattened values via a lateral UNNEST
       flattenMinMaxParts.push(
-        `(SELECT APPROX_QUANTILE(u.val, 0.10) FROM (SELECT UNNEST(${filteredCol}) AS val FROM '${fileName}' ${finalWhereClause}) u WHERE u.val IS NOT NULL) AS "low_${arrayColumnToFilter}"`
+        `(SELECT APPROX_QUANTILE(u.val, 0.10) FROM (SELECT UNNEST(${filteredCol}) AS val FROM ${sqlStr(fileName)} ${finalWhereClause}) u WHERE u.val IS NOT NULL) AS "low_${arrayColumnToFilter}"`
       )
       flattenMinMaxParts.push(
-        `(SELECT APPROX_QUANTILE(u.val, 0.90) FROM (SELECT UNNEST(${filteredCol}) AS val FROM '${fileName}' ${finalWhereClause}) u WHERE u.val IS NOT NULL) AS "high_${arrayColumnToFilter}"`
+        `(SELECT APPROX_QUANTILE(u.val, 0.90) FROM (SELECT UNNEST(${filteredCol}) AS val FROM ${sqlStr(fileName)} ${finalWhereClause}) u WHERE u.val IS NOT NULL) AS "high_${arrayColumnToFilter}"`
       )
     }
 
@@ -1954,7 +1959,7 @@ export async function fetchScatterData(
     const minMaxQuery = `
             SELECT
                 ${allMinMaxParts.join(',\n')}
-            FROM '${fileName}'
+            FROM ${sqlStr(fileName)}
             ${finalWhereClause}
         `
 
@@ -2134,7 +2139,7 @@ export async function fetchScatterData(
 
     const allColumns = [...baseColumnParts, ...arrayColumnParts, ...timeColumnParts].join(', ')
 
-    let mainQuery = `SELECT ${allColumns} \nFROM '${fileName}'\n${finalWhereClause}`
+    let mainQuery = `SELECT ${allColumns} \nFROM ${sqlStr(fileName)}\n${finalWhereClause}`
     //console.log('fetchScatterData mainQuery:', mainQuery);
     useChartStore().setQuerySql(reqIdStr, mainQuery)
     const totalRowCnt = await duckDbClient.getTotalRowCount(mainQuery)
@@ -2290,7 +2295,7 @@ export async function getAllColumnMinMax(reqId: number): Promise<MinMaxLowHigh> 
     duckDbClient.escape,
     geometryInfo
   )
-  const query = `SELECT ${selectParts.join(', ')} FROM '${fileName}'`
+  const query = `SELECT ${selectParts.join(', ')} FROM ${sqlStr(fileName)}`
 
   const result: MinMaxLowHigh = {}
 
@@ -2364,7 +2369,7 @@ export async function getAtl06SlopeSegments(
 
   const sql = `
         SELECT ${xField}, ${yField}, ${dhFitDxField}
-        FROM '${fileName}'
+        FROM ${sqlStr(fileName)}
         WHERE ${filters.join(' AND ')}
     `.replace(/\s+/g, ' ')
 
@@ -2450,7 +2455,7 @@ export async function getTimeLatitudeDirection(reqId: number): Promise<1 | -1 | 
       FIRST_VALUE(${latExpr}) OVER (ORDER BY "${timeField}" ASC) as first_lat,
       LAST_VALUE(${latExpr}) OVER (ORDER BY "${timeField}" ASC
         ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) as last_lat
-    FROM '${fileName}'
+    FROM ${sqlStr(fileName)}
     LIMIT 1
   `
 
@@ -2693,7 +2698,7 @@ export async function getVisibleLatLonExtent(
       // IMPORTANT: The subquery must use the same filters as the data fetch to get consistent min values
       // Otherwise if the file contains multiple tracks, the min from entire file differs from filtered min
       const subqueryWhereClause = whereClause ? ` ${whereClause}` : ''
-      xFilter = `(epoch_ns("${sourceTimeField}") - (SELECT MIN(epoch_ns("${sourceTimeField}")) FROM '${fileName}'${subqueryWhereClause})) BETWEEN ${queryXMin} AND ${queryXMax}`
+      xFilter = `(epoch_ns("${sourceTimeField}") - (SELECT MIN(epoch_ns("${sourceTimeField}")) FROM ${sqlStr(fileName)}${subqueryWhereClause})) BETWEEN ${queryXMin} AND ${queryXMax}`
     } else {
       xFilter = `"${xField}" BETWEEN ${queryXMin} AND ${queryXMax}`
     }
@@ -2730,7 +2735,7 @@ export async function getVisibleLatLonExtent(
       MAX(${latExpr}) as max_lat,
       MIN(${lonExpr}) as min_lon,
       MAX(${lonExpr}) as max_lon
-    FROM '${fileName}'
+    FROM ${sqlStr(fileName)}
     ${whereClause}
   `
 
@@ -2909,7 +2914,7 @@ export async function getXRangeFromLatLonExtent(
     // For derived time columns: time_plot = epoch_ns(time) - MIN(epoch_ns(time))
     // The subquery must use the base filters (without lat/lon) to match the scatter data normalization
     const subqueryWhereClause = baseWhereClause ? ` ${baseWhereClause}` : ''
-    const minEpochSubquery = `(SELECT MIN(epoch_ns("${sourceTimeField}")) FROM '${fileName}'${subqueryWhereClause})`
+    const minEpochSubquery = `(SELECT MIN(epoch_ns("${sourceTimeField}")) FROM ${sqlStr(fileName)}${subqueryWhereClause})`
     xMinExpr = `MIN(epoch_ns("${sourceTimeField}") - ${minEpochSubquery})`
     xMaxExpr = `MAX(epoch_ns("${sourceTimeField}") - ${minEpochSubquery})`
   } else {
@@ -2921,7 +2926,7 @@ export async function getXRangeFromLatLonExtent(
     SELECT
       ${xMinExpr} as min_x,
       ${xMaxExpr} as max_x
-    FROM '${fileName}'
+    FROM ${sqlStr(fileName)}
     ${whereClause}
   `
 

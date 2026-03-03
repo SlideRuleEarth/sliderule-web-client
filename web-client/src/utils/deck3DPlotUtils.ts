@@ -395,7 +395,8 @@ export async function loadAndCachePointCloudData(reqId: number) {
     }
 
     const sample_fraction = await computeSamplingRate(reqId)
-    const query = `SELECT ${selectClause} FROM read_parquet('${fileName}')`
+    const safeFileName = `'${fileName.replace(/'/g, "''")}'`
+    const query = `SELECT ${selectClause} FROM read_parquet(${safeFileName})`
     const result = await duckDbClient.queryChunkSampled(query, sample_fraction)
     const { value: rows = [] } = await result.readRows().next()
 
