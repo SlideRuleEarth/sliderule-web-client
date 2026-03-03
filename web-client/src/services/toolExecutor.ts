@@ -619,10 +619,30 @@ async function handleRunSql(args: Record<string, unknown>): Promise<ToolResult> 
     return err('SQL query cannot be empty.')
   }
 
+  // Reject multi-statement SQL. Strip string literals first so that
+  // semicolons inside quoted values (e.g. WHERE name = 'a;b') don't
+  // trigger a false positive, then check for any remaining semicolons
+  // that aren't a single trailing one.
+  const sqlNoStrings = sql.replace(/'(?:[^'\\]|\\.)*'/g, '').replace(/"(?:[^"\\]|\\.)*"/g, '')
+  const trimmedNoStrings = sqlNoStrings.replace(/;\s*$/, '') // allow one trailing semicolon
+  if (trimmedNoStrings.includes(';')) {
+    return err('Query rejected — only single SQL statements are allowed. Remove extra semicolons.')
+  }
+
   const loaded = await loadDataForReq(reqId)
   if (isToolResult(loaded)) return loaded
 
   const duckDbClient = await createDuckDbClient()
+
+  // Validate that the SQL is a read-only, result-returning statement.
+  // DuckDB's DESCRIBE only succeeds on SELECT-like queries; it rejects
+  // INSERT, DROP, CREATE, DELETE, UPDATE, etc. at the parser/planner level.
+  try {
+    await duckDbClient.query(`DESCRIBE (${sql})`)
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    return err(`Query rejected — only read-only SELECT queries are allowed. (${msg})`)
+  }
   const timeoutMs = 30000
 
   try {

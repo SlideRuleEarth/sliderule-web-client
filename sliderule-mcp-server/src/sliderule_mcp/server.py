@@ -572,8 +572,8 @@ async def _ws_handler(websocket):
     global browser_ws, cached_tools
 
     origin = websocket.request.headers.get("Origin", "")
-    if origin and origin not in ALLOWED_ORIGINS:
-        log.warning("Rejected WebSocket from origin: %s", origin)
+    if not origin or origin not in ALLOWED_ORIGINS:
+        log.warning("Rejected WebSocket from origin: %r", origin or "(missing)")
         await websocket.close(4003, "Origin not allowed")
         return
 
