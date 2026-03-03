@@ -220,10 +220,10 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
         return false
       }
 
-      // Validate state parameter
-      if (params.state && !this.validateState(params.state)) {
+      // Validate state parameter (require it to prevent crafted callback URLs)
+      if (!params.state || !this.validateState(params.state)) {
         this.authStatus = 'error'
-        this.lastError = 'Invalid state parameter - possible CSRF attack'
+        this.lastError = 'Missing or invalid state parameter - possible CSRF attack'
         return false
       }
 

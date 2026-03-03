@@ -11,8 +11,8 @@ function stripFrontmatter(md: string): string {
   return md.replace(/^---[\s\S]*?---\n*/, '')
 }
 
-const aboutHtml = marked(stripFrontmatter(aboutRaw)) as string
-const contactHtml = marked(stripFrontmatter(contactRaw)) as string
+const aboutHtml = DOMPurify.sanitize(marked(stripFrontmatter(aboutRaw)) as string)
+const contactHtml = DOMPurify.sanitize(marked(stripFrontmatter(contactRaw)) as string)
 
 const tabOptions = ['About', 'Contact', 'News']
 const selectedTab = ref('About')
