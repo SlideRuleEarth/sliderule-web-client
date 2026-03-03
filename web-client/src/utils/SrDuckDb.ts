@@ -414,9 +414,14 @@ export class DuckDBClient {
     return [strings.join('?'), params]
   }
 
-  // Method to escape names
+  // Escape a SQL identifier (column/view name) — wraps in double quotes
   escape(name: string) {
-    return `"${name}"`
+    return `"${name.replace(/"/g, '""')}"`
+  }
+
+  // Escape a SQL string literal — wraps in single quotes
+  escapeStr(value: string) {
+    return `'${value.replace(/'/g, "''")}'`
   }
 
   async isParquetLoaded(name: string): Promise<boolean> {
@@ -425,7 +430,7 @@ export class DuckDBClient {
       conn = await this._db!.connect()
       // Query DuckDB's internal catalog to check if the view exists
       const result = await conn.query(
-        `SELECT view_name FROM duckdb_views WHERE view_name = '${name}'`
+        `SELECT view_name FROM duckdb_views WHERE view_name = ${this.escapeStr(name)}`
       )
       // Convert the result to an array and check if there's any row
       const rows = result.toArray()
@@ -494,7 +499,7 @@ export class DuckDBClient {
         }
 
         await conn.query(
-          `CREATE OR REPLACE VIEW '${name}' AS SELECT * FROM parquet_scan('${name}')`
+          `CREATE OR REPLACE VIEW ${this.escape(name)} AS SELECT * FROM parquet_scan(${this.escapeStr(name)})`
         )
         //console.log('insertOpfsParquet view created for name:', name);
 
@@ -663,7 +668,7 @@ export class DuckDBClient {
   }
 
   async queryColumnTypes(fileName: string): Promise<{ name: string; type: string }[]> {
-    const query = `DESCRIBE SELECT * FROM read_parquet('${fileName}')`
+    const query = `DESCRIBE SELECT * FROM read_parquet(${this.escapeStr(fileName)})`
     const result = await this.query(query)
     const colTypes: { name: string; type: string }[] = []
     for await (const chunk of result.readRows()) {
@@ -681,7 +686,7 @@ export class DuckDBClient {
     try {
       await conn.query('LOAD spatial;')
       await duckDB.registerEmptyFileBuffer(virtualFileName)
-      const copyQuery = `COPY (${sql}) TO '${virtualFileName}' (FORMAT PARQUET)`
+      const copyQuery = `COPY (${sql}) TO ${this.escapeStr(virtualFileName)} (FORMAT PARQUET)`
       await conn.query(copyQuery)
     } finally {
       await conn.close()
