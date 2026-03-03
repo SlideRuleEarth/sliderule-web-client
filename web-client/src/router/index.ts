@@ -48,20 +48,17 @@ const router = createRouter({
     {
       path: '/request',
       name: 'request',
-      meta: { requiresAuth: true },
       component: () => import('@/views/RequestView.vue')
     },
     {
       path: '/request/:reqId',
       name: 'request-with-params',
-      meta: { requiresAuth: true },
       component: () => import('@/views/RequestView.vue'),
       props: true
     },
     {
       path: '/analyze/:id',
       name: 'analyze',
-      meta: { requiresAuth: true },
       component: () => import('@/views/AnalyzeView.vue'),
       props: true
     },
