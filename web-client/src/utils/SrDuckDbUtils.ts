@@ -807,6 +807,13 @@ export const duckDbReadAndUpdateElevationData = async (
     try {
       const sample_fraction = await computeSamplingRate(req_id)
 
+      // Use the file's total point count (unfiltered) for the loading progress display
+      const fileSummary = await readOrCacheSummary(req_id)
+      const fileNumPoints = fileSummary?.numPoints != null ? Number(fileSummary.numPoints) : NaN
+      if (Number.isFinite(fileNumPoints) && fileNumPoints > 0) {
+        pntDataLocal.totalPnts = fileNumPoints
+      }
+
       // Check if geometry column exists and build appropriate SELECT
       const colTypes = await duckDbClient.queryColumnTypes(filename)
       const hasGeometry = colTypes.some((c) => c.name === 'geometry')
@@ -891,9 +898,10 @@ export const duckDbReadAndUpdateElevationData = async (
       const queryStr = `SELECT ${selectClause} FROM read_parquet('${filename}')${whereClause}`
       const result = await duckDbClient.queryChunkSampled(queryStr, sample_fraction)
 
-      if (result.totalRows) {
+      // Fall back to filtered query count if file summary was unavailable
+      if (pntDataLocal.totalPnts === 0 && result.totalRows) {
         pntDataLocal.totalPnts = result.totalRows
-      } else if (result.schema === undefined) {
+      } else if (!result.totalRows && result.schema === undefined) {
         logger.warn('totalRows and schema are undefined', { reqId: req_id, result })
       }
 
