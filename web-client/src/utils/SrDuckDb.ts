@@ -533,7 +533,8 @@ export class DuckDBClient {
     let parsedMetadata: Record<string, any> | undefined = undefined
 
     try {
-      const query = `SELECT key, value FROM parquet_kv_metadata('${parquetFilePath}')`
+      const safePath = parquetFilePath.replace(/'/g, "''")
+      const query = `SELECT key, value FROM parquet_kv_metadata('${safePath}')`
       const result = await conn.query(query)
       if (result && result.numRows > 0) {
         const kk = result.getChild('key')
@@ -635,7 +636,8 @@ export class DuckDBClient {
     const conn = await this._db!.connect()
     const metadata: Record<string, string> = {}
     try {
-      const query = `SELECT key, value FROM parquet_kv_metadata('${parquetFilePath}')`
+      const safePath = parquetFilePath.replace(/'/g, "''")
+      const query = `SELECT key, value FROM parquet_kv_metadata('${safePath}')`
       const result = await conn.query(query)
       if (result && result.numRows > 0) {
         const kk = result.getChild('key')

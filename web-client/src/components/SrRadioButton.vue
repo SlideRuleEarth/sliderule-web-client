@@ -11,7 +11,7 @@
       :disabled="isDisabled"
     />
     <!-- If icon is present, render it -->
-    <span v-if="icon" v-html="icon" class="icon-svg" name="icon-svg"></span>
+    <span v-if="icon" v-html="sanitizedIcon" class="icon-svg" name="icon-svg"></span>
     <!-- If icon is not present, display value instead -->
     <span v-else class="icon-svg">{{ value }}</span>
   </label>
@@ -19,6 +19,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import DOMPurify from 'dompurify'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('SrRadioButton')
@@ -47,6 +48,10 @@ const props = withDefaults(
 )
 
 const emit = defineEmits(['update:modelValue'])
+
+const sanitizedIcon = computed(() =>
+  DOMPurify.sanitize(props.icon || '', { USE_PROFILES: { svg: true } })
+)
 
 const isChecked = computed(() => {
   return props.modelValue === props.value

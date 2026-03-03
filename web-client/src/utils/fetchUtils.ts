@@ -11,6 +11,25 @@ const logger = createLogger('FetchUtils')
 const RETRY_DELAY_MS = 1000
 const MAX_401_RETRIES = 2
 
+/** Allowed domains for SlideRule API requests. */
+const ALLOWED_DOMAINS = ['slideruleearth.io', 'testsliderule.org']
+
+/** Hostname label pattern: letters, digits, hyphens, 1-63 chars. */
+const SAFE_LABEL = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$/
+
+/**
+ * Validate cluster and domain before URL construction.
+ * Throws if either value could result in an unsafe URL.
+ */
+function validateClusterDomain(cluster: string, domain: string): void {
+  if (!ALLOWED_DOMAINS.includes(domain)) {
+    throw new Error(`Invalid domain: ${domain}`)
+  }
+  if (!SAFE_LABEL.test(cluster)) {
+    throw new Error(`Invalid cluster name: ${cluster}`)
+  }
+}
+
 /**
  * Options for provisioner API fetch requests.
  */
@@ -247,13 +266,10 @@ export async function fetchServerVersionInfo(
   cluster: string,
   domain: string
 ): Promise<ServerVersionResult> {
+  validateClusterDomain(cluster, domain)
   const url = `https://${cluster}.${domain}/source/version`
   try {
-    // =====================================================================
-    // TEMPORARY HACK: Use vanilla fetch for 'sliderule' cluster
-    // Remove this when sliderule cluster is upgraded to latest server code
-    // =====================================================================
-    const response = cluster === 'sliderule' ? await fetch(url) : await authenticatedFetch(url)
+    const response = await authenticatedFetch(url)
     if (!response.ok) throw new Error(`HTTP error: ${response.status}`)
 
     const data = await response.json()
@@ -290,21 +306,15 @@ export async function fetchCurrentNodes(
   cluster: string,
   domain: string
 ): Promise<CurrentNodesResult> {
+  validateClusterDomain(cluster, domain)
   const url = `https://${cluster}.${domain}/discovery/status`
   try {
-    // =====================================================================
-    // TEMPORARY HACK: Use vanilla fetch for 'sliderule' cluster
-    // Remove this when sliderule cluster is upgraded to latest server code
-    // =====================================================================
     const fetchOptions = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ service: 'sliderule' })
     }
-    const response =
-      cluster === 'sliderule'
-        ? await fetch(url, fetchOptions)
-        : await authenticatedFetch(url, fetchOptions)
+    const response = await authenticatedFetch(url, fetchOptions)
 
     if (!response.ok) throw new Error(`HTTP error: ${response.status}`)
 
@@ -560,6 +570,7 @@ export async function fetchDiscoveryStatus(
   cluster: string,
   domain: string
 ): Promise<DiscoveryStatusResult> {
+  validateClusterDomain(cluster, domain)
   const url = `https://${cluster}.${domain}/discovery/status`
   try {
     const fetchOptions = {
@@ -567,10 +578,7 @@ export async function fetchDiscoveryStatus(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ service: 'sliderule' })
     }
-    const response =
-      cluster === 'sliderule'
-        ? await fetch(url, fetchOptions)
-        : await authenticatedFetch(url, fetchOptions)
+    const response = await authenticatedFetch(url, fetchOptions)
 
     if (!response.ok) throw new Error(`HTTP error: ${response.status}`)
 
