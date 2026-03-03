@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useReqParamsStore } from '@/stores/reqParamsStore'
+import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('router')
@@ -36,6 +37,7 @@ const router = createRouter({
     {
       path: '/server',
       name: 'server',
+      meta: { requiresAuth: true },
       component: () => import('@/views/ServerView.vue')
     },
     {
@@ -78,7 +80,15 @@ const router = createRouter({
   ]
   /* eslint-enable @typescript-eslint/promise-function-async */
 })
-// router.ts (or wherever you create the router)
+router.beforeEach((to) => {
+  if (to.meta.requiresAuth) {
+    const githubAuthStore = useGitHubAuthStore()
+    if (!githubAuthStore.hasValidAuth) {
+      return { name: 'landing' }
+    }
+  }
+})
+
 router.afterEach(() => {
   const req = useReqParamsStore()
   logger.debug('afterEach meta', { storeId: req.$id, meta: req.__meta })

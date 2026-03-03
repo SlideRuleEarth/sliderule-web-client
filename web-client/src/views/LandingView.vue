@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
+import DOMPurify from 'dompurify'
 import { marked } from 'marked'
 import SelectButton from 'primevue/selectbutton'
 import wallpaperUrl from '@/assets/landing_wallpaper.jpg'
@@ -120,7 +121,7 @@ async function fetchArticle(article: NewsArticle) {
     if (main) {
       // Remove prev/next navigation links common in Sphinx
       main.querySelectorAll('.rst-footer-buttons, .footer, nav').forEach((n) => n.remove())
-      articleHtml.value = main.innerHTML
+      articleHtml.value = DOMPurify.sanitize(main.innerHTML)
     } else {
       articleHtml.value = '<p>Could not extract article content.</p>'
     }

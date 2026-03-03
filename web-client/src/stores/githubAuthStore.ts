@@ -77,7 +77,14 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
     hasValidAuth: (state) => {
       if (!state.authTimestamp) return false
       if (state.authStatus !== 'authenticated') return false
-      return Date.now() - state.authTimestamp < AUTH_VALIDITY_MS
+      // Check client-side window
+      if (Date.now() - state.authTimestamp >= AUTH_VALIDITY_MS) return false
+      // Also honor server-provided expiry if available
+      if (state.tokenExpiresAtTimestamp !== null) {
+        const nowSecs = Math.floor(Date.now() / 1000)
+        if (nowSecs >= state.tokenExpiresAtTimestamp) return false
+      }
+      return true
     },
 
     /**
@@ -324,20 +331,6 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
           logger.debug('Stored GitHub auth expired, clearing')
           this.logout()
         }
-      }
-    },
-
-    /**
-     * Get Authorization header object for API requests.
-     * Returns the header object if authenticated, or empty object if not.
-     * Usage: fetch(url, { headers: { ...otherHeaders, ...githubAuthStore.getAuthHeader() } })
-     */
-    getAuthHeader(): Record<string, string> {
-      if (!this.hasValidAuth || !this.token) {
-        return {}
-      }
-      return {
-        'X-SlideRule-GitHub-Token': this.token
       }
     }
   }
