@@ -529,9 +529,9 @@ async function handleGetRequestStatus(args: Record<string, unknown>): Promise<To
     status: request.status ?? 'unknown',
     func: request.func ?? '',
     elapsed_time: request.elapsed_time ?? '',
-    cnt: request.cnt != null ? Number(request.cnt) : null,
-    num_bytes: request.num_bytes != null ? Number(request.num_bytes) : null,
-    num_gran: request.num_gran != null ? Number(request.num_gran) : null,
+    cnt: toSafeNumber(request.cnt),
+    num_bytes: toSafeNumber(request.num_bytes),
+    num_gran: toSafeNumber(request.num_gran),
     file: request.file ?? null,
     status_details: request.status_details ?? null,
     description: request.description ?? null,
@@ -556,8 +556,8 @@ async function handleListRequests(): Promise<ToolResult> {
     status: req.status ?? 'unknown',
     func: req.func ?? '',
     elapsed_time: req.elapsed_time ?? '',
-    cnt: req.cnt != null ? Number(req.cnt) : null,
-    num_bytes: req.num_bytes != null ? Number(req.num_bytes) : null,
+    cnt: toSafeNumber(req.cnt),
+    num_bytes: toSafeNumber(req.num_bytes),
     description: req.description ?? ''
   }))
 
@@ -573,6 +573,19 @@ function safeBigInt(value: unknown): unknown {
       : value.toString()
   }
   return value
+}
+
+/** Coerce a value that may be bigint, string-encoded bigint ("123n"), or number to a number. */
+function toSafeNumber(value: unknown): number | null {
+  if (value == null) return null
+  if (typeof value === 'bigint') return Number(value)
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null
+  if (typeof value === 'string') {
+    const cleaned = value.replace(/n$/, '')
+    const num = Number(cleaned)
+    return Number.isFinite(num) ? num : null
+  }
+  return null
 }
 
 function safeRow(row: Record<string, unknown>): Record<string, unknown> {
