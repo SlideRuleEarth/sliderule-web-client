@@ -31,7 +31,9 @@ const showTooltip = async (event: MouseEvent, content: string | undefined, recor
 
   // Prepend record ID if provided
   if (recordId) {
-    sanitized = `<strong>Record ID</strong>: <em>${recordId}</em><br>${sanitized}`
+    sanitized = DOMPurify.sanitize(
+      `<strong>Record ID</strong>: <em>${recordId}</em><br>${sanitized}`
+    )
   }
 
   text.value = sanitized

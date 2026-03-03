@@ -27,6 +27,7 @@ import OpenLayersMap, { type Vue3OpenlayersGlobalOptions } from 'vue3-openlayers
 import log from './utils/logger'
 import { initSentinel2LatestYear } from './composables/SrLayers'
 import { useGoogleApiKeyStore } from './stores/googleApiKeyStore'
+import { useGitHubAuthStore } from './stores/githubAuthStore'
 
 const SrPreset = definePreset(Lara, {
   semantic: {
@@ -114,9 +115,6 @@ app.use(PrimeVue, {
       darkModeSelector: '.sr-app-dark',
       cssLayer: false
     }
-  },
-  csp: {
-    nonce: 'nonce-SR-test-nonce'
   }
 })
 app.use(ConfirmationService)
@@ -158,6 +156,10 @@ log.info('Vue app mounted', { mode: import.meta.env.MODE, baseUrl: import.meta.e
 initSentinel2LatestYear().catch((err) => {
   log.warn('Failed to fetch Sentinel-2 latest year', { error: err })
 })
+
+// Validate persisted GitHub auth on startup (clear if expired)
+const githubAuthStore = useGitHubAuthStore()
+githubAuthStore.initializeOnStartup()
 
 // Re-validate Google API key session if one exists from a previous session
 const googleApiKeyStore = useGoogleApiKeyStore()
