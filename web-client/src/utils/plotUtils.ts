@@ -2375,5 +2375,6 @@ export async function buildSelectClauseFromStore(reqIdStr: string): Promise<stri
   })
 
   const columnsStr = columnExpressions.join(', ')
-  return `SELECT ${columnsStr} \nFROM '${fileName}'`
+  const safeFileName = `'${fileName.replace(/'/g, "''")}'`
+  return `SELECT ${columnsStr} \nFROM ${safeFileName}`
 }
