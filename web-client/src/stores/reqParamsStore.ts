@@ -825,7 +825,7 @@ const createReqParamsStore = (id: string) =>
         if (this.useDatum) {
           req.datum = 'EGM08'
         }
-        if (useRasterParamsStore().dataTable.length > 0 && this.iceSat2SelectedAPI.includes('x')) {
+        if (useRasterParamsStore().dataTable.length > 0) {
           req.samples = useRasterParamsStore().getFormattedParms()
         }
         return req
