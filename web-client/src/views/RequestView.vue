@@ -172,10 +172,10 @@ async function loadParametersFromRequest(reqId: number) {
             reqParamsStore.setIceSat2API('atl03x-phoreal')
           } else if (func === 'atl03x' || func === 'atl03vp') {
             reqParamsStore.setIceSat2API(func)
-          } else if (func === 'atl06p' || func === 'atl06sp') {
+          } else if (func === 'atl06p' || func === 'atl06sp' || func === 'atl06x') {
             reqParamsStore.setIceSat2API(func)
-          } else if (func === 'atl08p') {
-            reqParamsStore.setIceSat2API('atl08p')
+          } else if (func === 'atl08p' || func === 'atl08x') {
+            reqParamsStore.setIceSat2API(func)
           } else if (func === 'atl13x') {
             reqParamsStore.setIceSat2API('atl13x')
           } else if (func === 'atl24x') {
