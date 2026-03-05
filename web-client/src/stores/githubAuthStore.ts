@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { createLogger } from '@/utils/logger'
+import { generateCodeVerifier, generateCodeChallenge } from '@/utils/pkceUtils'
 
 const logger = createLogger('GitHubAuthStore')
 
@@ -8,6 +9,36 @@ type AuthStatus = 'unknown' | 'authenticating' | 'authenticated' | 'not_authenti
 // Token expiration hours - must match JWT_EXPIRATION_HOURS in Lambda handler
 const TOKEN_EXPIRATION_HOURS = 12
 const AUTH_VALIDITY_MS = TOKEN_EXPIRATION_HOURS * 60 * 60 * 1000
+
+// Only these domains are trusted for auth redirects — prevents credential leaks
+// if the client is served from an unauthorized origin.
+const ALLOWED_DOMAINS = ['slideruleearth.io', 'testsliderule.org']
+const DEFAULT_DOMAIN = 'slideruleearth.io'
+
+/**
+ * Derive the base domain from the current browser hostname, validated
+ * against an allowlist to prevent auth against untrusted servers.
+ * e.g. "client.testsliderule.org" → "testsliderule.org"
+ *      "client.slideruleearth.io" → "slideruleearth.io"
+ *      "localhost" or unknown      → "slideruleearth.io" (fallback)
+ */
+function getBaseDomain(): string {
+  const hostname = window.location.hostname
+  for (const allowed of ALLOWED_DOMAINS) {
+    if (hostname === allowed || hostname.endsWith('.' + allowed)) {
+      return allowed
+    }
+  }
+  return DEFAULT_DOMAIN
+}
+
+function getLoginBaseUrl(): string {
+  return `https://login.${getBaseDomain()}`
+}
+
+function getProvisionerBaseUrl(): string {
+  return `https://provisioner.${getBaseDomain()}`
+}
 
 export const useGitHubAuthStore = defineStore('githubAuth', {
   state: () => ({
@@ -29,6 +60,8 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
     tokenIssuedAt: null as number | null, // Unix timestamp
     tokenExpiresAtTimestamp: null as number | null, // Unix timestamp
     tokenIssuer: null as string | null,
+    // OAuth 2.1 Dynamic Client Registration
+    clientId: null as string | null,
     // Flag to indicate user just completed authentication (not persisted)
     justAuthenticated: false
   }),
@@ -52,7 +85,8 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
       'clusterTtlHours',
       'tokenIssuedAt',
       'tokenExpiresAtTimestamp',
-      'tokenIssuer'
+      'tokenIssuer',
+      'clientId'
     ]
   },
   getters: {
@@ -157,119 +191,256 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
     },
 
     /**
-     * Initiate the GitHub OAuth login flow
+     * Dynamic Client Registration (RFC 7591).
+     * Registers this web client with the auth server and stores the client_id.
      */
-    initiateLogin() {
-      const state = this.generateState()
+    async registerClient(): Promise<string> {
+      const redirectUri = window.location.origin + '/auth/github/callback'
+      const response = await fetch(`${getLoginBaseUrl()}/auth/github/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          redirect_uris: [redirectUri],
+          client_name: 'SlideRule Web Client',
+          grant_types: ['authorization_code'],
+          response_types: ['code'],
+          token_endpoint_auth_method: 'none',
+          code_challenge_method: 'S256',
+          scope: 'sliderule:access'
+        })
+      })
 
-      this.authStatus = 'authenticating'
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`Client registration failed: ${response.status} ${errorText}`)
+      }
 
-      // Store current path to return to after authentication
-      sessionStorage.setItem('github_oauth_return_path', window.location.pathname)
-      logger.debug('Stored return path', { path: window.location.pathname })
+      const data = await response.json()
+      if (!data.client_id) {
+        throw new Error('Client registration response missing client_id')
+      }
 
-      // Build the login URL - the Lambda will handle the redirect to GitHub
-      // Use the current hostname to determine the domain (e.g., testsliderule.org, slideruleearth.io)
-      // const hostname = window.location.hostname
-      // Extract base domain from hostname (e.g., "client.testsliderule.org" -> "testsliderule.org")
-      // const domainParts = hostname.split('.')
-      // const domain = domainParts.length > 2 ? domainParts.slice(-2).join('.') : hostname
-
-      const loginUrl = new URL(`https://login.slideruleearth.io/auth/github/login`)
-      loginUrl.searchParams.set('state', state)
-      // Pass the frontend callback URL so Lambda knows where to redirect back
-      loginUrl.searchParams.set('redirect_uri', window.location.origin + '/auth/github/callback')
-
-      logger.debug('Initiating GitHub OAuth', { loginUrl: loginUrl.toString() })
-
-      // Redirect to the Lambda which will redirect to GitHub
-      window.location.href = loginUrl.toString()
+      this.clientId = data.client_id
+      logger.info('Dynamic client registration successful', { clientId: this.clientId })
+      return data.client_id
     },
 
     /**
-     * Handle the OAuth callback from the Lambda
-     *
-     * The JWT token is treated as opaque - all user info and token metadata
-     * are provided separately in URL params for UX purposes.
+     * Initiate the GitHub OAuth 2.1 login flow with PKCE.
      */
-    handleCallback(params: {
-      state?: string
-      username?: string
-      isOrgMember?: string
-      isOrgOwner?: string
-      orgRoles?: string
-      knownClusters?: string
-      deployableClusters?: string
-      token?: string
-      error?: string
-      // Token metadata (returned separately, not decoded from JWT)
-      org?: string
-      maxNodes?: string
-      maxTTL?: string
-      tokenIssuedAt?: string
-      tokenExpiresAt?: string
-      tokenIssuer?: string
-    }): boolean {
-      logger.debug('Handling OAuth callback', params)
+    async initiateLogin() {
+      try {
+        this.authStatus = 'authenticating'
 
-      // Check for errors first
+        // Step 1: Dynamic client registration (if not already registered this session)
+        if (!this.clientId) {
+          await this.registerClient()
+        }
+
+        // Step 2: Generate PKCE parameters
+        const codeVerifier = generateCodeVerifier()
+        const codeChallenge = await generateCodeChallenge(codeVerifier)
+
+        // Store code_verifier in sessionStorage for use after redirect
+        sessionStorage.setItem('github_oauth_code_verifier', codeVerifier)
+
+        // Generate CSRF state
+        const state = this.generateState()
+
+        // Store current path to return to after authentication
+        sessionStorage.setItem('github_oauth_return_path', window.location.pathname)
+        logger.debug('Stored return path', { path: window.location.pathname })
+
+        // Step 3: Build authorization URL with OAuth 2.1 params
+        const loginUrl = new URL(`${getLoginBaseUrl()}/auth/github/login`)
+        loginUrl.searchParams.set('response_type', 'code')
+        loginUrl.searchParams.set('client_id', this.clientId!)
+        loginUrl.searchParams.set('redirect_uri', window.location.origin + '/auth/github/callback')
+        loginUrl.searchParams.set('state', state)
+        loginUrl.searchParams.set('scope', 'sliderule:access')
+        loginUrl.searchParams.set('code_challenge', codeChallenge)
+        loginUrl.searchParams.set('code_challenge_method', 'S256')
+
+        logger.debug('Initiating GitHub OAuth with PKCE', { loginUrl: loginUrl.toString() })
+
+        // Redirect to authorization endpoint
+        window.location.href = loginUrl.toString()
+      } catch (error) {
+        this.authStatus = 'error'
+        this.lastError = error instanceof Error ? error.message : 'Login initialization failed'
+        logger.error('Failed to initiate login', { error: this.lastError })
+      }
+    },
+
+    /**
+     * Exchange authorization code for token (OAuth 2.1 PKCE token exchange).
+     * Called from the callback view after receiving the authorization code.
+     */
+    async exchangeCodeForToken(params: {
+      code?: string
+      state?: string
+      error?: string
+    }): Promise<boolean> {
+      logger.debug('Processing OAuth callback', {
+        hasCode: !!params.code,
+        hasState: !!params.state
+      })
+
+      // Check for errors from authorization server
       if (params.error) {
         this.authStatus = 'error'
         this.lastError = params.error
-        logger.error('GitHub OAuth error', { error: params.error })
+        logger.error('Authorization error', { error: params.error })
         return false
       }
 
-      // Validate state parameter (require it to prevent crafted callback URLs)
+      // Validate state parameter
       if (!params.state || !this.validateState(params.state)) {
         this.authStatus = 'error'
         this.lastError = 'Missing or invalid state parameter - possible CSRF attack'
         return false
       }
 
-      // Update state with results
-      this.username = params.username || null
-      this.isOrgMember = params.isOrgMember === 'true'
-      this.isOrgOwner = params.isOrgOwner === 'true'
-      this.orgRoles = params.orgRoles ? params.orgRoles.split(',').filter((r) => r) : []
-      // Store all subdomains (includes 'sliderule')
-      this.knownSubdomains = params.knownClusters
-        ? params.knownClusters.split(',').filter((c) => c)
-        : []
-      // Filter out 'sliderule' for actual clusters
-      this.knownClusters = this.knownSubdomains.filter((c) => c !== 'sliderule')
-      this.deployableClusters = params.deployableClusters
-        ? params.deployableClusters.split(',').filter((c) => c)
-        : []
-      this.token = params.token || null
-      this.authTimestamp = Date.now()
-      this.authStatus = 'authenticated'
-      this.lastError = null
-      this.justAuthenticated = true
+      // Validate code
+      if (!params.code) {
+        this.authStatus = 'error'
+        this.lastError = 'Missing authorization code'
+        return false
+      }
 
-      // Store token metadata (provided separately by server for UX)
-      this.org = params.org || null
-      this.maxNodes = params.maxNodes ? parseInt(params.maxNodes, 10) : null
-      this.maxTTL = params.maxTTL ? parseInt(params.maxTTL, 10) : null
-      this.tokenIssuedAt = params.tokenIssuedAt ? parseInt(params.tokenIssuedAt, 10) : null
-      this.tokenExpiresAtTimestamp = params.tokenExpiresAt
-        ? parseInt(params.tokenExpiresAt, 10)
-        : null
-      this.tokenIssuer = params.tokenIssuer || null
+      // Retrieve PKCE code_verifier
+      const codeVerifier = sessionStorage.getItem('github_oauth_code_verifier')
+      sessionStorage.removeItem('github_oauth_code_verifier')
+      if (!codeVerifier) {
+        this.authStatus = 'error'
+        this.lastError = 'Missing PKCE code_verifier - auth flow may have been interrupted'
+        return false
+      }
 
-      logger.info('GitHub auth successful', {
-        username: this.username,
-        isOrgMember: this.isOrgMember,
-        isOrgOwner: this.isOrgOwner,
-        orgRoles: this.orgRoles,
-        knownClusters: this.knownClusters,
-        deployableClusters: this.deployableClusters,
-        hasToken: !!this.token,
-        maxNodes: this.maxNodes,
-        maxTTL: this.maxTTL
-      })
+      // Validate client_id is available
+      if (!this.clientId) {
+        this.authStatus = 'error'
+        this.lastError = 'Missing client_id - registration may have failed'
+        return false
+      }
 
-      return true
+      // Token exchange via POST with query parameters
+      try {
+        const tokenUrl = new URL(`${getLoginBaseUrl()}/auth/github/token`)
+        tokenUrl.searchParams.set('grant_type', 'authorization_code')
+        tokenUrl.searchParams.set('code', params.code)
+        tokenUrl.searchParams.set('redirect_uri', window.location.origin + '/auth/github/callback')
+        tokenUrl.searchParams.set('client_id', this.clientId)
+        tokenUrl.searchParams.set('code_verifier', codeVerifier)
+
+        const response = await fetch(tokenUrl.toString(), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        })
+
+        if (!response.ok) {
+          const errorText = await response.text()
+          throw new Error(`Token exchange failed: ${response.status} ${errorText}`)
+        }
+
+        const data = await response.json()
+
+        // Extract token
+        this.token = data.access_token || null
+        if (!this.token) {
+          throw new Error('Token exchange response missing access_token')
+        }
+
+        // Extract user info from the 'info' object
+        const info = data.info || {}
+        this.username = info.username || null
+        this.isOrgMember = info.isOrgMember === 'true'
+        this.isOrgOwner = info.isOrgOwner === 'true'
+        this.orgRoles = info.orgRoles ? info.orgRoles.split(',').filter((r: string) => r) : []
+        this.org = info.org || null
+        this.tokenIssuedAt = info.tokenIssuedAt ? parseInt(info.tokenIssuedAt, 10) : null
+        this.tokenExpiresAtTimestamp = info.tokenExpiresAt
+          ? parseInt(info.tokenExpiresAt, 10)
+          : null
+        this.tokenIssuer = info.tokenIssuer || null
+
+        this.authTimestamp = Date.now()
+        this.authStatus = 'authenticated'
+        this.lastError = null
+        this.justAuthenticated = true
+
+        logger.info('Token exchange successful', {
+          username: this.username,
+          isOrgMember: this.isOrgMember,
+          isOrgOwner: this.isOrgOwner,
+          orgRoles: this.orgRoles,
+          hasToken: true
+        })
+
+        // Fetch cluster/profile info from provisioner (non-blocking, non-fatal)
+        void this.fetchUserProfile()
+
+        return true
+      } catch (error) {
+        this.authStatus = 'error'
+        this.lastError = error instanceof Error ? error.message : 'Token exchange failed'
+        logger.error('Token exchange failed', { error: this.lastError })
+        return false
+      }
+    },
+
+    /**
+     * Fetch user profile/cluster info from the provisioner.
+     * Non-fatal: if this fails, auth still works but cluster info will be empty.
+     */
+    async fetchUserProfile() {
+      try {
+        if (!this.token) return
+
+        const response = await fetch(`${getProvisionerBaseUrl()}/info`, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${this.token}`
+          }
+        })
+
+        if (!response.ok) {
+          logger.warn('Failed to fetch user profile from provisioner', { status: response.status })
+          return
+        }
+
+        const data = await response.json()
+
+        // Populate cluster info
+        if (data.knownClusters) {
+          const allClusters = Array.isArray(data.knownClusters)
+            ? data.knownClusters
+            : data.knownClusters.split(',').filter((c: string) => c)
+          this.knownSubdomains = allClusters
+          this.knownClusters = allClusters.filter((c: string) => c !== 'sliderule')
+        }
+        if (data.deployableClusters) {
+          this.deployableClusters = Array.isArray(data.deployableClusters)
+            ? data.deployableClusters
+            : data.deployableClusters.split(',').filter((c: string) => c)
+        }
+        if (data.maxNodes != null) {
+          this.maxNodes =
+            typeof data.maxNodes === 'number' ? data.maxNodes : parseInt(data.maxNodes, 10)
+        }
+        if (data.maxTTL != null) {
+          this.maxTTL = typeof data.maxTTL === 'number' ? data.maxTTL : parseInt(data.maxTTL, 10)
+        }
+
+        logger.info('User profile fetched from provisioner', {
+          knownClusters: this.knownClusters,
+          deployableClusters: this.deployableClusters,
+          maxNodes: this.maxNodes,
+          maxTTL: this.maxTTL
+        })
+      } catch (error) {
+        logger.warn('Error fetching user profile from provisioner', { error: String(error) })
+      }
     },
 
     /**
@@ -295,6 +466,9 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
       this.tokenIssuedAt = null
       this.tokenExpiresAtTimestamp = null
       this.tokenIssuer = null
+      // Clear OAuth 2.1 state
+      this.clientId = null
+      sessionStorage.removeItem('github_oauth_code_verifier')
       logger.info('GitHub auth cleared')
     },
 

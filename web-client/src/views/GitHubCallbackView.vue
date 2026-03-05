@@ -16,42 +16,33 @@ const isProcessing = ref(true)
 const errorMessage = ref<string | null>(null)
 
 onMounted(() => {
-  processCallback()
+  processCallback().catch((err) => {
+    errorMessage.value =
+      err instanceof Error ? err.message : 'Unexpected error during authentication'
+    isProcessing.value = false
+    logger.error('Unhandled error in processCallback', { error: String(err) })
+  })
 })
 
-function processCallback() {
+async function processCallback() {
   logger.debug('Processing GitHub OAuth callback', { query: route.query })
 
-  // Extract query parameters
+  // Extract only the params that the OAuth 2.1 flow returns
   const params = {
+    code: route.query.code as string | undefined,
     state: route.query.state as string | undefined,
-    username: route.query.username as string | undefined,
-    isOrgMember: route.query.isOrgMember as string | undefined,
-    isOrgOwner: route.query.isOrgOwner as string | undefined,
-    orgRoles: route.query.orgRoles as string | undefined,
-    knownClusters: route.query.knownClusters as string | undefined,
-    deployableClusters: route.query.deployableClusters as string | undefined,
-    token: route.query.token as string | undefined,
-    error: route.query.error as string | undefined,
-    // Token metadata
-    org: route.query.org as string | undefined,
-    maxNodes: route.query.maxNodes as string | undefined,
-    clusterTtlHours: route.query.clusterTtlHours as string | undefined,
-    tokenIssuedAt: route.query.tokenIssuedAt as string | undefined,
-    tokenExpiresAt: route.query.tokenExpiresAt as string | undefined,
-    tokenIssuer: route.query.tokenIssuer as string | undefined
+    error: route.query.error as string | undefined
   }
 
-  // Security: Immediately clear sensitive params from URL to prevent token exposure
-  // in browser history, logs, and referrer headers
-  if (params.token) {
+  // Security: Clear URL params immediately (code is single-use but still sensitive)
+  if (params.code || params.error) {
     const cleanUrl = window.location.origin + window.location.pathname
     window.history.replaceState({}, document.title, cleanUrl)
-    logger.debug('Cleared sensitive params from URL')
+    logger.debug('Cleared params from URL')
   }
 
-  // Process the callback
-  const success = githubAuthStore.handleCallback(params)
+  // Exchange authorization code for token (async)
+  const success = await githubAuthStore.exchangeCodeForToken(params)
 
   if (success) {
     // Retrieve the stored return path or default to home
@@ -75,7 +66,7 @@ function goToSettings() {
 function tryAgain() {
   errorMessage.value = null
   isProcessing.value = true
-  githubAuthStore.initiateLogin()
+  void githubAuthStore.initiateLogin()
 }
 </script>
 
