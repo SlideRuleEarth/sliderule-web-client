@@ -1,6 +1,9 @@
 /**
  * Shared domain detection utilities for SlideRule services.
  * Derives the base domain from the browser hostname, validated against an allowlist.
+ *
+ * For local OAuth2.1 testing (e.g. Keycloak), set VITE_LOGIN_BASE_URL in .env.local:
+ *   VITE_LOGIN_BASE_URL=http://localhost:8080/realms/sliderule
  */
 
 const ALLOWED_DOMAINS = ['slideruleearth.io', 'testsliderule.org']
@@ -23,7 +26,13 @@ export function getBaseDomain(): string {
   return DEFAULT_DOMAIN
 }
 
+/**
+ * Get the login/auth server base URL.
+ * Overridable via VITE_LOGIN_BASE_URL for local testing (e.g. Keycloak).
+ */
 export function getLoginBaseUrl(): string {
+  const override = import.meta.env.VITE_LOGIN_BASE_URL
+  if (override) return override
   return `https://login.${getBaseDomain()}`
 }
 

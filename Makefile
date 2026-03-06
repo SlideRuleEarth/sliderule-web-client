@@ -95,6 +95,28 @@ build: convert-icons ## Build the web client and update the dist folder
 	echo "VITE_BANNER_TEXT=$$VITE_BANNER_TEXT" && \
 	npm run build
 
+keycloak-up: ## Start local Keycloak OAuth2.1 test server
+	docker compose -f keycloak/docker-compose.yml up -d
+	@echo "Waiting for Keycloak to be ready..."
+	@until curl -sf http://localhost:8080/realms/sliderule/.well-known/openid-configuration > /dev/null 2>&1; do sleep 2; done
+	@echo "Keycloak is ready at http://localhost:8080 (admin/admin)"
+	@echo "Copy env override: cp keycloak/env.keycloak web-client/.env.local"
+
+keycloak-down: ## Stop and remove local Keycloak
+	docker compose -f keycloak/docker-compose.yml down -v
+
+keycloak-run: keycloak-up ## Build and preview web client against local Keycloak
+	export VITE_LOGIN_BASE_URL=http://localhost:8080/realms/sliderule; \
+	export VITE_OAUTH_CLIENT_ID=sliderule-web-client-static; \
+	export VITE_BUILD_ENV=$(BUILD_ENV); \
+	export VITE_APP_BUILD_DATE=$$(date +"%Y-%m-%d %T"); \
+	export VITE_APP_VERSION=$$(git describe --tags --abbrev=0); \
+	export VITE_BANNER_TEXT='$(BANNER_TEXT)'; \
+	cd web-client && \
+	echo "VITE_LOGIN_BASE_URL=$$VITE_LOGIN_BASE_URL" && \
+	npm run build && \
+	npm run preview
+
 run: ## Run the web client locally for development
 	export VITE_BUILD_ENV=$(BUILD_ENV); \
 	export VITE_RUN_DEV_DATE=$$(date +"%Y-%m-%d %T"); \
@@ -145,7 +167,7 @@ deploy-client-to-slideruleearth: ## Deploy the web client to the slideruleearth.
 destroy-client-slideruleearth: ## Destroy the web client from the slideruleearth.io cloudfront and remove the S3 bucket
 	make destroy DOMAIN=client.slideruleearth.io S3_BUCKET=slideruleearth-webclient DOMAIN_APEX=slideruleearth.io
 
-.PHONY: check-vars typecheck lint lint-fix lint-staged pre-commit-check test-unit test-unit-watch coverage-unit test-e2e test-all ci-check
+.PHONY: check-vars typecheck lint lint-fix lint-staged pre-commit-check test-unit test-unit-watch coverage-unit test-e2e test-all ci-check keycloak-up keycloak-down keycloak-run
 # =========================
 # Testing / Quality targets
 # =========================

@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia'
 import { createLogger } from '@/utils/logger'
 import { generateCodeVerifier, generateCodeChallenge } from '@/utils/pkceUtils'
-import { getLoginBaseUrl, getProvisionerBaseUrl } from '@/utils/domainUtils'
+import { getProvisionerBaseUrl } from '@/utils/domainUtils'
+import { getASMetadata, clearASMetadataCache } from '@/utils/oauthDiscovery'
 
 const logger = createLogger('GitHubAuthStore')
 
@@ -166,8 +167,23 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
      * Registers this web client with the auth server and stores the client_id.
      */
     async registerClient(): Promise<string> {
+      // If a static client_id is configured, use it directly (skips DCR).
+      // This is needed for AS servers where DCR has CORS restrictions (e.g. Keycloak).
+      const staticClientId = import.meta.env.VITE_OAUTH_CLIENT_ID
+      if (staticClientId) {
+        this.clientId = staticClientId
+        logger.info('Using static client_id', { clientId: this.clientId })
+        return staticClientId
+      }
+
+      const metadata = await getASMetadata()
+
+      if (!metadata.registration_endpoint) {
+        throw new Error('AS does not support DCR and no VITE_OAUTH_CLIENT_ID configured')
+      }
+
       const redirectUri = window.location.origin + '/auth/github/callback'
-      const response = await fetch(`${getLoginBaseUrl()}/auth/github/register`, {
+      const response = await fetch(metadata.registration_endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -203,12 +219,15 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
       try {
         this.authStatus = 'authenticating'
 
-        // Step 1: Dynamic client registration (if not already registered this session)
+        // Step 1: Discover AS endpoints
+        const metadata = await getASMetadata()
+
+        // Step 2: Dynamic client registration (if not already registered this session)
         if (!this.clientId) {
           await this.registerClient()
         }
 
-        // Step 2: Generate PKCE parameters
+        // Step 3: Generate PKCE parameters
         const codeVerifier = generateCodeVerifier()
         const codeChallenge = await generateCodeChallenge(codeVerifier)
 
@@ -222,8 +241,8 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
         sessionStorage.setItem('github_oauth_return_path', window.location.pathname)
         logger.debug('Stored return path', { path: window.location.pathname })
 
-        // Step 3: Build authorization URL with OAuth 2.1 params
-        const loginUrl = new URL(`${getLoginBaseUrl()}/auth/github/login`)
+        // Step 4: Build authorization URL with OAuth 2.1 params
+        const loginUrl = new URL(metadata.authorization_endpoint)
         loginUrl.searchParams.set('response_type', 'code')
         loginUrl.searchParams.set('client_id', this.clientId!)
         loginUrl.searchParams.set('redirect_uri', window.location.origin + '/auth/github/callback')
@@ -232,7 +251,7 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
         loginUrl.searchParams.set('code_challenge', codeChallenge)
         loginUrl.searchParams.set('code_challenge_method', 'S256')
 
-        logger.debug('Initiating GitHub OAuth with PKCE', { loginUrl: loginUrl.toString() })
+        logger.debug('Initiating OAuth with PKCE', { loginUrl: loginUrl.toString() })
 
         // Redirect to authorization endpoint
         window.location.href = loginUrl.toString()
@@ -295,18 +314,21 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
         return false
       }
 
-      // Token exchange via POST with query parameters
+      // Token exchange via POST with form-encoded body (RFC 6749 / OAuth 2.1)
       try {
-        const tokenUrl = new URL(`${getLoginBaseUrl()}/auth/github/token`)
-        tokenUrl.searchParams.set('grant_type', 'authorization_code')
-        tokenUrl.searchParams.set('code', params.code)
-        tokenUrl.searchParams.set('redirect_uri', window.location.origin + '/auth/github/callback')
-        tokenUrl.searchParams.set('client_id', this.clientId)
-        tokenUrl.searchParams.set('code_verifier', codeVerifier)
+        const metadata = await getASMetadata()
+        const body = new URLSearchParams({
+          grant_type: 'authorization_code',
+          code: params.code,
+          redirect_uri: window.location.origin + '/auth/github/callback',
+          client_id: this.clientId,
+          code_verifier: codeVerifier
+        })
 
-        const response = await fetch(tokenUrl.toString(), {
+        const response = await fetch(metadata.token_endpoint, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: body.toString()
         })
 
         if (!response.ok) {
@@ -439,8 +461,9 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
       this.tokenIssuer = null
       // Clear OAuth 2.1 state
       this.clientId = null
+      clearASMetadataCache()
       sessionStorage.removeItem('github_oauth_code_verifier')
-      logger.info('GitHub auth cleared')
+      logger.info('Auth cleared')
     },
 
     /**
