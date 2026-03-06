@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import Button from 'primevue/button'
 import Popover from 'primevue/popover'
 import Checkbox from 'primevue/checkbox'
+import InputText from 'primevue/inputtext'
 import ConfirmDialog from 'primevue/confirmdialog'
 import { useToast } from 'primevue/usetoast'
 import { useMcpStore } from '@/stores/mcpStore'
@@ -16,6 +17,7 @@ const mcpStore = useMcpStore()
 const toast = useToast()
 const srToastStore = useSrToastStore()
 const popover = ref()
+const cloudUrlInput = ref(mcpStore.mcpWsUrl)
 
 watch(
   () => mcpStore.lastError,
@@ -30,6 +32,29 @@ watch(
     }
   }
 )
+
+const cloudMode = computed({
+  get: () => mcpStore.isCloudMode,
+  set: (val: boolean) => {
+    if (val) {
+      const url = cloudUrlInput.value.trim()
+      if (!url) return
+      mcpStore.setCloudUrl(url)
+    } else {
+      mcpStore.setCloudUrl('')
+    }
+    if (mcpStore.status !== 'disconnected') {
+      reconnect()
+    }
+  }
+})
+
+function applyCloudUrl() {
+  mcpStore.setCloudUrl(cloudUrlInput.value)
+  if (mcpStore.status !== 'disconnected') {
+    reconnect()
+  }
+}
 
 const devMode = computed({
   get: () => mcpStore.wsPort === DEV_PORT,
@@ -103,11 +128,24 @@ function formatTime(ts: number): string {
           <span class="sr-mcp-panel-status">{{ mcpStore.status }}</span>
           <div class="sr-mcp-panel-controls">
             <label class="sr-mcp-dev-toggle">
+              <Checkbox v-model="cloudMode" :binary="true" :disabled="!cloudUrlInput.trim()" />
+              <span>cloud</span>
+            </label>
+            <label v-if="!mcpStore.isCloudMode" class="sr-mcp-dev-toggle">
               <Checkbox v-model="devMode" :binary="true" />
               <span>dev</span>
             </label>
             <Button :label="toggleLabel" size="small" @click="toggleConnection" />
           </div>
+        </div>
+        <div class="sr-mcp-cloud-url">
+          <InputText
+            v-model="cloudUrlInput"
+            placeholder="wss://mcp.slideruleearth.io/ws"
+            size="small"
+            class="sr-mcp-url-input"
+            @keydown.enter="applyCloudUrl"
+          />
         </div>
         <div v-if="mcpStore.lastError" class="sr-mcp-panel-error">
           {{ mcpStore.lastError }}
@@ -179,6 +217,15 @@ function formatTime(ts: number): string {
 .sr-mcp-panel-status {
   font-weight: 600;
   text-transform: capitalize;
+}
+.sr-mcp-cloud-url {
+  display: flex;
+  gap: 0.25rem;
+}
+.sr-mcp-url-input {
+  flex: 1;
+  font-size: 0.75rem;
+  width: 100%;
 }
 .sr-mcp-panel-error {
   font-size: 0.8rem;

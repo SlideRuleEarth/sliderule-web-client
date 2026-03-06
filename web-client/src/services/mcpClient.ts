@@ -1,5 +1,6 @@
 import { createLogger } from '@/utils/logger'
 import { useMcpStore } from '@/stores/mcpStore'
+import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 import { handleJsonRpcRequest } from './mcpHandler'
 
 const logger = createLogger('McpClient')
@@ -26,32 +27,70 @@ export function connect(): void {
   }
 
   manualDisconnect = false
-  const url = `ws://localhost:${mcpStore.wsPort}`
+  let url: string
+
+  let cloudToken: string | null = null
+
+  if (mcpStore.isCloudMode) {
+    const authStore = useGitHubAuthStore()
+    cloudToken = authStore.authToken
+    if (!cloudToken) {
+      mcpStore.setError('GitHub login required for cloud MCP connection')
+      mcpStore.setStatus('disconnected')
+      return
+    }
+    url = mcpStore.mcpWsUrl
+    if (!url.startsWith('wss://')) {
+      mcpStore.setError('Cloud MCP requires a secure wss:// WebSocket URL')
+      mcpStore.setStatus('disconnected')
+      return
+    }
+  } else {
+    url = `ws://localhost:${mcpStore.wsPort}`
+  }
+
   mcpStore.setStatus('connecting')
-  logger.info('Connecting to MCP server', url)
+  logger.info('Connecting to MCP server', mcpStore.isCloudMode ? mcpStore.mcpWsUrl : url)
 
   ws = new WebSocket(url)
 
   ws.onopen = () => {
-    logger.info('WebSocket connected')
-    mcpStore.setStatus('connected')
+    if (cloudToken && ws) {
+      // Send JWT as first message instead of query param (avoids token in logs)
+      ws.send(JSON.stringify({ type: 'auth', token: cloudToken }))
+    } else {
+      logger.info('WebSocket connected')
+      mcpStore.setStatus('connected')
+    }
   }
 
   ws.onmessage = async (event: MessageEvent) => {
-    let request
+    let msg
     try {
-      request = JSON.parse(event.data as string)
+      msg = JSON.parse(event.data as string)
     } catch {
       logger.error('Failed to parse incoming message')
       return
     }
 
-    if (!request.jsonrpc || !request.id || !request.method) {
-      logger.warn('Received non-JSON-RPC message', request)
+    // Handle auth acknowledgment from cloud server
+    if (msg.type === 'auth') {
+      if (msg.status === 'ok') {
+        logger.info('WebSocket authenticated')
+        mcpStore.setStatus('connected')
+      } else {
+        logger.error('WebSocket auth failed')
+        mcpStore.setError('MCP authentication failed')
+      }
       return
     }
 
-    const response = await handleJsonRpcRequest(request)
+    if (!msg.jsonrpc || !msg.id || !msg.method) {
+      logger.warn('Received non-JSON-RPC message', msg)
+      return
+    }
+
+    const response = await handleJsonRpcRequest(msg)
 
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify(response))

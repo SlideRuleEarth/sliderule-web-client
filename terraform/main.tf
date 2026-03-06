@@ -23,4 +23,5 @@ module "cloudfront" {
   domainApex           = var.domainApex
   s3_bucket_name       = var.s3_bucket_name
   create_apex_redirect = var.create_apex_redirect
+  create_mcp_server    = var.create_mcp_server
 }

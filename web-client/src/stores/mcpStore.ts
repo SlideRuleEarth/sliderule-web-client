@@ -22,6 +22,8 @@ export const useMcpStore = defineStore('mcp', () => {
   const reconnectAttempts = ref(0)
   const lastError = ref<string | null>(null)
   const wsPort = ref(parseInt(import.meta.env.VITE_MCP_WS_PORT || '3002'))
+  const mcpWsUrl = ref(localStorage.getItem('mcp-cloud-url') || '')
+  const isCloudMode = computed(() => mcpWsUrl.value !== '')
 
   const isConnected = computed(() => status.value === 'connected')
   const recentActivity = computed(() => activityLog.value.slice(-50))
@@ -59,6 +61,16 @@ export const useMcpStore = defineStore('mcp', () => {
     wsPort.value = port
   }
 
+  function setCloudUrl(url: string) {
+    const trimmed = url.trim()
+    mcpWsUrl.value = trimmed
+    if (trimmed) {
+      localStorage.setItem('mcp-cloud-url', trimmed)
+    } else {
+      localStorage.removeItem('mcp-cloud-url')
+    }
+  }
+
   function clearLog() {
     activityLog.value = []
   }
@@ -69,6 +81,8 @@ export const useMcpStore = defineStore('mcp', () => {
     reconnectAttempts,
     lastError,
     wsPort,
+    mcpWsUrl,
+    isCloudMode,
     isConnected,
     recentActivity,
     toolCallCount,
@@ -77,6 +91,7 @@ export const useMcpStore = defineStore('mcp', () => {
     incrementReconnectAttempts,
     setError,
     setWsPort,
+    setCloudUrl,
     clearLog
   }
 })

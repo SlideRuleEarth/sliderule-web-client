@@ -185,7 +185,39 @@ mcp-refresh: ## Clear uvx cache so Claude Desktop picks up the latest PyPI versi
 
 mcp-release: mcp-publish mcp-refresh ## Publish to PyPI and refresh local uvx cache
 
-.PHONY: check-vars typecheck lint lint-fix lint-staged pre-commit-check test-unit test-unit-watch coverage-unit test-e2e test-all ci-check build-docs mcp-build mcp-publish mcp-refresh mcp-release
+CREATE_MCP_SERVER ?= true
+MCP_ECR_REPO = $(shell aws ecr describe-repositories --repository-names "$$(echo $(DOMAIN_APEX) | tr '.' '-')-mcp-server" --query 'repositories[0].repositoryUri' --output text 2>/dev/null)
+MCP_ECR_ACCOUNT = $(shell echo $(MCP_ECR_REPO) | cut -d. -f1)
+MCP_ECR_REGION = $(shell echo $(MCP_ECR_REPO) | cut -d. -f4)
+
+mcp-docker-build: ## Build the MCP server Docker image
+	@echo "Building MCP server Docker image..."
+	docker build -t sliderule-mcp-remote $(MCP_SERVER_DIR)
+
+mcp-docker-push: mcp-docker-build ## Build and push MCP server image to ECR
+	@test -n "$(MCP_ECR_REPO)" || (echo "ECR repo not found. Run 'make mcp-deploy' first."; exit 1)
+	aws ecr get-login-password --region $(MCP_ECR_REGION) | docker login --username AWS --password-stdin $(MCP_ECR_ACCOUNT).dkr.ecr.$(MCP_ECR_REGION).amazonaws.com
+	docker tag sliderule-mcp-remote:latest $(MCP_ECR_REPO):latest
+	docker push $(MCP_ECR_REPO):latest
+	@echo "Forcing new ECS deployment..."
+	aws ecs update-service --cluster $$(echo $(DOMAIN_APEX) | tr '.' '-')-mcp --service $$(echo $(DOMAIN_APEX) | tr '.' '-')-mcp-server --force-new-deployment --region $(MCP_ECR_REGION) > /dev/null
+	@echo "Pushed $(MCP_ECR_REPO):latest and triggered ECS redeployment"
+
+mcp-deploy: ## Deploy MCP server infrastructure via Terraform (requires DOMAIN, DOMAIN_APEX, S3_BUCKET)
+	mkdir -p terraform/ && cd terraform/ && terraform init && terraform workspace select $(DOMAIN)-web-client || terraform workspace new $(DOMAIN)-web-client && terraform validate && \
+	terraform apply -var domainName=$(DOMAIN) -var domainApex=$(DOMAIN_APEX) -var domain_root=$(DOMAIN_ROOT) -var s3_bucket_name=$(S3_BUCKET) -var create_apex_redirect=$(CREATE_APEX_REDIRECT) -var create_mcp_server=$(CREATE_MCP_SERVER)
+
+mcp-destroy: ## Destroy MCP server infrastructure (requires DOMAIN, DOMAIN_APEX, S3_BUCKET)
+	mkdir -p terraform/ && cd terraform/ && terraform init && terraform workspace select $(DOMAIN)-web-client || terraform workspace new $(DOMAIN)-web-client && terraform validate && \
+	terraform destroy -var domainName=$(DOMAIN) -var domainApex=$(DOMAIN_APEX) -var domain_root=$(DOMAIN_ROOT) -var s3_bucket_name=$(S3_BUCKET) -var create_apex_redirect=$(CREATE_APEX_REDIRECT) -var create_mcp_server=$(CREATE_MCP_SERVER)
+
+mcp-deploy-testsliderule: ## Deploy MCP server to testsliderule.org
+	make mcp-deploy DOMAIN=client.testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org
+
+mcp-push-testsliderule: ## Build and push MCP server image to testsliderule.org ECR
+	make mcp-docker-push DOMAIN_APEX=testsliderule.org
+
+.PHONY: check-vars typecheck lint lint-fix lint-staged pre-commit-check test-unit test-unit-watch coverage-unit test-e2e test-all ci-check build-docs mcp-build mcp-publish mcp-refresh mcp-release mcp-docker-build mcp-docker-push mcp-deploy mcp-destroy mcp-deploy-testsliderule mcp-push-testsliderule
 # =========================
 # Testing / Quality targets
 # =========================
