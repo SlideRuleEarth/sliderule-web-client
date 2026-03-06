@@ -183,19 +183,41 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
       }
 
       const redirectUri = window.location.origin + '/auth/github/callback'
-      const response = await fetch(metadata.registration_endpoint, {
+      const dcrBody = {
+        redirect_uris: [redirectUri],
+        client_name: 'SlideRule Web Client',
+        grant_types: ['authorization_code'],
+        response_types: ['code'],
+        token_endpoint_auth_method: 'none',
+        code_challenge_method: 'S256',
+        scope: 'sliderule:access'
+      }
+
+      // Try standards-compliant JSON POST body first (RFC 7591)
+      let response = await fetch(metadata.registration_endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          redirect_uris: [redirectUri],
-          client_name: 'SlideRule Web Client',
-          grant_types: ['authorization_code'],
-          response_types: ['code'],
-          token_endpoint_auth_method: 'none',
-          code_challenge_method: 'S256',
-          scope: 'sliderule:access'
-        })
+        body: JSON.stringify(dcrBody)
       })
+
+      // Fallback: some AS implementations read from query string instead of POST body
+      if (!response.ok) {
+        logger.warn('DCR via POST body failed, retrying with query string params (non-standard)', {
+          status: response.status
+        })
+        const fallbackUrl = new URL(metadata.registration_endpoint)
+        fallbackUrl.searchParams.set('redirect_uris', redirectUri)
+        fallbackUrl.searchParams.set('client_name', dcrBody.client_name)
+        fallbackUrl.searchParams.set('grant_types', 'authorization_code')
+        fallbackUrl.searchParams.set('response_types', 'code')
+        fallbackUrl.searchParams.set('token_endpoint_auth_method', 'none')
+        fallbackUrl.searchParams.set('code_challenge_method', 'S256')
+        fallbackUrl.searchParams.set('scope', 'sliderule:access')
+        response = await fetch(fallbackUrl.toString(), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        })
+      }
 
       if (!response.ok) {
         const errorText = await response.text()
@@ -317,19 +339,36 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
       // Token exchange via POST with form-encoded body (RFC 6749 / OAuth 2.1)
       try {
         const metadata = await getASMetadata()
-        const body = new URLSearchParams({
+        const tokenParams = {
           grant_type: 'authorization_code',
           code: params.code,
           redirect_uri: window.location.origin + '/auth/github/callback',
           client_id: this.clientId,
           code_verifier: codeVerifier
-        })
+        }
 
-        const response = await fetch(metadata.token_endpoint, {
+        // Try standards-compliant form-encoded POST body first
+        let response = await fetch(metadata.token_endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: body.toString()
+          body: new URLSearchParams(tokenParams).toString()
         })
+
+        // Fallback: some AS implementations read from query string instead of POST body
+        if (!response.ok) {
+          logger.warn(
+            'Token exchange via POST body failed, retrying with query string params (non-standard)',
+            { status: response.status }
+          )
+          const fallbackUrl = new URL(metadata.token_endpoint)
+          for (const [key, value] of Object.entries(tokenParams)) {
+            fallbackUrl.searchParams.set(key, value)
+          }
+          response = await fetch(fallbackUrl.toString(), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+          })
+        }
 
         if (!response.ok) {
           const errorText = await response.text()
