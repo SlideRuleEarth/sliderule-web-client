@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { createLogger } from '@/utils/logger'
 import { generateCodeVerifier, generateCodeChallenge } from '@/utils/pkceUtils'
+import { getLoginBaseUrl, getProvisionerBaseUrl } from '@/utils/domainUtils'
 
 const logger = createLogger('GitHubAuthStore')
 
@@ -9,36 +10,6 @@ type AuthStatus = 'unknown' | 'authenticating' | 'authenticated' | 'not_authenti
 // Token expiration hours - must match JWT_EXPIRATION_HOURS in Lambda handler
 const TOKEN_EXPIRATION_HOURS = 12
 const AUTH_VALIDITY_MS = TOKEN_EXPIRATION_HOURS * 60 * 60 * 1000
-
-// Only these domains are trusted for auth redirects — prevents credential leaks
-// if the client is served from an unauthorized origin.
-const ALLOWED_DOMAINS = ['slideruleearth.io', 'testsliderule.org']
-const DEFAULT_DOMAIN = 'slideruleearth.io'
-
-/**
- * Derive the base domain from the current browser hostname, validated
- * against an allowlist to prevent auth against untrusted servers.
- * e.g. "client.testsliderule.org" → "testsliderule.org"
- *      "client.slideruleearth.io" → "slideruleearth.io"
- *      "localhost" or unknown      → "slideruleearth.io" (fallback)
- */
-function getBaseDomain(): string {
-  const hostname = window.location.hostname
-  for (const allowed of ALLOWED_DOMAINS) {
-    if (hostname === allowed || hostname.endsWith('.' + allowed)) {
-      return allowed
-    }
-  }
-  return DEFAULT_DOMAIN
-}
-
-function getLoginBaseUrl(): string {
-  return `https://login.${getBaseDomain()}`
-}
-
-function getProvisionerBaseUrl(): string {
-  return `https://provisioner.${getBaseDomain()}`
-}
 
 export const useGitHubAuthStore = defineStore('githubAuth', {
   state: () => ({
