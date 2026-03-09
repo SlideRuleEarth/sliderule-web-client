@@ -208,9 +208,7 @@ export interface StackStatusResult {
  * Cluster status response from the provisioner API.
  */
 export interface ClusterStatusResponse {
-  status: boolean
   stack_name?: string
-  exception?: string
   response?: {
     StackId?: string
     StackName?: string
@@ -237,10 +235,8 @@ export interface ClusterStatusResult {
  * Deploy cluster response from the provisioner API.
  */
 export interface DeployClusterResponse {
-  status: boolean
   stack_name?: string
   response?: Record<string, unknown>
-  exception?: string
 }
 
 export interface DeployClusterResult {
@@ -386,10 +382,8 @@ export async function deployCluster(options: DeployClusterOptions): Promise<Depl
  * Response from the destroy cluster API.
  */
 export interface DestroyClusterResponse {
-  status: boolean
   stack_name?: string
   response?: Record<string, unknown>
-  exception?: string
 }
 
 /**
@@ -422,10 +416,8 @@ export async function destroyCluster(cluster: string): Promise<DestroyClusterRes
  * Response from the cluster extend API.
  */
 export interface ExtendClusterResponse {
-  status: boolean
   stack_name?: string
   response?: Record<string, unknown>
-  exception?: string
 }
 
 /**
@@ -475,11 +467,9 @@ export interface StackEvent {
  * Response from the cluster events API.
  */
 export interface ClusterEventsResponse {
-  status: boolean
   stack_name?: string
   response?: StackEvent[] // API returns events in 'response' field
   error?: string
-  exception?: string
 }
 
 /**
@@ -513,7 +503,6 @@ export async function fetchClusterEvents(cluster: string): Promise<ClusterEvents
  * Response from the provisioner report API.
  */
 export interface ProvisionerReportResponse {
-  status: boolean
   [key: string]: unknown
 }
 
@@ -606,7 +595,6 @@ export async function fetchDiscoveryStatus(
  * Response from the provisioner status API (global, without cluster param).
  */
 export interface ProvisionerStatusResponse {
-  status: boolean
   [key: string]: unknown
 }
 
@@ -640,7 +628,6 @@ export async function fetchProvisionerStatus(cluster: string): Promise<Provision
  * Response from the provisioner test report API.
  */
 export interface ProvisionerTestReportResponse {
-  status: boolean
   [key: string]: unknown
 }
 
