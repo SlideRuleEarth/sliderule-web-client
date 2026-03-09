@@ -429,12 +429,25 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
       try {
         if (!this.token) return
 
-        const response = await fetch(`${getProvisionerBaseUrl()}/info`, {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${this.token}`
-          }
-        })
+        const url = `${getProvisionerBaseUrl()}/info`
+        const makeRequest = async () =>
+          fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${this.token}`
+            },
+            body: JSON.stringify({})
+          })
+
+        let response = await makeRequest()
+
+        // Retry on 401 with backoff (handles JWKS latency after fresh login)
+        if (response.status === 401) {
+          logger.debug('Provisioner returned 401, retrying after 1s backoff')
+          await new Promise((resolve) => setTimeout(resolve, 1000))
+          response = await makeRequest()
+        }
 
         if (!response.ok) {
           logger.warn('Failed to fetch user profile from provisioner', { status: response.status })
@@ -528,7 +541,12 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
      * Initialize on app startup - check if we have valid persisted auth
      */
     initializeOnStartup(): void {
-      if (this.authStatus === 'authenticated') {
+      if (this.authStatus === 'authenticating') {
+        // If we're starting up with 'authenticating' status, the redirect already happened
+        // and we're back — reset to not_authenticated so the spinner doesn't show
+        logger.debug('Clearing stale authenticating status on startup')
+        this.authStatus = 'not_authenticated'
+      } else if (this.authStatus === 'authenticated') {
         if (this.hasValidAuth) {
           logger.debug('Restored valid GitHub auth from storage', {
             username: this.username,
