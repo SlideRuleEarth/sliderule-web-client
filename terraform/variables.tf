@@ -30,3 +30,15 @@ variable "cost_grouping" {
   type        = string
   default     = "web-client"
 }
+
+variable "create_apex_redirect" {
+  description = "Whether to create the apex redirect CloudFront distribution. Set to false when another deployment already owns the apex CNAME."
+  type        = bool
+  default     = true
+}
+
+variable "create_mcp_server" {
+  description = "Whether to create ECS Fargate MCP server infrastructure"
+  type        = bool
+  default     = false
+}

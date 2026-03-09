@@ -1410,6 +1410,77 @@ const createReqParamsStore = (id: string) =>
       removePin() {
         this.useAtl13Point = false
         this.atl13.coord = null
+      },
+      /**
+       * Apply a named general preset configuration. Resets parameters, sets mission/API,
+       * and preserves the current region (except for atl13x which clears it).
+       * Returns the preset label if valid, or null if not found.
+       */
+      applyGeneralPreset(label: string): string | null {
+        const presets: Record<
+          string,
+          { mission: string; api: string; surfaceFit?: boolean; phoreal?: boolean }
+        > = {
+          'ICESat-2 Surface Elevations': {
+            mission: 'ICESat-2',
+            api: 'atl03x-surface',
+            surfaceFit: true
+          },
+          'ICESat-2 Land Ice Sheet': { mission: 'ICESat-2', api: 'atl06sp' },
+          'ICESat-2 Canopy Heights': { mission: 'ICESat-2', api: 'atl03x-phoreal', phoreal: true },
+          'ICESat-2 Coastal Bathymetry': { mission: 'ICESat-2', api: 'atl24x' },
+          'ICESat-2 Geolocated Photons': { mission: 'ICESat-2', api: 'atl03x' },
+          'ICESat-2 Inland Bodies of Water': { mission: 'ICESat-2', api: 'atl13x' },
+          'GEDI Biomass Density': { mission: 'GEDI', api: 'gedi04ap' },
+          'GEDI Elevations w/Canopy': { mission: 'GEDI', api: 'gedi02ap' },
+          'GEDI Geolocated Waveforms': { mission: 'GEDI', api: 'gedi01bp' }
+        }
+
+        const preset = presets[label]
+        if (!preset) {
+          logger.error('Unknown preset', { label })
+          return null
+        }
+
+        const savedPoly = this.poly
+        const savedConvexHull = this.convexHull
+        this.reset()
+        this.setUseSurfaceFitAlgorithm(false)
+        this.setEnablePhoReal(false)
+
+        this.setMissionValue(preset.mission)
+        if (preset.mission === 'ICESat-2') {
+          this.setIceSat2API(preset.api)
+        } else {
+          this.setGediAPI(preset.api)
+        }
+        if (preset.surfaceFit) this.setUseSurfaceFitAlgorithm(true)
+        if (preset.phoreal) this.setEnablePhoReal(true)
+
+        // atl13x uses point selection, not polygon regions
+        if (preset.api === 'atl13x') {
+          this.setPoly([])
+          this.setConvexHull([])
+        } else {
+          this.setPoly(savedPoly)
+          this.setConvexHull(savedConvexHull)
+        }
+
+        return label
+      },
+      /** Get the list of available general preset labels. */
+      getGeneralPresetLabels(): string[] {
+        return [
+          'ICESat-2 Surface Elevations',
+          'ICESat-2 Land Ice Sheet',
+          'ICESat-2 Canopy Heights',
+          'ICESat-2 Coastal Bathymetry',
+          'ICESat-2 Geolocated Photons',
+          'ICESat-2 Inland Bodies of Water',
+          'GEDI Biomass Density',
+          'GEDI Elevations w/Canopy',
+          'GEDI Geolocated Waveforms'
+        ]
       }
     }
   })

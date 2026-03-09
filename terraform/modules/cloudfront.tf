@@ -24,7 +24,7 @@ resource "aws_cloudfront_response_headers_policy" "security_headers_policy" {
       override                   = true
     }
     content_security_policy {
-      content_security_policy = "frame-ancestors 'none'; default-src 'none'; img-src 'self' data: https://*.openstreetmap.org https://openlayers.org https://mt1.google.com https://tile.googleapis.com https://server.arcgisonline.com https://services.arcgisonline.com https://cdn.rawgit.com https://cdn.jsdelivr.net https://www.opengis.net https://worldwind25.arc.nasa.gov https://neo.gsfc.nasa.gov https://gibs.earthdata.nasa.gov https://gibs.earthdata.nasa.gov https://gitc.earthdata.nasa.gov https://www.glims.org https://*.arcgis.com https://elevation.nationalmap.gov https://nimbus.cr.usgs.gov https://tiles.maps.eox.at https://*.tile.opentopomap.org ; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self'; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; object-src 'none'; font-src 'self' https://fonts.gstatic.com; connect-src 'self' blob: https://*.slideruleearth.io https://*.${var.domainApex} https://${var.domainApex} https://photon.komoot.io https://nominatim.openstreetmap.org https://server.arcgisonline.com https://www.opengis.net https://worldwind25.arc.nasa.gov  https://neo.gsfc.nasa.gov https://gibs.earthdata.nasa.gov https://gitc.earthdata.nasa.gov https://www.glims.org https://*.arcgis.com https://elevation.nationalmap.gov https://elevation.nationalmap.gov https://extensions.duckdb.org https://tile.googleapis.com https://tiles.maps.eox.at;"
+      content_security_policy = "frame-ancestors 'none'; default-src 'none'; img-src 'self' data: https://*.openstreetmap.org https://openlayers.org https://mt1.google.com https://tile.googleapis.com https://server.arcgisonline.com https://services.arcgisonline.com https://cdn.rawgit.com https://cdn.jsdelivr.net https://www.opengis.net https://worldwind25.arc.nasa.gov https://neo.gsfc.nasa.gov https://gibs.earthdata.nasa.gov https://gibs.earthdata.nasa.gov https://gitc.earthdata.nasa.gov https://www.glims.org https://*.arcgis.com https://elevation.nationalmap.gov https://nimbus.cr.usgs.gov https://tiles.maps.eox.at https://*.tile.opentopomap.org ; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self'; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; object-src 'none'; font-src 'self' https://fonts.gstatic.com; connect-src 'self' blob: ws://localhost:3002 ws://localhost:3003 wss://mcp.${var.domainApex} https://slideruleearth.io https://*.slideruleearth.io https://*.${var.domainApex} https://${var.domainApex} https://photon.komoot.io https://nominatim.openstreetmap.org https://server.arcgisonline.com https://www.opengis.net https://worldwind25.arc.nasa.gov  https://neo.gsfc.nasa.gov https://gibs.earthdata.nasa.gov https://gitc.earthdata.nasa.gov https://www.glims.org https://*.arcgis.com https://elevation.nationalmap.gov https://elevation.nationalmap.gov https://extensions.duckdb.org https://tile.googleapis.com https://tiles.maps.eox.at;"
       override                = true
     }
   }
@@ -107,7 +107,7 @@ resource "aws_cloudfront_origin_access_identity" "origin_access_identity" {
 # --- <domainApex> → <domainName>/landing redirect ---
 
 resource "aws_cloudfront_function" "apex_redirect" {
-  count   = var.domainName != var.domainApex ? 1 : 0
+  count   = var.create_apex_redirect && var.domainName != var.domainApex ? 1 : 0
   name    = "${replace(var.domainName, ".", "-")}-apex-redirect"
   runtime = "cloudfront-js-2.0"
   code    = <<-EOF
@@ -124,7 +124,7 @@ resource "aws_cloudfront_function" "apex_redirect" {
 }
 
 resource "aws_cloudfront_distribution" "apex_redirect" {
-  count      = var.domainName != var.domainApex ? 1 : 0
+  count      = var.create_apex_redirect && var.domainName != var.domainApex ? 1 : 0
   depends_on = [aws_s3_bucket.this_site_bucket]
   enabled    = true
   aliases    = [var.domainApex]

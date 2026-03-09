@@ -14,6 +14,7 @@ DISTRIBUTION_ID = $(shell aws cloudfront list-distributions --query "Distributio
 BUILD_ENV = $(shell git --git-dir .git --work-tree . describe --abbrev --dirty --always --tags --long)
 VERSION ?= latest
 BANNER_TEXT ?=
+CREATE_APEX_REDIRECT ?= true
 
 
 clean-all: # Clean up the web client dependencies 
@@ -73,17 +74,23 @@ verify-s3-assets: ## Check that all index-*.js and index-*.css files referenced 
 verify-s3-assets-testsliderule:
 	make verify-s3-assets S3_BUCKET=testsliderule-webclient
 
-live-update-testsliderule: ## Update the web client at testsliderule.org with new build
+live-update-client-testsliderule: ## Update the web client at client.testsliderule.org with new build
 	make live-update S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org DOMAIN=client.testsliderule.org 
 
-live-update-slideruleearth: ## Update the web client at slideruleearth.io with new build
+live-update-ai-testsliderule: ## Update the web client at ai.testsliderule.org with new build
+	make live-update S3_BUCKET=testsliderule-ai-webclient DOMAIN_APEX=testsliderule.org DOMAIN=ai.testsliderule.org
+
+live-update-client-slideruleearth: ## Update the web client at client.slideruleearth.io with new build
 	make live-update S3_BUCKET=slideruleearth-webclient DOMAIN_APEX=slideruleearth.io DOMAIN=client.slideruleearth.io 
 
 convert-icons: ## Convert Maki SVG icons in src/assets/maki-svg to PNGs in public/icons
 	@echo "🔄 Converting Maki SVG icons to PNGs..."
 	node ./web-client/convert-maki-icons.js
 
-build: convert-icons ## Build the web client and update the dist folder
+build-docs: ## Scrape ReadTheDocs and extract tooltips into docs-index.json
+	cd web-client && npm run build:docs
+
+build: convert-icons build-docs ## Build the web client and update the dist folder
 	export VITE_BUILD_ENV=$(BUILD_ENV); \
 	export VITE_APP_BUILD_DATE=$$(date +"%Y-%m-%d %T"); \
 	export VITE_APP_VERSION=$$(git describe --tags --abbrev=0); \
@@ -134,11 +141,11 @@ preview: build ## Preview the web client production build locally for developmen
 
 deploy: # Deploy the web client to the S3 bucket
 	mkdir -p terraform/ && cd terraform/ && terraform init && terraform workspace select $(DOMAIN)-web-client || terraform workspace new $(DOMAIN)-web-client && terraform validate && \
-	terraform apply -var domainName=$(DOMAIN) -var domainApex=$(DOMAIN_APEX) -var domain_root=$(DOMAIN_ROOT) -var s3_bucket_name=$(S3_BUCKET)
+	terraform apply -var domainName=$(DOMAIN) -var domainApex=$(DOMAIN_APEX) -var domain_root=$(DOMAIN_ROOT) -var s3_bucket_name=$(S3_BUCKET) -var create_apex_redirect=$(CREATE_APEX_REDIRECT)
 
-destroy: # Destroy the web client 
+destroy: # Destroy the web client
 	mkdir -p terraform/ && cd terraform/ && terraform init && terraform workspace select $(DOMAIN)-web-client || terraform workspace new $(DOMAIN)-web-client && terraform validate && \
-	terraform destroy -var domainName=$(DOMAIN) -var domainApex=$(DOMAIN_APEX) -var domain_root=$(DOMAIN_ROOT) -var s3_bucket_name=$(S3_BUCKET)
+	terraform destroy -var domainName=$(DOMAIN) -var domainApex=$(DOMAIN_APEX) -var domain_root=$(DOMAIN_ROOT) -var s3_bucket_name=$(S3_BUCKET) -var create_apex_redirect=$(CREATE_APEX_REDIRECT)
 
 deploy-client-to-testsliderule: ## Deploy the web client to the testsliderule.org cloudfront and update the s3 bucket
 	make deploy DOMAIN=client.testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org && \
@@ -167,7 +174,72 @@ deploy-client-to-slideruleearth: ## Deploy the web client to the slideruleearth.
 destroy-client-slideruleearth: ## Destroy the web client from the slideruleearth.io cloudfront and remove the S3 bucket
 	make destroy DOMAIN=client.slideruleearth.io S3_BUCKET=slideruleearth-webclient DOMAIN_APEX=slideruleearth.io
 
-.PHONY: check-vars typecheck lint lint-fix lint-staged pre-commit-check test-unit test-unit-watch coverage-unit test-e2e test-all ci-check keycloak-up keycloak-down keycloak-run
+deploy-ai-client-to-testsliderule: ## Deploy the web client to the testsliderule.org cloudfront and update the s3 bucket
+	make deploy DOMAIN=ai.testsliderule.org S3_BUCKET=testsliderule-ai-webclient DOMAIN_APEX=testsliderule.org CREATE_APEX_REDIRECT=false && \
+	make live-update DOMAIN=ai.testsliderule.org S3_BUCKET=testsliderule-ai-webclient DOMAIN_APEX=testsliderule.org
+
+destroy-ai-client-testsliderule: ## Destroy the web client from the testsliderule.org cloudfront and remove the S3 bucket
+	make destroy DOMAIN=ai.testsliderule.org S3_BUCKET=testsliderule-ai-webclient DOMAIN_APEX=testsliderule.org CREATE_APEX_REDIRECT=false
+
+
+MCP_SERVER_DIR = sliderule-mcp-server
+MCP_VERSION = $(shell grep '^version' $(MCP_SERVER_DIR)/pyproject.toml | sed 's/.*"\(.*\)"/\1/')
+
+mcp-build: ## Build the MCP server wheel and sdist
+	@echo "Building sliderule-mcp v$(MCP_VERSION)..."
+	cd $(MCP_SERVER_DIR) && rm -rf dist && python -c "\
+	import os; \
+	from hatchling.builders.wheel import WheelBuilder; \
+	from hatchling.builders.sdist import SdistBuilder; \
+	os.makedirs('dist', exist_ok=True); \
+	[print('wheel:', a) for a in WheelBuilder('.').build(directory='dist', versions=['standard'])]; \
+	[print('sdist:', a) for a in SdistBuilder('.').build(directory='dist', versions=['standard'])]"
+
+mcp-publish: mcp-build ## Build and upload the MCP server to PyPI
+	@echo "Uploading sliderule-mcp v$(MCP_VERSION) to PyPI..."
+	cd $(MCP_SERVER_DIR) && python -m twine upload dist/*
+	@echo "✅ Published sliderule-mcp v$(MCP_VERSION) — run 'make mcp-refresh' to update local uvx cache"
+
+mcp-refresh: ## Clear uvx cache so Claude Desktop picks up the latest PyPI version
+	@echo "Refreshing uvx cache for sliderule-mcp..."
+	uv cache clean sliderule-mcp --force 2>/dev/null || true
+	@echo "✅ uvx cache cleared — restart Claude Desktop to use v$(MCP_VERSION)"
+
+mcp-release: mcp-publish mcp-refresh ## Publish to PyPI and refresh local uvx cache
+
+CREATE_MCP_SERVER ?= true
+MCP_ECR_REPO = $(shell aws ecr describe-repositories --repository-names "$$(echo $(DOMAIN_APEX) | tr '.' '-')-mcp-server" --query 'repositories[0].repositoryUri' --output text 2>/dev/null)
+MCP_ECR_ACCOUNT = $(shell echo $(MCP_ECR_REPO) | cut -d. -f1)
+MCP_ECR_REGION = $(shell echo $(MCP_ECR_REPO) | cut -d. -f4)
+
+mcp-docker-build: ## Build the MCP server Docker image
+	@echo "Building MCP server Docker image..."
+	docker build -t sliderule-mcp-remote $(MCP_SERVER_DIR)
+
+mcp-docker-push: mcp-docker-build ## Build and push MCP server image to ECR
+	@test -n "$(MCP_ECR_REPO)" || (echo "ECR repo not found. Run 'make mcp-deploy' first."; exit 1)
+	aws ecr get-login-password --region $(MCP_ECR_REGION) | docker login --username AWS --password-stdin $(MCP_ECR_ACCOUNT).dkr.ecr.$(MCP_ECR_REGION).amazonaws.com
+	docker tag sliderule-mcp-remote:latest $(MCP_ECR_REPO):latest
+	docker push $(MCP_ECR_REPO):latest
+	@echo "Forcing new ECS deployment..."
+	aws ecs update-service --cluster $$(echo $(DOMAIN_APEX) | tr '.' '-')-mcp --service $$(echo $(DOMAIN_APEX) | tr '.' '-')-mcp-server --force-new-deployment --region $(MCP_ECR_REGION) > /dev/null
+	@echo "Pushed $(MCP_ECR_REPO):latest and triggered ECS redeployment"
+
+mcp-deploy: ## Deploy MCP server infrastructure via Terraform (requires DOMAIN, DOMAIN_APEX, S3_BUCKET)
+	mkdir -p terraform/ && cd terraform/ && terraform init && terraform workspace select $(DOMAIN)-web-client || terraform workspace new $(DOMAIN)-web-client && terraform validate && \
+	terraform apply -var domainName=$(DOMAIN) -var domainApex=$(DOMAIN_APEX) -var domain_root=$(DOMAIN_ROOT) -var s3_bucket_name=$(S3_BUCKET) -var create_apex_redirect=$(CREATE_APEX_REDIRECT) -var create_mcp_server=$(CREATE_MCP_SERVER)
+
+mcp-destroy: ## Destroy MCP server infrastructure (requires DOMAIN, DOMAIN_APEX, S3_BUCKET)
+	mkdir -p terraform/ && cd terraform/ && terraform init && terraform workspace select $(DOMAIN)-web-client || terraform workspace new $(DOMAIN)-web-client && terraform validate && \
+	terraform destroy -var domainName=$(DOMAIN) -var domainApex=$(DOMAIN_APEX) -var domain_root=$(DOMAIN_ROOT) -var s3_bucket_name=$(S3_BUCKET) -var create_apex_redirect=$(CREATE_APEX_REDIRECT) -var create_mcp_server=$(CREATE_MCP_SERVER)
+
+mcp-deploy-testsliderule: ## Deploy MCP server to testsliderule.org
+	make mcp-deploy DOMAIN=client.testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org
+
+mcp-push-testsliderule: ## Build and push MCP server image to testsliderule.org ECR
+	make mcp-docker-push DOMAIN_APEX=testsliderule.org
+
+.PHONY: check-vars typecheck lint lint-fix lint-staged pre-commit-check test-unit test-unit-watch coverage-unit test-e2e test-all ci-check build-docs mcp-build mcp-publish mcp-refresh mcp-release mcp-docker-build mcp-docker-push mcp-deploy mcp-destroy mcp-deploy-testsliderule mcp-push-testsliderule
 # =========================
 # Testing / Quality targets
 # =========================

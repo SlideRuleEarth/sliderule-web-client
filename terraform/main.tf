@@ -18,8 +18,10 @@ provider "aws" {
 
 module "cloudfront" {
   source = "./modules/"
-  domain_root   = var.domain_root
-  domainName    = var.domainName
-  domainApex    = var.domainApex
-  s3_bucket_name = var.s3_bucket_name
+  domain_root          = var.domain_root
+  domainName           = var.domainName
+  domainApex           = var.domainApex
+  s3_bucket_name       = var.s3_bucket_name
+  create_apex_redirect = var.create_apex_redirect
+  create_mcp_server    = var.create_mcp_server
 }
