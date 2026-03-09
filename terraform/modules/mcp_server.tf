@@ -133,6 +133,26 @@ resource "aws_iam_role" "mcp_task" {
   assume_role_policy = data.aws_iam_policy_document.ecs_assume[0].json
 }
 
+# Allow ECS Exec (shell into running container)
+resource "aws_iam_role_policy" "mcp_task_exec_command" {
+  count = var.create_mcp_server ? 1 : 0
+  name  = "${local.mcp_name_prefix}-exec-command"
+  role  = aws_iam_role.mcp_task[0].id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = [
+        "ssmmessages:CreateControlChannel",
+        "ssmmessages:CreateDataChannel",
+        "ssmmessages:OpenControlChannel",
+        "ssmmessages:OpenDataChannel"
+      ]
+      Resource = "*"
+    }]
+  })
+}
+
 # ── ECS Cluster ───────────────────────────────────────────────────
 
 resource "aws_ecs_cluster" "mcp" {
@@ -151,6 +171,11 @@ resource "aws_ecs_task_definition" "mcp_server" {
   memory                   = "512"
   execution_role_arn       = aws_iam_role.mcp_task_execution[0].arn
   task_role_arn            = aws_iam_role.mcp_task[0].arn
+
+  runtime_platform {
+    operating_system_family = "LINUX"
+    cpu_architecture        = "ARM64"
+  }
 
   container_definitions = jsonencode([{
     name      = "mcp-server"
@@ -236,8 +261,9 @@ resource "aws_ecs_service" "mcp_server" {
   name            = "${local.mcp_name_prefix}-server"
   cluster         = aws_ecs_cluster.mcp[0].id
   task_definition = aws_ecs_task_definition.mcp_server[0].arn
-  desired_count   = 1
-  launch_type     = "FARGATE"
+  desired_count          = 1
+  launch_type            = "FARGATE"
+  enable_execute_command = true
 
   network_configuration {
     subnets          = data.aws_subnets.default[0].ids
