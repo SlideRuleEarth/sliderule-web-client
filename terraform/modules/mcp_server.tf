@@ -1,28 +1,62 @@
 # ── MCP Server Infrastructure (ECS Fargate + ALB) ─────────────────
 # Gated by var.create_mcp_server (default false)
+# Deployed to us-west-2 alongside the rest of SlideRule infrastructure
 
 locals {
   mcp_name_prefix = "${replace(var.domainApex, ".", "-")}-mcp"
+  mcp_region      = "us-west-2"
 }
 
-# ── Networking (default VPC) ──────────────────────────────────────
+# ── Networking (default VPC in us-west-2) ────────────────────────
 
 data "aws_vpc" "default" {
-  count   = var.create_mcp_server ? 1 : 0
-  default = true
+  provider = aws.west
+  count    = var.create_mcp_server ? 1 : 0
+  default  = true
 }
 
 data "aws_subnets" "default" {
-  count = var.create_mcp_server ? 1 : 0
+  provider = aws.west
+  count    = var.create_mcp_server ? 1 : 0
   filter {
     name   = "vpc-id"
     values = [data.aws_vpc.default[0].id]
   }
 }
 
+# ── ACM Certificate (us-west-2 for ALB) ─────────────────────────
+
+resource "aws_acm_certificate" "mcp" {
+  provider          = aws.west
+  count             = var.create_mcp_server ? 1 : 0
+  domain_name       = "mcp.${var.domainApex}"
+  validation_method = "DNS"
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_route53_record" "mcp_cert_validation" {
+  count           = var.create_mcp_server ? 1 : 0
+  allow_overwrite = true
+  name            = tolist(aws_acm_certificate.mcp[0].domain_validation_options)[0].resource_record_name
+  records         = [tolist(aws_acm_certificate.mcp[0].domain_validation_options)[0].resource_record_value]
+  type            = tolist(aws_acm_certificate.mcp[0].domain_validation_options)[0].resource_record_type
+  zone_id         = data.aws_route53_zone.public.id
+  ttl             = 60
+}
+
+resource "aws_acm_certificate_validation" "mcp" {
+  provider                = aws.west
+  count                   = var.create_mcp_server ? 1 : 0
+  certificate_arn         = aws_acm_certificate.mcp[0].arn
+  validation_record_fqdns = [aws_route53_record.mcp_cert_validation[0].fqdn]
+}
+
 # ── Security Groups ───────────────────────────────────────────────
 
 resource "aws_security_group" "mcp_alb" {
+  provider    = aws.west
   count       = var.create_mcp_server ? 1 : 0
   name        = "${local.mcp_name_prefix}-alb"
   description = "MCP server ALB - inbound HTTPS"
@@ -44,6 +78,7 @@ resource "aws_security_group" "mcp_alb" {
 }
 
 resource "aws_security_group" "mcp_ecs" {
+  provider    = aws.west
   count       = var.create_mcp_server ? 1 : 0
   name        = "${local.mcp_name_prefix}-ecs"
   description = "MCP server ECS tasks - inbound from ALB only"
@@ -67,6 +102,7 @@ resource "aws_security_group" "mcp_ecs" {
 # ── ECR Repository ────────────────────────────────────────────────
 
 resource "aws_ecr_repository" "mcp_server" {
+  provider             = aws.west
   count                = var.create_mcp_server ? 1 : 0
   name                 = "${local.mcp_name_prefix}-server"
   image_tag_mutability = "MUTABLE"
@@ -78,6 +114,7 @@ resource "aws_ecr_repository" "mcp_server" {
 }
 
 resource "aws_ecr_lifecycle_policy" "mcp_server" {
+  provider   = aws.west
   count      = var.create_mcp_server ? 1 : 0
   repository = aws_ecr_repository.mcp_server[0].name
   policy = jsonencode({
@@ -97,12 +134,13 @@ resource "aws_ecr_lifecycle_policy" "mcp_server" {
 # ── CloudWatch Logs ───────────────────────────────────────────────
 
 resource "aws_cloudwatch_log_group" "mcp_server" {
+  provider          = aws.west
   count             = var.create_mcp_server ? 1 : 0
   name              = "/ecs/${local.mcp_name_prefix}-server"
   retention_in_days = 30
 }
 
-# ── IAM Roles ─────────────────────────────────────────────────────
+# ── IAM Roles (IAM is global, no provider alias needed) ──────────
 
 data "aws_iam_policy_document" "ecs_assume" {
   count = var.create_mcp_server ? 1 : 0
@@ -156,13 +194,15 @@ resource "aws_iam_role_policy" "mcp_task_exec_command" {
 # ── ECS Cluster ───────────────────────────────────────────────────
 
 resource "aws_ecs_cluster" "mcp" {
-  count = var.create_mcp_server ? 1 : 0
-  name  = "${local.mcp_name_prefix}"
+  provider = aws.west
+  count    = var.create_mcp_server ? 1 : 0
+  name     = "${local.mcp_name_prefix}"
 }
 
 # ── ECS Task Definition ──────────────────────────────────────────
 
 resource "aws_ecs_task_definition" "mcp_server" {
+  provider                 = aws.west
   count                    = var.create_mcp_server ? 1 : 0
   family                   = "${local.mcp_name_prefix}-server"
   requires_compatibilities = ["FARGATE"]
@@ -197,7 +237,7 @@ resource "aws_ecs_task_definition" "mcp_server" {
       logDriver = "awslogs"
       options = {
         "awslogs-group"         = aws_cloudwatch_log_group.mcp_server[0].name
-        "awslogs-region"        = "us-east-1"
+        "awslogs-region"        = local.mcp_region
         "awslogs-stream-prefix" = "mcp"
       }
     }
@@ -207,6 +247,7 @@ resource "aws_ecs_task_definition" "mcp_server" {
 # ── ALB ───────────────────────────────────────────────────────────
 
 resource "aws_lb" "mcp" {
+  provider           = aws.west
   count              = var.create_mcp_server ? 1 : 0
   name               = "${local.mcp_name_prefix}"
   internal           = false
@@ -217,6 +258,7 @@ resource "aws_lb" "mcp" {
 }
 
 resource "aws_lb_target_group" "mcp" {
+  provider    = aws.west
   count       = var.create_mcp_server ? 1 : 0
   name        = "${local.mcp_name_prefix}"
   port        = 8000
@@ -241,12 +283,13 @@ resource "aws_lb_target_group" "mcp" {
 }
 
 resource "aws_lb_listener" "mcp_https" {
+  provider          = aws.west
   count             = var.create_mcp_server ? 1 : 0
   load_balancer_arn = aws_lb.mcp[0].arn
   port              = "443"
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
-  certificate_arn   = aws_acm_certificate.mysite.arn
+  certificate_arn   = aws_acm_certificate_validation.mcp[0].certificate_arn
 
   default_action {
     type             = "forward"
@@ -257,10 +300,11 @@ resource "aws_lb_listener" "mcp_https" {
 # ── ECS Service ───────────────────────────────────────────────────
 
 resource "aws_ecs_service" "mcp_server" {
-  count           = var.create_mcp_server ? 1 : 0
-  name            = "${local.mcp_name_prefix}-server"
-  cluster         = aws_ecs_cluster.mcp[0].id
-  task_definition = aws_ecs_task_definition.mcp_server[0].arn
+  provider               = aws.west
+  count                  = var.create_mcp_server ? 1 : 0
+  name                   = "${local.mcp_name_prefix}-server"
+  cluster                = aws_ecs_cluster.mcp[0].id
+  task_definition        = aws_ecs_task_definition.mcp_server[0].arn
   desired_count          = 1
   launch_type            = "FARGATE"
   enable_execute_command = true
@@ -280,7 +324,7 @@ resource "aws_ecs_service" "mcp_server" {
   depends_on = [aws_lb_listener.mcp_https]
 }
 
-# ── Route53 ───────────────────────────────────────────────────────
+# ── Route53 (global, uses default provider) ───────────────────────
 
 resource "aws_route53_record" "mcp" {
   count   = var.create_mcp_server ? 1 : 0

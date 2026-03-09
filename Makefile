@@ -212,9 +212,9 @@ mcp-refresh: ## Clear uvx cache so Claude Desktop picks up the latest PyPI versi
 mcp-release: mcp-publish mcp-refresh ## Publish to PyPI and refresh local uvx cache
 
 CREATE_MCP_SERVER ?= true
-MCP_ECR_REPO = $(shell aws ecr describe-repositories --repository-names "$$(echo $(DOMAIN_APEX) | tr '.' '-')-mcp-server" --query 'repositories[0].repositoryUri' --output text 2>/dev/null)
+MCP_AWS_REGION = us-west-2
+MCP_ECR_REPO = $(shell aws ecr describe-repositories --repository-names "$$(echo $(DOMAIN_APEX) | tr '.' '-')-mcp-server" --query 'repositories[0].repositoryUri' --output text --region $(MCP_AWS_REGION) 2>/dev/null)
 MCP_ECR_ACCOUNT = $(shell echo $(MCP_ECR_REPO) | cut -d. -f1)
-MCP_ECR_REGION = $(shell echo $(MCP_ECR_REPO) | cut -d. -f4)
 
 mcp-docker-build: ## Build the MCP server Docker image
 	@echo "Building MCP server Docker image..."
@@ -222,11 +222,11 @@ mcp-docker-build: ## Build the MCP server Docker image
 
 mcp-docker-push: mcp-docker-build ## Build and push MCP server image to ECR
 	@test -n "$(MCP_ECR_REPO)" || (echo "ECR repo not found. Run 'make mcp-deploy' first."; exit 1)
-	aws ecr get-login-password --region $(MCP_ECR_REGION) | docker login --username AWS --password-stdin $(MCP_ECR_ACCOUNT).dkr.ecr.$(MCP_ECR_REGION).amazonaws.com
+	aws ecr get-login-password --region $(MCP_AWS_REGION) | docker login --username AWS --password-stdin $(MCP_ECR_ACCOUNT).dkr.ecr.$(MCP_AWS_REGION).amazonaws.com
 	docker tag sliderule-mcp-remote:latest $(MCP_ECR_REPO):latest
 	docker push $(MCP_ECR_REPO):latest
 	@echo "Forcing new ECS deployment..."
-	aws ecs update-service --cluster $$(echo $(DOMAIN_APEX) | tr '.' '-')-mcp --service $$(echo $(DOMAIN_APEX) | tr '.' '-')-mcp-server --force-new-deployment --region $(MCP_ECR_REGION) > /dev/null
+	aws ecs update-service --cluster $$(echo $(DOMAIN_APEX) | tr '.' '-')-mcp --service $$(echo $(DOMAIN_APEX) | tr '.' '-')-mcp-server --force-new-deployment --region $(MCP_AWS_REGION) > /dev/null
 	@echo "Pushed $(MCP_ECR_REPO):latest and triggered ECS redeployment"
 
 mcp-deploy: ## Deploy MCP server infrastructure via Terraform (requires DOMAIN, DOMAIN_APEX, S3_BUCKET)
@@ -252,19 +252,19 @@ MCP_ECS_SERVICE = $(MCP_ECS_CLUSTER)-server
 MCP_LOG_GROUP = /ecs/$(MCP_ECS_CLUSTER)-server
 
 mcp-logs: ## Tail MCP server logs (requires DOMAIN_APEX)
-	aws logs tail $(MCP_LOG_GROUP) --follow --region us-east-1
+	aws logs tail $(MCP_LOG_GROUP) --follow --region $(MCP_AWS_REGION)
 
 mcp-logs-recent: ## Show last 30 minutes of MCP server logs (requires DOMAIN_APEX)
-	aws logs tail $(MCP_LOG_GROUP) --since 30m --region us-east-1
+	aws logs tail $(MCP_LOG_GROUP) --since 30m --region $(MCP_AWS_REGION)
 
 mcp-shell: ## Shell into running MCP server container (requires DOMAIN_APEX)
-	@TASK_ARN=$$(aws ecs list-tasks --cluster $(MCP_ECS_CLUSTER) --service-name $(MCP_ECS_SERVICE) --region us-east-1 --query 'taskArns[0]' --output text); \
+	@TASK_ARN=$$(aws ecs list-tasks --cluster $(MCP_ECS_CLUSTER) --service-name $(MCP_ECS_SERVICE) --region $(MCP_AWS_REGION) --query 'taskArns[0]' --output text); \
 	test "$$TASK_ARN" != "None" || (echo "No running tasks found"; exit 1); \
 	echo "Connecting to $$TASK_ARN..."; \
-	aws ecs execute-command --cluster $(MCP_ECS_CLUSTER) --task $$TASK_ARN --container mcp-server --interactive --command /bin/sh --region us-east-1
+	aws ecs execute-command --cluster $(MCP_ECS_CLUSTER) --task $$TASK_ARN --container mcp-server --interactive --command /bin/sh --region $(MCP_AWS_REGION)
 
 mcp-status: ## Show MCP server ECS service status (requires DOMAIN_APEX)
-	@aws ecs describe-services --cluster $(MCP_ECS_CLUSTER) --services $(MCP_ECS_SERVICE) --region us-east-1 \
+	@aws ecs describe-services --cluster $(MCP_ECS_CLUSTER) --services $(MCP_ECS_SERVICE) --region $(MCP_AWS_REGION) \
 		--query 'services[0].{status:status,desired:desiredCount,running:runningCount,pending:pendingCount,taskDef:taskDefinition}' --output table
 
 mcp-logs-testsliderule: ## Tail MCP server logs for testsliderule.org
