@@ -218,7 +218,7 @@ async function executeDeploy() {
       ttl: ttl.value,
       version: desiredVersion.value || undefined
     })
-    if (result.success && result.data?.status) {
+    if (result.success) {
       // Add custom name to dropdown lists if not already present
       if (!clusterList.value.includes(clusterName.value)) {
         clusterSelectionStore.addCustomName(clusterName.value)
@@ -230,8 +230,7 @@ async function executeDeploy() {
     } else {
       // Failure: clear pending operation and show error
       stackStatusStore.clearPendingOperation(clusterName.value)
-      const exception = result.data?.exception
-      deployError.value = exception ?? result.error ?? 'Deploy failed'
+      deployError.value = result.error ?? 'Deploy failed'
       deployErrorDetails.value = result.errorDetails ?? null
       logger.warn('Deploy failed', { cluster: clusterName.value, error: deployError.value })
     }
@@ -287,7 +286,7 @@ async function executeDestroy() {
 
   try {
     const result = await destroyCluster(clusterName.value)
-    if (result.success && result.data?.status) {
+    if (result.success) {
       // Success: enable auto-refresh for both status and events via central coordinator
       void clusterSelectionStore.enableAutoRefresh(clusterName.value, 'Stopping cluster')
       // Force immediate status refresh to get updated state
@@ -295,8 +294,7 @@ async function executeDestroy() {
     } else {
       // Failure: clear pending operation and show error
       stackStatusStore.clearPendingOperation(clusterName.value)
-      const exception = result.data?.exception
-      destroyError.value = exception ?? result.error ?? 'Destroy failed'
+      destroyError.value = result.error ?? 'Destroy failed'
       destroyErrorDetails.value = result.errorDetails ?? null
     }
   } catch (e) {
@@ -345,7 +343,7 @@ async function executeExtend() {
 
   try {
     const result = await extendCluster(clusterName.value, ttl.value)
-    if (result.success && result.data?.status) {
+    if (result.success) {
       // Success: enable auto-refresh for both status and events via central coordinator
       void clusterSelectionStore.enableAutoRefresh(clusterName.value, 'Extending cluster TTL')
       // Force immediate status refresh to get updated state
@@ -354,8 +352,7 @@ async function executeExtend() {
     } else {
       // Failure: clear pending operation and show error
       stackStatusStore.clearPendingOperation(clusterName.value)
-      const exception = result.data?.exception
-      extendError.value = exception ?? result.error ?? 'Extend failed'
+      extendError.value = result.error ?? 'Extend failed'
       extendErrorDetails.value = result.errorDetails ?? null
       logger.warn('Extend failed', { cluster: clusterName.value, error: extendError.value })
     }

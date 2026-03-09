@@ -4,6 +4,7 @@ import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 import { useSrToastStore } from '@/stores/srToastStore'
 import { Buffer } from 'buffer/'
 import { createLogger } from '@/utils/logger'
+import { getProvisionerBaseUrl } from '@/utils/domainUtils'
 
 const logger = createLogger('FetchUtils')
 
@@ -207,9 +208,7 @@ export interface StackStatusResult {
  * Cluster status response from the provisioner API.
  */
 export interface ClusterStatusResponse {
-  status: boolean
   stack_name?: string
-  exception?: string
   response?: {
     StackId?: string
     StackName?: string
@@ -236,10 +235,8 @@ export interface ClusterStatusResult {
  * Deploy cluster response from the provisioner API.
  */
 export interface DeployClusterResponse {
-  status: boolean
   stack_name?: string
   response?: Record<string, unknown>
-  exception?: string
 }
 
 export interface DeployClusterResult {
@@ -352,7 +349,7 @@ export async function fetchCurrentNodes(
  */
 export async function fetchClusterStatus(cluster: string): Promise<ClusterStatusResult> {
   return provisionerFetch<ClusterStatusResponse>({
-    url: 'https://provisioner.slideruleearth.io/status',
+    url: `${getProvisionerBaseUrl()}/status`,
     body: { cluster },
     context: 'fetching cluster status'
   })
@@ -368,7 +365,7 @@ export async function fetchClusterStatus(cluster: string): Promise<ClusterStatus
  */
 export async function deployCluster(options: DeployClusterOptions): Promise<DeployClusterResult> {
   return provisionerFetch<DeployClusterResponse>({
-    url: 'https://provisioner.slideruleearth.io/deploy',
+    url: `${getProvisionerBaseUrl()}/deploy`,
     body: {
       cluster: options.cluster,
       is_public: options.is_public,
@@ -385,10 +382,8 @@ export async function deployCluster(options: DeployClusterOptions): Promise<Depl
  * Response from the destroy cluster API.
  */
 export interface DestroyClusterResponse {
-  status: boolean
   stack_name?: string
   response?: Record<string, unknown>
-  exception?: string
 }
 
 /**
@@ -411,7 +406,7 @@ export interface DestroyClusterResult {
  */
 export async function destroyCluster(cluster: string): Promise<DestroyClusterResult> {
   return provisionerFetch<DestroyClusterResponse>({
-    url: 'https://provisioner.slideruleearth.io/destroy',
+    url: `${getProvisionerBaseUrl()}/destroy`,
     body: { cluster },
     context: 'destroying cluster'
   })
@@ -421,10 +416,8 @@ export async function destroyCluster(cluster: string): Promise<DestroyClusterRes
  * Response from the cluster extend API.
  */
 export interface ExtendClusterResponse {
-  status: boolean
   stack_name?: string
   response?: Record<string, unknown>
-  exception?: string
 }
 
 /**
@@ -448,7 +441,7 @@ export interface ExtendClusterResult {
  */
 export async function extendCluster(cluster: string, ttl: number): Promise<ExtendClusterResult> {
   return provisionerFetch<ExtendClusterResponse>({
-    url: 'https://provisioner.slideruleearth.io/extend',
+    url: `${getProvisionerBaseUrl()}/extend`,
     body: { cluster, ttl },
     context: 'extending cluster TTL'
   })
@@ -474,11 +467,9 @@ export interface StackEvent {
  * Response from the cluster events API.
  */
 export interface ClusterEventsResponse {
-  status: boolean
   stack_name?: string
   response?: StackEvent[] // API returns events in 'response' field
   error?: string
-  exception?: string
 }
 
 /**
@@ -502,7 +493,7 @@ export interface ClusterEventsResult {
  */
 export async function fetchClusterEvents(cluster: string): Promise<ClusterEventsResult> {
   return provisionerFetch<ClusterEventsResponse>({
-    url: 'https://provisioner.slideruleearth.io/events',
+    url: `${getProvisionerBaseUrl()}/events`,
     body: { cluster },
     context: 'fetching cluster events'
   })
@@ -512,7 +503,6 @@ export async function fetchClusterEvents(cluster: string): Promise<ClusterEvents
  * Response from the provisioner report API.
  */
 export interface ProvisionerReportResponse {
-  status: boolean
   [key: string]: unknown
 }
 
@@ -535,7 +525,7 @@ export interface ProvisionerReportResult {
  */
 export async function fetchProvisionerReport(): Promise<ProvisionerReportResult> {
   return provisionerFetch<ProvisionerReportResponse>({
-    url: 'https://provisioner.slideruleearth.io/report',
+    url: `${getProvisionerBaseUrl()}/report`,
     body: {},
     context: 'fetching provisioner report'
   })
@@ -605,7 +595,6 @@ export async function fetchDiscoveryStatus(
  * Response from the provisioner status API (global, without cluster param).
  */
 export interface ProvisionerStatusResponse {
-  status: boolean
   [key: string]: unknown
 }
 
@@ -629,7 +618,7 @@ export interface ProvisionerStatusResult {
  */
 export async function fetchProvisionerStatus(cluster: string): Promise<ProvisionerStatusResult> {
   return provisionerFetch<ProvisionerStatusResponse>({
-    url: 'https://provisioner.slideruleearth.io/status',
+    url: `${getProvisionerBaseUrl()}/status`,
     body: { cluster },
     context: 'fetching provisioner status'
   })
@@ -639,7 +628,6 @@ export async function fetchProvisionerStatus(cluster: string): Promise<Provision
  * Response from the provisioner test report API.
  */
 export interface ProvisionerTestReportResponse {
-  status: boolean
   [key: string]: unknown
 }
 
@@ -662,7 +650,7 @@ export interface ProvisionerTestReportResult {
  */
 export async function fetchProvisionerTestReport(): Promise<ProvisionerTestReportResult> {
   return provisionerFetch<ProvisionerTestReportResponse>({
-    url: 'https://provisioner.slideruleearth.io/report/tests',
+    url: `${getProvisionerBaseUrl()}/report/tests`,
     body: {},
     context: 'fetching provisioner test report'
   })

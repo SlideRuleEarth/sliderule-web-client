@@ -119,25 +119,6 @@ export const useClusterEventsStore = defineStore('clusterEvents', () => {
       logger.debug('Cluster events fetch result', { cluster, result })
 
       if (result.success && result.data) {
-        if (result.data.status === false) {
-          // API returned an error (e.g., stack doesn't exist or is down)
-          const errorMsg = result.data.exception ?? result.data.error ?? 'Failed to fetch events'
-          errors.value[cluster] = errorMsg
-          logger.warn('Cluster events API error', { cluster, exception: result.data.exception })
-
-          // Return cached events if available
-          const cached = eventsCache.value[cluster]
-          if (cached) {
-            logger.info('Returning cached events after API error', {
-              cluster,
-              cachedCount: cached.events.length,
-              cachedAt: cached.fetchedAt
-            })
-            return { events: cached.events, fromCache: true, error: errorMsg }
-          }
-          return { events: [], fromCache: false, error: errorMsg }
-        }
-
         // Success - cache the events (but preserve existing cache if new events are empty)
         const events = result.data.response ?? []
         const existingCache = eventsCache.value[cluster]

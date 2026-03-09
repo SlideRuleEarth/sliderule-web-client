@@ -87,5 +87,6 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 
-# Notes
-notes/
+## Claude and Codex
+.claude/ 
+.codex/
