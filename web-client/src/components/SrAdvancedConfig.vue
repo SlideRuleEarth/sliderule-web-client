@@ -151,6 +151,50 @@
         v-model="debugStore.useMetersForMousePosition"
         label="Use Meters for mouse position"
       ></SrCheckbox>
+      <br />
+      <label for="loginBaseUrl">Login Server URL</label>
+      <div class="sr-login-url-row">
+        <InputText
+          id="loginBaseUrl"
+          v-model="loginBaseUrl"
+          :placeholder="defaultLoginBaseUrl"
+          :invalid="!!loginBaseUrlError"
+          size="small"
+          class="sr-login-url-input"
+        />
+        <Button
+          icon="pi pi-refresh"
+          class="sr-reset-btn"
+          @click="clearLoginBaseUrl"
+          variant="text"
+          rounded
+          title="Reset to default"
+        ></Button>
+      </div>
+      <small v-if="loginBaseUrlError" class="sr-login-url-error">{{ loginBaseUrlError }}</small>
+      <br />
+      <label for="provisionerBaseUrl">Provisioner Server URL</label>
+      <div class="sr-login-url-row">
+        <InputText
+          id="provisionerBaseUrl"
+          v-model="provisionerBaseUrl"
+          :placeholder="defaultProvisionerBaseUrl"
+          :invalid="!!provisionerBaseUrlError"
+          size="small"
+          class="sr-login-url-input"
+        />
+        <Button
+          icon="pi pi-refresh"
+          class="sr-reset-btn"
+          @click="clearProvisionerBaseUrl"
+          variant="text"
+          rounded
+          title="Reset to default"
+        ></Button>
+      </div>
+      <small v-if="provisionerBaseUrlError" class="sr-login-url-error">{{
+        provisionerBaseUrlError
+      }}</small>
     </Fieldset>
   </div>
 </template>
@@ -166,10 +210,18 @@ import { useDeckStore } from '@/stores/deckStore'
 import { useRequestsStore } from '@/stores/requestsStore'
 import SrCheckbox from './SrCheckbox.vue'
 import InputNumber from 'primevue/inputnumber'
+import InputText from 'primevue/inputtext'
 import { useGlobalChartStore } from '@/stores/globalChartStore'
 import { useTourStore } from '@/stores/tourStore'
 import { useMobileWarningStore } from '@/stores/mobileWarningStore'
 import Button from 'primevue/button'
+import {
+  LOGIN_BASE_URL_KEY,
+  PROVISIONER_BASE_URL_KEY,
+  getBaseDomain,
+  validateServiceUrl
+} from '@/utils/domainUtils'
+import { clearASMetadataCache } from '@/utils/oauthDiscovery'
 
 const debugStore = useDebugStore()
 const mobileWarningStore = useMobileWarningStore()
@@ -188,6 +240,63 @@ const deckPointSize = computed({
     }
   }
 })
+
+const defaultLoginBaseUrl = `https://login.${getBaseDomain()}`
+
+const loginBaseUrl = computed({
+  get: () => localStorage.getItem(LOGIN_BASE_URL_KEY) || '',
+  set: (value: string) => {
+    const trimmed = value.trim()
+    if (trimmed) {
+      const error = validateServiceUrl(trimmed)
+      if (!error) {
+        localStorage.setItem(LOGIN_BASE_URL_KEY, trimmed)
+        clearASMetadataCache()
+      }
+    } else {
+      localStorage.removeItem(LOGIN_BASE_URL_KEY)
+      clearASMetadataCache()
+    }
+  }
+})
+
+const loginBaseUrlError = computed(() => {
+  const value = loginBaseUrl.value.trim()
+  if (!value) return null
+  return validateServiceUrl(value)
+})
+
+function clearLoginBaseUrl() {
+  localStorage.removeItem(LOGIN_BASE_URL_KEY)
+  clearASMetadataCache()
+}
+
+const defaultProvisionerBaseUrl = `https://provisioner.${getBaseDomain()}`
+
+const provisionerBaseUrl = computed({
+  get: () => localStorage.getItem(PROVISIONER_BASE_URL_KEY) || '',
+  set: (value: string) => {
+    const trimmed = value.trim()
+    if (trimmed) {
+      const error = validateServiceUrl(trimmed)
+      if (!error) {
+        localStorage.setItem(PROVISIONER_BASE_URL_KEY, trimmed)
+      }
+    } else {
+      localStorage.removeItem(PROVISIONER_BASE_URL_KEY)
+    }
+  }
+})
+
+const provisionerBaseUrlError = computed(() => {
+  const value = provisionerBaseUrl.value.trim()
+  if (!value) return null
+  return validateServiceUrl(value)
+})
+
+function clearProvisionerBaseUrl() {
+  localStorage.removeItem(PROVISIONER_BASE_URL_KEY)
+}
 </script>
 <style scoped>
 .sr-advanced-config {
@@ -236,5 +345,20 @@ const deckPointSize = computed({
 
 .sr-reset-btn {
   padding: 0.25rem;
+}
+
+.sr-login-url-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sr-login-url-input {
+  width: 100%;
+}
+
+.sr-login-url-error {
+  color: var(--p-red-400, #f87171);
 }
 </style>

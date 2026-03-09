@@ -53,7 +53,7 @@ const githubIsMember = computed(() => githubAuthStore.isMember)
 const githubIsOwner = computed(() => githubAuthStore.isOwner)
 // TODO: Re-enable when GitHub login button is restored
 function handleGitHubLogin() {
-  githubAuthStore.initiateLogin()
+  void githubAuthStore.initiateLogin()
 }
 
 const displayTour = computed(() => {

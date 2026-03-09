@@ -1,0 +1,11 @@
+services:
+  keycloak:
+    build: .
+    command: start-dev --import-realm
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_HTTP_PORT: 8080
+      KC_FEATURES: dynamic-scopes,client-policies
+    ports:
+      - "8080:8080"
