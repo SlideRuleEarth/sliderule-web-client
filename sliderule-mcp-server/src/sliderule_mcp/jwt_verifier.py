@@ -82,6 +82,9 @@ class JwtVerifier:
         except jwt.InvalidTokenError as e:
             log.info("JWT rejected: %s", e)
             return None
+        except jwt.exceptions.InvalidKeyError as e:
+            log.info("JWT rejected: %s", e)
+            return None
         except httpx.HTTPError as e:
             log.warning("JWT verification failed: could not fetch JWKS: %s", e)
             return None
