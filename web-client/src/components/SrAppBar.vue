@@ -353,7 +353,7 @@ async function executeDestroyCluster() {
 
   try {
     const result = await destroyCluster(clusterName)
-    if (result.success && result.data?.status) {
+    if (result.success) {
       // Success: enable auto-refresh for both status and events via central coordinator
       void clusterSelectionStore.enableAutoRefresh(clusterName, 'Stopping cluster')
       // Force immediate status refresh to get updated state
@@ -369,8 +369,7 @@ async function executeDestroyCluster() {
     } else {
       // Failure: clear pending operation and show error
       stackStatusStore.clearPendingOperation(clusterName)
-      const exception = result.data?.exception
-      const errorMsg = exception ?? result.error ?? 'Destroy failed'
+      const errorMsg = result.error ?? 'Destroy failed'
       toast.add({
         severity: 'error',
         summary: 'Destroy Failed',

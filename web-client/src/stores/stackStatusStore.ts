@@ -328,40 +328,32 @@ export const useStackStatusStore = defineStore(
       try {
         const result = await fetchClusterStatus(cluster)
         logger.debug('Cluster status fetch result', { cluster, result })
-        if (result.success && result.data) {
-          if (result.data.status === false) {
-            // Check if stack simply doesn't exist (not a real error)
-            const exception = result.data.exception ?? ''
-            if (exception.includes('Not found')) {
-              // Stack not found - create synthetic NOT_FOUND response
-              const notFoundResponse: ClusterStatusResponse = {
-                status: true,
-                stack_name: cluster,
-                response: {
-                  StackStatus: 'NOT_FOUND'
-                }
-              }
-              statusCache.value[cluster] = notFoundResponse
-              errors.value[cluster] = null
-              checkAndClearPendingOperation(cluster, 'NOT_FOUND')
-              // Clear any shutdown timer since cluster doesn't exist
-              clearShutdownTimer(cluster)
-              // Auto-stop polling since NOT_FOUND is a stable state
-              if (isAutoRefreshEnabled(cluster)) {
-                logger.info('Cluster not found, stopping auto-refresh', { cluster })
-                void useClusterSelectionStore().disableAutoRefresh(cluster, 'Cluster not found')
-              }
-              // Update last refresh time for UI
-              useClusterSelectionStore().updateLastRefreshTime(cluster)
-              logger.info('Cluster stack not found', { cluster })
-              return notFoundResponse
+        // Check for "not found" in HTTP error (stack doesn't exist)
+        // provisionerFetch maps HTTP 404 to user-friendly "Resource not found."
+        if (!result.success && result.error?.toLowerCase().includes('not found')) {
+          const notFoundResponse: ClusterStatusResponse = {
+            stack_name: cluster,
+            response: {
+              StackStatus: 'NOT_FOUND'
             }
-            // API returned an actual error (e.g., permission denied)
-            errors.value[cluster] = exception || 'Failed to fetch status'
-            statusCache.value[cluster] = null
-            logger.warn('Cluster status API error', { cluster, exception })
-            return null
           }
+          statusCache.value[cluster] = notFoundResponse
+          errors.value[cluster] = null
+          checkAndClearPendingOperation(cluster, 'NOT_FOUND')
+          // Clear any shutdown timer since cluster doesn't exist
+          clearShutdownTimer(cluster)
+          // Auto-stop polling since NOT_FOUND is a stable state
+          if (isAutoRefreshEnabled(cluster)) {
+            logger.info('Cluster not found, stopping auto-refresh', { cluster })
+            void useClusterSelectionStore().disableAutoRefresh(cluster, 'Cluster not found')
+          }
+          // Update last refresh time for UI
+          useClusterSelectionStore().updateLastRefreshTime(cluster)
+          logger.info('Cluster stack not found', { cluster })
+          return notFoundResponse
+        }
+
+        if (result.success && result.data) {
           statusCache.value[cluster] = result.data
           const stackStatus = result.data.response?.StackStatus as StackStatus
           if (stackStatus) {
