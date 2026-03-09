@@ -218,7 +218,7 @@ MCP_ECR_ACCOUNT = $(shell echo $(MCP_ECR_REPO) | cut -d. -f1)
 
 mcp-docker-build: ## Build the MCP server Docker image
 	@echo "Building MCP server Docker image..."
-	docker build -t sliderule-mcp-remote $(MCP_SERVER_DIR)
+	docker build --platform linux/arm64 -t sliderule-mcp-remote $(MCP_SERVER_DIR)
 
 mcp-docker-push: mcp-docker-build ## Build and push MCP server image to ECR
 	@test -n "$(MCP_ECR_REPO)" || (echo "ECR repo not found. Run 'make mcp-deploy' first."; exit 1)

@@ -188,9 +188,9 @@ async def ws_endpoint(websocket: WebSocket):
         await websocket.close(4003, "Origin not allowed")
         return
 
-    # Rate limiting per real client IP (X-Forwarded-For from ALB, else direct)
+    # Rate limiting per real client IP (ALB appends the true client IP as the last entry)
     forwarded = websocket.headers.get("x-forwarded-for", "")
-    client_ip = forwarded.split(",")[0].strip() if forwarded else (
+    client_ip = forwarded.split(",")[-1].strip() if forwarded else (
         websocket.client.host if websocket.client else "unknown"
     )
     if not _check_ws_rate_limit(client_ip):
