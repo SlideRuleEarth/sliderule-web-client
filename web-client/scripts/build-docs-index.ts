@@ -321,16 +321,30 @@ async function main() {
     `Total: ${allChunks.length} chunks (${scrapedChunks.length} scraped + ${pdfChunks.length} PDF + ${tooltipChunks.length} tooltips)`
   )
 
-  // 5. Write output
-  const output = {
-    version: 1,
-    generated_at: new Date().toISOString(),
-    chunks: allChunks,
-    tooltips: allTooltips
+  // 5. Write output (only if content actually changed)
+  const newContent = { version: 1, chunks: allChunks, tooltips: allTooltips }
+  const newContentJson = JSON.stringify(newContent)
+
+  let needsWrite = true
+  if (fs.existsSync(OUTPUT_FILE)) {
+    try {
+      const existing = JSON.parse(fs.readFileSync(OUTPUT_FILE, 'utf-8'))
+      const { generated_at: _, ...existingContent } = existing
+      if (JSON.stringify(existingContent) === newContentJson) {
+        needsWrite = false
+      }
+    } catch {
+      // If existing file is malformed, rewrite it
+    }
   }
 
-  fs.writeFileSync(OUTPUT_FILE, JSON.stringify(output, null, 2) + '\n')
-  console.log(`\nWritten to ${OUTPUT_FILE}`)
+  if (needsWrite) {
+    const output = { ...newContent, generated_at: new Date().toISOString() }
+    fs.writeFileSync(OUTPUT_FILE, JSON.stringify(output, null, 2) + '\n')
+    console.log(`\nWritten to ${OUTPUT_FILE}`)
+  } else {
+    console.log(`\nNo changes detected — ${OUTPUT_FILE} is up to date`)
+  }
 }
 
 main().catch((e) => {

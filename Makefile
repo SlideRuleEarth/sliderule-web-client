@@ -77,9 +77,6 @@ verify-s3-assets-testsliderule:
 live-update-client-testsliderule: ## Update the web client at client.testsliderule.org with new build
 	$(MAKE) live-update S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org DOMAIN=client.testsliderule.org 
 
-live-update-ai-testsliderule: ## Update the web client at ai.testsliderule.org with new build
-	$(MAKE) live-update S3_BUCKET=testsliderule-ai-webclient DOMAIN_APEX=testsliderule.org DOMAIN=ai.testsliderule.org
-
 live-update-client-slideruleearth: ## Update the web client at client.slideruleearth.io with new build
 	$(MAKE) live-update S3_BUCKET=slideruleearth-webclient DOMAIN_APEX=slideruleearth.io DOMAIN=client.slideruleearth.io 
 
@@ -178,12 +175,6 @@ deploy-client-to-slideruleearth: ## Deploy the web client to the slideruleearth.
 destroy-client-slideruleearth: ## Destroy the web client from the slideruleearth.io cloudfront and remove the S3 bucket
 	$(MAKE) destroy DOMAIN=client.slideruleearth.io S3_BUCKET=slideruleearth-webclient DOMAIN_APEX=slideruleearth.io
 
-deploy-ai-client-to-testsliderule: ## Deploy the web client to the testsliderule.org cloudfront and update the s3 bucket
-	$(MAKE) deploy DOMAIN=ai.testsliderule.org S3_BUCKET=testsliderule-ai-webclient DOMAIN_APEX=testsliderule.org CREATE_APEX_REDIRECT=false && \
-	$(MAKE) live-update DOMAIN=ai.testsliderule.org S3_BUCKET=testsliderule-ai-webclient DOMAIN_APEX=testsliderule.org
-
-destroy-ai-client-testsliderule: ## Destroy the web client from the testsliderule.org cloudfront and remove the S3 bucket
-	$(MAKE) destroy DOMAIN=ai.testsliderule.org S3_BUCKET=testsliderule-ai-webclient DOMAIN_APEX=testsliderule.org CREATE_APEX_REDIRECT=false
 
 
 MCP_SERVER_DIR = sliderule-mcp-server
@@ -278,12 +269,12 @@ mcp-status-testsliderule: ## Show MCP server status for testsliderule.org
 
 .PHONY: clean-all clean reinstall src-tag-and-push upload-assets upload-static upload-index \
 	live-update verify-s3-assets verify-s3-assets-testsliderule \
-	live-update-client-testsliderule live-update-ai-testsliderule live-update-client-slideruleearth \
+	live-update-client-testsliderule live-update-client-slideruleearth \
 	convert-icons build-docs build keycloak-up keycloak-down keycloak-run run preview \
 	deploy destroy deploy-client-to-testsliderule destroy-client-testsliderule \
 	release-live-update-to-testsliderule destroy-demo-dot-slideruleearth \
 	release-live-update-to-demo-dot-slideruleearth deploy-client-to-slideruleearth \
-	destroy-client-slideruleearth deploy-ai-client-to-testsliderule destroy-ai-client-testsliderule \
+	destroy-client-slideruleearth \
 	mcp-build mcp-publish mcp-refresh mcp-release mcp-docker-build mcp-docker-push \
 	mcp-deploy mcp-destroy mcp-deploy-testsliderule mcp-push-testsliderule \
 	mcp-logs mcp-logs-recent mcp-shell mcp-status \
