@@ -273,9 +273,10 @@ def create_app() -> Starlette:
     # the audience claim: only users with https://mcp.{DOMAIN} in their aud
     # list pass JWT verification. When the authenticator adds scopes to the JWT,
     # change this to required_scopes=["mcp:tools"].
+    resource_metadata_url = AnyHttpUrl(f"https://{MCP_HOSTNAME}/.well-known/oauth-protected-resource/mcp")
     mcp_route = Route(
         "/mcp",
-        endpoint=RequireAuthMiddleware(mcp_app, required_scopes=[]),
+        endpoint=RequireAuthMiddleware(mcp_app, required_scopes=[], resource_metadata_url=resource_metadata_url),
     )
 
     routes = [
