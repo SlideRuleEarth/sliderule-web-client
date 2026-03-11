@@ -190,7 +190,7 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
         response_types: ['code'],
         token_endpoint_auth_method: 'none',
         code_challenge_method: 'S256',
-        scope: 'sliderule:access'
+        scope: 'sliderule:access provisioner:access'
       }
 
       // Try standards-compliant JSON POST body first (RFC 7591)
@@ -212,7 +212,7 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
         fallbackUrl.searchParams.set('response_types', 'code')
         fallbackUrl.searchParams.set('token_endpoint_auth_method', 'none')
         fallbackUrl.searchParams.set('code_challenge_method', 'S256')
-        fallbackUrl.searchParams.set('scope', 'sliderule:access')
+        fallbackUrl.searchParams.set('scope', 'sliderule:access provisioner:access')
         response = await fetch(fallbackUrl.toString(), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' }
@@ -269,7 +269,7 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
         loginUrl.searchParams.set('client_id', this.clientId!)
         loginUrl.searchParams.set('redirect_uri', window.location.origin + '/auth/github/callback')
         loginUrl.searchParams.set('state', state)
-        loginUrl.searchParams.set('scope', 'sliderule:access')
+        loginUrl.searchParams.set('scope', 'sliderule:access provisioner:access')
         loginUrl.searchParams.set('code_challenge', codeChallenge)
         loginUrl.searchParams.set('code_challenge_method', 'S256')
         loginUrl.searchParams.set('resource', getMcpResourceUri())
