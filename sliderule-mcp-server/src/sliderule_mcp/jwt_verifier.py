@@ -24,7 +24,7 @@ class JwtVerifier:
     Implements the MCP SDK TokenVerifier protocol.
     """
 
-    def __init__(self, jwks_url: str, audience: str, issuer: str):
+    def __init__(self, jwks_url: str, issuer: str, audience: str | None = None):
         self._jwks_url = jwks_url
         self._audience = audience
         self._issuer = issuer
@@ -59,13 +59,15 @@ class JwtVerifier:
         """
         try:
             signing_key = await self._get_signing_key(token)
-            payload = jwt.decode(
-                token,
-                signing_key,
-                algorithms=["RS256"],
-                audience=self._audience,
-                issuer=self._issuer,
-            )
+            decode_opts = {
+                "algorithms": ["RS256"],
+                "issuer": self._issuer,
+            }
+            if self._audience:
+                decode_opts["audience"] = self._audience
+            else:
+                decode_opts["options"] = {"verify_aud": False}
+            payload = jwt.decode(token, signing_key, **decode_opts)
             sub = payload.get("sub")
             if not sub:
                 log.info("JWT rejected: missing sub claim")

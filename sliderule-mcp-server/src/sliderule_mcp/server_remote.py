@@ -50,7 +50,7 @@ MCP_HOSTNAME = os.environ.get("SR_MCP_HOSTNAME", f"mcp.{DOMAIN}")
 PORT = int(os.environ.get("SR_MCP_PORT", "8000"))
 
 JWKS_URL = f"https://{AUTH_HOSTNAME}/.well-known/jwks.json"
-AUDIENCE = f"https://{MCP_HOSTNAME}"
+AUDIENCE = f"https://{MCP_HOSTNAME}/mcp"
 ISSUER = f"https://{AUTH_HOSTNAME}"
 AUTH_SERVER_URL = f"https://{AUTH_HOSTNAME}"
 
@@ -71,7 +71,10 @@ _ws_conn_times: dict[str, collections.deque] = collections.defaultdict(
 )
 
 # ── Shared instances ──────────────────────────────────────────────
-jwt_verifier = JwtVerifier(jwks_url=JWKS_URL, audience=AUDIENCE, issuer=ISSUER)
+# MCP clients (Claude.ai) get tokens with aud set to our resource URI — enforce it.
+mcp_jwt_verifier = JwtVerifier(jwks_url=JWKS_URL, issuer=ISSUER, audience=AUDIENCE)
+# Web client tokens have a provisioner audience — skip aud check, only use sub.
+ws_jwt_verifier = JwtVerifier(jwks_url=JWKS_URL, issuer=ISSUER)
 router = SessionRouter()
 
 # ── MCP Server (low-level) ───────────────────────────────────────
@@ -215,7 +218,7 @@ async def ws_endpoint(websocket: WebSocket):
         await websocket.close(4001, "Expected auth message with token")
         return
 
-    access_token = await jwt_verifier.verify_token(msg["token"])
+    access_token = await ws_jwt_verifier.verify_token(msg["token"])
     if access_token is None:
         await websocket.close(4001, "Invalid or expired token")
         return
@@ -289,7 +292,7 @@ def create_app() -> Starlette:
     middleware = [
         Middleware(
             AuthenticationMiddleware,
-            backend=BearerAuthBackend(jwt_verifier),
+            backend=BearerAuthBackend(mcp_jwt_verifier),
         ),
         Middleware(AuthContextMiddleware),
     ]
