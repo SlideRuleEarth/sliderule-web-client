@@ -74,3 +74,12 @@ export function getProvisionerBaseUrl(): string {
   if (runtimeOverride && !validateServiceUrl(runtimeOverride)) return runtimeOverride
   return `https://provisioner.${getBaseDomain()}`
 }
+
+/**
+ * Get the MCP server resource URI (RFC 8707).
+ * Used as the `resource` parameter in OAuth authorization and token requests
+ * so the auth server sets the correct `aud` claim in the JWT.
+ */
+export function getMcpResourceUri(): string {
+  return `https://mcp.${getBaseDomain()}/mcp`
+}

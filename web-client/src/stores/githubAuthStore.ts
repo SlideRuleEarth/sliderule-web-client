@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { createLogger } from '@/utils/logger'
 import { generateCodeVerifier, generateCodeChallenge } from '@/utils/pkceUtils'
-import { getProvisionerBaseUrl } from '@/utils/domainUtils'
+import { getProvisionerBaseUrl, getMcpResourceUri } from '@/utils/domainUtils'
 import { getASMetadata, clearASMetadataCache } from '@/utils/oauthDiscovery'
 
 const logger = createLogger('GitHubAuthStore')
@@ -272,6 +272,7 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
         loginUrl.searchParams.set('scope', 'sliderule:access')
         loginUrl.searchParams.set('code_challenge', codeChallenge)
         loginUrl.searchParams.set('code_challenge_method', 'S256')
+        loginUrl.searchParams.set('resource', getMcpResourceUri())
 
         logger.debug('Initiating OAuth with PKCE', { loginUrl: loginUrl.toString() })
 
@@ -344,7 +345,8 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
           code: params.code,
           redirect_uri: window.location.origin + '/auth/github/callback',
           client_id: this.clientId,
-          code_verifier: codeVerifier
+          code_verifier: codeVerifier,
+          resource: getMcpResourceUri()
         }
 
         // Try standards-compliant form-encoded POST body first
