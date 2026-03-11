@@ -136,13 +136,13 @@ run: ## Run the web client locally for development
 preview: build ## Preview the web client production build locally for development 
 	cd web-client && npm run preview
 
-deploy: # Deploy the web client to the S3 bucket
+deploy: ## Deploy web client and MCP server infrastructure via Terraform (requires DOMAIN, DOMAIN_APEX, S3_BUCKET)
 	mkdir -p terraform/ && cd terraform/ && terraform init && \
 	(terraform workspace select $(DOMAIN)-web-client 2>/dev/null || terraform workspace new $(DOMAIN)-web-client) && \
 	terraform validate && \
 	terraform apply -var domainName=$(DOMAIN) -var domainApex=$(DOMAIN_APEX) -var domain_root=$(DOMAIN_ROOT) -var s3_bucket_name=$(S3_BUCKET) -var create_apex_redirect=$(CREATE_APEX_REDIRECT)
 
-destroy: # Destroy the web client
+destroy: ## Destroy all infrastructure (web client and MCP server) via Terraform (requires DOMAIN, DOMAIN_APEX, S3_BUCKET)
 	mkdir -p terraform/ && cd terraform/ && terraform init && \
 	(terraform workspace select $(DOMAIN)-web-client 2>/dev/null || terraform workspace new $(DOMAIN)-web-client) && \
 	terraform validate && \
@@ -152,7 +152,7 @@ deploy-client-to-testsliderule: ## Deploy the web client to the testsliderule.or
 	$(MAKE) deploy DOMAIN=client.testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org && \
 	$(MAKE) live-update DOMAIN=client.testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org 
 
-destroy-client-testsliderule: ## Destroy the web client from the testsliderule.org cloudfront and remove the S3 bucket
+destroy-client-testsliderule: ## Destroy all testsliderule.org infrastructure (web client, CloudFront, S3, and MCP server)
 	$(MAKE) destroy DOMAIN=client.testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org
 
 release-live-update-to-testsliderule: src-tag-and-push ## Release the web client to the live environment NEEDS VERSION
@@ -162,7 +162,7 @@ release-live-update-to-testsliderule: src-tag-and-push ## Release the web client
 # 	$(MAKE) deploy DOMAIN=demo.slideruleearth.io S3_BUCKET=slideruleearth-demo-dot DOMAIN_APEX=slideruleearth.io && \
 # 	$(MAKE) live-update DOMAIN=demo.slideruleearth.io S3_BUCKET=slideruleearth-demo-dot DOMAIN_APEX=slideruleearth.io
 
-destroy-demo-dot-slideruleearth: ## Destroy the web client from the demo.slideruleearth.io cloudfront and remove the S3 bucket
+destroy-demo-dot-slideruleearth: ## Destroy all demo.slideruleearth.io infrastructure (web client, CloudFront, S3, and MCP server)
 	$(MAKE) destroy DOMAIN=demo.slideruleearth.io S3_BUCKET=slideruleearth-demo-dot DOMAIN_APEX=slideruleearth.io
 
 release-live-update-to-demo-dot-slideruleearth: src-tag-and-push ## Release the web client to the live environment NEEDS VERSION
@@ -172,7 +172,7 @@ deploy-client-to-slideruleearth: ## Deploy the web client to the slideruleearth.
 	$(MAKE) deploy DOMAIN=client.slideruleearth.io S3_BUCKET=slideruleearth-webclient DOMAIN_APEX=slideruleearth.io && \
 	$(MAKE) live-update DOMAIN=client.slideruleearth.io S3_BUCKET=slideruleearth-webclient DOMAIN_APEX=slideruleearth.io
 
-destroy-client-slideruleearth: ## Destroy the web client from the slideruleearth.io cloudfront and remove the S3 bucket
+destroy-client-slideruleearth: ## Destroy all client.slideruleearth.io infrastructure (web client, CloudFront, S3, and MCP server)
 	$(MAKE) destroy DOMAIN=client.slideruleearth.io S3_BUCKET=slideruleearth-webclient DOMAIN_APEX=slideruleearth.io
 
 
@@ -220,20 +220,23 @@ mcp-docker-push: mcp-docker-build ## Build and push MCP server image to ECR
 	aws ecs update-service --cluster $$(echo $(DOMAIN_APEX) | tr '.' '-')-mcp --service $$(echo $(DOMAIN_APEX) | tr '.' '-')-mcp-server --force-new-deployment --region $(MCP_AWS_REGION) > /dev/null
 	@echo "Pushed $(MCP_ECR_REPO):latest and triggered ECS redeployment"
 
-mcp-deploy: ## Deploy MCP server infrastructure via Terraform (requires DOMAIN, DOMAIN_APEX, S3_BUCKET)
+mcp-deploy: ## Add MCP server to existing web client infrastructure via Terraform (requires DOMAIN, DOMAIN_APEX, S3_BUCKET)
 	mkdir -p terraform/ && cd terraform/ && terraform init && \
 	(terraform workspace select $(DOMAIN)-web-client 2>/dev/null || terraform workspace new $(DOMAIN)-web-client) && \
 	terraform validate && \
 	terraform apply -var domainName=$(DOMAIN) -var domainApex=$(DOMAIN_APEX) -var domain_root=$(DOMAIN_ROOT) -var s3_bucket_name=$(S3_BUCKET) -var create_apex_redirect=$(CREATE_APEX_REDIRECT) -var create_mcp_server=$(CREATE_MCP_SERVER)
 
-mcp-destroy: ## Destroy MCP server infrastructure (requires DOMAIN, DOMAIN_APEX, S3_BUCKET)
+mcp-destroy: ## Remove MCP server infrastructure only, leaving web client intact (requires DOMAIN, DOMAIN_APEX, S3_BUCKET)
 	mkdir -p terraform/ && cd terraform/ && terraform init && \
 	(terraform workspace select $(DOMAIN)-web-client 2>/dev/null || terraform workspace new $(DOMAIN)-web-client) && \
 	terraform validate && \
-	terraform destroy -var domainName=$(DOMAIN) -var domainApex=$(DOMAIN_APEX) -var domain_root=$(DOMAIN_ROOT) -var s3_bucket_name=$(S3_BUCKET) -var create_apex_redirect=$(CREATE_APEX_REDIRECT) -var create_mcp_server=$(CREATE_MCP_SERVER)
+	terraform apply -var domainName=$(DOMAIN) -var domainApex=$(DOMAIN_APEX) -var domain_root=$(DOMAIN_ROOT) -var s3_bucket_name=$(S3_BUCKET) -var create_apex_redirect=$(CREATE_APEX_REDIRECT) -var create_mcp_server=false
 
-mcp-deploy-testsliderule: ## Deploy MCP server to testsliderule.org
+mcp-deploy-testsliderule: ## Add MCP server to testsliderule.org infrastructure
 	$(MAKE) mcp-deploy DOMAIN=client.testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org
+
+mcp-destroy-testsliderule: ## Remove MCP server from testsliderule.org, leaving web client intact
+	$(MAKE) mcp-destroy DOMAIN=client.testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org
 
 mcp-push-testsliderule: ## Build and push MCP server image to testsliderule.org ECR
 	$(MAKE) mcp-docker-push DOMAIN_APEX=testsliderule.org
