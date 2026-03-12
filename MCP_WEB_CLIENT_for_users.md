@@ -182,13 +182,30 @@ Make sure you're looking at the correct browser tab. The web client must be the 
 
 ---
 
+## Make sure to turn on the SlideRule connector
+
+Tools in Claude Desktop can be toggled on and off.
+
+### Enable the SlideRule Connector
+
+1. Open a new conversation 
+2. Click the **+** button below the message input to open the attachment menu.
+3. Select **Connectors**.
+4. Toggle **sliderule** on.
+
+![Enabling the SlideRule connector in claude.ai](docs/images/claude-ai-connectors.png)
+
+Once enabled, Claude has access to the same SlideRule tools described in the [How to Use](#how-to-use) section. Make sure the SlideRule web client is open in a browser tab so the relay can communicate with it.
+
+---
+
 ## Compatibility
 
 | Client | Supported | Notes |
 |---|---|---|
-| Claude Desktop (Chat mode) | Yes | Fully supported. This is the primary interface. |
+| Claude Desktop (Chat mode) | Yes | Fully supported. Requires local MCP server setup (see [Setup](#setup-one-time)). |
+| claude.ai (web) | Yes | Supported via the cloud relay Connector (see [above](#using-with-claudeai-cloud-relay)). |
 | Claude Desktop (Cowork mode) | No | Known limitation — local MCP servers are not loaded in Cowork mode. |
-| claude.ai (web/mobile) | No | Requires a remote server architecture not yet available. |
 
 ---
 
