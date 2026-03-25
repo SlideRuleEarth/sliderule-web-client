@@ -44,6 +44,15 @@ module.exports = {
       globals: {
         globalThis: 'readonly'
       }
+    },
+    {
+      files: ['scripts/**/*.ts'],
+      env: {
+        node: true
+      },
+      parserOptions: {
+        project: ['./tsconfig.node.json']
+      }
     }
   ]
 }

@@ -289,6 +289,7 @@ onBeforeUnmount(() => {
     mapContainer.value.removeEventListener('contextmenu', handleContextMenu)
   }
   document.removeEventListener('click', closeContextMenu)
+  analysisMapStore.map = null
 })
 
 const elevationIsLoading = computed(
@@ -458,6 +459,7 @@ onMounted(async () => {
     logger.error('SrAnalysisMap onMounted: map is null')
     return
   }
+  analysisMapStore.map = map
 
   const srViewName = await db.getSrViewName(props.selectedReqId)
   //logger.debug(`SrAnalysisMap onMounted: retrieved srViewName: ${srViewName} for reqId:${props.selectedReqId}`);

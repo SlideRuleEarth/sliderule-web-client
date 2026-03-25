@@ -30,6 +30,7 @@ witch.zip
 # misc
 *.parquet
 *.py
+!sliderule-mcp-server/**/*.py
 **/npm-debug.log
 **/testem.log
 **/.env*

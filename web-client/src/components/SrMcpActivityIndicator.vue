@@ -1,0 +1,291 @@
+<script setup lang="ts">
+import { computed, ref, watch } from 'vue'
+import Button from 'primevue/button'
+import Popover from 'primevue/popover'
+import Checkbox from 'primevue/checkbox'
+import InputText from 'primevue/inputtext'
+import ConfirmDialog from 'primevue/confirmdialog'
+import { useToast } from 'primevue/usetoast'
+import { useMcpStore } from '@/stores/mcpStore'
+import { useSrToastStore } from '@/stores/srToastStore'
+import { connect, disconnect, reconnect } from '@/services/mcpClient'
+
+const DEV_PORT = 3003
+const DEFAULT_PORT = 3002
+
+const mcpStore = useMcpStore()
+const toast = useToast()
+const srToastStore = useSrToastStore()
+const popover = ref()
+const cloudUrlInput = ref(mcpStore.mcpWsUrl)
+
+watch(
+  () => mcpStore.lastError,
+  (err) => {
+    if (err) {
+      toast.add({
+        severity: 'warn',
+        summary: 'MCP Disconnected',
+        detail: err,
+        life: srToastStore.getLife()
+      })
+    }
+  }
+)
+
+const cloudMode = computed({
+  get: () => mcpStore.isCloudMode,
+  set: (val: boolean) => {
+    if (val) {
+      const url = cloudUrlInput.value.trim()
+      if (!url) return
+      mcpStore.setCloudUrl(url)
+    } else {
+      mcpStore.setCloudUrl('')
+    }
+    if (mcpStore.status !== 'disconnected') {
+      reconnect()
+    }
+  }
+})
+
+function applyCloudUrl() {
+  mcpStore.setCloudUrl(cloudUrlInput.value)
+  if (mcpStore.status !== 'disconnected') {
+    reconnect()
+  }
+}
+
+const devMode = computed({
+  get: () => mcpStore.wsPort === DEV_PORT,
+  set: (val: boolean) => {
+    mcpStore.setWsPort(val ? DEV_PORT : DEFAULT_PORT)
+    if (mcpStore.status !== 'disconnected') {
+      reconnect()
+    }
+  }
+})
+
+const statusColor = computed(() => {
+  switch (mcpStore.status) {
+    case 'connected':
+      return 'var(--p-green-400)'
+    case 'connecting':
+    case 'reconnecting':
+      return 'var(--p-yellow-400)'
+    default:
+      return 'var(--p-surface-400)'
+  }
+})
+
+const statusLabel = computed(() => {
+  switch (mcpStore.status) {
+    case 'connected':
+      return 'MCP'
+    case 'connecting':
+    case 'reconnecting':
+      return 'MCP...'
+    default:
+      return 'MCP'
+  }
+})
+
+const toggleLabel = computed(() => (mcpStore.isConnected ? 'Disconnect' : 'Connect'))
+
+function toggleConnection() {
+  if (mcpStore.isConnected || mcpStore.status === 'reconnecting') {
+    disconnect()
+  } else {
+    connect()
+  }
+}
+
+function togglePanel(event: Event) {
+  popover.value?.toggle(event)
+}
+
+function formatTime(ts: number): string {
+  return new Date(ts).toLocaleTimeString()
+}
+</script>
+
+<template>
+  <ConfirmDialog group="mcp" />
+  <div class="sr-mcp-indicator">
+    <Button
+      class="p-button-text p-button-rounded p-button-sm"
+      :label="statusLabel"
+      size="small"
+      @click="togglePanel"
+    >
+      <template #icon>
+        <span class="sr-mcp-dot" :style="{ backgroundColor: statusColor }"></span>
+      </template>
+    </Button>
+    <Popover ref="popover" :style="{ width: '480px' }">
+      <div class="sr-mcp-panel">
+        <div class="sr-mcp-panel-header">
+          <span class="sr-mcp-panel-status">{{ mcpStore.status }}</span>
+          <div class="sr-mcp-panel-controls">
+            <label class="sr-mcp-dev-toggle">
+              <Checkbox v-model="cloudMode" :binary="true" :disabled="!cloudUrlInput.trim()" />
+              <span>cloud</span>
+            </label>
+            <label v-if="!mcpStore.isCloudMode" class="sr-mcp-dev-toggle">
+              <Checkbox v-model="devMode" :binary="true" />
+              <span>dev</span>
+            </label>
+            <Button :label="toggleLabel" size="small" @click="toggleConnection" />
+          </div>
+        </div>
+        <div class="sr-mcp-cloud-url">
+          <InputText
+            v-model="cloudUrlInput"
+            placeholder="wss://mcp.slideruleearth.io/ws"
+            size="small"
+            class="sr-mcp-url-input"
+            @keydown.enter="applyCloudUrl"
+          />
+        </div>
+        <div v-if="mcpStore.lastError" class="sr-mcp-panel-error">
+          {{ mcpStore.lastError }}
+        </div>
+        <div v-if="mcpStore.recentActivity.length > 0" class="sr-mcp-panel-log">
+          <div
+            v-for="(entry, i) in [...mcpStore.recentActivity].reverse()"
+            :key="i"
+            class="sr-mcp-log-entry"
+            :class="{ 'sr-mcp-log-error': entry.isError }"
+          >
+            <span class="sr-mcp-log-time">{{ formatTime(entry.timestamp) }}</span>
+            <span
+              v-if="entry.direction === 'inbound'"
+              class="sr-mcp-log-direction"
+              title="Request from Claude"
+              >&#x2192;</span
+            >
+            <span v-else class="sr-mcp-log-direction" title="Response to Claude">&#x2190;</span>
+            <span class="sr-mcp-log-summary">{{ entry.summary }}</span>
+            <span v-if="entry.durationMs" class="sr-mcp-log-duration"
+              >{{ entry.durationMs }}ms</span
+            >
+          </div>
+        </div>
+        <div v-else class="sr-mcp-panel-empty">No activity yet</div>
+      </div>
+    </Popover>
+  </div>
+</template>
+
+<style scoped>
+.sr-mcp-indicator {
+  display: inline-flex;
+  align-items: center;
+}
+.sr-mcp-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 4px;
+}
+.sr-mcp-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.sr-mcp-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--p-primary-color) 30%, transparent);
+}
+.sr-mcp-panel-controls {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.sr-mcp-dev-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  color: var(--p-text-muted-color);
+}
+.sr-mcp-panel-status {
+  font-weight: 600;
+  text-transform: capitalize;
+}
+.sr-mcp-cloud-url {
+  display: flex;
+  gap: 0.25rem;
+}
+.sr-mcp-url-input {
+  flex: 1;
+  font-size: 0.75rem;
+  width: 100%;
+}
+.sr-mcp-panel-error {
+  font-size: 0.8rem;
+  color: var(--p-red-400);
+  background: color-mix(in srgb, var(--p-red-400) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--p-red-400) 30%, transparent);
+  border-radius: var(--p-border-radius);
+  padding: 0.25rem 0.5rem;
+}
+.sr-mcp-panel-log {
+  max-height: 400px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: color-mix(in srgb, var(--p-primary-color) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--p-primary-color) 20%, transparent);
+  border-radius: var(--p-border-radius);
+  padding: 0.25rem;
+}
+.sr-mcp-log-entry {
+  font-size: 0.75rem;
+  font-family: monospace;
+  padding: 0.2rem 0.35rem;
+  border-radius: var(--p-border-radius);
+  display: flex;
+  gap: 4px;
+  align-items: baseline;
+}
+.sr-mcp-log-entry:nth-child(odd) {
+  background: color-mix(in srgb, var(--p-primary-color) 10%, transparent);
+}
+.sr-mcp-log-entry:hover {
+  background: color-mix(in srgb, var(--p-primary-color) 20%, transparent);
+}
+.sr-mcp-log-time {
+  color: var(--p-text-muted-color);
+  flex-shrink: 0;
+}
+.sr-mcp-log-direction {
+  flex-shrink: 0;
+  color: var(--p-primary-color);
+}
+.sr-mcp-log-summary {
+  overflow-x: auto;
+  white-space: nowrap;
+  flex: 1;
+}
+.sr-mcp-log-duration {
+  color: var(--p-text-muted-color);
+  flex-shrink: 0;
+  font-style: italic;
+}
+.sr-mcp-log-error {
+  color: var(--p-red-400);
+}
+.sr-mcp-panel-empty {
+  font-size: 0.8rem;
+  color: var(--p-text-muted-color);
+  text-align: center;
+  padding: 1rem;
+}
+</style>

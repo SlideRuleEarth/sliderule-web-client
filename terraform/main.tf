@@ -4,7 +4,21 @@ locals {
 
 provider "aws" {
   region  = "us-east-1"
-  //alias   = "us_east_1"
+  default_tags {
+    tags = {
+      Owner   = "SlideRule"
+      Project = "web-client-${var.domain_root}"
+      terraform-base-path = replace(path.cwd,
+      "/^.*?(${local.terraform-git-repo}\\/)/", "$1")
+      cost-grouping = "${var.cost_grouping}"
+    }
+  }
+}
+
+# MCP server resources live in us-west-2 alongside the rest of SlideRule infra
+provider "aws" {
+  alias   = "west"
+  region  = "us-west-2"
   default_tags {
     tags = {
       Owner   = "SlideRule"
@@ -18,8 +32,15 @@ provider "aws" {
 
 module "cloudfront" {
   source = "./modules/"
-  domain_root   = var.domain_root
-  domainName    = var.domainName
-  domainApex    = var.domainApex
-  s3_bucket_name = var.s3_bucket_name
+  domain_root          = var.domain_root
+  domainName           = var.domainName
+  domainApex           = var.domainApex
+  s3_bucket_name       = var.s3_bucket_name
+  create_apex_redirect = var.create_apex_redirect
+  create_mcp_server    = var.create_mcp_server
+
+  providers = {
+    aws      = aws
+    aws.west = aws.west
+  }
 }
