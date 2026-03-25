@@ -1608,7 +1608,30 @@ async function appendSeries(reqId: number): Promise<void> {
       logger.warn('No series data found', { reqId: reqIdStr })
       return
     }
-    //logger.debug(`appendSeries(${reqIdStr}): seriesData:`, seriesData);
+
+    // Expand x-axis to include overlay data range (e.g., ATL03 photon cloud extends beyond ATL24 Class 40 extent)
+    const chartStore = useChartStore()
+    const overlayMinX = chartStore.getMinX(reqIdStr)
+    const overlayMaxX = chartStore.getMaxX(reqIdStr)
+    const existingXAxis = Array.isArray(filteredOptions.xAxis)
+      ? filteredOptions.xAxis[0]
+      : filteredOptions.xAxis
+    const existingMinX =
+      existingXAxis?.min !== undefined ? (existingXAxis.min as number) : overlayMinX
+    const existingMaxX =
+      existingXAxis?.max !== undefined ? (existingXAxis.max as number) : overlayMaxX
+    const combinedMinX = Math.min(existingMinX, overlayMinX)
+    const combinedMaxX = Math.max(existingMaxX, overlayMaxX)
+    logger.debug('appendSeries: expanding x-axis for overlay', {
+      reqId,
+      existingMinX,
+      existingMaxX,
+      overlayMinX,
+      overlayMaxX,
+      combinedMinX,
+      combinedMaxX
+    })
+
     // Define the fields that should share a single axis
     const heightFields = [
       'height',
@@ -1844,6 +1867,7 @@ async function appendSeries(reqId: number): Promise<void> {
     chart.setOption(
       {
         ...filteredOptions,
+        xAxis: [{ ...existingXAxis, min: combinedMinX, max: combinedMaxX }],
         legend: updatedLegend,
         series: updatedSeries,
         yAxis: updatedYAxis,
