@@ -284,7 +284,11 @@ BOOTSTRAP_TOOLS = [
             "Execute a read-only SQL query against a request's result data "
             "using DuckDB WASM with spatial extension. Use describe_data first "
             "to learn the table name and schema. Results limited to max_rows "
-            "(default 100). 30-second timeout."
+            "(default 100). 30-second timeout. IMPORTANT: time columns named "
+            "'time_ns' are stored as TIMESTAMP_NS (not BIGINT). Use timestamp "
+            "functions like EPOCH_NS(), date_part(), or cast explicitly with "
+            "EPOCH_NS(time_ns) before arithmetic. Example: "
+            "SELECT EPOCH_NS(MIN(time_ns)) as min_time FROM table."
         ),
         inputSchema={
             "type": "object",

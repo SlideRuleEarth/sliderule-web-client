@@ -19,6 +19,12 @@ const srToastStore = useSrToastStore()
 const popover = ref()
 const cloudUrlInput = ref(mcpStore.mcpWsUrl)
 
+const cloudPlaceholder = computed(() => {
+  const host = window.location.hostname
+  const domain = host.replace(/^client\./, '')
+  return `wss://mcp.${domain}/ws`
+})
+
 watch(
   () => mcpStore.lastError,
   (err) => {
@@ -141,7 +147,7 @@ function formatTime(ts: number): string {
         <div class="sr-mcp-cloud-url">
           <InputText
             v-model="cloudUrlInput"
-            placeholder="wss://mcp.slideruleearth.io/ws"
+            :placeholder="cloudPlaceholder"
             size="small"
             class="sr-mcp-url-input"
             @keydown.enter="applyCloudUrl"
