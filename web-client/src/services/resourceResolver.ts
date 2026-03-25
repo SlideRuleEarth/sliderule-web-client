@@ -534,7 +534,7 @@ function resolveDocsDefaults(uri: string, mission: string): ResourceReadResult {
   const key = mission.toLowerCase().replace('icesat-2', 'icesat2')
 
   if (defaults && key in defaults) {
-    return textResult(uri, (defaults as Record<string, unknown>)[key])
+    return textResult(uri, (defaults as unknown as Record<string, unknown>)[key])
   }
   return textResult(uri, {
     error: `Unknown mission: ${mission}. Valid keys: icesat2, gedi, core, bathy, swot, cre`

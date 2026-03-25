@@ -86,6 +86,7 @@ router.beforeEach((to) => {
       return { name: 'landing' }
     }
   }
+  return true
 })
 
 router.afterEach(() => {

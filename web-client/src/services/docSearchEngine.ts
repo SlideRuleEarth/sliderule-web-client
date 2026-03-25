@@ -1,6 +1,7 @@
 import { createLogger } from '@/utils/logger'
 import { createDuckDbClient } from '@/utils/SrDuckDb'
 import docsIndex from '@/assets/docs-index.json'
+import type { SlideRuleDefaults } from '@/stores/defaultsStore'
 
 const logger = createLogger('DocSearchEngine')
 
@@ -505,7 +506,7 @@ function extractTags(section: string, title: string): string {
 }
 
 function findParamInDefaults(
-  defaults: Record<string, unknown>,
+  defaults: SlideRuleDefaults,
   paramName: string
 ): Record<string, unknown> | null {
   const result: Record<string, unknown> = {}
