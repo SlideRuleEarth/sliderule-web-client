@@ -294,6 +294,27 @@ async function handleSetRegion(args: Record<string, unknown>): Promise<ToolResul
   return areaCheck.status === 'error' ? err(msg) : ok(msg)
 }
 
+async function handleSetAtl13Point(args: Record<string, unknown>): Promise<ToolResult> {
+  const lon = args.lon as number
+  const lat = args.lat as number
+
+  if (lon < -180 || lon > 180)
+    return err(`Invalid longitude: ${lon}. Must be between -180 and 180.`)
+  if (lat < -90 || lat > 90) return err(`Invalid latitude: ${lat}. Must be between -90 and 90.`)
+
+  const reqStore = useReqParamsStore()
+
+  if (!reqStore.iceSat2SelectedAPI.includes('atl13')) {
+    return err(
+      `Current API is "${reqStore.iceSat2SelectedAPI}", not atl13x. ` +
+        'Set the API to atl13x first, or use set_region for polygon-based APIs.'
+    )
+  }
+
+  reqStore.dropPin([lon, lat])
+  return ok(`ATL13x point set at lon=${lon}, lat=${lat}. The map pin has been placed.`)
+}
+
 async function handleZoomToLocation(args: Record<string, unknown>): Promise<ToolResult> {
   const lon = args.lon as number
   const lat = args.lat as number
@@ -963,6 +984,7 @@ const handlers: Record<string, ToolHandler> = {
   set_photon_params: handleSetPhotonParams,
   set_yapc: handleSetYapc,
   set_region: handleSetRegion,
+  set_atl13_point: handleSetAtl13Point,
   zoom_to_location: handleZoomToLocation,
   get_area_thresholds: handleGetAreaThresholds,
   get_current_params: handleGetCurrentParams,

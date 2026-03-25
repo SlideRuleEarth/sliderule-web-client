@@ -28,7 +28,7 @@ export const toolDefinitions: ToolDefinition[] = [
   {
     name: 'set_api',
     description:
-      'Set the active API for the current mission. For ICESat-2: atl06p, atl06sp, atl06x, atl03x, atl03x-surface, atl03x-phoreal, atl03vp, atl08p, atl08x, atl24x, atl13x. For GEDI: gedi01bp, gedi02ap, gedi04ap. Setting the API auto-configures related parameters (e.g. surface fit, PhoREAL).',
+      'Set the active API for the current mission. For ICESat-2: atl06p, atl06sp, atl06x, atl03x, atl03x-surface, atl03x-phoreal, atl03vp, atl08p, atl08x, atl24x, atl13x. For GEDI: gedi01bp, gedi02ap, gedi04ap. Setting the API auto-configures related parameters (e.g. surface fit, PhoREAL). IMPORTANT: atl13x (Inland Bodies of Water) uses a point coordinate instead of a polygon region — use set_atl13_point instead of set_region.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -157,7 +157,7 @@ export const toolDefinitions: ToolDefinition[] = [
   {
     name: 'set_region',
     description:
-      'Set the region of interest as a bounding box or polygon. Coordinates are in degrees (lon/lat, EPSG:4326). Sets the polygon, computes convex hull and area, and renders it on the map.',
+      'Set the region of interest as a bounding box or polygon. Coordinates are in degrees (lon/lat, EPSG:4326). Sets the polygon, computes convex hull and area, and renders it on the map. DO NOT use this for atl13x (Inland Bodies of Water) — use set_atl13_point instead.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -186,6 +186,25 @@ export const toolDefinitions: ToolDefinition[] = [
           }
         }
       }
+    }
+  },
+  {
+    name: 'set_atl13_point',
+    description:
+      'Set the point coordinate for an ATL13x (Inland Bodies of Water) request. This drops a pin on the map at the specified location. ATL13x uses a single point to identify a water body, NOT a polygon region. Use this instead of set_region when the API is atl13x.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        lon: {
+          type: 'number',
+          description: 'Longitude of the water body in degrees (-180 to 180).'
+        },
+        lat: {
+          type: 'number',
+          description: 'Latitude of the water body in degrees (-90 to 90).'
+        }
+      },
+      required: ['lon', 'lat']
     }
   },
   {
