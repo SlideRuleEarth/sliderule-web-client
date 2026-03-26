@@ -21,6 +21,9 @@ SESSION_IDLE_TTL = 3600  # Remove disconnected sessions after 1 hour
 SESSION_CLEANUP_INTERVAL = 300  # Run cleanup every 5 minutes
 
 
+MCP_CLIENT_IDLE_TTL = 300  # Consider an MCP client inactive after 5 minutes of silence
+
+
 @dataclass
 class UserSession:
     """State for a single authenticated user."""
@@ -31,6 +34,8 @@ class UserSession:
     cached_tools: list[types.Tool] = field(default_factory=lambda: list(BOOTSTRAP_TOOLS))
     last_active: float = field(default_factory=time.time)
     token_expires_at: int | None = None  # JWT exp claim (Unix timestamp)
+    active_mcp_session: str | None = None  # Streamable HTTP session ID of active MCP client
+    active_mcp_last_seen: float = 0  # Last time the active MCP client made a request
 
 
 class SessionRouter:
@@ -123,6 +128,47 @@ class SessionRouter:
 
     def get_session(self, user_id: str) -> UserSession | None:
         return self.sessions.get(user_id)
+
+    def track_mcp_client(self, user_id: str, mcp_session_id: str) -> str | None:
+        """Track which MCP client is active for this user.
+
+        Returns a log message if the session ID changed (e.g. token refresh
+        or a different AI client), None if unchanged.
+        Always allows the request through.
+        """
+        if not mcp_session_id:
+            return None
+
+        session = self.sessions.get(user_id)
+        if session is None:
+            return None
+
+        now = time.time()
+        prev = session.active_mcp_session
+
+        session.active_mcp_session = mcp_session_id
+        session.active_mcp_last_seen = now
+
+        if prev is not None and prev != mcp_session_id:
+            idle = now - session.active_mcp_last_seen
+            return (
+                f"MCP session changed for user {user_id} "
+                f"(prev={prev}, new={mcp_session_id}, idle={idle:.0f}s)"
+            )
+        return None
+
+    async def notify_browser(self, user_id: str, method: str, params: dict) -> None:
+        """Send a one-way notification to the user's browser (no response expected)."""
+        session = self.sessions.get(user_id)
+        if session is None or session.browser_ws is None:
+            return
+
+        try:
+            await session.browser_ws.send_text(
+                json.dumps({"jsonrpc": "2.0", "method": method, "params": params})
+            )
+        except Exception:
+            log.debug("Failed to send notification to browser for user %s", user_id)
 
     async def call_browser(self, user_id: str, method: str, params: dict) -> dict:
         """Forward a JSON-RPC request to the user's browser and wait for response."""

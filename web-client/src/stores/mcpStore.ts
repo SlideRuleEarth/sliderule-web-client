@@ -21,6 +21,7 @@ export const useMcpStore = defineStore('mcp', () => {
   const activityLog = ref<McpActivityEntry[]>([])
   const reconnectAttempts = ref(0)
   const lastError = ref<string | null>(null)
+  const lastWarning = ref<string | null>(null)
   const wsPort = ref(parseInt(import.meta.env.VITE_MCP_WS_PORT || '3002'))
   const mcpWsUrl = ref(localStorage.getItem('mcp-cloud-url') || '')
   const isCloudMode = computed(() => mcpWsUrl.value !== '')
@@ -57,6 +58,15 @@ export const useMcpStore = defineStore('mcp', () => {
     logger.warn('MCP error', error)
   }
 
+  function setWarning(warning: string) {
+    lastWarning.value = warning
+    logger.warn('MCP warning', warning)
+  }
+
+  function clearWarning() {
+    lastWarning.value = null
+  }
+
   function setWsPort(port: number) {
     wsPort.value = port
   }
@@ -90,6 +100,9 @@ export const useMcpStore = defineStore('mcp', () => {
     addActivity,
     incrementReconnectAttempts,
     setError,
+    setWarning,
+    clearWarning,
+    lastWarning,
     setWsPort,
     setCloudUrl,
     clearLog

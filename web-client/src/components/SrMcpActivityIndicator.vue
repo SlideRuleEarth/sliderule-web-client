@@ -39,6 +39,21 @@ watch(
   }
 )
 
+watch(
+  () => mcpStore.lastWarning,
+  (warning) => {
+    if (warning) {
+      toast.add({
+        severity: 'warn',
+        summary: 'MCP Connection Conflict',
+        detail: warning,
+        life: srToastStore.getLife()
+      })
+      mcpStore.clearWarning()
+    }
+  }
+)
+
 const cloudMode = computed({
   get: () => mcpStore.isCloudMode,
   set: (val: boolean) => {
@@ -156,6 +171,9 @@ function formatTime(ts: number): string {
         <div v-if="mcpStore.lastError" class="sr-mcp-panel-error">
           {{ mcpStore.lastError }}
         </div>
+        <div v-if="mcpStore.lastWarning" class="sr-mcp-panel-warning">
+          {{ mcpStore.lastWarning }}
+        </div>
         <div v-if="mcpStore.recentActivity.length > 0" class="sr-mcp-panel-log">
           <div
             v-for="(entry, i) in [...mcpStore.recentActivity].reverse()"
@@ -238,6 +256,14 @@ function formatTime(ts: number): string {
   color: var(--p-red-400);
   background: color-mix(in srgb, var(--p-red-400) 10%, transparent);
   border: 1px solid color-mix(in srgb, var(--p-red-400) 30%, transparent);
+  border-radius: var(--p-border-radius);
+  padding: 0.25rem 0.5rem;
+}
+.sr-mcp-panel-warning {
+  font-size: 0.8rem;
+  color: var(--p-yellow-500);
+  background: color-mix(in srgb, var(--p-yellow-400) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--p-yellow-400) 30%, transparent);
   border-radius: var(--p-border-radius);
   padding: 0.25rem 0.5rem;
 }

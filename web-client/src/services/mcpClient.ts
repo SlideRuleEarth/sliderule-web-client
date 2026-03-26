@@ -85,6 +85,18 @@ export function connect(): void {
       return
     }
 
+    // Handle server notifications (no id = one-way notification, no response needed)
+    if (msg.jsonrpc && msg.method && !msg.id) {
+      if (msg.method === 'mcp/sessionChanged') {
+        const message = msg.params?.message || 'MCP session token changed.'
+        logger.info('MCP session changed', message)
+        mcpStore.setWarning(message)
+      } else {
+        logger.debug('Received notification', msg.method)
+      }
+      return
+    }
+
     if (!msg.jsonrpc || !msg.id || !msg.method) {
       logger.warn('Received non-JSON-RPC message', msg)
       return

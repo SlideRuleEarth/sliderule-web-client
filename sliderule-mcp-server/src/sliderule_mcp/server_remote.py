@@ -11,6 +11,7 @@ This is the cloud entry point. It exposes:
 import asyncio
 import collections
 import contextlib
+import hashlib
 import json
 import logging
 import os
@@ -119,6 +120,20 @@ async def _handle_call_tool(req: types.CallToolRequest) -> types.ServerResult:
                 isError=True,
             )
         )
+
+    # Track which MCP client is active (informational only — no hard rejection).
+    mcp_client_id = hashlib.sha256(token.token.encode()).hexdigest()[:16]
+    change_msg = router.track_mcp_client(user_id, mcp_client_id)
+    if change_msg:
+        log.info(change_msg)
+        # Notify the browser that the MCP session changed
+        task = asyncio.create_task(
+            router.notify_browser(user_id, "mcp/sessionChanged", {
+                "message": "MCP session token changed (token refresh or new AI client)."
+            })
+        )
+        router._background_tasks.add(task)
+        task.add_done_callback(router._background_tasks.discard)
 
     name = req.params.name
     arguments = dict(req.params.arguments or {})
