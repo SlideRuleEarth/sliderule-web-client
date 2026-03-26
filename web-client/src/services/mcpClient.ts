@@ -118,6 +118,14 @@ export function connect(): void {
       return
     }
 
+    // Server closed with 4001 = auth failure (expired or invalid token)
+    if (event.code === 4001) {
+      mcpStore.setStatus('disconnected')
+      mcpStore.setError('MCP authentication token expired. Please log in again to reconnect.')
+      logger.info('Token expired, not reconnecting')
+      return
+    }
+
     mcpStore.setStatus('reconnecting')
     mcpStore.incrementReconnectAttempts()
     const delay = getReconnectDelay(mcpStore.reconnectAttempts)
