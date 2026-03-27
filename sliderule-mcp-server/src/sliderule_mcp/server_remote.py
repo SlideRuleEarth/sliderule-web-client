@@ -38,7 +38,7 @@ from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
 from importlib.metadata import version as pkg_version
 from pydantic import AnyHttpUrl
 
-from .common import BOOTSTRAP_TOOLS, SERVER_INSTRUCTIONS
+from .common import BOOTSTRAP_TOOLS, PROMPTS, SERVER_INSTRUCTIONS, _ANALYZE_REGION_TEMPLATE
 from .jwt_verifier import JwtVerifier
 from .session_router import SessionRouter
 
@@ -92,6 +92,35 @@ async def handle_list_tools() -> list[types.Tool]:
         if session:
             return session.cached_tools
     return list(BOOTSTRAP_TOOLS)
+
+
+@mcp_server.list_prompts()
+async def handle_list_prompts() -> list[types.Prompt]:
+    return list(PROMPTS)
+
+
+@mcp_server.get_prompt()
+async def handle_get_prompt(name: str, arguments: dict[str, str] | None = None) -> types.GetPromptResult:
+    if name == "analyze-region":
+        args = arguments or {}
+        location = args.get("location", "not specified")
+        science_goal = args.get("science_goal", "not specified — ask the user")
+        return types.GetPromptResult(
+            description="Analyze a geographic region with SlideRule",
+            messages=[
+                types.PromptMessage(
+                    role="user",
+                    content=types.TextContent(
+                        type="text",
+                        text=_ANALYZE_REGION_TEMPLATE.format(
+                            location=location,
+                            science_goal=science_goal,
+                        ),
+                    ),
+                )
+            ],
+        )
+    raise ValueError(f"Unknown prompt: {name}")
 
 
 async def _handle_call_tool(req: types.CallToolRequest) -> types.ServerResult:

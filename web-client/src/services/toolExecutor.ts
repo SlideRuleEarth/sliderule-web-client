@@ -44,7 +44,7 @@ function err(text: string): ToolResult {
   return { content: [{ type: 'text', text }], isError: true }
 }
 
-/** Check area against per-API thresholds, return a status string for Claude. */
+/** Check area against per-API thresholds, return a status string for the MCP client. */
 function checkAreaThresholds(areaKm2: number): {
   status: 'ok' | 'warning' | 'error'
   message: string
@@ -451,7 +451,7 @@ async function handleResetParams(): Promise<ToolResult> {
 
     confirmService.require({
       group: 'mcp',
-      message: 'Claude is requesting to reset all parameters to defaults. Allow this?',
+      message: 'The AI agent is requesting to reset all parameters to defaults. Allow this?',
       header: 'MCP: Reset Parameters',
       icon: 'pi pi-exclamation-triangle',
       rejectLabel: 'Deny',

@@ -440,7 +440,7 @@ BOOTSTRAP_TOOLS = [
     types.Tool(
         name="initialize",
         description=(
-            "Initialize Claude to work with the SlideRule web client. Call this at the start of every conversation. "
+            "Initialize the AI agent to work with the SlideRule web client. Call this at the start of every conversation. "
             "Returns workflow instructions, domain knowledge, key constraints, and available resources. "
             "Also enables scientific transparency mode by default."
         ),
@@ -450,6 +450,102 @@ BOOTSTRAP_TOOLS = [
         },
     ),
 ]
+
+# ── Prompt definitions ────────────────────────────────────────────
+PROMPTS = [
+    types.Prompt(
+        name="analyze-region",
+        description=(
+            "Analyze a geographic region using SlideRule satellite data. "
+            "Guides you through selecting a mission/preset, defining a region, "
+            "submitting a request, and exploring the results."
+        ),
+        arguments=[
+            types.PromptArgument(
+                name="location",
+                description=(
+                    "A place name or bounding box describing the area of interest "
+                    '(e.g. "Jakobshavn Glacier, Greenland" or '
+                    '"lat 64-66, lon -50 to -48").'
+                ),
+                required=True,
+            ),
+            types.PromptArgument(
+                name="science_goal",
+                description=(
+                    "What you want to measure or study "
+                    '(e.g. "surface elevation change", "canopy height", '
+                    '"bathymetry", "ice sheet thickness").'
+                ),
+                required=False,
+            ),
+        ],
+    ),
+]
+
+_ANALYZE_REGION_TEMPLATE = """\
+The user wants to analyze a geographic region with SlideRule.
+
+**Location:** {location}
+**Science goal:** {science_goal}
+
+Follow these steps in order. Use the tools available to you — do not skip steps \
+or ask the user to perform actions manually.
+
+## Step 1 — Initialize
+Call `initialize` if you have not already done so in this conversation.
+
+## Step 2 — Configure
+Based on the science goal, choose the best preset with `set_general_preset`. \
+If no preset fits, use `set_mission` and `set_api` individually, then configure \
+parameters (surface fit, YAPC, photon params) as appropriate.
+
+Available presets:
+- ICESat-2 Surface Elevations
+- ICESat-2 Land Ice Sheet
+- ICESat-2 Canopy Heights
+- ICESat-2 Coastal Bathymetry
+- ICESat-2 Geolocated Photons
+- ICESat-2 Inland Bodies of Water (uses set_atl13_point, not set_region)
+- GEDI Biomass Density
+- GEDI Elevations w/Canopy
+- GEDI Geolocated Waveforms
+
+If no science goal was specified, ask the user what they want to measure before \
+proceeding. Briefly explain what each relevant preset does.
+
+## Step 3 — Set region
+Convert the location to coordinates and call `set_region` (or `set_atl13_point` \
+for inland water bodies). Check `get_area_thresholds` first — if the region \
+exceeds the warning threshold, inform the user and suggest a smaller area.
+
+Also call `zoom_to_location` so the user can see the region on the map.
+
+## Step 4 — Submit and monitor
+Call `submit_request`. Then poll `get_request_status` every few seconds until \
+the status is "success" or "error". Report progress to the user (granules \
+processed, rows received, elapsed time).
+
+If the request errors, report the error message and suggest adjustments.
+
+## Step 5 — Analyze results
+Once the request succeeds:
+1. Call `describe_data` to learn the schema and table name.
+2. Call `get_elevation_stats` for a statistical summary.
+3. Run 2–3 targeted SQL queries with `run_sql` to highlight interesting \
+patterns (e.g. elevation distribution, per-beam statistics, spatial coverage).
+
+## Step 6 — Present findings
+Summarize the results in plain language:
+- What was measured and where
+- Key statistics (min, max, mean elevation or height)
+- Any notable patterns or anomalies
+- Suggestions for further analysis (e.g. narrower region, different time range, \
+exporting data)
+
+Be scientifically precise — include units, coordinate reference systems, and \
+caveats about data quality where relevant.\
+"""
 
 SERVER_INSTRUCTIONS = """\
 MANDATORY FIRST ACTION: Before responding to any user message, you MUST call \

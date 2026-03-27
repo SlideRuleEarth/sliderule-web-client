@@ -412,7 +412,7 @@ export const toolDefinitions: ToolDefinition[] = [
   {
     name: 'initialize',
     description:
-      'Initialize Claude to work with the SlideRule web client. Call this at the start of every conversation. ' +
+      'Initialize the AI agent to work with the SlideRule web client. Call this at the start of every conversation. ' +
       'Returns workflow instructions, domain knowledge, key constraints, and available resources. ' +
       'Also enables scientific transparency mode by default.',
     inputSchema: {

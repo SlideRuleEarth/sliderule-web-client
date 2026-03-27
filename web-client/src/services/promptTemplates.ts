@@ -1,9 +1,9 @@
 /**
- * MCP Prompt Templates — pre-built workflows that appear in Claude Desktop's UI.
+ * MCP Prompt Templates — pre-built workflows that appear in the MCP client's UI.
  *
- * Each prompt guides Claude through a multi-tool workflow for a common
+ * Each prompt guides the AI agent through a multi-tool workflow for a common
  * SlideRule use case. The user selects a prompt, fills in arguments, and
- * Claude receives step-by-step instructions referencing the available tools.
+ * the agent receives step-by-step instructions referencing the available tools.
  */
 
 interface PromptArgument {

@@ -15,7 +15,7 @@ from mcp.shared.message import SessionMessage
 import mcp.types as types
 from importlib.metadata import version as pkg_version
 
-from .common import BOOTSTRAP_TOOLS, SERVER_INSTRUCTIONS, TIMEOUT_S
+from .common import BOOTSTRAP_TOOLS, PROMPTS, SERVER_INSTRUCTIONS, TIMEOUT_S, _ANALYZE_REGION_TEMPLATE
 
 log = logging.getLogger("sliderule-mcp")
 
@@ -35,6 +35,35 @@ mcp_server = Server("sliderule-web", instructions=SERVER_INSTRUCTIONS)
 @mcp_server.list_tools()
 async def handle_list_tools() -> list[types.Tool]:
     return cached_tools
+
+
+@mcp_server.list_prompts()
+async def handle_list_prompts() -> list[types.Prompt]:
+    return list(PROMPTS)
+
+
+@mcp_server.get_prompt()
+async def handle_get_prompt(name: str, arguments: dict[str, str] | None = None) -> types.GetPromptResult:
+    if name == "analyze-region":
+        args = arguments or {}
+        location = args.get("location", "not specified")
+        science_goal = args.get("science_goal", "not specified — ask the user")
+        return types.GetPromptResult(
+            description="Analyze a geographic region with SlideRule",
+            messages=[
+                types.PromptMessage(
+                    role="user",
+                    content=types.TextContent(
+                        type="text",
+                        text=_ANALYZE_REGION_TEMPLATE.format(
+                            location=location,
+                            science_goal=science_goal,
+                        ),
+                    ),
+                )
+            ],
+        )
+    raise ValueError(f"Unknown prompt: {name}")
 
 
 # Register call_tool manually to support isError on the result.

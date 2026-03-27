@@ -2,13 +2,18 @@
 
 ## Context
 
-MCP (Model Context Protocol) support for the SlideRule web client allows Claude Desktop to operate it. Both the MCP server and the browser run on the researcher's own machine. Claude Desktop launches a small local MCP server process, the browser connects to it via WebSocket on localhost, and the researcher watches the app respond in real-time as Claude configures parameters, submits requests, and analyzes data.
+MCP (Model Context Protocol) support for the SlideRule web client allows AI assistants (Claude Desktop, Claude.ai) to operate it. The system supports two deployment modes:
 
-**What this looks like:** A researcher runs the web client in their browser and starts Claude Desktop. They say "Set up an ATL06 request for Greenland in 2023, submit it, then show me elevation statistics." Claude calls MCP tools, the browser executes them against its Pinia stores, DuckDB, and OpenLayers map, and the researcher watches the UI update live.
+- **Local mode:** Both the MCP server and the browser run on the researcher's machine. Claude Desktop launches a small local MCP server process via stdio, the browser connects to it via WebSocket on localhost, and the researcher watches the app respond in real-time.
+- **Cloud mode:** A remote MCP server runs on AWS ECS. Claude.ai connects via Streamable HTTP with JWT authentication, the browser connects via secure WebSocket, and a session router matches authenticated users to their browser sessions.
+
+**What this looks like:** A researcher runs the web client in their browser and connects to an AI assistant. They say "Set up an ATL06 request for Greenland in 2023, submit it, then show me elevation statistics." The assistant calls MCP tools, the browser executes them against its Pinia stores, DuckDB, and OpenLayers map, and the researcher watches the UI update live.
 
 ---
 
 ## Architecture
+
+### Local Mode (Claude Desktop)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -19,8 +24,8 @@ MCP (Model Context Protocol) support for the SlideRule web client allows Claude 
                            │ Claude Desktop launches this as a subprocess
                            ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│  MCP Server  (sliderule-mcp-server)                                  │
-│  Small Python process                                                │
+│  MCP Server  (server.py)                                             │
+│  Small Python process — single user, no auth                         │
 │                                                                      │
 │  Speaks MCP (stdio) on one side, WebSocket on the other.             │
 │  Fetches tool definitions from browser, caches + advertises them.    │
@@ -39,7 +44,7 @@ MCP (Model Context Protocol) support for the SlideRule web client allows Claude 
 │                                                                      │
 │  ┌──────────────┐    ┌────────────────┐    ┌──────────────────────┐ │
 │  │ MCP Client   │───→│ MCP Handler    │───→│ Tool Executor        │ │
-│  │ (WebSocket)  │    │ (JSON-RPC      │    │ (42 tools against    │ │
+│  │ (WebSocket)  │    │ (JSON-RPC      │    │ (22 tools against    │ │
 │  └──────────────┘    │  router)       │    │  Pinia/DuckDB/OL)    │ │
 │                      └────────────────┘    └──────────────────────┘ │
 │                                                                      │
@@ -50,6 +55,39 @@ MCP (Model Context Protocol) support for the SlideRule web client allows Claude 
 │  ┌──────────────────────────────────────────────────────────────┐   │
 │  │  Pinia Stores │ DuckDB WASM │ OpenLayers │ Deck.gl │ OPFS    │   │
 │  └──────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Cloud Mode (Claude.ai)
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  Claude.ai / AI SDK (MCP client)                                     │
+│  Connects via Streamable HTTP with Bearer JWT                        │
+└──────────────────────────┬──────────────────────────────────────────┘
+                           │ HTTPS (Streamable HTTP, JSON-RPC 2.0)
+                           │ Bearer JWT authentication
+                           ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  Remote MCP Server  (server_remote.py — AWS ECS)                     │
+│  Starlette app — multi-user with JWT auth                            │
+│                                                                      │
+│  /mcp          Streamable HTTP endpoint (MCP clients)                │
+│  /ws           WebSocket endpoint (browsers, first-message JWT auth) │
+│  /health       ALB health check                                      │
+│  /.well-known/oauth-protected-resource/mcp   RFC 9728 metadata       │
+│                                                                      │
+│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐  │
+│  │  Session Router  │  │  JWT Verifier    │  │  Per-user state:  │  │
+│  │  Maps users to   │  │  RS256 via JWKS  │  │  pending, tools,  │  │
+│  │  browser sessions│  │  5-min cache     │  │  token expiry     │  │
+│  └──────────────────┘  └──────────────────┘  └──────────────────┘  │
+└──────────────────────────┬──────────────────────────────────────────┘
+                           │ Secure WebSocket (wss://)
+                           │ JWT via first-message auth
+                           ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  Browser  (same Vue 3 SPA, cloud mode enabled)                       │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -76,7 +114,7 @@ MCP (Model Context Protocol) support for the SlideRule web client allows Claude 
 
 ## MCP Server
 
-A small Python process. Its main job: forward tool definitions and tool calls between Claude Desktop (stdio) and the browser (WebSocket). All tool logic and definitions live in the browser — the server is a transparent bridge.
+A Python process that bridges MCP clients and the browser. All tool logic and definitions live in the browser — the server is a transparent bridge. Two entry points serve different deployment modes.
 
 ### Package structure
 
@@ -86,38 +124,50 @@ sliderule-mcp-server/
 └── src/
     └── sliderule_mcp/
         ├── __init__.py
-        └── server.py
+        ├── common.py          # Shared: bootstrap tools, prompts, server instructions
+        ├── server.py          # Local mode: stdio + WebSocket (single user, no auth)
+        ├── server_remote.py   # Cloud mode: Streamable HTTP + WebSocket (multi-user, JWT auth)
+        ├── jwt_verifier.py    # RS256 JWT verification via JWKS (cloud mode)
+        └── session_router.py  # Per-user session routing + lifecycle (cloud mode)
 ```
 
-### `server.py`
+### `server.py` (local mode)
 
-See `sliderule-mcp-server/src/sliderule_mcp/server.py` for the full source.
+Local stdio server for Claude Desktop. Single browser connection, no authentication. See `sliderule-mcp-server/src/sliderule_mcp/server.py`.
+
+### `server_remote.py` (cloud mode)
+
+Starlette-based cloud server for Claude.ai and AI SDK clients. Multi-user via `SessionRouter`, JWT authentication via `JwtVerifier`. Deployed on AWS ECS behind an ALB. See `sliderule-mcp-server/src/sliderule_mcp/server_remote.py`.
+
+### `common.py`
+
+Shared code between both modes: `BOOTSTRAP_TOOLS` (22 tools), `PROMPTS`, `SERVER_INSTRUCTIONS`, and the `analyze-region` prompt template.
 
 ### `pyproject.toml`
 
-See `sliderule-mcp-server/pyproject.toml` for the full file. Two runtime dependencies: `mcp>=1.0.0` and `websockets>=12.0`. No infrastructure. No auth layer. No database.
+See `sliderule-mcp-server/pyproject.toml`. Runtime dependencies: `mcp>=1.0.0`, `websockets>=12.0`, `pyjwt[crypto]>=2.8.0`, `httpx>=0.27.0`, `uvicorn>=0.30.0`. Two entry points: `sliderule-mcp` (local) and `sliderule-mcp-remote` (cloud).
 
 ### Distribution
 
 Published to PyPI as [`sliderule-mcp`](https://pypi.org/project/sliderule-mcp/). Users install nothing manually — `uvx` downloads, isolates, and runs it automatically.
 
-**Build:** The wheel must be built via the Python API (not `hatchling build` CLI, which has a bug with `src/` layout in subdirectories of a git repo). A build script is provided:
+**Build and publish:** Use the Makefile targets:
 
 ```bash
-cd sliderule-mcp-server
-python -c "
-import os
-from hatchling.builders.wheel import WheelBuilder
-from hatchling.builders.sdist import SdistBuilder
-os.makedirs('dist', exist_ok=True)
-for a in WheelBuilder('.').build(directory='dist', versions=['standard']): print('wheel:', a)
-for a in SdistBuilder('.').build(directory='dist', versions=['standard']): print('sdist:', a)
-"
+make mcp-build     # Build wheel + sdist
+make mcp-publish   # Build + upload to PyPI
+make mcp-release   # Publish + refresh local uvx cache
 ```
 
-**Upload:** `python -m twine upload dist/*` (requires PyPI API token in `~/.pypirc`).
-
 **Version:** Bump `version` in `pyproject.toml` before each upload — PyPI rejects duplicate versions.
+
+**Docker (cloud mode):** The remote server is deployed as a Docker container on AWS ECS:
+
+```bash
+make mcp-docker-build            # Build Docker image (arm64)
+make mcp-docker-push             # Build + push to ECR + trigger ECS redeploy
+make mcp-push-testsliderule      # Build + push to testsliderule ECR
+```
 
 ### Claude Desktop Configuration
 
@@ -168,15 +218,17 @@ All tool logic lives in the browser, executing against the existing Pinia stores
 
 ### 1. MCP Client (`src/services/mcpClient.ts`)
 
-Browser-side WebSocket client that connects to the local MCP server.
+Browser-side WebSocket client that connects to the MCP server (local or cloud).
 
 **Lifecycle:**
 - Connects automatically on app load (or manually via the activity indicator toggle)
-- Opens WebSocket to `ws://localhost:3002` (port configurable via `mcpStore.wsPort`)
+- **Local mode:** Opens WebSocket to `ws://localhost:3002` (port configurable via `mcpStore.wsPort`)
+- **Cloud mode:** Opens WebSocket to configured `mcpWsUrl` (e.g., `wss://mcp.slideruleearth.io/ws`), sends JWT as first message `{type: "auth", token: "..."}`, waits for auth acknowledgment
 - Receives JSON-RPC requests, routes to MCP Handler
 - Sends JSON-RPC responses back
 - On disconnect: exponential backoff reconnect with jitter (1s, 2s, 4s, 8s, max 30s)
 - Manual disconnect suppresses auto-reconnect
+- Handles `mcp/sessionChanged` notifications (alerts user to token refresh or AI client switch)
 
 **State (reactive, for UI):**
 
@@ -195,7 +247,10 @@ interface McpState {
   }[]
   reconnectAttempts: number
   lastError: string | null
-  wsPort: number  // default 3002, configurable via VITE_MCP_WS_PORT
+  lastWarning: string | null  // session conflicts
+  wsPort: number              // default 3002, configurable via VITE_MCP_WS_PORT
+  mcpWsUrl: string            // cloud mode URL (stored in localStorage)
+  isCloudMode: boolean        // computed: true when mcpWsUrl is set
 }
 ```
 
@@ -209,6 +264,8 @@ Routes incoming JSON-RPC messages to the appropriate handler:
 | `tools/call` | Dispatch to Tool Executor, return result |
 | `resources/list` | Return resource definitions from Resource Resolver |
 | `resources/read` | Dispatch to Resource Resolver, return content |
+| `prompts/list` | Return prompt template catalog |
+| `prompts/get` | Return a filled prompt template with arguments |
 | `ping` | Return pong (keepalive) |
 
 Tool and resource definitions are **bundled in the SPA**. The browser is where all the knowledge lives — the MCP server is just a pipe.
@@ -241,75 +298,50 @@ Small indicator in `SrAppBar.vue` — a colored dot + expandable dropdown.
 
 **What it shows:**
 - Connection status: disconnected (grey), connecting (yellow), connected (green)
-- "Connect to MCP" / "Disconnect" toggle button
+- Cloud/Dev mode toggles (switch between local and cloud server)
+- "Connect" / "Disconnect" toggle button
+- Error/warning banners (e.g., session conflicts, token expiration)
 - Recent tool calls (scrolling log): `set_mission → ICESat-2`, `get_current_params`, etc.
-- Duration metrics for each activity
+- Duration metrics and direction indicators (→ inbound, ← outbound) for each activity
 
 ---
 
 ## Tool Definitions
 
-All tools execute in the browser against existing stores and utilities. All tools are implemented and working.
+All tools execute in the browser against existing stores and utilities. All tools are implemented and working. The tool set is intentionally focused on the core workflow: configure → submit → analyze → document.
 
-### Parameter Tools (13)
+### Parameter Tools (12)
 
 | Tool | Backing Code | Description |
 |---|---|---|
 | `set_mission` | `reqParamsStore.setMissionValue()` | Set mission to ICESat-2 or GEDI. Auto-resets API to mission default. |
-| `get_current_params` | `reqParamsStore` (reads state) | Return the complete current parameter state as JSON. |
-| `reset_params` | `reqParamsStore.reset()` | Reset all parameters to defaults. **Destructive — requires browser confirmation.** |
 | `set_api` | `reqParamsStore.setIceSat2API()` / `setGediAPI()` | Set the processing API (atl03x, atl06, atl08p, gedi02ap, etc.). Auto-enables API-specific flags. |
-| `set_region` | `reqParamsStore.setPoly()` | Set the geographic region via bounding box or GeoJSON polygon. Computes convex hull and area. |
-| `set_time_range` | `reqParamsStore.setT0()`, `setT1()` | Set start/end time filter. Auto-enables granule selection. |
-| `set_rgt` | `reqParamsStore.setRgt()` | Set reference ground track filter. Auto-enables granule selection. |
-| `set_cycle` | `reqParamsStore.setCycle()` | Set 91-day repeat cycle filter. Auto-enables granule selection. |
-| `set_beams` | `reqParamsStore.setSelectedGtOptions()` / `gediBeams` | Select which beams/ground tracks to process. Supports ICESat-2 GT names and GEDI beam numbers. |
-| `set_surface_fit` | `reqParamsStore.setUseSurfaceFitAlgorithm()`, `setMaxIterations()`, etc. | Enable/configure ATL06-SR surface fitting (maxi, h_win, sigma_r). Auto-disables PhoREAL. |
+| `set_general_preset` | `reqParamsStore` preset setter | Apply a named preset configuration (e.g., quick_icesat2, thorough_gedi). |
+| `set_surface_fit` | `reqParamsStore.setUseSurfaceFitAlgorithm()`, `setMaxIterations()`, etc. | Enable/configure ATL06-SR surface fitting (maxi, h_win, sigma_r). |
 | `set_photon_params` | `reqParamsStore.setLengthValue()`, `setStepValue()`, etc. | Set photon-level processing parameters (length, step, along-track spread, min photon count). |
 | `set_yapc` | `reqParamsStore.enableYAPC`, `setYAPCScore()`, etc. | Enable/configure YAPC photon classifier (score, knn, window height/width, version). |
-| `set_output_config` | `reqParamsStore` output settings | Set file output mode, GeoParquet format, checksum. |
+| `set_region` | `reqParamsStore.setPoly()` | Set the geographic region via bounding box or polygon coordinates. Computes convex hull and area. |
+| `set_atl13_point` | `reqParamsStore` point setter | Set a point location for ATL13 inland water body analysis. |
+| `zoom_to_location` | OpenLayers map view | Zoom/pan the map to a named location or coordinates. |
+| `get_area_thresholds` | Area limit config | Get the current area size thresholds and limits for region selection. |
+| `get_current_params` | `reqParamsStore` (reads state) | Return the complete current parameter state as JSON. |
+| `reset_params` | `reqParamsStore.reset()` | Reset all parameters to defaults. **Destructive — requires browser confirmation.** |
 
-### Request Lifecycle Tools (5)
+### Request Lifecycle Tools (3)
 
 | Tool | Backing Code | Description |
 |---|---|---|
 | `submit_request` | `workerDomUtils.processRunSlideRuleClicked()` | Submit the current parameters as a SlideRule processing request. Spawns a Web Worker, streams Parquet results to OPFS, loads into DuckDB. |
-| `get_request_status` | `requestsStore.getReqById()` | Get status of a request: pending, running, success, error. Includes elapsed time, row count, granule count. Also returns `current_view` (active route name/path). |
-| `cancel_request` | `workerDomUtils.processAbortClicked()` | Cancel a running request. |
+| `get_request_status` | `requestsStore.getReqById()` | Get status of a request: pending, running, success, error. Includes elapsed time, row count, granule count. |
 | `list_requests` | `requestsStore.fetchReqs()` | List all requests in the session with their status. |
-| `delete_request` | `requestsStore.deleteReq()` | Delete a request and its data. **Destructive — requires browser confirmation.** |
 
-### Data Analysis Tools (5)
-
-| Tool | Backing Code | Description |
-|---|---|---|
-| `run_sql` | `DuckDBClient.query()` | Execute SQL against in-memory results. DuckDB WASM with spatial extension. Read-only, 30s timeout. |
-| `describe_data` | `DuckDBClient.queryForColNames()`, `queryColumnTypes()` | Get schema, column types, row count, and Parquet metadata for a result set. |
-| `get_elevation_stats` | `SrDuckDbUtils.readOrCacheSummary()`, `getAllColumnMinMax()` | Compute elevation statistics: min, max, percentiles, per-beam breakdowns. |
-| `get_sample_data` | `DuckDBClient.queryChunkSampled()` | Retrieve a random sample of rows from a result set. |
-| `export_data` | `DuckDBClient.copyQueryToParquet()` | Export query results as GeoParquet or other formats for download. |
-
-### Map Tools (6)
+### Data Analysis Tools (3)
 
 | Tool | Backing Code | Description |
 |---|---|---|
-| `zoom_to_bbox` | OpenLayers `map.getView().fit()` | Zoom the map to a bounding box. |
-| `zoom_to_point` | OpenLayers `map.getView().setCenter()` | Center the map on a point with optional zoom level. |
-| `set_base_layer` | `mapStore.setSelectedBaseLayer()` | Change the base layer (imagery, terrain, etc.). |
-| `set_map_view` | `mapStore.setSrView()` | Switch map projection (Arctic EPSG:5936, Antarctic EPSG:3031, Web Mercator EPSG:3857, etc.). |
-| `toggle_graticule` | `mapStore.toggleGraticule()` | Show/hide the latitude/longitude grid. |
-| `set_draw_mode` | `mapStore.setDrawType()` | Set the region drawing mode (polygon, box, or none). |
-
-### Visualization Tools (6)
-
-| Tool | Backing Code | Description |
-|---|---|---|
-| `set_chart_field` | `chartStore.setSelectedYData()` | Set which field to plot on the Y-axis of the elevation chart. |
-| `set_x_axis` | `chartStore.setXDataForChartUsingFunc()` | Set the X-axis field (default: along-track distance). |
-| `set_color_map` | `colorMapStore.setNamedColorPalette()` | Set the color palette for track/beam coloring. |
-| `set_3d_config` | `deck3DConfigStore` properties | Configure 3D view: vertical exaggeration, point size, axes, field of view. |
-| `get_elevation_plot_config` | `chartStore`, `symbolStore`, `globalChartStore`, `atlChartFilterStore` | Read current elevation plot state: Y/X field, color encoding, symbol size/color, photon cloud, slope lines, tooltip, available field options. |
-| `set_plot_options` | `chartStore`, `symbolStore`, `globalChartStore`, `atlChartFilterStore` | Configure plot options: Y-axis field, color encoding, solid color, symbol size, time-based X-axis, photon cloud overlay, slope lines, tooltip. |
+| `run_sql` | `DuckDBClient.query()` | Execute SQL against in-memory results. DuckDB WASM with spatial extension. Read-only, single statement only, 30s timeout, max 10k rows. Rejects INSERT/UPDATE/DELETE/DROP/CREATE. |
+| `describe_data` | `DuckDBClient.queryForColNames()`, `queryColumnTypes()` | Get schema, column types, row count for a result set. |
+| `get_elevation_stats` | `SrDuckDbUtils.readOrCacheSummary()`, `getAllColumnMinMax()` | Compute elevation statistics: min, max, percentiles for all numeric columns. |
 
 ### Documentation Tools (4)
 
@@ -318,26 +350,15 @@ All tools execute in the browser against existing stores and utilities. All tool
 | `search_docs` | DuckDB FTS query on `sr_docs` table | Full-text search across indexed SlideRule documentation. Returns ranked results with snippets. |
 | `fetch_docs` | Browser `fetch()` + DOMParser + DuckDB insert | Fetch a ReadTheDocs page, parse to text, index into DuckDB for future searches. URL validated: must be HTTPS under `slideruleearth.io`. |
 | `get_param_help` | Tooltip text + `defaultsStore` + docs index | Get help for a specific parameter: description, valid values, defaults, linked documentation. |
-| `list_doc_sections` | Query `sr_docs` table | List all indexed documentation sections with titles and chunk counts. |
-
-### UI & Navigation Tools (3)
-
-| Tool | Backing Code | Description |
-|---|---|---|
-| `start_tour` | `SrAppTour` | Start an interactive guided tour of the UI. "quick" for 4-step essentials, "long" for full walkthrough. |
-| `navigate` | Vue Router `router.push()` | Navigate to a view: home, request, analyze (with req_id), settings, about, server, rectree, privacy. |
-| `get_current_view` | Vue Router `router.currentRoute` | Get the current view/page, route params, and list of all available views. |
+| `initialize` | Session setup | Returns session instructions, preset list, scientific transparency rules, and server version. **Must be called first.** |
 
 ### Summary
 
-- 13 parameter tools
-- 5 request lifecycle tools
-- 5 data analysis tools
-- 6 map tools
-- 6 visualization tools
+- 12 parameter tools
+- 3 request lifecycle tools
+- 3 data analysis tools
 - 4 documentation tools
-- 3 UI & navigation tools
-- **42 tools total — all implemented**
+- **22 tools total — all implemented**
 
 ---
 
@@ -376,17 +397,27 @@ Resources are read-only data that the MCP client can access. Resolved from Pinia
 
 ## Prompt Templates
 
-Prompt templates appear in Claude Desktop's interface and guide Claude through common workflows.
+Prompt templates appear in the MCP client's interface and guide the assistant through common workflows.
 
-| # | Prompt | Description | Arguments |
-|---|---|---|---|
-| 1 | `analyze-region` | Full workflow: set region, configure params, submit, analyze results | `region_description`, `api?`, `time_range?` |
-| 2 | `elevation-change` | Compare elevation data between two time periods | `region_description`, `period_1`, `period_2` |
-| 3 | `vegetation-analysis` | Analyze canopy height using ATL08/PhoREAL | `region_description` |
-| 4 | `data-quality` | Assess data coverage and quality for a region | `region_description`, `api` |
-| 5 | `explore-data` | Submit a request and interactively explore the results with SQL | `region_description` |
+### Server-registered (available via MCP)
 
-**5 prompt templates.**
+| Prompt | Description | Arguments |
+|---|---|---|
+| `analyze-region` | Full workflow: set region, configure params, submit, analyze results | `location`, `science_goal?` |
+
+**1 prompt registered in the server** (`common.py`). The server's `get_prompt` handler only supports `analyze-region`.
+
+### Browser-defined (available when browser connects)
+
+The browser's `promptTemplates.ts` defines 5 templates. These are returned via the browser's `prompts/list` and `prompts/get` handlers but are only available when the browser is connected:
+
+| Prompt | Description | Arguments |
+|---|---|---|
+| `analyze-region` | Full workflow: set region, configure params, submit, analyze results | `region_description`, `api?`, `time_range?` |
+| `elevation-change` | Compare elevation data between two time periods | `region_description`, `period_1`, `period_2` |
+| `vegetation-analysis` | Analyze canopy height using ATL08/PhoREAL | `region_description` |
+| `data-quality` | Assess data coverage and quality for a region | `region_description`, `api` |
+| `explore-data` | Submit a request and interactively explore the results with SQL | `region_description` |
 
 ---
 
@@ -443,54 +474,71 @@ A build script (`scripts/build-docs-index.ts`) scrapes ReadTheDocs pages referen
 
 | Client | Works? | Notes |
 |---|---|---|
-| **Claude Desktop — Chat mode** | Yes | Primary target. Local stdio MCP servers fully supported. |
+| **Claude Desktop — Chat mode** | Yes | Local mode via stdio. Primary local target. |
 | **Claude Desktop — Cowork mode** | No | Known bug: local stdio MCP servers not loaded in Cowork. |
-| **claude.ai (web/mobile)** | No | Requires remote HTTPS + OAuth. Incompatible with localhost architecture. |
-| **ChatGPT Desktop** | No | Same — requires remote HTTPS endpoint for MCP servers. |
+| **Claude.ai (web/mobile)** | Yes | Cloud mode via ECS relay server. Streamable HTTP + JWT auth. |
+| **ChatGPT Desktop** | No | Requires remote HTTPS + OAuth — not compatible with current auth model. |
 
-The current architecture is designed for local use with Claude Desktop Chat mode. Supporting remote clients (claude.ai, ChatGPT) would require a fundamentally different server architecture with HTTPS, authentication, and a remote WebSocket relay.
+Cross-platform research is documented in `MCP_SERVER_CROSS_CHAT_PLATFORMS.md`.
 
 ---
 
 ## Security
 
-All items are actively enforced.
+### Both Modes
 
-1. **[active]** **Localhost only** — the MCP server's WebSocket binds to `localhost`, unreachable from the network. Only processes on the same machine can connect.
-2. **[active]** **User is present** — the researcher has the browser open and sees every tool call in the activity indicator. Nothing happens silently.
-3. **[active]** **Destructive actions require confirmation** — `reset_params` and `delete_request` show a `ConfirmDialog` in the browser. Claude waits for the user to approve or deny. Denial returns an error to Claude.
-4. **[active]** **Input validation** — every tool has a JSON Schema. Arguments are validated before execution. Invalid args return a descriptive error.
-5. **[active]** **Request timeout** — the MCP server times out any browser call after 30 seconds, preventing hung connections.
-6. **[active]** **Browser-controlled tool surface** — tool definitions come from the browser's bundled `toolDefinitions.ts`. The server caches them and notifies Claude Desktop when they change. New tools can only be added by updating the deployed SPA.
-7. **[active]** **SQL sandboxing** — DuckDB WASM operates on read-only in-memory data with a 30s timeout. No access to the local filesystem or external databases.
-8. **[active]** **Domain-restricted fetch** — `fetch_docs` validates URLs with proper `URL` parsing: hostname must be exactly `slideruleearth.io` or a subdomain, and protocol must be HTTPS. No arbitrary URL access.
-9. **[active]** **WebSocket origin checking** — the MCP server validates the `Origin` header on WebSocket connections against an allowlist of allowed origins (localhost dev ports, `testsliderule.org`, `client.slideruleearth.io`). Connections from unknown origins are rejected with code 4003.
+1. **User is present** — the researcher has the browser open and sees every tool call in the activity indicator. Nothing happens silently.
+2. **Destructive actions require confirmation** — `reset_params` shows a `ConfirmDialog` in the browser. The assistant waits for the user to approve or deny. Denial returns an error.
+3. **Input validation** — every tool has a JSON Schema. Arguments are validated before execution. Invalid args return a descriptive error.
+4. **Request timeout** — the MCP server times out any browser call after 30 seconds, preventing hung connections.
+5. **Browser-controlled tool surface** — tool definitions come from the browser's bundled `toolDefinitions.ts`. The server caches them and notifies the MCP client when they change. New tools can only be added by updating the deployed SPA.
+6. **SQL sandboxing** — DuckDB WASM operates on read-only in-memory data with a 30s timeout, single statement only. INSERT/UPDATE/DELETE/DROP/CREATE are rejected at the parser level. No access to the local filesystem or external databases.
+7. **Domain-restricted fetch** — `fetch_docs` validates URLs with proper `URL` parsing: hostname must be exactly `slideruleearth.io` or a subdomain, and protocol must be HTTPS. No arbitrary URL access.
+8. **WebSocket origin checking** — the MCP server validates the `Origin` header on WebSocket connections against an allowlist (localhost dev ports, `testsliderule.org`, `client.slideruleearth.io`). Connections from unknown origins are rejected with code 4003.
+
+### Local Mode Only
+
+9. **Localhost only** — the local MCP server's WebSocket binds to `localhost`, unreachable from the network. Only processes on the same machine can connect.
+
+### Cloud Mode Only
+
+10. **JWT authentication** — MCP clients must provide a Bearer JWT. The server verifies RS256 signatures via JWKS fetched from the authenticator. JWKS is cached for 5 minutes.
+11. **Audience validation** — MCP client JWTs are validated against the expected audience claim. Browser tokens skip audience validation (provisioner tokens use `sub` only).
+12. **Session isolation** — `SessionRouter` maps each authenticated user to their own browser session. Users cannot see or interact with other users' sessions.
+13. **Rate limiting** — WebSocket connections are rate-limited to 30 per IP per minute.
+14. **Message size limits** — Maximum WebSocket message size is 10 MB.
+15. **Session cleanup** — Idle sessions are cleaned up after 1 hour. Sessions with expired tokens are cleaned immediately. Cleanup runs every 5 minutes.
+16. **MCP session change detection** — The server detects when a new AI client connects (token refresh or different client) and notifies the browser.
 
 ---
 
 ## Files
 
-### Implemented Files
+### Server Files
 
 | File | Purpose |
 |---|---|
-| `sliderule-mcp-server/pyproject.toml` | Python package config with entry point |
-| `sliderule-mcp-server/src/sliderule_mcp/server.py` | MCP server process (bootstrap tools, WebSocket bridge, origin checking) |
-| `web-client/src/services/mcpClient.ts` | Browser-side WebSocket client |
-| `web-client/src/services/mcpHandler.ts` | JSON-RPC message router (tools/list, tools/call, resources/list, resources/read, ping) |
-| `web-client/src/services/toolExecutor.ts` | Tool execution registry (42 tools) |
+| `sliderule-mcp-server/pyproject.toml` | Python package config with two entry points (`sliderule-mcp`, `sliderule-mcp-remote`) |
+| `sliderule-mcp-server/src/sliderule_mcp/common.py` | Shared: bootstrap tools (22), prompts, server instructions |
+| `sliderule-mcp-server/src/sliderule_mcp/server.py` | Local mode: stdio + WebSocket bridge (single user, no auth) |
+| `sliderule-mcp-server/src/sliderule_mcp/server_remote.py` | Cloud mode: Streamable HTTP + WebSocket (multi-user, JWT auth, AWS ECS) |
+| `sliderule-mcp-server/src/sliderule_mcp/jwt_verifier.py` | RS256 JWT verification via JWKS (cloud mode) |
+| `sliderule-mcp-server/src/sliderule_mcp/session_router.py` | Per-user session routing + lifecycle management (cloud mode) |
+
+### Browser Files
+
+| File | Purpose |
+|---|---|
+| `web-client/src/services/mcpClient.ts` | Browser-side WebSocket client (local + cloud mode, first-message JWT auth) |
+| `web-client/src/services/mcpHandler.ts` | JSON-RPC message router (tools/list, tools/call, resources/list, resources/read, prompts/list, prompts/get, ping) |
+| `web-client/src/services/toolExecutor.ts` | Tool execution registry (22 tools) |
 | `web-client/src/services/toolDefinitions.ts` | Tool schemas (names, descriptions, JSON Schemas) |
 | `web-client/src/services/resourceResolver.ts` | Resource URI → Pinia/DuckDB/IndexedDB resolution (15 resources) |
-| `web-client/src/stores/mcpStore.ts` | Connection status, activity log |
-| `web-client/src/components/SrMcpActivityIndicator.vue` | App bar indicator (dot + dropdown) |
+| `web-client/src/services/promptTemplates.ts` | Prompt template catalog (5 guided workflows) |
+| `web-client/src/stores/mcpStore.ts` | Connection status, activity log, cloud mode state |
+| `web-client/src/components/SrMcpActivityIndicator.vue` | App bar indicator (dot + popover with cloud/dev toggles) |
 | `web-client/src/assets/docs-index.json` | Bundled documentation chunks (generated at build time) |
 | `web-client/scripts/build-docs-index.ts` | Build script: scrape ReadTheDocs + extract tooltips → `docs-index.json` |
-
-### Planned Files
-
-| File | Purpose |
-|---|---|
-| `web-client/src/services/promptTemplates.ts` | Prompt template catalog |
 
 ### Modified Files
 
@@ -502,27 +550,22 @@ All items are actively enforced.
 
 | Existing | Used By |
 |---|---|
-| `src/stores/reqParamsStore.ts` | `toolExecutor.ts` — 13 parameter tools |
-| `src/stores/mapStore.ts` | `toolExecutor.ts` — 6 map tools |
-| `src/stores/chartStore.ts` / `globalChartStore.ts` | `toolExecutor.ts` — chart/plot tools |
-| `src/stores/symbolStore.ts` | `toolExecutor.ts` — plot symbol size |
-| `src/stores/atlChartFilterStore.ts` | `toolExecutor.ts` — photon cloud, slope lines |
-| `src/stores/colorMapStore.ts` | `toolExecutor.ts` — color palette tool |
-| `src/stores/deckStore.ts` + `deck3DConfigStore.ts` | `toolExecutor.ts` — 3D config tool |
+| `src/stores/reqParamsStore.ts` | `toolExecutor.ts` — 12 parameter tools |
 | `src/stores/requestsStore.ts` | `toolExecutor.ts` — request lifecycle tools |
 | `src/utils/SrDuckDb.ts` + `SrDuckDbUtils.ts` | `toolExecutor.ts` — SQL + data analysis tools |
 | `src/utils/workerDomUtils.ts` | `toolExecutor.ts` — request submission |
 | `src/db/SlideRuleDb.ts` | `resourceResolver.ts` — request history |
+| `src/stores/mapStore.ts` | `toolExecutor.ts` — zoom_to_location |
 | `src/stores/fieldNameStore.ts` | `resourceResolver.ts` — field catalog |
 | `src/stores/defaultsStore.ts` | `toolExecutor.ts` + `resourceResolver.ts` — parameter defaults + descriptions |
-| `src/router/index.ts` | `toolExecutor.ts` + `resourceResolver.ts` — navigation + current view |
+| `src/router/index.ts` | `resourceResolver.ts` — current view |
 | PrimeVue `ConfirmDialog` | `toolExecutor.ts` — destructive action confirmations |
 
 ---
 
 ## Milestones
 
-### MVP 0: Connection + First Tools — COMPLETE
+### MVP 0: Connection + First Tools ✓ COMPLETE
 
 **Goal:** Prove the full round-trip: Claude Desktop → MCP server → browser → tool executes → result returns.
 
@@ -530,161 +573,122 @@ All items are actively enforced.
 - `sliderule-mcp-server/` — Python MCP server published to PyPI as `sliderule-mcp`
 - `mcpClient.ts` + `mcpStore.ts` — WebSocket client with auto-connect and exponential backoff
 - `mcpHandler.ts` — handles `tools/list`, `tools/call`, `ping`
-- `toolExecutor.ts` + `toolDefinitions.ts` — **3 tools**: `set_mission`, `get_current_params`, `reset_params`
+- `toolExecutor.ts` + `toolDefinitions.ts` — first tools: `set_mission`, `get_current_params`, `reset_params`
 - `SrMcpActivityIndicator.vue` — connection status dot + activity log in app bar
 - Claude Desktop config documented for both end users (`uvx`) and developers (local source)
 - Published to PyPI — end users install with `uvx sliderule-mcp` (zero manual setup)
 
-**Verified:** Claude Desktop connects, discovers tools, calls `set_mission({ mission: "ICESat-2" })`, browser UI updates the mission selector in real-time, `get_current_params` returns current state, `reset_params` shows confirmation dialog, activity indicator logs all calls.
-
-**Known limitations:**
-- Claude Desktop does not re-fetch tools after `notifications/tools/list_changed` — this is why the server has static bootstrap tools as a fallback
-- Claude Desktop Cowork mode does not support local stdio MCP servers (known bug)
-- claude.ai and ChatGPT Desktop require remote HTTPS + OAuth, incompatible with the local server architecture
-
 ---
 
-### MVP 1: Parameter Control — COMPLETE
+### MVP 1: Parameter Control ✓ COMPLETE
 
-**Depends on:** MVP 0
-
-**Goal:** Fully configure a SlideRule request via Claude Desktop.
+**Goal:** Fully configure a SlideRule request via Claude.
 
 **Deliverables:**
-- All 12 parameter tools implemented: `set_mission`, `get_current_params`, `reset_params`, `set_api`, `set_region`, `set_time_range`, `set_rgt`, `set_cycle`, `set_beams`, `set_surface_fit`, `set_photon_params`, `set_yapc`, `set_output_config`
+- Parameter tools: `set_mission`, `get_current_params`, `reset_params`, `set_api`, `set_general_preset`, `set_region`, `set_atl13_point`, `set_surface_fit`, `set_photon_params`, `set_yapc`, `zoom_to_location`, `get_area_thresholds`
 - `sliderule://params/current` resource
-
-**Done when:** Claude says "Set up an ATL06 request for Greenland, January–March 2023, beams 1 and 3, with surface fitting enabled" and the browser shows all parameters correctly configured.
 
 ---
 
 ### MVP 2: Request Execution + Data Analysis ✓ COMPLETE
 
-**Depends on:** MVP 1
-
 **Goal:** Submit a request and analyze results without touching the browser.
 
 **Deliverables:**
-- Request lifecycle tools (5): `submit_request`, `get_request_status`, `cancel_request`, `list_requests`, `delete_request` ✓
-- Data analysis tools (5): `run_sql`, `describe_data`, `get_elevation_stats`, `get_sample_data`, `export_data` ✓
-- Resources: `sliderule://requests/history`, `sliderule://requests/{id}/summary`, `sliderule://data/{id}/schema`, `sliderule://data/{id}/sample` ✓
-- Destructive action confirmations (`delete_request` → ConfirmDialog) ✓
-
-**Verified:** Claude configures parameters, submits a request, polls until complete, runs SQL to compute elevation statistics by beam, and exports results as GeoParquet — all without the researcher touching the browser.
+- Request lifecycle tools (3): `submit_request`, `get_request_status`, `list_requests`
+- Data analysis tools (3): `run_sql`, `describe_data`, `get_elevation_stats`
+- Resources: `sliderule://requests/history`, `sliderule://requests/{id}/summary`, `sliderule://data/{id}/schema`, `sliderule://data/{id}/sample`
 
 ---
 
-### MVP 3: Map + Visualization ✓ COMPLETE
+### MVP 3: Cloud Mode (Claude.ai Support) ✓ COMPLETE
 
-**Depends on:** MVP 0 (parallel with MVP 1–2)
-
-**Goal:** Claude controls what the researcher sees on the map and in charts.
+**Goal:** Support remote MCP clients (Claude.ai) via a cloud-hosted server.
 
 **Deliverables:**
-- Map tools (6): `zoom_to_bbox`, `zoom_to_point`, `set_base_layer`, `set_map_view`, `toggle_graticule`, `set_draw_mode` ✓
-- Visualization tools (6): `set_chart_field`, `set_x_axis`, `set_color_map`, `set_3d_config`, `get_elevation_plot_config`, `set_plot_options` ✓
-- Resources: `sliderule://map/viewport`, `sliderule://catalog/products`, `sliderule://catalog/fields/{api}` ✓
-- UI & navigation tools (3): `start_tour`, `navigate`, `get_current_view` ✓
-
-**Verified:** Claude zooms to a region, switches to Arctic projection, sets up an elevation chart colored by beam, reads/configures elevation plot options (symbol size, photon cloud, slope lines), navigates between views, and configures 3D exaggeration — the researcher watches it happen in real-time.
+- `server_remote.py` — Starlette app with Streamable HTTP + WebSocket endpoints
+- `jwt_verifier.py` — RS256 JWT verification via JWKS
+- `session_router.py` — Multi-user session routing and lifecycle management
+- `common.py` — Shared bootstrap tools and prompts between local and cloud modes
+- Docker build + ECR push + ECS deployment via Makefile targets
+- Browser cloud mode: `mcpWsUrl` in mcpStore, first-message JWT auth in mcpClient
+- RFC 9728 OAuth-protected resource metadata endpoint
 
 ---
 
 ### MVP 4: Documentation Search ✓ COMPLETE
 
-**Depends on:** MVP 0 (parallel with MVP 1–3)
-
 **Goal:** Claude answers questions about SlideRule by searching indexed documentation.
 
 **Deliverables:**
-- `scripts/build-docs-index.ts` — scrapes ReadTheDocs + extracts tooltips ✓
-- `src/assets/docs-index.json` — bundled doc chunks ✓
-- DuckDB FTS table, index loading, live fetch + parse ✓
-- Documentation tools (4): `search_docs`, `fetch_docs`, `get_param_help`, `list_doc_sections` ✓
-- Documentation resources (5) ✓
-
-**Verified:** Claude answers "What photon classification should I use for glaciers?" by searching the docs, reading the relevant chunks, and synthesizing a contextual answer.
+- `scripts/build-docs-index.ts` — scrapes ReadTheDocs + extracts tooltips
+- `src/assets/docs-index.json` — bundled doc chunks
+- DuckDB FTS table, index loading, live fetch + parse
+- Documentation tools (4): `search_docs`, `fetch_docs`, `get_param_help`, `initialize`
+- Documentation resources (5)
+- Server prompt: `analyze-region` (browser has 5 additional templates available when connected)
 
 ---
 
-### Milestone dependency map
+### Milestone summary
 
 ```
 MVP 0: Connection + First Tools  ✓ COMPLETE
   │
-  ├──► MVP 1: Parameter Control  ✓ COMPLETE (13 tools)
+  ├──► MVP 1: Parameter Control  ✓ COMPLETE (12 tools)
   │      │
-  │      └──► MVP 2: Request Execution + Data Analysis  ✓ COMPLETE (10 tools)
+  │      └──► MVP 2: Request Execution + Data Analysis  ✓ COMPLETE (6 tools)
   │
-  ├──► MVP 3: Map + Visualization  ✓ COMPLETE (15 tools)
+  ├──► MVP 3: Cloud Mode  ✓ COMPLETE (server_remote + jwt + sessions)
   │
-  └──► MVP 4: Documentation Search  ✓ COMPLETE (4 tools)
+  └──► MVP 4: Documentation Search  ✓ COMPLETE (4 tools + 5 prompts)
 
-  ALL MILESTONES COMPLETE — 42 tools, 15 resources
+  ALL MILESTONES COMPLETE — 22 tools, 15 resources, 1 server prompt (+ 5 browser prompts)
 ```
 
-**Adding new tools only requires browser-side changes:** Add a definition to `toolDefinitions.ts`, add a handler to `toolExecutor.ts`, and register it. The MCP server is a transparent bridge — no server-side changes needed for new tools. The bootstrap tool list in `server.py` should be updated periodically to match, but it's not strictly required (tools will be fetched dynamically when the browser connects).
+**Adding new tools only requires browser-side changes:** Add a definition to `toolDefinitions.ts`, add a handler to `toolExecutor.ts`, and register it. The MCP server is a transparent bridge — no server-side changes needed for new tools. The bootstrap tool list in `common.py` should be updated periodically to match, but it's not strictly required (tools will be fetched dynamically when the browser connects).
 
 ---
 
 ## Dependency Graph
 
 ```
-┌─────────────────────┐
-│  sliderule-mcp-     │
-│  server/server.py   │  (MCP server process, standalone)
-│  + pyproject.toml   │
-└─────────┬───────────┘
-          │
-          │ WebSocket (localhost:3002)
-          │
-┌─────────▼───────────┐
-│  mcpClient.ts       │──────────────────────────────────┐
-│  + mcpStore.ts      │                                   │
-└─────────┬───────────┘                                   │
-          │                                               │
-┌─────────▼───────────┐                                   │
-│  mcpHandler.ts      │  (routes JSON-RPC to handlers)    │
-└─────────┬───────────┘                                   │
-          │                                               │
-  ┌───────┼───────────────────┬────────────────┐          │
-  ▼       ▼                   ▼                ▼          │
-┌──────┐ ┌──────────┐ ┌────────────┐ ┌──────────────┐    │
-│tool  │ │resource  │ │ prompt     │ │ Activity     │◄───┘
-│Exec  │ │Resolver  │ │ Templates  │ │ Indicator    │
-│.ts   │ │.ts       │ │ .ts        │ │ .vue         │
-└──┬───┘ └────┬─────┘ └────────────┘ └──────────────┘
-   │          │
-   │  (both consume stores/DuckDB)
-   │          │
-   ├──────────┤
-   ▼          ▼
-┌─────────────────────────────────────────────────────┐
-│  Existing: Pinia stores, DuckDB WASM, fetchUtils,   │
-│  workerDomUtils, Dexie DB, OpenLayers, Deck.gl      │
-└─────────────────────────────────────────────────────┘
-
-                  INDEPENDENT TRACKS
-                  (can be built in parallel)
-
-Track A: Tool groups        Track B: Doc search
-─────────────────           ─────────────────
-Parameter tools ◄─ first    build-docs-index.ts
-      │                          │
-      ▼                          ▼
-Request lifecycle           docs-index.json
-+ Data analysis                  │
-      │                          ▼
-      ▼                     docSearchEngine.ts
-Map tools                        │
-      │                          ▼
-      ▼                     Doc tools + resources
-Visualization tools
-
-                  FUTURE (separate effort)
-                  ──────────────────────
-                  Built-in Chat UI
-                  (reuses toolExecutor.ts)
+┌──────────────────────────────────────────────────────────────┐
+│  sliderule-mcp-server/                                        │
+│  ┌──────────┐  ┌───────────────┐  ┌────────────────────────┐ │
+│  │ common.py│  │ server.py     │  │ server_remote.py       │ │
+│  │ (shared) │  │ (local/stdio) │  │ (cloud/HTTP+WS)        │ │
+│  └──────────┘  └───────────────┘  │ + jwt_verifier.py      │ │
+│                                    │ + session_router.py    │ │
+│                                    └────────────────────────┘ │
+└──────────────────────┬───────────────────────────────────────┘
+                       │ WebSocket (local: ws://localhost:3002)
+                       │           (cloud: wss://mcp.*.io/ws)
+┌──────────────────────▼───────────────────────────────────────┐
+│  mcpClient.ts       │──────────────────────────────────┐     │
+│  + mcpStore.ts      │                                   │     │
+└─────────┬───────────┘                                   │     │
+          │                                               │     │
+┌─────────▼───────────┐                                   │     │
+│  mcpHandler.ts      │  (routes JSON-RPC to handlers)    │     │
+└─────────┬───────────┘                                   │     │
+          │                                               │     │
+  ┌───────┼───────────────────┬────────────────┐          │     │
+  ▼       ▼                   ▼                ▼          │     │
+┌──────┐ ┌──────────┐ ┌────────────┐ ┌──────────────┐    │     │
+│tool  │ │resource  │ │ prompt     │ │ Activity     │◄───┘     │
+│Exec  │ │Resolver  │ │ Templates  │ │ Indicator    │          │
+│.ts   │ │.ts       │ │ .ts        │ │ .vue         │          │
+└──┬───┘ └────┬─────┘ └────────────┘ └──────────────┘          │
+   │          │                                                 │
+   │  (both consume stores/DuckDB)                              │
+   │          │                                                 │
+   ├──────────┤                                                 │
+   ▼          ▼                                                 │
+┌─────────────────────────────────────────────────────┐         │
+│  Existing: Pinia stores, DuckDB WASM, fetchUtils,   │         │
+│  workerDomUtils, Dexie DB, OpenLayers, Deck.gl      │         │
+└─────────────────────────────────────────────────────┘         │
 ```
 
 ### Key dependency rules
@@ -697,14 +701,25 @@ Visualization tools
 | `defaultsStore` loads | `docSearchEngine.ts` init | Doc engine indexes parameter defaults |
 | DuckDB WASM ready | `docSearchEngine.ts` init | Doc engine creates FTS table in DuckDB |
 | `build-docs-index.ts` | `docs-index.json` | Build script produces the bundled index |
-| Parameter tools working | All other tool groups | Validates the full pipeline end-to-end first |
 
-### What can be parallelized
+---
 
-- **Track A** (tool groups) and **Track B** (doc search) are independent once the base pipeline works
-- Tool groups within Track A are independent — parameter tools go first to validate the pipeline, then data/map/viz tools can be added in any order
-- `build-docs-index.ts` has no runtime dependencies — it can be developed any time
-- The MCP server process (`server.py`) is feature-complete for tool forwarding — new tools only require browser-side changes
+## Environment Variables
+
+### Server
+
+| Variable | Default | Description |
+|---|---|---|
+| `SR_MCP_PORT` | `3002` | WebSocket port (local mode) |
+| `SR_DOMAIN` | `slideruleearth.io` | Base domain (cloud mode) |
+| `SR_AUTH_HOSTNAME` | `login.{SR_DOMAIN}` | Auth provider hostname (cloud mode) |
+| `SR_MCP_HOSTNAME` | `mcp.{SR_DOMAIN}` | MCP server hostname (cloud mode) |
+
+### Browser
+
+| Variable | Default | Description |
+|---|---|---|
+| `VITE_MCP_WS_PORT` | `3002` | WebSocket port for local mode |
 
 ---
 
@@ -714,8 +729,10 @@ Visualization tools
 2. **Integration tests:** MCP Handler — mock WebSocket messages in, verify tool calls and responses out
 3. **E2E (Playwright):** Browser loads → MCP client connects → simulate tool call → verify store state changed
 4. **Claude Desktop test:** Real Claude Desktop connects, discovers tools, executes multi-tool workflow
-5. **Destructive test:** `reset_params` → ConfirmDialog appears → user approves → tool completes. User denies → tool returns error.
-6. **Reconnection test:** Kill WebSocket → browser reconnects → tools work again
-7. **No-browser test:** Claude calls a tool when no browser is connected → gets clear error message with `isError: true`
-8. **SQL test:** `run_sql` with valid query returns results. Invalid query returns error. Query exceeding 30s times out.
+5. **Claude.ai test:** Claude.ai connects via cloud mode, discovers tools, executes workflow with JWT auth
+6. **Destructive test:** `reset_params` → ConfirmDialog appears → user approves → tool completes. User denies → tool returns error.
+7. **Reconnection test:** Kill WebSocket → browser reconnects → tools work again
+8. **No-browser test:** Claude calls a tool when no browser is connected → gets clear error message with `isError: true`
+9. **SQL test:** `run_sql` with valid query returns results. Invalid query returns error. Query exceeding 30s times out. Multi-statement rejected.
 10. **Doc search test:** `search_docs({ query: "photon classification" })` returns relevant chunks. `fetch_docs` fetches, parses, indexes, and subsequent searches include the new content.
+11. **Cloud auth test:** Invalid JWT → rejected. Expired JWT → session cleaned up. Valid JWT → session created and routed.
