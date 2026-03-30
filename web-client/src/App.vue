@@ -550,7 +550,7 @@ async function handleLongTourButtonClick() {
         </template>
       </SrToast>
     </div>
-    <header class="app-header">
+    <header v-if="route.name !== 'helpermap'" class="app-header">
       <SrAppBar
         @home-button-click="homeButtonClick"
         @request-button-click="requestButtonClick"
@@ -566,7 +566,7 @@ async function handleLongTourButtonClick() {
         @long-tour-button-click="handleLongTourButtonClick"
       />
     </header>
-    <div class="sliderule-content">
+    <div :class="route.name === 'helpermap' ? 'sliderule-content-full' : 'sliderule-content'">
       <RouterView />
     </div>
     <SrConsentBanner />
@@ -729,6 +729,12 @@ async function handleLongTourButtonClick() {
   margin-top: 4rem;
   overflow-y: auto;
   height: calc(100vh - 5rem);
+}
+
+.sliderule-content-full {
+  margin-top: 0;
+  overflow: hidden;
+  height: 100vh;
 }
 
 .sr-unsupported-panel {

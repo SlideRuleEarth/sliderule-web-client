@@ -67,6 +67,11 @@ const router = createRouter({
       component: () => import('@/views/GitHubCallbackView.vue')
     },
     {
+      path: '/helpermap',
+      name: 'helpermap',
+      component: () => import('@/views/HelperMapView.vue')
+    },
+    {
       path: '/landing',
       name: 'landing',
       component: () => import('@/views/LandingView.vue')
