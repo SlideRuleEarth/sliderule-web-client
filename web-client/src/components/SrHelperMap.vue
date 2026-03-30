@@ -12,7 +12,6 @@ import { srProjections } from '@/composables/SrProjections'
 import proj4 from 'proj4'
 import { register } from 'ol/proj/proj4.js'
 import 'ol-geocoder/dist/ol-geocoder.min.css'
-import { useMapStore } from '@/stores/mapStore'
 import { useHelperMapStore } from '@/stores/helperMapStore'
 import { get as getProjection } from 'ol/proj.js'
 import { addLayersForCurrentView } from '@/composables/SrLayers'
@@ -32,10 +31,10 @@ import {
 import type { Coordinate } from 'ol/coordinate.js'
 import { type SrRegion } from '@/types/SrTypes'
 import { format } from 'ol/coordinate.js'
-import SrViewControl from './SrViewControl.vue'
-import SrBaseLayerControl from './SrBaseLayerControl.vue'
-import SrGraticuleControl from './SrGraticuleControl.vue'
-import SrDrawControl from '@/components/SrDrawControl.vue'
+import SrHelperViewControl from './SrHelperViewControl.vue'
+import SrHelperBaseLayerControl from './SrHelperBaseLayerControl.vue'
+import SrHelperGraticuleControl from './SrHelperGraticuleControl.vue'
+import SrHelperDrawControl from '@/components/SrHelperDrawControl.vue'
 import { usePolarOverlay } from '@/composables/usePolarOverlay'
 import SrUploadRegionControl from '@/components/SrUploadRegionControl.vue'
 import Dialog from 'primevue/dialog'
@@ -71,12 +70,11 @@ function formatArea(m2: number): string {
 
 const debugStore = useDebugStore()
 
-interface SrDrawControlMethods {
+interface SrHelperDrawControlMethods {
   resetPicked: () => void
 }
-const srDrawControlRef = ref<SrDrawControlMethods | null>(null)
+const srDrawControlRef = ref<SrHelperDrawControlMethods | null>(null)
 const mapRef = ref<{ map: OLMap }>()
-const mapStore = useMapStore()
 const helperStore = useHelperMapStore()
 const toast = useToast()
 const tooltipRef = ref()
@@ -428,7 +426,7 @@ drawPolygon.on('drawend', function (event) {
           properties: { name: 'Convex Hull Polygon' }
         }
 
-        // Draw hull directly (drawGeoJson uses mapStore.map which is null for helper map)
+        // Draw hull directly (drawGeoJson uses helperStore.map which is null for helper map)
         const format = new GeoJSON()
         const currentProj = map?.getView().getProjection().getCode() || 'EPSG:3857'
         const hullFeatures = format.readFeatures(geoJson, {
@@ -587,9 +585,9 @@ const handleUpdateBaseLayer = async () => {
     const view = map.getView()
     const center = view.getCenter()
     const zoom = view.getZoom()
-    if (center) mapStore.setCenterToRestore(center)
-    if (zoom) mapStore.setZoomToRestore(zoom)
-    mapStore.setExtentToRestore(view.calculateExtent(map.getSize()))
+    if (center) helperStore.setCenterToRestore(center)
+    if (zoom) helperStore.setZoomToRestore(zoom)
+    helperStore.setExtentToRestore(view.calculateExtent(map.getSize()))
     saveMapZoomState(map)
     await updateHelperMapView('handleUpdateBaseLayer', true)
   }
@@ -614,7 +612,7 @@ onMounted(async () => {
       projectionNames.value.forEach((name) => {
         const wmsCap = useWmsCap(name)
         if (wmsCap) {
-          mapStore.cacheWmsCapForProjection(name, wmsCap)
+          helperStore.cacheWmsCapForProjection(name, wmsCap)
         }
       })
 
@@ -628,7 +626,7 @@ onMounted(async () => {
 
       await updateHelperMapView('SrHelperMap onMounted', canRestoreZoomCenter(map))
 
-      const graticule = mapStore.getOrCreateGraticule(map)
+      const graticule = helperStore.getOrCreateGraticule(map)
       map.addLayer(graticule)
     }
   }
@@ -665,20 +663,20 @@ onBeforeUnmount(() => {
         <MapControls.OlAttributionControl :collapsible="true" :collapsed="true" />
         <MapControls.OlScaleLineControl />
 
-        <SrDrawControl
+        <SrHelperDrawControl
           ref="srDrawControlRef"
           @draw-control-created="handleDrawControlCreated"
           @picked-changed="handlePickedChanged"
         />
-        <SrViewControl
+        <SrHelperViewControl
           @view-control-created="handleViewControlCreated"
           @update-view="handleUpdateSrView"
         />
-        <SrBaseLayerControl
+        <SrHelperBaseLayerControl
           @baselayer-control-created="handleBaseLayerControlCreated"
           @update-baselayer="handleUpdateBaseLayer"
         />
-        <SrGraticuleControl @graticule-control-created="handleGraticuleControlCreated" />
+        <SrHelperGraticuleControl @graticule-control-created="handleGraticuleControlCreated" />
         <SrUploadRegionControl
           :reportUploadProgress="true"
           :loadReqPoly="false"

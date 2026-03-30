@@ -3,6 +3,40 @@ import type OLMap from 'ol/Map.js'
 import type { Coordinate } from 'ol/coordinate'
 import type { SrRegion } from '@/types/SrTypes'
 import { area, polygon } from '@turf/turf'
+import Graticule from 'ol/layer/Graticule.js'
+import { Stroke, Fill, Text } from 'ol/style'
+import TileLayer from 'ol/layer/Tile.js'
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type WmsCapControl = any
+
+function createGraticuleLayer(): Graticule {
+  const graticule = new Graticule({
+    strokeStyle: new Stroke({
+      color: 'rgba(255,120,0,0.9)',
+      width: 2,
+      lineDash: [0.5, 4]
+    }),
+    showLabels: true,
+    visible: false,
+    wrapX: false,
+    lonLabelPosition: 0.1,
+    latLabelPosition: 0.9,
+    latLabelStyle: new Text({
+      font: 'bold 12px Calibri,sans-serif',
+      textAlign: 'end',
+      fill: new Fill({ color: 'rgba(255,255,255,1)' }),
+      stroke: new Stroke({ color: 'rgba(0,0,0,0.9)', width: 3 })
+    }),
+    lonLabelStyle: new Text({
+      font: 'bold 12px Calibri,sans-serif',
+      textBaseline: 'top',
+      fill: new Fill({ color: 'rgba(255,255,255,1)' }),
+      stroke: new Stroke({ color: 'rgba(0,0,0,0.9)', width: 3 })
+    })
+  })
+  graticule.setProperties({ title: 'Graticule', name: 'Graticule' })
+  return graticule
+}
 
 export const useHelperMapStore = defineStore('helperMap', {
   state: () => ({
@@ -15,7 +49,15 @@ export const useHelperMapStore = defineStore('helperMap', {
     drawType: '' as string,
     selectedView: 'Global Mercator' as string,
     selectedBaseLayer: 'Esri World Topo' as string,
-    copiedToClipboard: false as boolean
+    copiedToClipboard: false as boolean,
+    graticuleState: localStorage.getItem('helperGraticuleState') === 'true',
+    graticules: new Map<OLMap, Graticule>(),
+    extentToRestore: null as number[] | null,
+    centerToRestore: null as number[] | null,
+    zoomToRestore: null as number | null,
+    wmsCapCache: new Map<string, WmsCapControl>(),
+    currentWmsCapProjectionName: 'EPSG:3857' as string,
+    layerCache: {} as Record<string, Map<string, TileLayer>>
   }),
   actions: {
     setMap(mapInstance: OLMap) {
@@ -164,6 +206,77 @@ export const useHelperMapStore = defineStore('helperMap', {
     },
     getDrawType(): string {
       return this.drawType
+    },
+    setSelectedView(view: string) {
+      this.selectedView = view
+    },
+    setSelectedBaseLayer(baseLayer: string) {
+      this.selectedBaseLayer = baseLayer
+    },
+    toggleGraticule() {
+      this.graticuleState = !this.graticuleState
+      localStorage.setItem('helperGraticuleState', String(this.graticuleState))
+      this.setGraticuleForMap()
+    },
+    setGraticuleState(state: boolean) {
+      this.graticuleState = state
+      localStorage.setItem('helperGraticuleState', String(state))
+      this.setGraticuleForMap()
+    },
+    getOrCreateGraticule(map: OLMap): Graticule {
+      let graticule = this.graticules.get(map)
+      if (!graticule) {
+        graticule = createGraticuleLayer()
+        graticule.setZIndex(1000)
+        graticule.setVisible(this.graticuleState)
+        this.graticules.set(map, graticule)
+      }
+      return graticule as Graticule
+    },
+    recreateGraticuleForMap(map: OLMap) {
+      const existing = this.graticules.get(map)
+      if (existing) {
+        map.removeLayer(existing as any)
+        this.graticules.delete(map)
+      }
+      const newGraticule = this.getOrCreateGraticule(map)
+      map.addLayer(newGraticule)
+    },
+    setGraticuleForMap(targetMap?: OLMap) {
+      this.graticules.forEach((graticule, map) => {
+        if (!targetMap || map === targetMap) {
+          graticule.setVisible(this.graticuleState)
+        }
+      })
+    },
+    setExtentToRestore(extent: number[]) {
+      this.extentToRestore = extent
+    },
+    setCenterToRestore(center: number[]) {
+      this.centerToRestore = center
+    },
+    setZoomToRestore(zoom: number) {
+      this.zoomToRestore = zoom
+    },
+    cacheWmsCapForProjection(projectionName: string, wmsCapInstance: WmsCapControl) {
+      this.wmsCapCache.set(projectionName, wmsCapInstance)
+    },
+    getWmsCapFromCache(projectionName: string): WmsCapControl {
+      return this.wmsCapCache.get(projectionName)!
+    },
+    setCurrentWmsCap(projectionName: string) {
+      const wmsCap = this.getWmsCapFromCache(projectionName)
+      if (wmsCap) {
+        this.map?.addControl(wmsCap)
+        this.currentWmsCapProjectionName = projectionName
+      }
+    },
+    updateWmsCap(projectionName: string) {
+      const currentWmsCap = this.wmsCapCache.get(this.currentWmsCapProjectionName)
+      if (currentWmsCap) {
+        this.map?.removeControl(currentWmsCap)
+      }
+      this.setCurrentWmsCap(projectionName)
     },
     resetMap() {
       this.selectedView = 'Global Mercator'
