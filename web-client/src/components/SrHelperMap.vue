@@ -90,6 +90,43 @@ const rasterize = ref(false)
 // Whether the rasterize option should be available (only for freehand polygon, not box)
 const canRasterize = computed(() => helperStore.polygonSource === 'polygon')
 
+// Area thresholds (generic since no specific API is selected)
+const AREA_WARNING_THRESHOLD = 5000 // km²
+const AREA_ERROR_THRESHOLD = 15000 // km²
+
+// The effective area depends on rasterize toggle
+const effectiveArea = computed(() => {
+  if (rasterize.value) {
+    return helperStore.areaOfPoly
+  }
+  return helperStore.areaOfConvexHull
+})
+
+const formattedArea = computed(() => {
+  return helperStore.getFormattedArea(effectiveArea.value)
+})
+
+const areaWarning = computed(() => {
+  if (effectiveArea.value > AREA_ERROR_THRESHOLD) {
+    return 'error'
+  }
+  if (effectiveArea.value > AREA_WARNING_THRESHOLD) {
+    return 'warn'
+  }
+  return null
+})
+
+const areaMessage = computed(() => {
+  const label = rasterize.value ? 'Polygon' : 'Convex hull'
+  if (areaWarning.value === 'error') {
+    return `${label} area (${formattedArea.value}) is very large and may cause the request to fail or time out. Consider a smaller region.`
+  }
+  if (areaWarning.value === 'warn') {
+    return `${label} area (${formattedArea.value}) is large. Some APIs may be slow or fail for regions this size.`
+  }
+  return null
+})
+
 function updateClipboardText() {
   const text = helperStore.getPolygonForClipboard(rasterize.value)
   if (text) {
@@ -705,6 +742,21 @@ onBeforeUnmount(() => {
       <p class="sr-copy-dialog-hint">
         Copy this region and paste it into your AI agent prompt to complete an API request.
       </p>
+      <div
+        class="sr-copy-dialog-area"
+        :class="{
+          'sr-area-warn': areaWarning === 'warn',
+          'sr-area-error': areaWarning === 'error'
+        }"
+      >
+        <span class="sr-copy-dialog-area-label">
+          <i v-if="areaWarning === 'error'" class="pi pi-exclamation-triangle"></i>
+          <i v-else-if="areaWarning === 'warn'" class="pi pi-exclamation-circle"></i>
+          <i v-else class="pi pi-map"></i>
+          {{ rasterize ? 'Polygon' : 'Convex hull' }} area: {{ formattedArea }}
+        </span>
+        <span v-if="areaMessage" class="sr-copy-dialog-area-message">{{ areaMessage }}</span>
+      </div>
       <div v-if="canRasterize" class="sr-copy-dialog-rasterize">
         <Checkbox v-model="rasterize" :binary="true" inputId="helperRasterize" />
         <label for="helperRasterize" class="sr-copy-dialog-rasterize-label"> Rasterize </label>
@@ -759,6 +811,58 @@ onBeforeUnmount(() => {
   font-size: 0.9rem;
   color: #e0e0e0;
   line-height: 1.5;
+}
+
+.sr-copy-dialog-area {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--p-border-radius);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sr-copy-dialog-area.sr-area-warn {
+  background: rgba(255, 180, 0, 0.1);
+  border-color: rgba(255, 180, 0, 0.4);
+}
+
+.sr-copy-dialog-area.sr-area-error {
+  background: rgba(255, 60, 60, 0.1);
+  border-color: rgba(255, 60, 60, 0.4);
+}
+
+.sr-copy-dialog-area-label {
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.sr-area-warn .sr-copy-dialog-area-label {
+  color: #ffb400;
+}
+
+.sr-area-error .sr-copy-dialog-area-label {
+  color: #ff6b6b;
+}
+
+.sr-copy-dialog-area-message {
+  color: #c0c0c0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.sr-area-warn .sr-copy-dialog-area-message {
+  color: #ffd580;
+}
+
+.sr-area-error .sr-copy-dialog-area-message {
+  color: #ffaaaa;
 }
 
 .sr-copy-dialog-rasterize {

@@ -44,6 +44,7 @@ export const useHelperMapStore = defineStore('helperMap', {
     poly: null as SrRegion | null,
     convexHull: null as SrRegion | null,
     areaOfConvexHull: 0 as number,
+    areaOfPoly: 0 as number,
     polygonSource: null as 'polygon' | 'box' | 'upload' | null,
     polyCoords: [] as Coordinate[][],
     drawType: '' as string,
@@ -68,6 +69,22 @@ export const useHelperMapStore = defineStore('helperMap', {
     },
     setPoly(poly: SrRegion) {
       this.poly = poly
+      if (poly && poly.length >= 3) {
+        try {
+          const coords = poly.map((p) => [p.lon, p.lat])
+          const first = coords[0]
+          const last = coords[coords.length - 1]
+          if (first[0] !== last[0] || first[1] !== last[1]) {
+            coords.push([...first])
+          }
+          const turfPoly = polygon([coords])
+          this.areaOfPoly = area(turfPoly) / 1e6 // km²
+        } catch {
+          this.areaOfPoly = 0
+        }
+      } else {
+        this.areaOfPoly = 0
+      }
     },
     setConvexHull(hull: SrRegion) {
       this.convexHull = hull
@@ -97,10 +114,17 @@ export const useHelperMapStore = defineStore('helperMap', {
       }
       return `${this.areaOfConvexHull.toFixed(this.areaOfConvexHull < 10 ? 2 : 1)} km²`
     },
+    getFormattedArea(areaKm2: number): string {
+      if (areaKm2 < 1) {
+        return `${(areaKm2 * 1e6).toFixed(0)} m²`
+      }
+      return `${areaKm2.toFixed(areaKm2 < 10 ? 2 : 1)} km²`
+    },
     clearPolygon() {
       this.poly = null
       this.convexHull = null
       this.areaOfConvexHull = 0
+      this.areaOfPoly = 0
       this.polygonSource = null
       this.polyCoords = []
       this.copiedToClipboard = false
