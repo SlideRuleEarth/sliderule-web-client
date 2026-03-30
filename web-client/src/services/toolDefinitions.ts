@@ -410,6 +410,28 @@ export const toolDefinitions: ToolDefinition[] = [
     }
   },
   {
+    name: 'navigate_to',
+    description:
+      'Navigate the web client to a specific view. Use this to switch between the main pages of the application.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        view: {
+          type: 'string',
+          enum: ['request', 'analyze', 'records', 'settings', 'landing'],
+          description:
+            'The view to navigate to. "request" is the map + parameter configuration view. "analyze" shows results for the most recent completed request. "records" lists all past requests. "settings" opens client settings. "landing" is the home/about page.'
+        },
+        req_id: {
+          type: 'integer',
+          description:
+            'Optional request ID. For "analyze", navigates to that request\'s results. For "request", loads that request\'s parameters. Ignored for other views.'
+        }
+      },
+      required: ['view']
+    }
+  },
+  {
     name: 'initialize',
     description:
       'Initialize the AI agent to work with the SlideRule web client. Call this at the start of every conversation. ' +

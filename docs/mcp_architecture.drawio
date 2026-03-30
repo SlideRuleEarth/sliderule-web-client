@@ -1,0 +1,177 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.3.1 Safari/605.1.15" version="29.6.6">
+  <diagram name="MCP Architecture" id="mcp-arch">
+    <mxGraphModel dx="1509" dy="1025" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1400" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="users-group" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;fontSize=14;verticalAlign=top;spacingTop=5;container=1;collapsible=0;" value="👤 Researchers" vertex="1">
+          <mxGeometry height="130" width="600" x="440" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="alice" parent="users-group" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;" value="Alice&lt;br&gt;&lt;i&gt;Claude.ai&lt;/i&gt;" vertex="1">
+          <mxGeometry height="65" width="160" x="80" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="bob" parent="users-group" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;" value="Bob&lt;br&gt;&lt;i&gt;ChatGPT&lt;/i&gt;" vertex="1">
+          <mxGeometry height="65" width="160" x="360" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="auth-group" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#e65100;fontStyle=1;fontSize=13;verticalAlign=top;spacingTop=5;container=1;collapsible=0;" value="🔐 SlideRule Auth Server" vertex="1">
+          <mxGeometry height="130" width="280" x="30" y="350" as="geometry" />
+        </mxCell>
+        <mxCell id="oauth" parent="auth-group" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe0b2;strokeColor=#e65100;" value="OAuth 2.1 / OIDC" vertex="1">
+          <mxGeometry height="55" width="110" x="20" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="jwks" parent="auth-group" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe0b2;strokeColor=#e65100;" value="JWKS Endpoint" vertex="1">
+          <mxGeometry height="55" width="110" x="150" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="mcp-group" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#0277bd;fontStyle=1;fontSize=16;verticalAlign=top;spacingTop=8;container=1;collapsible=0;" value="☁️ SlideRule MCP Server (AWS)" vertex="1">
+          <mxGeometry height="560" width="880" x="350" y="230" as="geometry" />
+        </mxCell>
+        <mxCell id="router" parent="mcp-group" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#b3e5fc;strokeColor=#0277bd;fontStyle=1;fontSize=13;" value="Session Router&lt;br&gt;&lt;i&gt;JWT → User Session&lt;/i&gt;" vertex="1">
+          <mxGeometry height="55" width="260" x="310" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="session-alice" parent="mcp-group" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#bbdefb;strokeColor=#1565c0;fontStyle=1;fontSize=13;verticalAlign=top;spacingTop=8;container=1;collapsible=0;" value="Session: Alice" vertex="1">
+          <mxGeometry height="300" width="380" x="30" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="t1" parent="session-alice" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;fontSize=12;" value="Tool Executor" vertex="1">
+          <mxGeometry height="45" width="150" x="120" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="state1" parent="session-alice" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;fontSize=11;" value="Request State&lt;br&gt;&lt;i&gt;mission, API, region, params&lt;/i&gt;" vertex="1">
+          <mxGeometry height="60" width="155" x="20" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="duckdb1" parent="session-alice" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;fontSize=12;" value="DuckDB Engine" vertex="1">
+          <mxGeometry height="60" width="150" x="205" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="parquet1" parent="session-alice" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#c8e6c9;strokeColor=#2e7d32;fontSize=11;" value="Parquet Results" vertex="1">
+          <mxGeometry height="60" width="130" x="130" y="220" as="geometry" />
+        </mxCell>
+        <mxCell id="e-t1-state1" edge="1" parent="session-alice" source="t1" style="edgeStyle=orthogonalEdgeStyle;" target="state1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-t1-duckdb1" edge="1" parent="session-alice" source="t1" style="edgeStyle=orthogonalEdgeStyle;" target="duckdb1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-duckdb1-parquet1" edge="1" parent="session-alice" source="duckdb1" style="edgeStyle=orthogonalEdgeStyle;fontStyle=2;fontSize=10;" target="parquet1" value="SQL queries">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="session-bob" parent="mcp-group" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#bbdefb;strokeColor=#1565c0;fontStyle=1;fontSize=13;verticalAlign=top;spacingTop=8;container=1;collapsible=0;" value="Session: Bob" vertex="1">
+          <mxGeometry height="300" width="380" x="470" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="t2" parent="session-bob" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;fontSize=12;" value="Tool Executor" vertex="1">
+          <mxGeometry height="45" width="150" x="120" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="state2" parent="session-bob" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;fontSize=11;" value="Request State&lt;br&gt;&lt;i&gt;mission, API, region, params&lt;/i&gt;" vertex="1">
+          <mxGeometry height="60" width="155" x="20" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="duckdb2" parent="session-bob" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;fontSize=12;" value="DuckDB Engine" vertex="1">
+          <mxGeometry height="60" width="150" x="205" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="parquet2" parent="session-bob" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#c8e6c9;strokeColor=#2e7d32;fontSize=11;" value="Parquet Results" vertex="1">
+          <mxGeometry height="60" width="130" x="130" y="220" as="geometry" />
+        </mxCell>
+        <mxCell id="e-t2-state2" edge="1" parent="session-bob" source="t2" style="edgeStyle=orthogonalEdgeStyle;" target="state2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-t2-duckdb2" edge="1" parent="session-bob" source="t2" style="edgeStyle=orthogonalEdgeStyle;" target="duckdb2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-duckdb2-parquet2" edge="1" parent="session-bob" source="duckdb2" style="edgeStyle=orthogonalEdgeStyle;fontStyle=2;fontSize=10;" target="parquet2" value="SQL queries">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="prompts" parent="mcp-group" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#b3e5fc;strokeColor=#0277bd;fontSize=11;" value="System Prompts&lt;br&gt;&lt;i&gt;Domain Knowledge&lt;/i&gt;" vertex="1">
+          <mxGeometry height="45" width="160" x="670" y="10" as="geometry" />
+        </mxCell>
+        <mxCell id="rag-group" parent="mcp-group" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#6a1b9a;fontStyle=1;fontSize=12;verticalAlign=top;spacingTop=5;container=1;collapsible=0;" value="RAG Documentation Search" vertex="1">
+          <mxGeometry height="90" width="620" x="230" y="450" as="geometry" />
+        </mxCell>
+        <mxCell id="chunker" parent="rag-group" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1bee7;strokeColor=#6a1b9a;fontSize=11;" value="Doc Chunker&lt;br&gt;&lt;i&gt;ReadTheDocs + PDFs&lt;/i&gt;" vertex="1">
+          <mxGeometry height="41.53846153846154" width="130" x="15" y="38.76923076923077" as="geometry" />
+        </mxCell>
+        <mxCell id="embedding" parent="rag-group" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1bee7;strokeColor=#6a1b9a;fontSize=11;" value="Embedding Model" vertex="1">
+          <mxGeometry height="41.53846153846154" width="120" x="165" y="38.76923076923077" as="geometry" />
+        </mxCell>
+        <mxCell id="vectordb" parent="rag-group" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=8;fillColor=#e1bee7;strokeColor=#6a1b9a;fontSize=11;" value="Vector Store" vertex="1">
+          <mxGeometry height="52.61538461538461" width="110" x="310" y="31.846153846153847" as="geometry" />
+        </mxCell>
+        <mxCell id="reranker" parent="rag-group" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1bee7;strokeColor=#6a1b9a;fontSize=11;" value="Semantic Reranker" vertex="1">
+          <mxGeometry height="41.53846153846154" width="130" x="445" y="38.76923076923077" as="geometry" />
+        </mxCell>
+        <mxCell id="e-chunker-embedding" edge="1" parent="rag-group" source="chunker" style="fontSize=9;strokeColor=#6a1b9a;" target="embedding">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-embedding-vectordb" edge="1" parent="rag-group" source="embedding" style="fontSize=9;strokeColor=#6a1b9a;" target="vectordb">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-vectordb-reranker" edge="1" parent="rag-group" source="vectordb" style="fontSize=9;strokeColor=#6a1b9a;" target="reranker">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-t1-rag" edge="1" parent="mcp-group" source="t1" style="fontStyle=2;fontSize=9;dashed=1;strokeColor=#6a1b9a;" target="rag-group" value="search_docs()&lt;br&gt;get_param_help()">
+          <mxGeometry relative="1" x="0.444" y="-7" as="geometry">
+            <mxPoint x="-1" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-t2-rag" edge="1" parent="mcp-group" source="t2" style="fontStyle=2;fontSize=9;dashed=1;strokeColor=#6a1b9a;" target="rag-group" value="search_docs()&lt;br&gt;get_param_help()">
+          <mxGeometry relative="1" x="0.7651" y="-32" as="geometry">
+            <mxPoint x="-1" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-router-t1" edge="1" parent="mcp-group" source="router" style="edgeStyle=orthogonalEdgeStyle;" target="t1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-router-t2" edge="1" parent="mcp-group" source="router" style="edgeStyle=orthogonalEdgeStyle;" target="t2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="sr-group" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;fontStyle=1;fontSize=14;verticalAlign=top;spacingTop=5;container=1;collapsible=0;" value="📡 SlideRule Data Server" vertex="1">
+          <mxGeometry height="140" width="520" x="480" y="880" as="geometry" />
+        </mxCell>
+        <mxCell id="nasadata" parent="sr-group" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#c8e6c9;strokeColor=#2e7d32;fontSize=12;" value="NASA Satellite&lt;br&gt;Data Archive" vertex="1">
+          <mxGeometry height="70" width="160" x="50" y="45" as="geometry" />
+        </mxCell>
+        <mxCell id="api" parent="sr-group" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#2e7d32;fontSize=12;" value="Processing API&lt;br&gt;&lt;i&gt;ATL06, ATL03, GEDI...&lt;/i&gt;" vertex="1">
+          <mxGeometry height="70" width="190" x="290" y="45" as="geometry" />
+        </mxCell>
+        <mxCell id="e-data-api" edge="1" parent="sr-group" source="nasadata" style="edgeStyle=orthogonalEdgeStyle;" target="api">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-alice-router" edge="1" parent="1" source="alice" style="fontSize=9;fontStyle=2;" target="router" value="1. initialize()&lt;br&gt;2. set_general_preset()&lt;br&gt;3. set_region()&lt;br&gt;4. submit_request()&lt;br&gt;5. describe_data()&lt;br&gt;6. run_sql()">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-bob-router" edge="1" parent="1" source="bob" style="fontSize=9;fontStyle=2;" target="router" value="1. initialize()&lt;br&gt;2. set_general_preset()&lt;br&gt;3. set_region()&lt;br&gt;4. submit_request()&lt;br&gt;5. describe_data()&lt;br&gt;6. run_sql()">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-users-oauth" edge="1" parent="1" source="users-group" style="fontStyle=2;fontSize=10;rounded=0;curved=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" target="oauth" value="OAuth 2.1">
+          <mxGeometry relative="1" x="-0.0861" y="-16" as="geometry">
+            <mxPoint x="-1" as="offset" />
+            <Array as="points">
+              <mxPoint x="105" y="90" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-mcp-jwks" edge="1" parent="1" source="router" style="fontStyle=2;fontSize=10;rounded=0;curved=1;" target="jwks" value="Verify JWT">
+          <mxGeometry relative="1" x="-0.1219" y="22" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="400" y="240" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-t1-api" edge="1" parent="1" source="t1" style="fontStyle=2;fontSize=10;" target="api" value="POST /api/atl06p">
+          <mxGeometry relative="1" x="0.6305" y="13" as="geometry">
+            <mxPoint x="1" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-t2-api" edge="1" parent="1" source="t2" style="fontStyle=2;fontSize=10;" target="api" value="POST /api/gedi04ap">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-api-parquet1" edge="1" parent="1" source="api" style="fontStyle=2;fontSize=10;dashed=1;" target="parquet1" value="Stream Parquet">
+          <mxGeometry relative="1" x="-0.3641" y="40" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-api-parquet2" edge="1" parent="1" source="api" style="fontStyle=2;fontSize=10;dashed=1;" target="parquet2" value="Stream Parquet">
+          <mxGeometry relative="1" x="-0.4368" y="-39" as="geometry">
+            <mxPoint y="-1" as="offset" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -790,6 +790,48 @@ async function handleGetElevationStats(args: Record<string, unknown>): Promise<T
   return ok(JSON.stringify(result, null, 2))
 }
 
+// ── Navigation Tool Handler ──────────────────────────────────────
+
+async function handleNavigateTo(args: Record<string, unknown>): Promise<ToolResult> {
+  const view = args.view as string
+  const reqId = args.req_id as number | undefined
+  const { default: router } = await import('@/router')
+
+  const viewRoutes: Record<string, string> = {
+    request: '/request',
+    analyze: '/analyze',
+    records: '/rectree',
+    settings: '/settings',
+    landing: '/landing'
+  }
+
+  const basePath = viewRoutes[view]
+  if (!basePath) return err(`Unknown view: "${view}".`)
+
+  if (view === 'analyze') {
+    if (reqId != null) {
+      await router.push(`/analyze/${reqId}`)
+      return ok(`Navigated to analysis view for request ${reqId}.`)
+    }
+    // Find the most recent completed request
+    const { useRecTreeStore } = await import('@/stores/recTreeStore')
+    const recTree = useRecTreeStore()
+    const reqs = recTree.allReqIds
+    if (reqs.length === 0) return err('No requests available to analyze. Submit a request first.')
+    const latestReqId = reqs[0]
+    await router.push(`/analyze/${latestReqId}`)
+    return ok(`Navigated to analysis view for most recent request ${latestReqId}.`)
+  }
+
+  if (view === 'request' && reqId != null) {
+    await router.push(`/request/${reqId}`)
+    return ok(`Navigated to request view with parameters from request ${reqId}.`)
+  }
+
+  await router.push(basePath)
+  return ok(`Navigated to ${view} view.`)
+}
+
 // ── Documentation Tool Handlers ──────────────────────────────────
 
 async function handleSearchDocs(args: Record<string, unknown>): Promise<ToolResult> {
@@ -998,6 +1040,7 @@ const handlers: Record<string, ToolHandler> = {
   search_docs: handleSearchDocs,
   fetch_docs: handleFetchDocs,
   get_param_help: handleGetParamHelp,
+  navigate_to: handleNavigateTo,
   initialize: handleInitialize
 }
 
