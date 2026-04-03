@@ -350,6 +350,35 @@ const computedLoadMsg = computed(() => {
   }
 })
 
+const savedMaxPntsLimit = ref<number | null>(null)
+
+const isSampled = computed(() => {
+  const data = analysisMapStore.getPntDataByReqId(recTreeStore.selectedReqIdStr)
+  return data.currentPnts !== data.totalPnts && data.totalPnts > 0
+})
+
+const isShowingAll = computed(() => savedMaxPntsLimit.value !== null)
+
+const LARGE_DATASET_THRESHOLD = 200_000
+
+function handleToggleShowAllPoints() {
+  const data = analysisMapStore.getPntDataByReqId(recTreeStore.selectedReqIdStr)
+
+  if (isShowingAll.value) {
+    srParquetCfgStore.setMaxNumPntsToDisplay(savedMaxPntsLimit.value!)
+    savedMaxPntsLimit.value = null
+  } else {
+    if (data.totalPnts > LARGE_DATASET_THRESHOLD) {
+      const proceed = window.confirm(
+        `This will render all ${numberFormatter.format(data.totalPnts)} points, which may be slow. Continue?`
+      )
+      if (!proceed) return
+    }
+    savedMaxPntsLimit.value = srParquetCfgStore.maxNumPntsToDisplay
+    srParquetCfgStore.setMaxNumPntsToDisplay(data.totalPnts)
+  }
+}
+
 const offFilterTooltip = computed(() => {
   if (atlChartFilterStore.showPhotonCloud) {
     return 'This is disabled when Show Photon Cloud is enabled'
@@ -374,6 +403,7 @@ watch(
     logger.debug('watch props.selectedReqId changed', { oldReqId, newReqId })
     if (newReqId !== oldReqId) {
       if (newReqId > 0) {
+        savedMaxPntsLimit.value = null
         await fieldNameStore.loadMetaForReqId(newReqId) // async but don't await
         globalChartStore.setAllColumnMinMaxValues({}) // reset all min/max values
         await updateAnalysisMapView('watch selectedReqId')
@@ -990,9 +1020,27 @@ function handleSaveTooltip() {
           style="width: 1rem; height: 1rem"
         />
         {{ computedLoadMsg }}
+        <Button
+          v-if="isSampled || isShowingAll"
+          :label="isShowingAll ? 'Sample' : 'Show All'"
+          text
+          rounded
+          size="small"
+          class="sr-show-all-btn"
+          @click="handleToggleShowAllPoints"
+        />
       </div>
       <div class="sr-notLoadingEl" v-else>
         {{ computedLoadMsg }}
+        <Button
+          v-if="isSampled || isShowingAll"
+          :label="isShowingAll ? 'Sample' : 'Show All'"
+          text
+          rounded
+          size="small"
+          class="sr-show-all-btn"
+          @click="handleToggleShowAllPoints"
+        />
       </div>
       <!-- DEBUG: Zoom level display -->
       <div class="sr-zoom-debug" v-if="debugStore.showZoomDebug" style="margin-left: 1rem">
@@ -1368,27 +1416,33 @@ function handleSaveTooltip() {
 }
 .sr-isLoadingEl {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
+  gap: 0.5rem;
   color: #e9df1c;
   padding-top: 0.5rem;
   margin-bottom: 0rem;
   padding-bottom: 0;
   font-size: 1rem;
-  align-items: center;
 }
 .sr-notLoadingEl {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
+  gap: 0.5rem;
   color: #4caf50;
   padding-top: 0.5rem;
   margin-bottom: 0rem;
   padding-bottom: 0;
   font-size: 1rem;
-  align-items: center;
+}
+.sr-show-all-btn {
+  font-size: 0.75rem;
+  padding: 0.1rem 0.4rem;
+  height: 1.4rem;
+  min-width: auto;
 }
 .hidden-control {
   display: none;
