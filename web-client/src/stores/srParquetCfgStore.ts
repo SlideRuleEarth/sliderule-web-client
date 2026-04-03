@@ -38,5 +38,9 @@ export const useSrParquetCfgStore = defineStore('srParquetCfg', {
     getSelectedExportFormat() {
       return this.selectedExportFormat
     }
+  },
+  persist: {
+    storage: localStorage,
+    pick: ['maxNumPntsToDisplay']
   }
 })
