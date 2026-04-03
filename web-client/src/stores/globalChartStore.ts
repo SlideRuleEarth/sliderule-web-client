@@ -6,6 +6,7 @@ import { SC_FORWARD, SC_BACKWARD } from '@/sliderule/icesat2'
 import { getDetailsFromSpotNumber, getScOrientFromSpotAndGt } from '@/utils/spotUtils'
 import { resetCycleOptions, type ElevationDataItem } from '@/utils/SrMapUtils'
 import { createLogger } from '@/utils/logger'
+import { DEFAULT_MAX_NUM_PNTS_TO_DISPLAY } from '@/stores/srParquetCfgStore'
 
 const logger = createLogger('GlobalChartStore')
 
@@ -37,7 +38,7 @@ export const useGlobalChartStore = defineStore('globalChartStore', () => {
   const mapHoverIsSelected = ref<boolean>(false) // true if hovered point is on selected track
   const selected_y_atc = ref<number>(0.0)
   const y_atc_margin = ref<number>(50.0)
-  const max_pnts_on_plot = ref<number>(50000)
+  const max_pnts_on_plot = ref<number>(DEFAULT_MAX_NUM_PNTS_TO_DISPLAY)
   const chunk_size_for_plot = ref<number>(10000)
   const titleOfElevationPlot = ref<string>('Highlighted Track(s)') // Default title for the elevation plot
   const allColumnMinMaxValues = ref<MinMaxLowHigh>({})

@@ -30,7 +30,7 @@
         :max="5000000"
         :step="10000"
         showButtons
-        :defaultValue="50000"
+        :defaultValue="DEFAULT_MAX_NUM_PNTS_TO_DISPLAY"
         :decimalPlaces="0"
       />
       <br />
@@ -44,7 +44,7 @@
         :max="5000000"
         :step="10000"
         showButtons
-        :defaultValue="50000"
+        :defaultValue="DEFAULT_MAX_NUM_PNTS_TO_DISPLAY"
         :decimalPlaces="0"
       />
       <SrToggleButton
@@ -204,7 +204,7 @@ import Fieldset from 'primevue/fieldset'
 import SrToggleButton from './SrToggleButton.vue'
 import SrGraticuleSelect from './SrGraticuleSelect.vue'
 import { useReqParamsStore } from '@/stores/reqParamsStore'
-import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore'
+import { useSrParquetCfgStore, DEFAULT_MAX_NUM_PNTS_TO_DISPLAY } from '@/stores/srParquetCfgStore'
 import { useDebugStore } from '@/stores/debugStore'
 import { useDeckStore } from '@/stores/deckStore'
 import { useRequestsStore } from '@/stores/requestsStore'

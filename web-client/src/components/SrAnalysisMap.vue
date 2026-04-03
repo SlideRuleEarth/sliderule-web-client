@@ -11,7 +11,7 @@ import 'ol-geocoder/dist/ol-geocoder.min.css'
 import { get as getProjection } from 'ol/proj.js'
 import SrLegendControl from '@/components/SrLegendControl.vue'
 import { zoomMapForReqIdUsingView } from '@/utils/SrMapUtils'
-import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore'
+import { useSrParquetCfgStore, DEFAULT_MAX_NUM_PNTS_TO_DISPLAY } from '@/stores/srParquetCfgStore'
 import { useRequestsStore } from '@/stores/requestsStore'
 import { Map, MapControls } from 'vue3-openlayers'
 import { db } from '@/db/SlideRuleDb'
@@ -42,6 +42,8 @@ import { callPlotUpdateDebounced } from '@/utils/plotUtils'
 import { setCyclesGtsSpotsFromFileUsingRgtYatc, updateSrViewName } from '@/utils/SrMapUtils'
 import Checkbox from 'primevue/checkbox'
 import Button from 'primevue/button'
+import Dialog from 'primevue/dialog'
+import Slider from 'primevue/slider'
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore'
 import { useDebugStore } from '@/stores/debugStore'
 import SrBaseLayerControl from '@/components/SrBaseLayerControl.vue'
@@ -352,31 +354,103 @@ const computedLoadMsg = computed(() => {
 
 const savedMaxPntsLimit = ref<number | null>(null)
 
-const isSampled = computed(() => {
+const canSample = computed(() => {
   const data = analysisMapStore.getPntDataByReqId(recTreeStore.selectedReqIdStr)
-  return data.currentPnts !== data.totalPnts && data.totalPnts > 0
+  const limit = savedMaxPntsLimit.value ?? srParquetCfgStore.maxNumPntsToDisplay
+  return data.totalPnts > limit
 })
 
 const isShowingAll = computed(() => savedMaxPntsLimit.value !== null)
 
-const LARGE_DATASET_THRESHOLD = 200_000
+const showThresholdDialog = ref(false)
+const thresholdSliderValue = ref(DEFAULT_MAX_NUM_PNTS_TO_DISPLAY)
+const thresholdDialogMin = ref(DEFAULT_MAX_NUM_PNTS_TO_DISPLAY)
+const thresholdDialogMax = ref(100000)
+const pendingThresholdPrompt = ref(false)
+const showSaveThresholdDialog = ref(false)
+const pendingNewThreshold = ref(0)
+
+function roundUpToNearest1000(n: number): number {
+  return Math.ceil(n / 1000) * 1000
+}
+
+function openThresholdDialog(totalPnts: number | bigint) {
+  const total = Number(totalPnts)
+  const currentLimit = savedMaxPntsLimit.value ?? srParquetCfgStore.maxNumPntsToDisplay
+  thresholdDialogMin.value = currentLimit
+  thresholdDialogMax.value = roundUpToNearest1000(total)
+  thresholdSliderValue.value = thresholdDialogMax.value
+  showThresholdDialog.value = true
+}
+
+function handleThresholdConfirm() {
+  showThresholdDialog.value = false
+  if (savedMaxPntsLimit.value === null) {
+    savedMaxPntsLimit.value = srParquetCfgStore.maxNumPntsToDisplay
+  }
+  pendingNewThreshold.value = thresholdSliderValue.value
+  pendingThresholdPrompt.value = true
+  srParquetCfgStore.setMaxNumPntsToDisplay(thresholdSliderValue.value)
+}
+
+function handleThresholdCancel() {
+  showThresholdDialog.value = false
+  // Revert to sampled view
+  if (savedMaxPntsLimit.value !== null) {
+    srParquetCfgStore.setMaxNumPntsToDisplay(savedMaxPntsLimit.value)
+    savedMaxPntsLimit.value = null
+  }
+}
+
+// After plotting finishes, ask if the user wants to adopt the new threshold as their default
+watch(elevationIsLoading, (isLoading, wasLoading) => {
+  if (wasLoading && !isLoading && pendingThresholdPrompt.value) {
+    pendingThresholdPrompt.value = false
+    showSaveThresholdDialog.value = true
+  }
+})
+
+function handleSaveThresholdConfirm() {
+  showSaveThresholdDialog.value = false
+  // Adopt the current value as the new default — clear the saved override
+  savedMaxPntsLimit.value = null
+}
+
+function handleSaveThresholdCancel() {
+  showSaveThresholdDialog.value = false
+  // Keep the override state so the user can toggle back to "Sample"
+}
+
+const showSampleDialog = ref(false)
+const sampleSliderValue = ref(DEFAULT_MAX_NUM_PNTS_TO_DISPLAY)
+const sampleDialogMax = ref(DEFAULT_MAX_NUM_PNTS_TO_DISPLAY)
 
 function handleToggleShowAllPoints() {
   const data = analysisMapStore.getPntDataByReqId(recTreeStore.selectedReqIdStr)
-
   if (isShowingAll.value) {
-    srParquetCfgStore.setMaxNumPntsToDisplay(savedMaxPntsLimit.value!)
-    savedMaxPntsLimit.value = null
-  } else {
-    if (data.totalPnts > LARGE_DATASET_THRESHOLD) {
-      const proceed = window.confirm(
-        `This will render all ${numberFormatter.format(data.totalPnts)} points, which may be slow. Continue?`
-      )
-      if (!proceed) return
+    // If the saved threshold is above the default, let the user pick a new value
+    if (savedMaxPntsLimit.value! > DEFAULT_MAX_NUM_PNTS_TO_DISPLAY) {
+      sampleDialogMax.value = srParquetCfgStore.maxNumPntsToDisplay
+      sampleSliderValue.value = savedMaxPntsLimit.value!
+      showSampleDialog.value = true
+    } else {
+      srParquetCfgStore.setMaxNumPntsToDisplay(savedMaxPntsLimit.value!)
+      savedMaxPntsLimit.value = null
     }
-    savedMaxPntsLimit.value = srParquetCfgStore.maxNumPntsToDisplay
-    srParquetCfgStore.setMaxNumPntsToDisplay(data.totalPnts)
+  } else {
+    openThresholdDialog(data.totalPnts)
   }
+}
+
+function handleSampleConfirm() {
+  showSampleDialog.value = false
+  srParquetCfgStore.setMaxNumPntsToDisplay(sampleSliderValue.value)
+  savedMaxPntsLimit.value = null
+}
+
+function handleSampleCancel() {
+  showSampleDialog.value = false
+  // Stay in show-all mode
 }
 
 const offFilterTooltip = computed(() => {
@@ -403,10 +477,21 @@ watch(
     logger.debug('watch props.selectedReqId changed', { oldReqId, newReqId })
     if (newReqId !== oldReqId) {
       if (newReqId > 0) {
-        savedMaxPntsLimit.value = null
         await fieldNameStore.loadMetaForReqId(newReqId) // async but don't await
         globalChartStore.setAllColumnMinMaxValues({}) // reset all min/max values
         await updateAnalysisMapView('watch selectedReqId')
+        // Re-apply or clear "show all" based on whether the new record needs sampling
+        if (isShowingAll.value) {
+          const data = analysisMapStore.getPntDataByReqId(String(newReqId))
+          const limit = savedMaxPntsLimit.value!
+          if (data.totalPnts > limit) {
+            openThresholdDialog(data.totalPnts)
+          } else {
+            // New record fits within the limit — no sampling needed, clear toggle
+            srParquetCfgStore.setMaxNumPntsToDisplay(limit)
+            savedMaxPntsLimit.value = null
+          }
+        }
       } else {
         logger.error('SrAnalysisMap selectedReqId is 0')
       }
@@ -1021,7 +1106,7 @@ function handleSaveTooltip() {
         />
         {{ computedLoadMsg }}
         <Button
-          v-if="isSampled || isShowingAll"
+          v-if="canSample || isShowingAll"
           :label="isShowingAll ? 'Sample' : 'Show All'"
           text
           rounded
@@ -1033,7 +1118,7 @@ function handleSaveTooltip() {
       <div class="sr-notLoadingEl" v-else>
         {{ computedLoadMsg }}
         <Button
-          v-if="isSampled || isShowingAll"
+          v-if="canSample || isShowingAll"
           :label="isShowingAll ? 'Sample' : 'Show All'"
           text
           rounded
@@ -1231,6 +1316,83 @@ function handleSaveTooltip() {
         </div>
       </div>
     </div>
+    <Dialog
+      :visible="showThresholdDialog"
+      @update:visible="(val: boolean) => (showThresholdDialog = val)"
+      header="Adjust Display Threshold"
+      modal
+      :closable="false"
+      class="sr-threshold-dialog"
+      :style="{ width: '28rem' }"
+    >
+      <p style="margin-bottom: 1rem">
+        This record has <strong>{{ numberFormatter.format(thresholdDialogMax) }}</strong> points.
+        Choose how many to display:
+      </p>
+      <div class="sr-threshold-slider-row">
+        <span>{{ numberFormatter.format(thresholdDialogMin) }}</span>
+        <Slider
+          v-model="thresholdSliderValue"
+          :min="thresholdDialogMin"
+          :max="thresholdDialogMax"
+          :step="1000"
+          class="sr-threshold-slider"
+        />
+        <span>{{ numberFormatter.format(thresholdDialogMax) }}</span>
+      </div>
+      <p style="text-align: center; margin: 0.5rem 0; font-weight: bold">
+        {{ numberFormatter.format(thresholdSliderValue) }} points
+      </p>
+      <template #footer>
+        <Button label="Cancel" text @click="handleThresholdCancel" />
+        <Button label="Apply" @click="handleThresholdConfirm" />
+      </template>
+    </Dialog>
+    <Dialog
+      :visible="showSaveThresholdDialog"
+      @update:visible="(val: boolean) => (showSaveThresholdDialog = val)"
+      header="Update Default Threshold?"
+      modal
+      :closable="false"
+      :style="{ width: '24rem' }"
+    >
+      <p>
+        Use <strong>{{ numberFormatter.format(pendingNewThreshold) }}</strong> as your new default
+        sampling threshold for the map?
+      </p>
+      <template #footer>
+        <Button label="No" text @click="handleSaveThresholdCancel" />
+        <Button label="Yes" @click="handleSaveThresholdConfirm" />
+      </template>
+    </Dialog>
+    <Dialog
+      :visible="showSampleDialog"
+      @update:visible="(val: boolean) => (showSampleDialog = val)"
+      header="Adjust Sampling Threshold"
+      modal
+      :closable="false"
+      :style="{ width: '28rem' }"
+    >
+      <p style="margin-bottom: 1rem">Choose a new sampling threshold:</p>
+      <div class="sr-threshold-slider-row">
+        <span>{{ numberFormatter.format(DEFAULT_MAX_NUM_PNTS_TO_DISPLAY) }}</span>
+        <Slider
+          v-model="sampleSliderValue"
+          :min="DEFAULT_MAX_NUM_PNTS_TO_DISPLAY"
+          :max="sampleDialogMax"
+          :step="1000"
+          class="sr-threshold-slider"
+        />
+        <span>{{ numberFormatter.format(sampleDialogMax) }}</span>
+      </div>
+      <p style="text-align: center; margin: 0.5rem 0; font-weight: bold">
+        {{ numberFormatter.format(sampleSliderValue) }} points
+      </p>
+      <template #footer>
+        <Button label="Cancel" text @click="handleSampleCancel" />
+        <Button label="Apply" @click="handleSampleConfirm" />
+      </template>
+    </Dialog>
   </div>
 </template>
 
@@ -1443,6 +1605,15 @@ function handleSaveTooltip() {
   padding: 0.1rem 0.4rem;
   height: 1.4rem;
   min-width: auto;
+}
+.sr-threshold-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+}
+.sr-threshold-slider {
+  flex: 1;
 }
 .hidden-control {
   display: none;
