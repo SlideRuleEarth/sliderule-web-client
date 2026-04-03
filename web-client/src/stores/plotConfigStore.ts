@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { createLogger } from '@/utils/logger'
+import { DEFAULT_MAX_NUM_PNTS_TO_DISPLAY } from '@/stores/srParquetCfgStore'
 
 const logger = createLogger('PlotConfigStore')
 
@@ -26,7 +27,7 @@ export const usePlotConfigStore = defineStore(
   () => {
     // Progressive rendering settings
     const isLarge = ref(false)
-    const largeThreshold = ref(50000)
+    const largeThreshold = ref(DEFAULT_MAX_NUM_PNTS_TO_DISPLAY)
     const progressiveChunkSize = ref(12000)
     const progressiveChunkThreshold = ref(10000)
     const progressiveChunkMode = ref('auto')
@@ -56,7 +57,7 @@ export const usePlotConfigStore = defineStore(
      */
     function restoreDefaults(): void {
       isLarge.value = false
-      largeThreshold.value = 50000
+      largeThreshold.value = DEFAULT_MAX_NUM_PNTS_TO_DISPLAY
       progressiveChunkSize.value = 12000
       progressiveChunkThreshold.value = 10000
       progressiveChunkMode.value = 'mod'
