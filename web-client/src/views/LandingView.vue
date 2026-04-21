@@ -6,6 +6,7 @@ import SelectButton from 'primevue/selectbutton'
 import wallpaperUrl from '@/assets/landing_wallpaper.jpg'
 import aboutRaw from '@/assets/content/about.md?raw'
 import contactRaw from '@/assets/content/contact.md?raw'
+import { DOCS } from '@/utils/docLinks'
 
 function stripFrontmatter(md: string): string {
   return md.replace(/^---[\s\S]*?---\n*/, '')
@@ -30,8 +31,8 @@ const panelHtml = computed(() => {
 
 // --- News ---
 
-const ARTICLES_INDEX_URL = 'https://docs.slideruleearth.io/developer_guide/articles/articles.html'
-const ARTICLES_BASE_URL = 'https://docs.slideruleearth.io/developer_guide/articles/'
+const ARTICLES_INDEX_URL = DOCS.articles.index
+const ARTICLES_BASE_URL = DOCS.articles.base
 
 interface NewsArticle {
   title: string

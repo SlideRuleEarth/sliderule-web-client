@@ -13,6 +13,7 @@ import {
 } from '@/utils/parmUtils'
 import { type SrListNumberItem } from '@/types/SrTypes'
 import { createLogger } from '@/utils/logger'
+import { DOCS } from '@/utils/docLinks'
 
 const logger = createLogger('SrGranuleSelection')
 const reqParamsStore = useReqParamsStore()
@@ -87,8 +88,8 @@ const GtsSelection = (gts: SrListNumberItem[]) => {
         :defaultValue="defaultEnableGranuleSelection()"
         label="Granule Selection"
         labelFontSize="large"
-        tooltipText="Granules are the smallest unit of data that can be independently accessed, processed, and analyzed."
-        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/xseries.html#granule"
+        tooltipText="A granule is a single file of NASA Earth science data produced by a mission's Science Investigator-led Processing System (SIPS) and cataloged in NASA's Common Metadata Repository (CMR). For the satellite altimetry missions SlideRule processes (ICESat-2, GEDI), a granule corresponds to one continuous segment of observation from the instrument — typically a fraction of an orbit — stored as an HDF5 file in cloud object storage (e.g. the NSIDC Cumulus S3 bucket). Granule filenames encode the data product, acquisition time, and orbital/version identifiers, for example ATL03_20181019065445_03150111_007_01.h5 (ATL03 product, acquired 2018-10-19 06:54:45 UTC, Reference Ground Track 0315, cycle 01, region 11, release 007, revision 01).
+In SlideRule, granules are the physical objects behind the more general concept of a resource. When a processing request is issued, SlideRule either (a) uses a list of granule filenames supplied directly by the user via the resources parameter, or (b) resolves the relevant granules itself by querying CMR — or, for ATL13, SlideRule's own Asset Metadata Service — using the request's area of interest, time range, and other filters. The selected granules are then read in parallel from cloud storage via H5Coro and subset server-side."
       />
     </div>
     <div class="sr-granule-tracks-beams-div">
@@ -102,7 +103,7 @@ const GtsSelection = (gts: SrListNumberItem[]) => {
         :setSelectedMenuItem="reqParamsStore.setSelectedGtOptions"
         :menuOptions="gtsOptions"
         tooltipText="ATLAS laser beams are divided into three tracks of weak and strong beams"
-        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/icesat2.html#photon-input-parameters"
+        :tooltipUrl="DOCS.icesat2.photonInput"
         @update:modelValue="GtsSelection"
       />
     </div>
@@ -120,7 +121,7 @@ const GtsSelection = (gts: SrListNumberItem[]) => {
       :max="1388"
       :decimalPlaces="0"
       tooltipText="RGT is the reference ground track: defaults to all if not specified"
-      tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/icesat2.html#photon-input-parameters"
+      :tooltipUrl="DOCS.icesat2.photonInput"
     />
     <SrSwitchedSliderInput
       :insensitive="!reqParamsStore.enableGranuleSelection"
@@ -136,7 +137,7 @@ const GtsSelection = (gts: SrListNumberItem[]) => {
       :max="100"
       :decimalPlaces="0"
       tooltipText="counter of 91-day repeat cycles completed by the mission (defaults to all if not specified)"
-      tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/icesat2.html#photon-input-parameters"
+      :tooltipUrl="DOCS.icesat2.photonInput"
     />
     <SrSwitchedSliderInput
       :insensitive="!reqParamsStore.enableGranuleSelection"
@@ -152,7 +153,7 @@ const GtsSelection = (gts: SrListNumberItem[]) => {
       :max="14"
       :decimalPlaces="0"
       tooltipText="atl03 granule region (zero means all), See section 2.5 pages 14-17 of the 'Algorithm Theoretical Basis Document'"
-      tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/icesat2.html#photon-input-parameters"
+      :tooltipUrl="DOCS.icesat2.photonInput"
     />
     <SrSwitchedSliderInput
       :insensitive="!reqParamsStore.enableGranuleSelection"
@@ -168,7 +169,7 @@ const GtsSelection = (gts: SrListNumberItem[]) => {
       :max="1000"
       :decimalPlaces="0"
       tooltipText="Maximum number of resources (e.g. granules, tiles, etc.) that can be processed by a single request."
-      tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/icesat2.html#photon-input-parameters"
+      :tooltipUrl="DOCS.icesat2.photonInput"
     />
     <Fieldset
       legend="Time Range"
@@ -185,7 +186,7 @@ const GtsSelection = (gts: SrListNumberItem[]) => {
         label="Use Time Filter"
         labelFontSize="large"
         tooltipText="Filter granules by time"
-        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/icesat2.html#photon-input-parameters"
+        :tooltipUrl="DOCS.icesat2.photonInput"
       />
       <SrCalendar
         :insensitive="!(reqParamsStore.enableGranuleSelection && reqParamsStore.useTime)"
@@ -195,7 +196,7 @@ const GtsSelection = (gts: SrListNumberItem[]) => {
         :setValue="reqParamsStore.setT0"
         :defaultValue="defaultT0()"
         tooltipText="Start Time for filtering granules"
-        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/icesat2.html#photon-input-parameters"
+        :tooltipUrl="DOCS.icesat2.photonInput"
       />
       <SrCalendar
         :insensitive="!(reqParamsStore.enableGranuleSelection && reqParamsStore.useTime)"
@@ -205,7 +206,7 @@ const GtsSelection = (gts: SrListNumberItem[]) => {
         :setValue="reqParamsStore.setT1"
         :defaultValue="defaultT1()"
         tooltipText="End Time for filtering granules"
-        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/icesat2.html#photon-input-parameters"
+        :tooltipUrl="DOCS.icesat2.photonInput"
       />
     </Fieldset>
   </div>

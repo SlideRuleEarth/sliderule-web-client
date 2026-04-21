@@ -10,6 +10,7 @@ import { useSlideruleDefaults } from '@/stores/defaultsStore'
 import SrLabelInfoIconButton from '@/components/SrLabelInfoIconButton.vue'
 import { type SrPhoreal } from '@/types/slideruleDefaultsInterfaces'
 import { createLogger } from '@/utils/logger'
+import { DOCS } from '@/utils/docLinks'
 
 const logger = createLogger('SrVegDensity')
 
@@ -35,7 +36,7 @@ onMounted(() => {
         label="PhoREAL Veg Density"
         labelFontSize="large"
         tooltipText="PhoREAL Veg Density Parameters:provides vegetation statistics over custom-length ATL03 photon segments"
-        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/xseries.html#id1"
+        :tooltipUrl="DOCS.icesat2.phorealAlgorithm"
       />
     </div>
     <div>

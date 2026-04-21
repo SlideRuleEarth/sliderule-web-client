@@ -52,7 +52,7 @@
         :getValue="reqParamsStore.getUseChecksum"
         :setValue="reqParamsStore.setUseChecksum"
         label="Use Checksum"
-        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/ICESat-2.html#parameters"
+        :tooltipUrl="DOCS.arrowOutput.parameters"
         tooltipText="Use Checksum to verify the integrity of the data"
       />
       <SrToggleButton
@@ -222,6 +222,7 @@ import {
   validateServiceUrl
 } from '@/utils/domainUtils'
 import { clearASMetadataCache } from '@/utils/oauthDiscovery'
+import { DOCS } from '@/utils/docLinks'
 
 const debugStore = useDebugStore()
 const mobileWarningStore = useMobileWarningStore()

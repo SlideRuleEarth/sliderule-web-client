@@ -8,6 +8,7 @@ import SrSliderInput from '@/components/SrSliderInput.vue'
 import { useReqParamsStore } from '@/stores/reqParamsStore'
 import SrShapefileUpload from './SrShapefileUpload.vue'
 import { createLogger } from '@/utils/logger'
+import { DOCS } from '@/utils/docLinks'
 
 const logger = createLogger('SrUploadRegion')
 
@@ -98,7 +99,7 @@ function handleFileUploadFinished() {
           :decimalPlaces="4"
           :inputWidth="'5rem'"
           tooltipText="The number of pixels to rasterize the polygon into"
-          tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/basic_usage.html#rasterized-area-of-interest"
+          :tooltipUrl="DOCS.basicUsage.rasterizedAoi"
         />
       </div>
 

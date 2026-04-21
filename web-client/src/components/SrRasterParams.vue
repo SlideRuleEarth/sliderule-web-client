@@ -5,7 +5,7 @@
         label="Add new raster parameters"
         labelFontSize="larger"
         tooltipText='SlideRule supports sampling raster datasets at the latitude and longitude of each calculated result from SlideRule processing. When raster sampling is requested, the DataFrame returned by SlideRule includes columns for each requested raster with their associated values.To request raster sampling, the "samples" parameter must be populated as a dictionary in the request. Each key in the dictionary is used to label the data returned for that raster in the returned DataFrame.'
-        tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/raster_sampling.html"
+        :tooltipUrl="DOCS.rasterSampling.base"
       />
     </div>
     <div class="sr-add-raster-fields">
@@ -112,7 +112,7 @@
           label="Catalog"
           labelFontSize="large"
           tooltipText="geojson formatted stac query response (obtained through the sliderule.earthdata.stac Python API)"
-          tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/raster_sampling.html#providing-your-own-catalog"
+          :tooltipUrl="DOCS.rasterSampling.catalog"
         />
         <TextArea v-model="rasterParamsStore.catalog" rows="3" cols="20" />
         <SrCatalogFileUpload />
@@ -126,7 +126,7 @@
           :menuOptions="rasterParamsStore.bandOptions"
           :default="[rasterParamsStore.bandOptions[0]]"
           tooltipText="List of bands to read out of the raster, or a predefined algorithm that combines bands for a given dataset"
-          tooltipUrl="https://slideruleearth.io/web/rtd/user_guide/raster_sampling.html#parameters"
+          :tooltipUrl="DOCS.rasterSampling.parameters"
         />
       </div>
       <div class="sr-slope-aspect">
@@ -170,6 +170,7 @@ import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue'
 import Sr32BitFlag from './Sr32BitFlag.vue'
 import { onMounted } from 'vue'
 import SrSqlFieldInput from './SrSqlFieldInput.vue'
+import { DOCS } from '@/utils/docLinks'
 
 const rasterParamsStore = useRasterParamsStore()
 
