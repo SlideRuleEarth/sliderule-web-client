@@ -32,6 +32,7 @@ import { ref, computed } from 'vue'
 import InputText from 'primevue/inputtext'
 import Button from 'primevue/button'
 import SrLabelInfoIconButton from './SrLabelInfoIconButton.vue'
+import { DOCS } from '@/utils/docLinks'
 
 const props = defineProps<{
   modelValue: string[]
@@ -43,11 +44,11 @@ const emit = defineEmits<{
 }>()
 const computedUrl = computed(() => {
   if (props.label?.includes('atl06')) {
-    return `https://slideruleearth.io/web/rtd/user_guide/how_tos/ancillary_fields.html#including-an-ancillary-field-in-an-atl06p-request`
+    return DOCS.ancillaryFields.atl06pReq
   } else if (props.label?.includes('atl03 Corr')) {
-    return `https://slideruleearth.io/web/rtd/user_guide/how_tos/ancillary_fields.html#including-an-ancillary-field-in-an-atl03sp-request`
+    return DOCS.ancillaryFields.atl03spReq
   } else {
-    return `https://slideruleearth.io/web/rtd/user_guide/how_tos/ancillary_fields.html#including-ancillary-fields`
+    return DOCS.ancillaryFields.base
   }
 })
 const newField = ref('')

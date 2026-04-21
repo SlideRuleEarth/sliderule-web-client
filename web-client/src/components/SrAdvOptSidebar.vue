@@ -7,6 +7,7 @@ import SrJsonEditReq from '@/components/SrJsonEditReq.vue'
 import SrReqDisplay from '@/components/SrReqDisplay.vue'
 import { useServerStateStore } from '@/stores/serverStateStore'
 import { missionItems, gediAPIsItems, iceSat2APIsItems } from '@/types/SrStaticOptions'
+import { DOCS } from '@/utils/docLinks'
 
 onMounted(() => {
   useServerStateStore().isAborting = false
@@ -14,9 +15,9 @@ onMounted(() => {
 const missionTooltipUrl = computed(() => {
   const mission = useReqParamsStore().getMissionValue()
   if (mission === 'ICESat-2') {
-    return 'https://slideruleearth.io/web/rtd/api_reference/icesat2.html#icesat2'
+    return DOCS.apiReference.icesat2
   } else if (mission === 'GEDI') {
-    return 'https://slideruleearth.io/web/rtd/api_reference/gedi.html#gedi'
+    return DOCS.apiReference.gedi
   }
   return ''
 })
@@ -42,7 +43,7 @@ const missionTooltipUrl = computed(() => {
         :setSelectedMenuItem="useReqParamsStore().setIceSat2API"
         :defaultOptionIndex="0"
         tooltipText="Select an API to use for the selected mission."
-        tooltipUrl="https://slideruleearth.io/web/rtd/api_reference/icesat2.html#icesat2"
+        :tooltipUrl="DOCS.apiReference.icesat2"
       />
       <SrMenu
         label="GEDI API:"
@@ -53,7 +54,7 @@ const missionTooltipUrl = computed(() => {
         :setSelectedMenuItem="useReqParamsStore().setGediAPI"
         :defaultOptionIndex="0"
         tooltipText="Select an API to use for the selected mission."
-        tooltipUrl="https://slideruleearth.io/web/rtd/api_reference/gedi.html#gedi"
+        :tooltipUrl="DOCS.apiReference.gedi"
       />
     </div>
     <div class="sr-adv-option-sidebar-container">
