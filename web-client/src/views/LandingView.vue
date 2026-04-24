@@ -122,6 +122,7 @@ async function fetchArticle(article: NewsArticle) {
     if (main) {
       // Remove prev/next navigation links common in Sphinx
       main.querySelectorAll('.rst-footer-buttons, .footer, nav').forEach((n) => n.remove())
+      main.querySelectorAll('a.headerlink').forEach((n) => n.remove())
       articleHtml.value = DOMPurify.sanitize(main.innerHTML)
     } else {
       articleHtml.value = '<p>Could not extract article content.</p>'
