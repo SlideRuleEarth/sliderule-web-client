@@ -49,7 +49,10 @@ test('draw rectangle and run SlideRule', async ({ pageAfterTour }) => {
 
   await page.getByTitle('Draw a Rectangle by clicking').getByRole('img').click()
 
-  const canvas = page.locator('canvas').nth(1)
+  // Target the OpenLayers map canvas explicitly — there is only one canvas
+  // on the Request view (under .ol-layer), so the previous `nth(1)` selector
+  // waited forever for a second canvas that does not exist.
+  const canvas = page.locator('.ol-layer canvas').first()
   const box = await canvas.boundingBox()
 
   if (!box) {
