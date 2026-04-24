@@ -246,7 +246,7 @@ watch(selectedTab, (tab) => {
   color: #e0e0e0;
   max-width: 42rem;
   line-height: 1.5;
-  margin: 0 0 2rem 0;
+  margin: 0 0 8rem 0;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
 }
 

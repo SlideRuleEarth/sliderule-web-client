@@ -21,7 +21,7 @@ export const useMobileWarningStore = defineStore('mobileWarning', {
   persist: {
     storage: localStorage,
     // Only persist visitCount and threshold, NOT dismissedThisSession
-    pick: ['visitCount', 'threshold']
+    paths: ['visitCount', 'threshold']
   },
   getters: {
     /**

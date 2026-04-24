@@ -26,7 +26,7 @@ export const useGoogleApiKeyStore = defineStore('googleApiKey', {
     // Use sessionStorage - persists within tab until closed
     storage: sessionStorage,
     // Only persist the API key and session - validation status will be re-checked
-    pick: ['apiKey', 'sessionToken', 'sessionExpiry']
+    paths: ['apiKey', 'sessionToken', 'sessionExpiry']
   },
   actions: {
     setApiKey(key: string | null) {

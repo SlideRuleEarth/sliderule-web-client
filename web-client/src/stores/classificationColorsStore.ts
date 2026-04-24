@@ -166,7 +166,7 @@ export const useClassificationColorsStore = defineStore(
   {
     persist: {
       storage: localStorage,
-      pick: ['atl03CnfColors', 'atl08ClassColors', 'atl24ClassColors']
+      paths: ['atl03CnfColors', 'atl08ClassColors', 'atl24ClassColors']
     }
   }
 )

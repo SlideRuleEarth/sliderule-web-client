@@ -41,7 +41,7 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
     // Use sessionStorage - persists within tab until closed
     storage: sessionStorage,
     // Persist membership info, token, metadata, and timestamp (justAuthenticated intentionally not persisted)
-    pick: [
+    paths: [
       'isOrgMember',
       'isOrgOwner',
       'username',

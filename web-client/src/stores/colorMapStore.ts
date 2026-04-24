@@ -90,7 +90,7 @@ export const useColorMapStore = defineStore(
   {
     persist: {
       storage: localStorage,
-      pick: ['namedColorPalette']
+      paths: ['namedColorPalette']
     }
   }
 )
