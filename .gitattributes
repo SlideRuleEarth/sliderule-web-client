@@ -1,0 +1,27 @@
+# Normalize text line endings across platforms
+* text=auto eol=lf
+
+# Explicit binary types — never apply EOL/text filters
+*.png     binary
+*.jpg     binary
+*.jpeg    binary
+*.gif     binary
+*.ico     binary
+*.webp    binary
+*.svg     binary
+*.pdf     binary
+*.woff    binary
+*.woff2   binary
+*.ttf     binary
+*.otf     binary
+*.eot     binary
+*.mp4     binary
+*.mp3     binary
+*.zip     binary
+*.gz      binary
+*.tgz     binary
+*.parquet binary
+*.wasm    binary
+
+# Lockfile — treat as text but mark as generated so GitHub collapses it in diffs
+package-lock.json linguist-generated=true
