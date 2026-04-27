@@ -5,7 +5,7 @@ import 'primeflex/primeflex.css'
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import { piniaMetaPlugin } from '@/composables/piniaMetaPlugin'
-import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
+import { createPersistedState } from 'pinia-plugin-persistedstate'
 import PrimeVue from 'primevue/config'
 import { definePreset } from '@primeuix/themes'
 import 'intro.js/introjs.css'
@@ -79,7 +79,11 @@ const SrPreset = definePreset(Lara, {
   }
 })
 const pinia = createPinia()
-pinia.use(piniaPluginPersistedstate)
+pinia.use(
+  createPersistedState({
+    storage: sessionStorage // session is per tab and not persistent when tab is closed
+  })
+)
 pinia.use(piniaMetaPlugin)
 
 export const app = createApp(App)
