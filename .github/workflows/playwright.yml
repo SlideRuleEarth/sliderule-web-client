@@ -18,22 +18,25 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version-file: '.nvmrc'
           cache: npm
-          cache-dependency-path: web-client/package-lock.json
+          cache-dependency-path: |
+            package-lock.json
+            web-client/package-lock.json
+
+      - name: Enable Corepack (honors packageManager field)
+        run: corepack enable
 
       - name: Create .env.ci at repo root
-        working-directory: web-client
         run: |
           {
             echo "BASE_URL=http://localhost:5173"
             echo "VITE_APP_ENV=ci"
             # echo "VITE_API_BASE=${{ secrets.VITE_API_BASE }}"
-          } > ../.env.ci
+          } > .env.ci
 
-      - name: Install deps
-        working-directory: web-client
-        run: npm ci
+      - name: Install deps + verify lockfile drift (root and web-client)
+        run: make verify-lockfiles
 
       - name: Install Playwright browsers
         working-directory: web-client
@@ -50,8 +53,7 @@ jobs:
           node -p "require.resolve('@playwright/test/package.json')"
 
       - name: Run Playwright tests
-        working-directory: web-client
-        run: npx playwright test
+        run: make test-e2e
 
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}

@@ -25,30 +25,36 @@ To run this web client locally, follow the instructions below.
 
 ### Prerequisites
 
-- **Node.js** v14 or higher
-- **npm** or **yarn**
+- **Node.js** — exact version pinned in [`.nvmrc`](.nvmrc). Use [fnm](https://github.com/Schniz/fnm) (recommended) or nvm: `fnm install && fnm use`.
+- **npm** — version pinned by the `packageManager` field in [`package.json`](package.json). Enable Corepack once with `corepack enable && corepack enable npm` and it will fetch the right version automatically.
+- See [CONTRIBUTING.md](CONTRIBUTING.md) for full setup and the `make install-deps` vs `npm install` rule.
 
 ### Installation
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/yourusername/your-web-client-repo.git
-   cd your-web-client-repo
+   git clone https://github.com/SlideRuleEarth/sliderule-web-client.git
+   cd sliderule-web-client
    ```
 
-2. Install dependencies:
+2. Install npm dependencies (installs both the root and `web-client/` packages via `npm ci`):
    ```bash
-   npm install
+   make install-deps
    ```
 
 3. Run the development server:
    ```bash
-   npm run dev
+   make run
    ```
 
 4. Build for production:
    ```bash
-   npm run build
+   make build
+   ```
+
+5. See all available commands:
+   ```bash
+   make help
    ```
 
 ## Open Source Packages

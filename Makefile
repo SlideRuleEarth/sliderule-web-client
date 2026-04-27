@@ -16,14 +16,46 @@ VERSION ?= latest
 BANNER_TEXT ?=
 
 
-clean-all: # Clean up the web client dependencies 
-	rm -rf *.zip web-client/dist web-client/node_modules web-client/package-lock.json
+clean-all: ## Remove node_modules and build artifacts (preserves package-lock.json files)
+	rm -rf *.zip web-client/dist web-client/node_modules node_modules
 
-clean: ## Clean only the build artifacts
+clean: ## Remove only the build artifacts (web-client/dist)
 	rm -rf web-client/dist
 
-reinstall: clean-all ## Reinstall the web client dependencies
+regen-lockfiles: ## DESTRUCTIVE: delete and regenerate package-lock.json files via `npm install` (only for intentional dep upgrades)
+	rm -f package-lock.json web-client/package-lock.json
+	npm install
 	cd web-client && npm install
+
+install-deps: ## Install npm dependencies (runs `npm ci` at root AND in web-client/ — use this on a fresh clone)
+	npm ci
+	cd web-client && npm ci
+
+reinstall-deps: clean-all install-deps ## Wipe node_modules then re-run `npm ci` (committed lockfiles are respected)
+
+rebuild-all: reinstall-deps build ## Full refresh: wipe node_modules + dist, reinstall npm deps, and rebuild the web client
+
+verify-lockfiles: ## Run `npm ci` and fail if package.json/package-lock.json drift (local mirror of the CI guardrail)
+	npm ci
+	cd web-client && npm ci
+	git diff --exit-code package.json package-lock.json web-client/package.json web-client/package-lock.json
+
+audit-deps: ## Run `npm audit` at root AND in web-client/ (read-only — reports vulnerabilities, does not modify anything)
+	@echo "=== ROOT ==="
+	-npm audit
+	@echo ""
+	@echo "=== web-client ==="
+	-cd web-client && npm audit
+
+audit-fix-deps: ## Apply `npm audit fix` at root AND in web-client/ (rewrites package-lock.json — review and commit the diff)
+	npm audit fix
+	cd web-client && npm audit fix
+
+doctor: ## Check that your Node/npm versions match .nvmrc and the packageManager pin
+	@echo "Expected Node: $$(cat .nvmrc)"
+	@echo "Actual Node:   $$(node --version)"
+	@echo "Expected npm:  $$(node -p "require('./package.json').packageManager")"
+	@echo "Actual npm:    npm@$$(npm --version)"
 
 src-tag-and-push: ## Tag and push the web client source code to the repository
 	$(ROOT)/VITE_VERSION.sh $(VERSION) && git push --tags; git push
@@ -170,7 +202,7 @@ deploy-client-to-slideruleearth: ## Deploy the web client to the slideruleearth.
 destroy-client-slideruleearth: ## Destroy the web client from the slideruleearth.io cloudfront and remove the S3 bucket
 	make destroy DOMAIN=client.slideruleearth.io S3_BUCKET=slideruleearth-webclient DOMAIN_APEX=slideruleearth.io
 
-.PHONY: check-vars typecheck lint lint-fix lint-staged pre-commit-check test-unit test-unit-watch coverage-unit test-e2e test-all ci-check keycloak-up keycloak-down keycloak-run
+.PHONY: install-deps reinstall-deps rebuild-all regen-lockfiles verify-lockfiles audit-deps audit-fix-deps doctor check-vars typecheck lint lint-fix lint-staged pre-commit-check test-unit test-unit-watch coverage-unit test-e2e test-all ci-check keycloak-up keycloak-down keycloak-run
 # =========================
 # Testing / Quality targets
 # =========================
@@ -217,12 +249,7 @@ test-all: typecheck lint test-unit test-e2e ## Run all checks
 pw-report: ## Open the last Playwright HTML report
 	cd web-client && npm run pw:report
 
-ci-check: ## CI gate: clean install + types + lint + unit + e2e
-	cd web-client && npm ci
-	cd web-client && npm run typecheck
-	cd web-client && npm run lint
-	cd web-client && npm run test:unit
-	cd web-client && npm run test:e2e
+ci-check: verify-lockfiles typecheck lint test-unit test-e2e ## CI gate: lockfile drift + types + lint + unit + e2e
 
 check-vars:
 	@test -n "$(DOMAIN)" || (echo "❌ DOMAIN is not set"; exit 1)
