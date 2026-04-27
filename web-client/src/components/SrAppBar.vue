@@ -87,6 +87,20 @@ const openDocs = () => {
   window.open('https://docs.slideruleearth.io/', '_blank')
 }
 
+const docsMenu = ref<InstanceType<typeof Menu> | null>(null)
+const docsMenuItems = [
+  {
+    label: 'SlideRule Earth Documentation',
+    icon: 'pi pi-book',
+    command: () => {
+      window.open('https://docs.slideruleearth.io/', '_blank')
+    }
+  }
+]
+const toggleDocsMenu = (event: Event) => {
+  docsMenu.value?.toggle(event)
+}
+
 // User menu for logged-in users
 const userMenu = ref<InstanceType<typeof Menu> | null>(null)
 const userMenuItems = computed(() => {
@@ -684,7 +698,15 @@ function hideTooltip() {
           class="p-button-rounded p-button-text desktop-only tablet-icon-only"
           @click="toggleFeedbackMenu"
         ></Button>
-        <Menu :model="feedbackMenuItems" popup ref="feedbackMenu" />
+        <Menu :model="feedbackMenuItems" popup ref="feedbackMenu">
+          <template #item="{ item, props: itemProps }">
+            <a v-bind="itemProps.action" @click="item.command">
+              <span :class="item.icon"></span>
+              <span class="p-menuitem-text">{{ item.label }}</span>
+              <i class="pi pi-external-link" style="font-size: 0.65rem; opacity: 0.5; margin-left: 0.5rem;"></i>
+            </a>
+          </template>
+        </Menu>
       </div>
     </div>
     <div class="middle-content">
@@ -741,9 +763,18 @@ function hideTooltip() {
         id="sr-about-button"
         label="Docs"
         class="p-button-rounded p-button-text desktop-only tablet-icon-only"
-        @click="openDocs"
+        @click="toggleDocsMenu"
       >
       </Button>
+      <Menu :model="docsMenuItems" popup ref="docsMenu">
+        <template #item="{ item, props: itemProps }">
+          <a v-bind="itemProps.action" @click="item.command">
+            <span :class="item.icon"></span>
+            <span class="p-menuitem-text">{{ item.label }}</span>
+            <i class="pi pi-external-link" style="font-size: 0.65rem; opacity: 0.5; margin-left: 0.5rem;"></i>
+          </a>
+        </template>
+      </Menu>
       <Button
         v-if="!isGitHubAuthenticated"
         icon="pi pi-github"

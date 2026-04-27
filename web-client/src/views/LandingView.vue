@@ -122,6 +122,7 @@ async function fetchArticle(article: NewsArticle) {
     if (main) {
       // Remove prev/next navigation links common in Sphinx
       main.querySelectorAll('.rst-footer-buttons, .footer, nav').forEach((n) => n.remove())
+      main.querySelectorAll('a.headerlink').forEach((n) => n.remove())
       articleHtml.value = DOMPurify.sanitize(main.innerHTML)
     } else {
       articleHtml.value = '<p>Could not extract article content.</p>'
@@ -186,6 +187,9 @@ watch(selectedTab, (tab) => {
         <div v-else-if="selectedArticle" class="sr-landing-panel-content">
           <button class="sr-news-back" @click="selectedArticle = null">← Back</button>
           <div v-html="articleHtml" />
+          <a class="sr-news-original-link" :href="ARTICLES_BASE_URL + selectedArticle.url" target="_blank" rel="noopener noreferrer">
+            View original article on docs site ↗
+          </a>
         </div>
         <ul v-else class="sr-news-list">
           <li v-for="a in newsArticles" :key="a.url" @click="fetchArticle(a)">
@@ -246,7 +250,7 @@ watch(selectedTab, (tab) => {
   color: #e0e0e0;
   max-width: 42rem;
   line-height: 1.5;
-  margin: 0 0 2rem 0;
+  margin: 0 0 8rem 0;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
 }
 
@@ -390,6 +394,20 @@ watch(selectedTab, (tab) => {
 
 .sr-news-back:hover {
   color: #ffffff;
+}
+
+.sr-news-original-link {
+  display: inline-block;
+  margin-top: 1.5rem;
+  color: var(--p-primary-color, #60a5fa);
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.sr-news-original-link:hover {
+  color: #ffffff;
+  text-decoration: underline;
 }
 
 .sr-news-status {
