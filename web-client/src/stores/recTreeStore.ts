@@ -279,7 +279,7 @@ export const useRecTreeStore = defineStore(
   {
     persist: {
       storage: localStorage,
-      paths: ['selectedValue']
+      pick: ['selectedValue']
     }
   }
 )

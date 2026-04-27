@@ -24,7 +24,7 @@ export const usePrivacyConsentStore = defineStore('privacyConsent', {
     // Use localStorage - consent should persist across browser sessions
     storage: localStorage,
     // Only persist consent-related fields, not GPC detection (re-check each session)
-    paths: ['hasConsented', 'essentialOnly', 'consentTimestamp']
+    pick: ['hasConsented', 'essentialOnly', 'consentTimestamp']
   },
   getters: {
     /**

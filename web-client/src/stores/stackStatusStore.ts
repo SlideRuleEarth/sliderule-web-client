@@ -564,7 +564,7 @@ export const useStackStatusStore = defineStore(
   {
     persist: {
       storage: localStorage,
-      paths: ['statusCache']
+      pick: ['statusCache']
     }
   }
 )

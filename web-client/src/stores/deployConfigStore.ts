@@ -65,7 +65,7 @@ export const useDeployConfigStore = defineStore(
   {
     persist: {
       storage: localStorage,
-      paths: ['domain', 'clusterName', 'desiredVersion', 'numberOfNodes', 'ttl', 'isPublic']
+      pick: ['domain', 'clusterName', 'desiredVersion', 'numberOfNodes', 'ttl', 'isPublic']
     }
   }
 )

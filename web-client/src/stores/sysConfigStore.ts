@@ -93,7 +93,7 @@ export const useSysConfigStore = defineStore(
   {
     persist: {
       storage: localStorage,
-      paths: ['domain', 'subdomain', 'desired_nodes', 'time_to_live']
+      pick: ['domain', 'subdomain', 'desired_nodes', 'time_to_live']
     }
   }
 )

@@ -89,7 +89,7 @@ export const usePlotConfigStore = defineStore(
   {
     persist: {
       storage: localStorage,
-      paths: [
+      pick: [
         'isLarge',
         'largeThreshold',
         'progressiveChunkSize',

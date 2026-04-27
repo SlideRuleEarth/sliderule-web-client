@@ -41,6 +41,6 @@ export const useSrParquetCfgStore = defineStore('srParquetCfg', {
   },
   persist: {
     storage: localStorage,
-    paths: ['maxNumPntsToDisplay']
+    pick: ['maxNumPntsToDisplay']
   }
 })
