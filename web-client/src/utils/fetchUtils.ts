@@ -306,12 +306,7 @@ export async function fetchCurrentNodes(
   validateClusterDomain(cluster, domain)
   const url = `https://${cluster}.${domain}/discovery/status`
   try {
-    const fetchOptions = {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ service: 'sliderule' })
-    }
-    const response = await authenticatedFetch(url, fetchOptions)
+    const response = await authenticatedFetch(url)
 
     if (!response.ok) throw new Error(`HTTP error: ${response.status}`)
 
@@ -563,12 +558,7 @@ export async function fetchDiscoveryStatus(
   validateClusterDomain(cluster, domain)
   const url = `https://${cluster}.${domain}/discovery/status`
   try {
-    const fetchOptions = {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ service: 'sliderule' })
-    }
-    const response = await authenticatedFetch(url, fetchOptions)
+    const response = await authenticatedFetch(url)
 
     if (!response.ok) throw new Error(`HTTP error: ${response.status}`)
 
