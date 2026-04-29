@@ -50,6 +50,7 @@ import { format } from 'ol/coordinate.js'
 import SrViewControl from './SrViewControl.vue'
 import SrBaseLayerControl from './SrBaseLayerControl.vue'
 import SrGraticuleControl from './SrGraticuleControl.vue'
+import SrHistoricalRequestsControl from './SrHistoricalRequestsControl.vue'
 import SrDrawControl from '@/components/SrDrawControl.vue'
 import { usePolarOverlay } from '@/composables/usePolarOverlay'
 import SrRasterizeControl from '@/components/SrRasterizeControl.vue'
@@ -1090,6 +1091,15 @@ function handleGraticuleControlCreated(graticuleControl: any) {
   }
 }
 
+function handleHistoricalRequestsControlCreated(control: any) {
+  const map = mapRef.value?.map
+  if (map) {
+    map.addControl(control)
+  } else {
+    logger.error('Map is null in handleHistoricalRequestsControlCreated')
+  }
+}
+
 function handleUploadRegionControlCreated(uploadControl: any) {
   const map = mapRef.value?.map
   if (map) {
@@ -1578,7 +1588,8 @@ watch(
 
       map.on('click', dropPinClickListener)
     } else {
-      recordsLayer.setVisible(true) // Show records layer when not dropping pin
+      // Restore records layer visibility, but respect the user's toggle preference
+      recordsLayer.setVisible(mapStore.historicalPolysVisible)
       targetElement.style.cursor = ''
       if (dropPinClickListener) {
         map.un('click', dropPinClickListener)
@@ -1586,6 +1597,15 @@ watch(
       }
     }
   }
+)
+watch(
+  () => mapStore.historicalPolysVisible,
+  (visible) => {
+    recordsLayer.setVisible(visible)
+    // Force pin layer to re-evaluate styles so historical pins (req_id > 0) hide/show
+    pinVectorLayer.changed()
+  },
+  { immediate: true }
 )
 watch(
   () => reqParamsStore.atl13.coord,
@@ -1667,6 +1687,9 @@ watch(
           @update-baselayer="handleUpdateBaseLayer"
         />
         <SrGraticuleControl @graticule-control-created="handleGraticuleControlCreated" />
+        <SrHistoricalRequestsControl
+          @historical-requests-control-created="handleHistoricalRequestsControlCreated"
+        />
         <SrUploadRegionControl
           v-if="reqParamsStore.iceSat2SelectedAPI != 'atl13x'"
           :reportUploadProgress="true"
@@ -1930,6 +1953,14 @@ watch(
 }
 
 :deep(.ol-control.sr-graticule-control) {
+  top: auto;
+  bottom: 4.25rem;
+  right: auto;
+  left: 0.5rem;
+  border-radius: var(--p-border-radius);
+}
+
+:deep(.ol-control.sr-historical-requests-control) {
   top: auto;
   bottom: 2.5rem;
   right: auto;

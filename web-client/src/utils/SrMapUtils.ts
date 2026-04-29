@@ -1395,6 +1395,12 @@ export function makePinStyleFunction(
   return (_feature: FeatureLike, _resolution: number): Style => {
     const zoom = map.getView().getZoom()
     const reqId = (_feature as any).get('req_id')
+    // Hide historical pins (req_id > 0) when the user has toggled them off.
+    // The live drop-pin has no req_id property, so it's never affected.
+    const isHistorical = typeof reqId === 'number' && reqId > 0
+    if (isHistorical && !useMapStore().historicalPolysVisible) {
+      return new Style({})
+    }
     const showPin = useReqParamsStore().useAtl13Point || (zoom && zoom >= minZoomToShowPin)
     return new Style({
       image: showPin
