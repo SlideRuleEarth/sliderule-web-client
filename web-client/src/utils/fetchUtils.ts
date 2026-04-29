@@ -76,7 +76,7 @@ async function provisionerFetch<T>(
   }
 
   const makeRequest = async (): Promise<Response> => {
-    return fetch(url, {
+    return await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -343,7 +343,7 @@ export async function fetchCurrentNodes(
  * @returns Cluster status result with full response data
  */
 export async function fetchClusterStatus(cluster: string): Promise<ClusterStatusResult> {
-  return provisionerFetch<ClusterStatusResponse>({
+  return await provisionerFetch<ClusterStatusResponse>({
     url: `${getProvisionerBaseUrl()}/status`,
     body: { cluster },
     context: 'fetching cluster status'
@@ -359,7 +359,7 @@ export async function fetchClusterStatus(cluster: string): Promise<ClusterStatus
  * @returns Deploy result with response data
  */
 export async function deployCluster(options: DeployClusterOptions): Promise<DeployClusterResult> {
-  return provisionerFetch<DeployClusterResponse>({
+  return await provisionerFetch<DeployClusterResponse>({
     url: `${getProvisionerBaseUrl()}/deploy`,
     body: {
       cluster: options.cluster,
@@ -400,7 +400,7 @@ export interface DestroyClusterResult {
  * @returns Destroy result with response data
  */
 export async function destroyCluster(cluster: string): Promise<DestroyClusterResult> {
-  return provisionerFetch<DestroyClusterResponse>({
+  return await provisionerFetch<DestroyClusterResponse>({
     url: `${getProvisionerBaseUrl()}/destroy`,
     body: { cluster },
     context: 'destroying cluster'
@@ -435,7 +435,7 @@ export interface ExtendClusterResult {
  * @returns Extend result with response data
  */
 export async function extendCluster(cluster: string, ttl: number): Promise<ExtendClusterResult> {
-  return provisionerFetch<ExtendClusterResponse>({
+  return await provisionerFetch<ExtendClusterResponse>({
     url: `${getProvisionerBaseUrl()}/extend`,
     body: { cluster, ttl },
     context: 'extending cluster TTL'
@@ -487,7 +487,7 @@ export interface ClusterEventsResult {
  * @returns Cluster events result with stack events
  */
 export async function fetchClusterEvents(cluster: string): Promise<ClusterEventsResult> {
-  return provisionerFetch<ClusterEventsResponse>({
+  return await provisionerFetch<ClusterEventsResponse>({
     url: `${getProvisionerBaseUrl()}/events`,
     body: { cluster },
     context: 'fetching cluster events'
@@ -519,7 +519,7 @@ export interface ProvisionerReportResult {
  * @returns Report result with response data
  */
 export async function fetchProvisionerReport(): Promise<ProvisionerReportResult> {
-  return provisionerFetch<ProvisionerReportResponse>({
+  return await provisionerFetch<ProvisionerReportResponse>({
     url: `${getProvisionerBaseUrl()}/report`,
     body: {},
     context: 'fetching provisioner report'
@@ -607,7 +607,7 @@ export interface ProvisionerStatusResult {
  * @returns Provisioner status result with response data
  */
 export async function fetchProvisionerStatus(cluster: string): Promise<ProvisionerStatusResult> {
-  return provisionerFetch<ProvisionerStatusResponse>({
+  return await provisionerFetch<ProvisionerStatusResponse>({
     url: `${getProvisionerBaseUrl()}/status`,
     body: { cluster },
     context: 'fetching provisioner status'
@@ -639,7 +639,7 @@ export interface ProvisionerTestReportResult {
  * @returns Test report result with response data
  */
 export async function fetchProvisionerTestReport(): Promise<ProvisionerTestReportResult> {
-  return provisionerFetch<ProvisionerTestReportResponse>({
+  return await provisionerFetch<ProvisionerTestReportResponse>({
     url: `${getProvisionerBaseUrl()}/report/tests`,
     body: {},
     context: 'fetching provisioner test report'
@@ -666,7 +666,7 @@ export async function authenticatedFetch(
     logger.debug('authenticatedFetch without auth', { url })
   }
 
-  return fetch(url, options)
+  return await fetch(url, options)
 }
 export function forceGeoParquet(inputReqParms: any): any {
   //There are different shapes for legacy atl06 and atl03x-surface

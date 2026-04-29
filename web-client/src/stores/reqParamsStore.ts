@@ -869,7 +869,7 @@ const createReqParamsStore = (id: string) =>
         }
 
         if (this.resources.length > 0) {
-          baseParams.parms.resources = this.resources
+          baseParams.resources = this.resources
         }
 
         // Apply forced additions

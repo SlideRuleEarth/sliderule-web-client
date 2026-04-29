@@ -471,7 +471,7 @@ export async function getSeriesForAtl03sp(
     thisColorFunction = atl08ClassColorMapStore.cachedColorFunction
   }
   //logger.debug(`getSeriesForAtl03sp ${reqIdStr} cedk:`,cedk,'thisColorFunction:',thisColorFunction);
-  return getGenericSeries({
+  return await getGenericSeries({
     reqIdStr,
     fileName,
     x,
@@ -511,7 +511,7 @@ export async function getSeriesForAtl03x(
     thisColorFunction = atl24ClassColorMapStore.cachedColorFunction
   }
   //logger.debug(`getSeriesForAtl03sp ${reqIdStr} cedk:`,cedk,'thisColorFunction:',thisColorFunction);
-  return getGenericSeries({
+  return await getGenericSeries({
     reqIdStr,
     fileName,
     x,

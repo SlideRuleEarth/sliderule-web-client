@@ -68,7 +68,7 @@ const cachedDataTimestamp = ref<Date | null>(null)
 // Auto-refresh - use shared store
 const autoRefreshEnabled = computed({
   get: () => clusterSelectionStore.autoRefreshEnabled,
-  set: async (value: boolean) => clusterSelectionStore.setAutoRefreshEnabled(value)
+  set: async (value: boolean) => await clusterSelectionStore.setAutoRefreshEnabled(value)
 })
 
 // Format last refresh time for display - per-cluster

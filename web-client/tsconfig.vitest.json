@@ -12,9 +12,9 @@
     "noEmit": true,
     "emitDeclarationOnly": false,
 
+    "lib": ["ESNext", "DOM", "WebWorker"],
     "types": ["vitest/globals", "vite/client", "vue", "node"],
 
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
       "vue-shim": ["./vue-shim.d.ts"]

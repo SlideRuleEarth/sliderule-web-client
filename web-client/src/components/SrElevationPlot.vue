@@ -770,7 +770,7 @@ function saveChartAsImage() {
   }
 }
 
-async function resetChartZoom() {
+function resetChartZoom() {
   if (!plotRef.value?.chart) {
     logger.warn('Cannot reset zoom: chart instance not available')
     return
