@@ -33,7 +33,7 @@ export async function getASMetadata(): Promise<ASMetadata> {
   if (cachedMetadata) return cachedMetadata
 
   // Deduplicate concurrent fetches
-  if (fetchPromise) return fetchPromise
+  if (fetchPromise) return await fetchPromise
 
   fetchPromise = (async () => {
     const baseUrl = getLoginBaseUrl()

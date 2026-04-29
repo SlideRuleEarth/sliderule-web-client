@@ -700,10 +700,13 @@ function hideTooltip() {
         ></Button>
         <Menu :model="feedbackMenuItems" popup ref="feedbackMenu">
           <template #item="{ item, props: itemProps }">
-            <a v-bind="itemProps.action" @click="item.command">
+            <a v-bind="itemProps.action">
               <span :class="item.icon"></span>
               <span class="p-menuitem-text">{{ item.label }}</span>
-              <i class="pi pi-external-link" style="font-size: 0.65rem; opacity: 0.5; margin-left: 0.5rem;"></i>
+              <i
+                class="pi pi-external-link"
+                style="font-size: 0.65rem; opacity: 0.5; margin-left: 0.5rem"
+              ></i>
             </a>
           </template>
         </Menu>
@@ -768,10 +771,13 @@ function hideTooltip() {
       </Button>
       <Menu :model="docsMenuItems" popup ref="docsMenu">
         <template #item="{ item, props: itemProps }">
-          <a v-bind="itemProps.action" @click="item.command">
+          <a v-bind="itemProps.action">
             <span :class="item.icon"></span>
             <span class="p-menuitem-text">{{ item.label }}</span>
-            <i class="pi pi-external-link" style="font-size: 0.65rem; opacity: 0.5; margin-left: 0.5rem;"></i>
+            <i
+              class="pi pi-external-link"
+              style="font-size: 0.65rem; opacity: 0.5; margin-left: 0.5rem"
+            ></i>
           </a>
         </template>
       </Menu>

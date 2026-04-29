@@ -110,7 +110,7 @@ const clusterOptions = computed(() => {
 async function fetchAllClusterStatuses() {
   const clusters = clusterList.value
   if (clusters.length > 0) {
-    await Promise.all(clusters.map(async (c) => stackStatusStore.fetchStatus(c)))
+    await Promise.all(clusters.map(async (c) => await stackStatusStore.fetchStatus(c)))
   }
 }
 

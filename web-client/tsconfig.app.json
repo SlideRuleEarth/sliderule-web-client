@@ -14,7 +14,6 @@
     "emitDeclarationOnly": true,
     "allowJs": true,
     "checkJs": true,
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
       "vue-shim": ["./vue-shim.d.ts"]

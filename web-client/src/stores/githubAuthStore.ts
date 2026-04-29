@@ -431,7 +431,7 @@ export const useGitHubAuthStore = defineStore('githubAuth', {
 
         const url = `${getProvisionerBaseUrl()}/info`
         const makeRequest = async () =>
-          fetch(url, {
+          await fetch(url, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
