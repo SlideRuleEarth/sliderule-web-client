@@ -81,6 +81,8 @@ export const useMapStore = defineStore('map', {
     plink: usePermalink(),
     // Restore graticule state from localStorage, default to false
     graticuleState: localStorage.getItem('graticuleState') === 'true',
+    // Restore historical request polygon visibility from localStorage, default to true
+    historicalPolysVisible: localStorage.getItem('historicalPolysVisible') !== 'false',
     // Store graticule instances per map (request map and analysis map need separate instances)
     graticules: new Map<OLMap, Graticule>(),
     polygonSource: 'Draw on Map' as string,
@@ -187,6 +189,10 @@ export const useMapStore = defineStore('map', {
       // Persist to localStorage
       localStorage.setItem('graticuleState', String(state))
       this.setGraticuleForMap()
+    },
+    setHistoricalPolysVisible(state: boolean) {
+      this.historicalPolysVisible = state
+      localStorage.setItem('historicalPolysVisible', String(state))
     },
     getOrCreateGraticule(map: OLMap): Graticule {
       // Get existing graticule for this map, or create a new one
