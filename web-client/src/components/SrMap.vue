@@ -1954,7 +1954,7 @@ watch(
 
 :deep(.ol-control.sr-graticule-control) {
   top: auto;
-  bottom: 2.5rem;
+  bottom: 4.25rem;
   right: auto;
   left: 0.5rem;
   border-radius: var(--p-border-radius);
@@ -1962,7 +1962,7 @@ watch(
 
 :deep(.ol-control.sr-historical-requests-control) {
   top: auto;
-  bottom: 4.25rem;
+  bottom: 2.5rem;
   right: auto;
   left: 0.5rem;
   border-radius: var(--p-border-radius);
