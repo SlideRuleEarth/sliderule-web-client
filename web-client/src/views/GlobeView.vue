@@ -62,6 +62,29 @@ onMounted(() => {
   }
   img.src = earthTextureUrl
 
+  // Overlay ATL18 data image on top of the globe
+  const overlayGeom = new THREE.SphereGeometry(1.005, 64, 64)
+  const overlayMat = new THREE.MeshPhongMaterial({
+    transparent: true,
+    opacity: 1.0,
+    depthWrite: false,
+    side: THREE.FrontSide,
+    color: 0xffffff
+  })
+  const overlayMesh = new THREE.Mesh(overlayGeom, overlayMat)
+  globe.add(overlayMesh)
+
+  const overlayImg = new Image()
+  overlayImg.crossOrigin = 'anonymous'
+  overlayImg.onload = () => {
+    const overlayTexture = new THREE.Texture(overlayImg)
+    overlayTexture.colorSpace = THREE.SRGBColorSpace
+    overlayTexture.needsUpdate = true
+    overlayMat.map = overlayTexture
+    overlayMat.needsUpdate = true
+  }
+  overlayImg.src = 'https://docs.slideruleearth.io/_static/ATL18_reprojected.png'
+
   // Atmosphere glow
   const atmosGeom = new THREE.SphereGeometry(1.02, 64, 64)
   const atmosMat = new THREE.MeshPhongMaterial({
