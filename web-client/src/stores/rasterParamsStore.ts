@@ -1,8 +1,61 @@
 import type { SrMenuItem, SrMultiSelectTextItem } from '@/types/SrTypes'
 import { defineStore } from 'pinia'
 import { createLogger } from '@/utils/logger'
+import { useSrToastStore } from '@/stores/srToastStore'
 
 const logger = createLogger('RasterParamsStore')
+const ASSETS_FETCHED_AT_KEY = 'rasterAssetsLastFetchedAt'
+const ASSETS_LIST_KEY = 'rasterAssetsList'
+
+// Built-in fallback raster asset list, used only when both the live fetch from
+// /source/assets fails AND no cached list is available in localStorage.
+// Mirrored against `rasters` in the /source/assets response, sorted alphabetically.
+// Last synced from sliderule.slideruleearth.io on 2026-05-08.
+const FALLBACK_ASSET_NAMES = [
+  '3dep1m',
+  'arcticdem-mosaic',
+  'arcticdem-strips',
+  'bluetopo-bathy',
+  'esa-copernicus-30meter',
+  'esa-worldcover-10meter',
+  'gebco-s3',
+  'gedil3-canopy',
+  'gedil3-canopy-stddev',
+  'gedil3-counts',
+  'gedil3-elevation',
+  'gedil3-elevation-stddev',
+  'gedil4b',
+  'gedtm-30meter',
+  'gedtm-dfm',
+  'gedtm-std',
+  'landsat-hls',
+  'merit-s3',
+  'meta-globalcanopy-1meter',
+  'nisar-L2-geoff',
+  'rema-mosaic',
+  'rema-strips',
+  'usgs3dep-10meter-dem',
+  'usgs3dep-1meter-dem',
+  'user-url-raster'
+]
+
+function loadCachedAssetNames(): string[] | null {
+  const raw = localStorage.getItem(ASSETS_LIST_KEY)
+  if (!raw) return null
+  try {
+    const parsed = JSON.parse(raw)
+    if (Array.isArray(parsed) && parsed.every((s) => typeof s === 'string')) {
+      return parsed
+    }
+  } catch {
+    // Fall through to null on parse error
+  }
+  return null
+}
+
+function namesToMenuItems(names: string[]): SrMenuItem[] {
+  return names.map((r) => ({ name: r, value: r }))
+}
 
 export type RasterParams = {
   key: string
@@ -73,21 +126,22 @@ export const useRasterParamsStore = defineStore('rasterParams', {
     slope_aspect: false as RasterParams['slope_aspect'],
     useSlopeScaleLength: false as boolean, // Flag to indicate if slope_scale_length is used
     slope_scale_length: 0 as RasterParams['slope_scale_length'],
-    assetOptions: [
-      { name: 'gedil3-elevation', value: 'gedil3-elevation' },
-      { name: 'gedil3-canopy', value: 'gedil3-canopy' },
-      { name: 'gedil3-elevation-stddev', value: 'gedil3-elevation-stddev' },
-      { name: 'gedil3-canopy-stddev', value: 'gedil3-canopy-stddev' },
-      { name: 'gedil3-counts', value: 'gedil3-counts' },
-      { name: 'merit-dem', value: 'merit-dem' },
-      { name: 'usgs3dep-1meter-dem', value: 'usgs3dep-1meter-dem' },
-      { name: 'esa-worldcover-10meter', value: 'esa-worldcover-10meter' },
-      { name: 'landsat-hls', value: 'landsat-hls' },
-      { name: 'arcticdem-mosaic', value: 'arcticdem-mosaic' },
-      { name: 'arcticdem-strips', value: 'arcticdem-strips' },
-      { name: 'rema-mosaic', value: 'rema-mosaic' },
-      { name: 'rema-strips', value: 'rema-strips' }
-    ] as SrMenuItem[],
+    // Initial raster asset list. Prefers (in order):
+    //   1. The cached list from a prior successful /source/assets fetch
+    //      (kept in localStorage so degraded-server scenarios still show
+    //      the user's last known good list).
+    //   2. The built-in FALLBACK_ASSET_NAMES — only hit on a brand-new
+    //      machine that has never successfully fetched.
+    // setAssetOptions() refreshes this from the live endpoint on app load.
+    assetOptions: namesToMenuItems(loadCachedAssetNames() ?? FALLBACK_ASSET_NAMES),
+    // Timestamp of the last successful /source/assets fetch (ms since epoch),
+    // restored from localStorage so we can surface a useful "stale list" warning
+    // even on the first failed fetch of a new session.
+    lastAssetsFetchedAt: (() => {
+      const stored = localStorage.getItem(ASSETS_FETCHED_AT_KEY)
+      const n = stored ? Number(stored) : NaN
+      return Number.isFinite(n) ? n : null
+    })() as number | null,
     algorithmOptions: [
       { name: 'NearestNeighbour', value: 'NearestNeighbour' },
       { name: 'Bilinear', value: 'Bilinear' },
@@ -196,11 +250,26 @@ export const useRasterParamsStore = defineStore('rasterParams', {
         const result = await response.json()
         const rasters: string[] = result.rasters || []
 
-        this.assetOptions = rasters.map((r) => ({ name: r, value: r }))
+        this.assetOptions = namesToMenuItems(rasters)
+        this.lastAssetsFetchedAt = Date.now()
+        localStorage.setItem(ASSETS_FETCHED_AT_KEY, String(this.lastAssetsFetchedAt))
+        localStorage.setItem(ASSETS_LIST_KEY, JSON.stringify(rasters))
       } catch (error) {
-        logger.error('Error loading asset options', {
-          error: error instanceof Error ? error.message : String(error)
-        })
+        const errMsg = error instanceof Error ? error.message : String(error)
+        logger.error('Error loading asset options', { error: errMsg })
+        // assetOptions is already populated from cache or built-in fallback during
+        // state init; nothing to swap in here. Surface a toast so the user knows
+        // what they're seeing isn't necessarily current.
+        const usingCache = loadCachedAssetNames() !== null
+        const sourceLabel = usingCache ? 'cached raster assets' : 'built-in fallback raster assets'
+        const lastFetched = this.lastAssetsFetchedAt
+          ? `Last successful sync: ${new Date(this.lastAssetsFetchedAt).toLocaleString()}.`
+          : 'No prior successful sync recorded.'
+        useSrToastStore().warn(
+          `Using ${sourceLabel}`,
+          `Could not reach the SlideRule asset list (${errMsg}). ${lastFetched}`,
+          8000
+        )
       }
     }
   }
