@@ -167,7 +167,9 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div ref="containerRef" class="sr-globe-container"></div>
+  <div ref="containerRef" class="sr-globe-container">
+    <div class="sr-globe-label">ICESat-2 global terrian heights (ATL18)</div>
+  </div>
 </template>
 
 <style scoped>
@@ -177,9 +179,25 @@ onBeforeUnmount(() => {
   overflow: hidden;
   background: #0a0a1a;
   cursor: grab;
+  position: relative;
 }
 
 .sr-globe-container:active {
   cursor: grabbing;
+}
+
+.sr-globe-label {
+  position: absolute;
+  bottom: 50%;
+  left: 50%;
+  transform: translate(calc(0.7 * 50vh), calc(0.7 * 50vh));
+  text-align: left;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Source Code Pro', 'Courier New', monospace;
+  font-size: 1.7rem;
+  color: rgba(255, 255, 255, 0.7);
+  pointer-events: none;
+  user-select: none;
+  line-height: 1.5;
+  white-space: nowrap;
 }
 </style>
