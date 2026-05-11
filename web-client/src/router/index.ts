@@ -77,6 +77,11 @@ const router = createRouter({
       component: () => import('@/views/LandingView.vue')
     },
     {
+      path: '/globe',
+      name: 'globe',
+      component: () => import('@/views/GlobeView.vue')
+    },
+    {
       path: '/:pathMatch(.*)*',
       name: 'NotFound',
       component: () => import('@/components/NotFoundComponent.vue')
