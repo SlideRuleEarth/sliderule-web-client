@@ -12,6 +12,7 @@ import { srProjections } from '@/composables/SrProjections'
 import proj4 from 'proj4'
 import { register } from 'ol/proj/proj4.js'
 import 'ol-geocoder/dist/ol-geocoder.min.css'
+import { useGeoCoderStore } from '@/stores/geoCoderStore'
 import { useHelperMapStore } from '@/stores/helperMapStore'
 import { get as getProjection } from 'ol/proj.js'
 import { addLayersForCurrentView } from '@/composables/SrLayers'
@@ -76,6 +77,7 @@ interface SrHelperDrawControlMethods {
 const srDrawControlRef = ref<SrHelperDrawControlMethods | null>(null)
 const mapRef = ref<{ map: OLMap }>()
 const helperStore = useHelperMapStore()
+const geoCoderStore = useGeoCoderStore()
 const toast = useToast()
 const tooltipRef = ref()
 const isDrawing = ref(false)
@@ -555,6 +557,24 @@ const handlePickedChanged = (newPickedValue: string) => {
   }
 }
 
+function onAddressChosen(evt: any) {
+  const map = mapRef.value?.map
+  if (!map) {
+    logger.error('Map is not defined in onAddressChosen')
+    return
+  }
+  const view = map.getView()
+  if (!view) {
+    logger.error('View is not defined in onAddressChosen')
+    return
+  }
+  view.animate({
+    center: evt.coordinate,
+    duration: 1000,
+    zoom: 10
+  })
+}
+
 // --- Map lifecycle ---
 const handleDrawControlCreated = (drawControl: any) => {
   const map = mapRef.value?.map
@@ -645,6 +665,28 @@ onMounted(async () => {
     const map = helperStore.getMap() as OLMap
 
     if (map) {
+      if (!geoCoderStore.isInitialized()) {
+        geoCoderStore.initGeoCoder({
+          provider: 'photon',
+          lang: 'en',
+          placeholder: 'Search for ...',
+          targetType: 'glass-button',
+          limit: 5,
+          keepOpen: false
+        })
+      }
+      const geocoder = geoCoderStore.getGeoCoder()
+      if (geocoder) {
+        map.addControl(geocoder)
+        geocoder.on('addresschosen', onAddressChosen)
+        const geocoderButton = document.querySelector<HTMLButtonElement>('.gcd-gl-btn')
+        if (geocoderButton) {
+          geocoderButton.title = 'Search for a location'
+        }
+      } else {
+        logger.error('Geocoder is null on mount')
+      }
+
       const projectionNames = useProjectionNames()
       projectionNames.value.forEach((name) => {
         const wmsCap = useWmsCap(name)
@@ -986,6 +1028,48 @@ onBeforeUnmount(() => {
   background-color: var(--p-primary-100);
   color: var(--p-primary-color);
   border-radius: var(--p-border-radius);
+}
+
+:deep(.ol-geocoder) {
+  top: 2.5rem;
+  bottom: auto;
+  left: 0.5rem;
+  right: auto;
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: black;
+  max-width: 30rem;
+}
+
+:deep(.gcd-gl-control) {
+  background-color: transparent;
+}
+
+:deep(.ol-geocoder .gcd-gl-btn) {
+  background: color-mix(in srgb, var(--p-primary-color) 20%, transparent) !important;
+  border: none !important;
+  border-radius: var(--p-border-radius);
+  color: black;
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+}
+
+:deep(.ol-geocoder .gcd-gl-btn:hover) {
+  background: color-mix(in srgb, var(--p-primary-color) 80%, transparent) !important;
+  border: none !important;
+}
+
+:deep(.ol-geocoder button) {
+  color: black;
+  background: transparent;
+}
+
+:deep(.ol-touch .ol-geocoder .gcd-gl-btn) {
+  font-size: 1.5em;
 }
 
 :deep(.ol-control.sr-view-control) {
