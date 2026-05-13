@@ -453,6 +453,12 @@ function handleSampleCancel() {
   // Stay in show-all mode
 }
 
+function resetMaxNumPntsToDisplay() {
+  // Clear any "Show All" override and restore the persisted cap to the default
+  savedMaxPntsLimit.value = null
+  srParquetCfgStore.setMaxNumPntsToDisplay(DEFAULT_MAX_NUM_PNTS_TO_DISPLAY)
+}
+
 const offFilterTooltip = computed(() => {
   if (atlChartFilterStore.showPhotonCloud) {
     return 'This is disabled when Show Photon Cloud is enabled'
@@ -1114,6 +1120,15 @@ function handleSaveTooltip() {
           class="sr-show-all-btn"
           @click="handleToggleShowAllPoints"
         />
+        <Button
+          icon="pi pi-refresh"
+          class="sr-max-pnts-reset"
+          variant="text"
+          rounded
+          size="small"
+          title="Reset map point limit to default"
+          @click="resetMaxNumPntsToDisplay"
+        />
       </div>
       <div class="sr-notLoadingEl" v-else>
         {{ computedLoadMsg }}
@@ -1125,6 +1140,15 @@ function handleSaveTooltip() {
           size="small"
           class="sr-show-all-btn"
           @click="handleToggleShowAllPoints"
+        />
+        <Button
+          icon="pi pi-refresh"
+          class="sr-max-pnts-reset"
+          variant="text"
+          rounded
+          size="small"
+          title="Reset map point limit to default"
+          @click="resetMaxNumPntsToDisplay"
         />
       </div>
       <!-- DEBUG: Zoom level display -->
@@ -1605,6 +1629,14 @@ function handleSaveTooltip() {
   padding: 0.1rem 0.4rem;
   height: 1.4rem;
   min-width: auto;
+}
+.sr-max-pnts-reset {
+  padding: 0.125rem;
+  margin-left: 0.25rem;
+}
+.sr-max-pnts-reset :deep(.p-icon),
+.sr-max-pnts-reset :deep(.pi) {
+  font-size: 0.75rem;
 }
 .sr-threshold-slider-row {
   display: flex;

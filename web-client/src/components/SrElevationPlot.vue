@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { use } from 'echarts/core'
 import ToggleButton from 'primevue/togglebutton'
+import InputNumber from 'primevue/inputnumber'
+import { DEFAULT_MAX_NUM_PNTS_TO_DISPLAY } from '@/stores/srParquetCfgStore'
 import { CanvasRenderer } from 'echarts/renderers'
 import { ScatterChart } from 'echarts/charts'
 import { CustomChart } from 'echarts/charts'
@@ -176,6 +178,9 @@ const props = defineProps({
 const requestsStore = useRequestsStore()
 const chartStore = useChartStore()
 const globalChartStore = useGlobalChartStore()
+function resetMaxPntsOnPlot() {
+  globalChartStore.max_pnts_on_plot = DEFAULT_MAX_NUM_PNTS_TO_DISPLAY
+}
 const atlChartFilterStore = useAtlChartFilterStore()
 const recTreeStore = useRecTreeStore()
 const analysisMapStore = useAnalysisMapStore()
@@ -1676,7 +1681,35 @@ watch(
             size="small"
             :tooltipText="'Show linear fit for each segment'"
           />
-          <label for="sslCheckbox" class="sr-checkbox-label">linear fit</label>
+          <label for="sslCheckbox" class="sr-checkbox-label">Linear Fit</label>
+        </div>
+        <div class="sr-max-pnts-row">
+          <span class="sr-max-pnts-readout"
+            >Pnts: {{ globalChartStore.num_pnts_on_plot.toLocaleString() }}</span
+          >
+          <label class="sr-max-pnts-label" for="maxPntsOnPlotId">Max</label>
+          <InputNumber
+            class="sr-max-pnts-input"
+            v-model="globalChartStore.max_pnts_on_plot"
+            inputId="maxPntsOnPlotId"
+            size="small"
+            :step="10000"
+            :min="10000"
+            :max="5000000"
+            showButtons
+            buttonLayout="horizontal"
+            incrementButtonIcon="pi pi-plus"
+            decrementButtonIcon="pi pi-minus"
+          />
+          <Button
+            icon="pi pi-refresh"
+            class="sr-max-pnts-reset"
+            variant="text"
+            rounded
+            size="small"
+            title="Reset to default"
+            @click="resetMaxPntsOnPlot"
+          />
         </div>
         <SrRunControl
           v-if="
@@ -1983,6 +2016,47 @@ watch(
   flex-direction: row;
   align-items: center; /* vertical centering */
   margin-left: 0.25rem;
+}
+
+.sr-max-pnts-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: 0.5rem;
+}
+
+.sr-max-pnts-readout {
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.sr-max-pnts-label {
+  font-size: 0.875rem;
+}
+
+.sr-max-pnts-input :deep(.p-inputnumber-input) {
+  width: 5rem;
+}
+
+.sr-max-pnts-input :deep(.p-inputnumber-button) {
+  width: 1.25rem;
+  min-width: 1.25rem;
+  padding: 0;
+}
+
+.sr-max-pnts-input :deep(.p-inputnumber-button .p-icon),
+.sr-max-pnts-input :deep(.p-inputnumber-button .pi) {
+  font-size: 0.6rem;
+}
+
+.sr-max-pnts-reset {
+  padding: 0.125rem;
+}
+
+.sr-max-pnts-reset :deep(.p-icon),
+.sr-max-pnts-reset :deep(.pi) {
+  font-size: 0.75rem;
 }
 
 .sr-checkbox-label {

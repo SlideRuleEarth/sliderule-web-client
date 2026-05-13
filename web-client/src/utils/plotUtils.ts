@@ -1420,6 +1420,9 @@ const initScatterPlotWith = async (reqId: number) => {
     return
   }
 
+  // Reset combined row count; fetchScatterData accumulates per series (main + overlays)
+  useGlobalChartStore().num_pnts_on_plot = 0
+
   // Check if this is a new track (reqId changed) - if so, reset zoom
   if (atlChartFilterStore.lastReqId !== reqId) {
     logger.debug('New track detected - resetting zoom', {

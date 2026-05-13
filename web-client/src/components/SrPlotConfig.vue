@@ -210,6 +210,15 @@ watch(
     }
   }
 )
+
+watch(
+  () => globalChartStore.max_pnts_on_plot,
+  async (newVal, oldVal) => {
+    if (newVal === oldVal) return
+    logger.debug('max_pnts_on_plot changed, refreshing plot', { oldVal, newVal })
+    await callPlotUpdateDebounced('max_pnts_on_plot changed')
+  }
+)
 </script>
 <template>
   <Fieldset

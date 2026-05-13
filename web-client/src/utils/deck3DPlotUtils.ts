@@ -155,6 +155,14 @@ export function is3DDataLoaded(): boolean {
 }
 
 /**
+ * Invalidate the cached point cloud so the next loadAndCachePointCloudData
+ * call performs a fresh query (e.g. after the sampling limit changes).
+ */
+export function invalidatePointCloudCache(): void {
+  lastLoadedReqId = null
+}
+
+/**
  * Check if the transform cache is populated (needed for coordinate transformation).
  * This is populated after renderCachedData() runs successfully.
  */
