@@ -299,12 +299,13 @@ export class DuckDBClient {
   async queryChunkSampled(
     query: string,
     random_sample_factor: number = 1, // Add random_sample_factor parameter, default is 1 (no sampling)
+    limit?: number, // explicit row cap; defaults to the map cap for backward compatibility
     params?: any
   ): Promise<QueryChunkResult> {
     //console.trace('SrDuckDb queryChunkSampled query:', query);
     const conn = await this._db!.connect()
     let tbl: Table<any>
-    const chunkSize = useSrParquetCfgStore().getMaxNumPntsToDisplay() // Default chunk size set to 100
+    const chunkSize = limit ?? useSrParquetCfgStore().getMaxNumPntsToDisplay()
     try {
       // Load spatial extension for this connection
       try {

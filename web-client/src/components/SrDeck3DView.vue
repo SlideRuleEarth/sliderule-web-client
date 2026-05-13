@@ -66,6 +66,18 @@
         @update:model-value="handleVerticalExaggerationChange"
       />
     </div>
+    <div>
+      <label class="sr-num-pnts-label" for="numPntsId">Num Pnts</label>
+      <InputNumber
+        v-model="srParquetCfgStore.maxNumPntsToDisplay"
+        inputId="numPntsId"
+        size="small"
+        :step="10000"
+        :min="10000"
+        :max="5000000"
+        showButtons
+      />
+    </div>
   </div>
   <SrDeck3DCfg />
 </template>
@@ -87,8 +99,10 @@ import {
   updateFovy,
   transformLatLonTo3DWorld,
   is3DDataLoaded,
-  isTransformCacheReady
+  isTransformCacheReady,
+  invalidatePointCloudCache
 } from '@/utils/deck3DPlotUtils'
+import { useSrParquetCfgStore } from '@/stores/srParquetCfgStore'
 import { useGlobalChartStore } from '@/stores/globalChartStore'
 import { debouncedRender } from '@/utils/SrDebounce'
 import { yColorEncodeSelectedReactive } from '@/utils/plotUtils'
@@ -104,6 +118,7 @@ const chartStore = useChartStore()
 const toast = useSrToastStore()
 const deck3DConfigStore = useDeck3DConfigStore()
 const globalChartStore = useGlobalChartStore()
+const srParquetCfgStore = useSrParquetCfgStore()
 const reqId = computed(() => recTreeStore.selectedReqId)
 const elevationStore = useElevationColorMapStore()
 const computedFunc = computed(() => recTreeStore.selectedApi)
@@ -191,6 +206,17 @@ watch(reqId, async (newVal, oldVal) => {
     debouncedRender(localDeckContainer) // Use the fast, debounced renderer
   }
 })
+
+watch(
+  () => srParquetCfgStore.maxNumPntsToDisplay,
+  async (newVal, oldVal) => {
+    if (newVal === oldVal) return
+    logger.debug('maxNumPntsToDisplay changed, reloading 3D point cloud', { oldVal, newVal })
+    invalidatePointCloudCache()
+    await loadAndCachePointCloudData(reqId.value)
+    debouncedRender(localDeckContainer)
+  }
+)
 
 watch(
   () => deck3DConfigStore.fovy,
@@ -338,6 +364,12 @@ watch(
   justify-content: center;
 }
 .sr-vert-exag-label {
+  font-size: small;
+  margin-right: 0.2rem;
+  align-items: center;
+  justify-content: center;
+}
+.sr-num-pnts-label {
   font-size: small;
   margin-right: 0.2rem;
   align-items: center;

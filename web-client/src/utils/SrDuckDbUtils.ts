@@ -2146,10 +2146,13 @@ export async function fetchScatterData(
     //console.log('fetchScatterData totalRowCnt:', totalRowCnt, ' typeof:', typeof totalRowCnt);
     //console.log('fetchScatterData max_pnts_on_plot:', useGlobalChartStore().max_pnts_on_plot, ' typeof:', typeof useGlobalChartStore().max_pnts_on_plot);
 
-    const sample_fraction = useGlobalChartStore().max_pnts_on_plot / Number(totalRowCnt)
+    useGlobalChartStore().num_pnts_on_plot += Number(totalRowCnt)
+    const plotCap = useGlobalChartStore().max_pnts_on_plot
+    const sample_fraction = plotCap / Number(totalRowCnt)
     const queryResultMain: QueryResult = await duckDbClient.queryChunkSampled(
       useChartStore().getQuerySql(reqIdStr),
-      sample_fraction
+      sample_fraction,
+      plotCap
     )
     /**
      * 5. For each row, produce an array [ xVal, yVal1, yVal2, ..., extras ]
