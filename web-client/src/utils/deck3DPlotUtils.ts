@@ -328,7 +328,6 @@ export async function loadAndCachePointCloudData(reqId: number) {
   //console.log(`Loading new data for reqId ${reqId}...`);
 
   try {
-    const fieldStore = useFieldNameStore()
     const fileName = await indexedDb.getFilename(reqId)
     if (!fileName) throw new Error('Filename not found')
 
@@ -418,38 +417,6 @@ export async function loadAndCachePointCloudData(reqId: number) {
       lastLoadedReqId = reqId
       verticalExaggerationInitialized = false // Reset flag for new data
       //console.log(`Cached ${cachedRawData.length} valid data points.`);
-
-      if (cachedRawData.length > 0) {
-        latField = fieldStore.getLatFieldName(reqId)
-        lonField = fieldStore.getLonFieldName(reqId)
-        heightField = fieldStore.getHFieldName(reqId)
-
-        // Compute min/max
-        let elevMin = Infinity,
-          elevMax = -Infinity
-        let latMin = Infinity,
-          latMax = -Infinity
-        let lonMin = Infinity,
-          lonMax = -Infinity
-
-        for (const row of cachedRawData) {
-          const lat = row[latField]
-          const lon = row[lonField]
-          const elev = row[heightField]
-          if (typeof lat === 'number' && isFinite(lat)) {
-            latMin = Math.min(latMin, lat)
-            latMax = Math.max(latMax, lat)
-          }
-          if (typeof lon === 'number' && isFinite(lon)) {
-            lonMin = Math.min(lonMin, lon)
-            lonMax = Math.max(lonMax, lon)
-          }
-          if (typeof elev === 'number' && isFinite(elev)) {
-            elevMin = Math.min(elevMin, elev)
-            elevMax = Math.max(elevMax, elev)
-          }
-        }
-      }
     } else {
       cachedRawData = []
       lastLoadedReqId = null
@@ -532,11 +499,19 @@ export function renderCachedData(deckContainer: Ref<HTMLDivElement | null>) {
   const elevMinData = getPercentile(elevations, minElDataPercent)
   const elevMaxData = getPercentile(elevations, maxElDataPercent)
 
-  // geographic bounds (degrees)
-  const lonMin = Math.min(...cachedRawData.map((d) => d[lonField]))
-  const lonMax = Math.max(...cachedRawData.map((d) => d[lonField]))
-  const latMin = Math.min(...cachedRawData.map((d) => d[latField]))
-  const latMax = Math.max(...cachedRawData.map((d) => d[latField]))
+  // geographic bounds (degrees) — single pass to avoid call-stack overflow on large arrays
+  let lonMin = Infinity
+  let lonMax = -Infinity
+  let latMin = Infinity
+  let latMax = -Infinity
+  for (const d of cachedRawData) {
+    const lon = d[lonField]
+    const lat = d[latField]
+    if (lon < lonMin) lonMin = lon
+    if (lon > lonMax) lonMax = lon
+    if (lat < latMin) latMin = lat
+    if (lat > latMax) latMax = lat
+  }
   const lonMid = 0.5 * (lonMin + lonMax)
   const latMid = 0.5 * (latMin + latMax)
 
