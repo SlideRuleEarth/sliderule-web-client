@@ -1,6 +1,29 @@
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount, ref } from 'vue'
+import { onMounted, onBeforeUnmount, ref, computed } from 'vue'
+import { useRoute } from 'vue-router'
 import * as THREE from 'three'
+
+const route = useRoute()
+
+const mapOptions: Record<string, { src: string; label: string }> = {
+  atl18: {
+    src: 'https://docs.slideruleearth.io/_static/ATL18_reprojected.png',
+    label: 'ICESat-2 global terrian heights'
+  },
+  usage: {
+    src: 'https://docs.slideruleearth.io/_static/sliderule_usage_grid.png',
+    label: 'Source location of requests'
+  },
+  aoi: {
+    src: 'https://docs.slideruleearth.io/_static/sliderule_aoi_grid.png',
+    label: 'Targeted areas of interest'
+  }
+}
+
+const mapParam = computed(() => {
+  const m = route.query.map as string | undefined
+  return m && mapOptions[m] ? m : 'atl18'
+})
 
 const containerRef = ref<HTMLDivElement | null>(null)
 
@@ -83,7 +106,7 @@ onMounted(() => {
     overlayMat.map = overlayTexture
     overlayMat.needsUpdate = true
   }
-  overlayImg.src = 'https://docs.slideruleearth.io/_static/ATL18_reprojected.png'
+  overlayImg.src = mapOptions[mapParam.value].src
 
   // Atmosphere glow
   const atmosGeom = new THREE.SphereGeometry(1.02, 64, 64)
@@ -168,7 +191,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div ref="containerRef" class="sr-globe-container">
-    <div class="sr-globe-label">ICESat-2 global terrian heights (ATL18)</div>
+    <div class="sr-globe-label">{{ mapOptions[mapParam].label }}</div>
   </div>
 </template>
 
