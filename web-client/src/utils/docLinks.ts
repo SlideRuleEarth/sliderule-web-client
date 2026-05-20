@@ -39,7 +39,7 @@ export const DOCS = {
     earthdataCmr: `${DOCS_BASE}/api_reference/earthdata.html#cmr`
   },
   articles: {
-    index: `${DOCS_BASE}/developer_guide/articles/articles.html`,
-    base: `${DOCS_BASE}/developer_guide/articles/`
+    index: `${DOCS_BASE}/user_guide/articles/articles.html`,
+    base: `${DOCS_BASE}/user_guide/articles/`
   }
 } as const

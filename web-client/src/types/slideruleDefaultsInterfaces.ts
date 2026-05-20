@@ -100,10 +100,10 @@ export interface BathyConfigSurface {
   min_peak_separation: number
   max_bins: number
   surace_width: number
-  model_as_poisoon: boolean
+  model_as_poisson: boolean
   signal_threshold: number
   bin_size: number
-  highest_peak_ration: number
+  highest_peak_ratio: number
   max_range: number
 }
 
