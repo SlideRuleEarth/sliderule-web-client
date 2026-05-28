@@ -3,9 +3,9 @@ import Accordion from 'primevue/accordion'
 import AccordionPanel from 'primevue/accordionpanel'
 import AccordionHeader from 'primevue/accordionheader'
 import AccordionContent from 'primevue/accordioncontent'
-import { defineAsyncComponent, ref } from 'vue'
+import { defineAsyncComponent, ref, computed } from 'vue'
 import { useReqParamsStore } from '@/stores/reqParamsStore'
-import { computed } from 'vue'
+import { photonProcessingAPIs } from '@/types/SrStaticOptions'
 
 /* eslint-disable @typescript-eslint/promise-function-async */
 const SrYAPC = defineAsyncComponent(() => import('@/components/SrYAPC.vue'))
@@ -38,6 +38,33 @@ interface Props {
 const reqParamsStore = useReqParamsStore()
 const props = defineProps<Props>()
 const expandedPanels = ref<number[]>([])
+
+const isPhotonProcessingAPI = computed(() => photonProcessingAPIs.has(props.iceSat2SelectedAPI))
+
+// Fixed segment dimensions baked into pre-computed ATL06/ATL08 data products.
+// Source: ICESat-2 ATL06 / ATL08 product specifications.
+const fixedExtentsByAPI: Record<string, { len: number; res: number }> = {
+  atl06x: { len: 40, res: 20 },
+  atl08x: { len: 100, res: 100 }
+}
+
+const fixedExtents = computed(() => fixedExtentsByAPI[props.iceSat2SelectedAPI] ?? null)
+
+const fixedExtentsTooltip = computed(() => {
+  const api = props.iceSat2SelectedAPI
+  return `Segment dimensions are fixed in the ${api} data product and cannot be modified.`
+})
+
+// Panels that show parameters used at request time are visible when the
+// selected endpoint actually consumes them. X-series endpoints read pre-computed
+// segments from the source HDF5 product so most photon-processing panels are hidden.
+const showExtentsPanel = computed(() => isPhotonProcessingAPI.value || fixedExtents.value !== null)
+const showSurfaceElevationPanel = computed(() =>
+  ['atl06p', 'atl06sp', 'atl03x-surface'].includes(props.iceSat2SelectedAPI)
+)
+const showPhoRealPanel = computed(() =>
+  ['atl08p', 'atl03x-phoreal'].includes(props.iceSat2SelectedAPI)
+)
 
 const onPanelOpen = (value: any) => {
   //console.log('onPanelOpen', value, "type: ", typeof value);
@@ -86,7 +113,7 @@ const fieldsHeader = computed(() => {
             <SrGranuleSelection />
           </AccordionContent>
         </AccordionPanel>
-        <AccordionPanel value="3" v-if="mission === 'ICESat-2'">
+        <AccordionPanel value="3" v-if="mission === 'ICESat-2' && isPhotonProcessingAPI">
           <AccordionHeader>Photon Selection</AccordionHeader>
           <AccordionContent v-if="isExpanded(3)">
             <SrAtl03Classification />
@@ -94,33 +121,37 @@ const fieldsHeader = computed(() => {
             <SrYAPC />
           </AccordionContent>
         </AccordionPanel>
-        <AccordionPanel value="4" v-if="mission === 'ICESat-2'">
+        <AccordionPanel value="4" v-if="mission === 'ICESat-2' && showExtentsPanel">
           <AccordionHeader>Extents</AccordionHeader>
           <AccordionContent v-if="isExpanded(4)">
-            <SrExtents />
+            <SrExtents v-if="isPhotonProcessingAPI" />
+            <div
+              v-else-if="fixedExtents"
+              class="sr-fixed-extents"
+              v-tooltip.top="fixedExtentsTooltip"
+            >
+              <div class="sr-fixed-extents-header">
+                <i class="pi pi-lock"></i>
+                <span>Fixed in {{ iceSat2SelectedAPI }} data product</span>
+              </div>
+              <div class="sr-fixed-extents-row">
+                <span class="sr-fixed-extents-label">Length</span>
+                <span class="sr-fixed-extents-value">{{ fixedExtents.len }} m</span>
+              </div>
+              <div class="sr-fixed-extents-row">
+                <span class="sr-fixed-extents-label">Step Size</span>
+                <span class="sr-fixed-extents-value">{{ fixedExtents.res }} m</span>
+              </div>
+            </div>
           </AccordionContent>
         </AccordionPanel>
-        <AccordionPanel
-          value="5"
-          v-if="
-            mission === 'ICESat-2' &&
-            (props.iceSat2SelectedAPI.includes('atl06') ||
-              props.iceSat2SelectedAPI.includes('atl03x-surface'))
-          "
-        >
+        <AccordionPanel value="5" v-if="mission === 'ICESat-2' && showSurfaceElevationPanel">
           <AccordionHeader>Surface Elevation</AccordionHeader>
           <AccordionContent v-if="isExpanded(5)">
             <SrSurfaceElevation />
           </AccordionContent>
         </AccordionPanel>
-        <AccordionPanel
-          value="6"
-          v-if="
-            mission === 'ICESat-2' &&
-            (props.iceSat2SelectedAPI.includes('atl08') ||
-              props.iceSat2SelectedAPI.includes('atl03x-phoreal'))
-          "
-        >
+        <AccordionPanel value="6" v-if="mission === 'ICESat-2' && showPhoRealPanel">
           <AccordionHeader>PhoREAL Veg Density Alg</AccordionHeader>
           <AccordionContent v-if="isExpanded(6)">
             <SrVegDensity />
@@ -330,5 +361,41 @@ const fieldsHeader = computed(() => {
   display: flex;
   justify-content: center;
   margin-bottom: 0.5rem;
+}
+
+.sr-fixed-extents {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid var(--p-surface-300);
+  border-radius: var(--p-border-radius);
+  cursor: help;
+}
+
+.sr-fixed-extents-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: small;
+  color: var(--p-text-muted-color);
+  margin-bottom: 0.25rem;
+}
+
+.sr-fixed-extents-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+  opacity: 0.7;
+}
+
+.sr-fixed-extents-label {
+  font-size: large;
+}
+
+.sr-fixed-extents-value {
+  font-family: monospace;
+  font-size: large;
 }
 </style>

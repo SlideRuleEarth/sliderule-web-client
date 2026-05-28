@@ -26,6 +26,19 @@ export const iceSat2APIsItems = [
   'atl13x'
 ]
 export const gediAPIsItems = ['gedi01bp', 'gedi02ap', 'gedi04ap']
+// ICESat-2 endpoints that compute segments from ATL03 photons and accept
+// photon-processing parameters (cnf, srt, yapc, len, res, fit, etc.).
+// X-series endpoints (atl06x, atl08x, atl24x, atl13x) read pre-computed
+// segments from HDF5 files and ignore these parameters.
+export const photonProcessingAPIs: ReadonlySet<string> = new Set([
+  'atl03x',
+  'atl03x-surface',
+  'atl03x-phoreal',
+  'atl03vp',
+  'atl06p',
+  'atl06sp',
+  'atl08p'
+])
 export const surfaceReferenceTypeOptions = [
   { name: 'Dynamic', value: -1 },
   { name: 'Land', value: 0 },
