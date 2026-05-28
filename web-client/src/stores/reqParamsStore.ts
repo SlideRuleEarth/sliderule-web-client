@@ -29,7 +29,8 @@ import {
   OnOffOptions,
   geoLocationOptions,
   signalConfidenceNumberOptions,
-  qualityPHOptions
+  qualityPHOptions,
+  photonProcessingAPIs
 } from '@/types/SrStaticOptions'
 
 export function getDefaultReqParamsState(): SrReqParamsState {
@@ -490,6 +491,8 @@ const createReqParamsStore = (id: string) =>
       getAtlReqParams(req_id: number): AtlReqParams {
         //console.log('getAtlReqParams req_id:', req_id);
         const req: AtlReqParams = {}
+        const isPhotonAPI =
+          this.missionValue === 'ICESat-2' && photonProcessingAPIs.has(this.iceSat2SelectedAPI)
         if (this.missionValue === 'ICESat-2') {
           if (!this.iceSat2SelectedAPI.includes('x')) {
             // atlnnx does not need asset set
@@ -561,7 +564,7 @@ const createReqParamsStore = (id: string) =>
             req.atl24.anc_fields = this.atl24AncillaryFields
           }
         } else {
-          if (this.missionValue === 'ICESat-2') {
+          if (isPhotonAPI) {
             if (this.enableAtl03Classification) {
               if (
                 this.surfaceReferenceType.length === 1 &&
@@ -625,7 +628,7 @@ const createReqParamsStore = (id: string) =>
           }
         }
 
-        if (this.missionValue === 'ICESat-2') {
+        if (isPhotonAPI) {
           if (this.getUseSurfaceFitAlgorithm()) {
             req.fit = {} as SrSurfaceFit
             if (this.getUseMaxIterations()) {
@@ -707,14 +710,16 @@ const createReqParamsStore = (id: string) =>
             }
           }
         }
-        if (this.passInvalid) {
-          req.pass_invalid = true
-        } else {
-          if (this.getUseAlongTrackSpread()) {
-            req.ats = this.alongTrackSpread
-          }
-          if (this.getUseMinimumPhotonCount()) {
-            req.cnt = this.minimumPhotonCount
+        if (isPhotonAPI) {
+          if (this.passInvalid) {
+            req.pass_invalid = true
+          } else {
+            if (this.getUseAlongTrackSpread()) {
+              req.ats = this.alongTrackSpread
+            }
+            if (this.getUseMinimumPhotonCount()) {
+              req.cnt = this.minimumPhotonCount
+            }
           }
         }
 
@@ -769,20 +774,20 @@ const createReqParamsStore = (id: string) =>
           // ATL03 classification settings would go here
         }
 
-        if (this.enableAtl08Classification) {
+        if (isPhotonAPI && this.enableAtl08Classification) {
           if (this.atl08LandType.length > 0) {
             req.atl08_class = this.atl08LandType
           }
         }
 
-        if (this.enableAtl24Classification) {
+        if (isPhotonAPI && this.enableAtl24Classification) {
           if (!req.atl24) req.atl24 = {}
           if (this.atl24_class_ph.length > 0) {
             req.atl24.class_ph = this.atl24_class_ph
           }
         }
 
-        if (this.enableYAPC) {
+        if (isPhotonAPI && this.enableYAPC) {
           let yapc = {} as Icesat2ConfigYapc
           yapc.version = this.getYAPCVersion()
           yapc.score = this.YAPCScore
@@ -798,7 +803,7 @@ const createReqParamsStore = (id: string) =>
           req.yapc = yapc
           //console.log('using req.yapc:',req.yapc)
         }
-        if (this.distanceIn.value === 'segments') {
+        if (isPhotonAPI && this.distanceIn.value === 'segments') {
           req.dist_in_seg = true
         }
         if (this.useServerTimeout) {
