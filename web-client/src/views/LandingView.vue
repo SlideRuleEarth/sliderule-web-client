@@ -60,11 +60,9 @@ async function fetchReleaseNotesIndex() {
     doc.querySelectorAll('[role="main"] a[href]').forEach((el) => {
       const href = el.getAttribute('href') ?? ''
       if (!href.endsWith('.html') || href.startsWith('http')) return
-      // Exclude Web Client release notes (hrefs like web-release-vXX-YY-ZZ.html)
-      if (href.startsWith('web-')) return
       const text = el.textContent?.trim() ?? ''
-      // Expected format: "Release vX.Y.x"
-      const match = text.match(/^Release v([\d.]+(?:\.x)?)$/)
+      // Matches "Release v5.4.x", "Release v5.4.1", "Web Client Release v4.5.0", etc.
+      const match = text.match(/^(?:Web Client )?Release v[\d.x]+$/)
       if (match) {
         notes.push({ date: '', title: text, url: href })
       }
