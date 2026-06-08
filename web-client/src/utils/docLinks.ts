@@ -38,8 +38,8 @@ export const DOCS = {
     gedi: `${DOCS_BASE}/api_reference/gedi.html#gedi`,
     earthdataCmr: `${DOCS_BASE}/api_reference/earthdata.html#cmr`
   },
-  articles: {
-    index: `${DOCS_BASE}/user_guide/articles/articles.html`,
-    base: `${DOCS_BASE}/user_guide/articles/`
+  releaseNotes: {
+    index: `${DOCS_BASE}/developer_guide/release_notes/release_notes.html`,
+    base: `${DOCS_BASE}/developer_guide/release_notes/`
   }
 } as const
