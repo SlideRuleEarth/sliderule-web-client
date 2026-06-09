@@ -3,6 +3,19 @@ import { defineStore } from 'pinia'
 import { ref, reactive } from 'vue'
 import type { OrbitViewState } from '@deck.gl/core'
 
+// Portable shape for the live orbit view state we expose from this store.
+// We intentionally do NOT use OrbitViewState as the reactive() generic: reactive()
+// unwraps it structurally, which drags in @deck.gl/core's internal (non-exported)
+// transitions/transition type and trips TS2742 on the store's inferred public type.
+// OrbitViewState is still fine as a parameter type below since it's referenced by
+// its public name, not structurally expanded.
+interface Deck3DViewState {
+  target: number[]
+  zoom: number
+  rotationX: number
+  rotationOrbit: number
+}
+
 export const useDeck3DConfigStore = defineStore('deckConfig', () => {
   const deckContainer = ref<HTMLDivElement | null>(null)
 
@@ -41,7 +54,7 @@ export const useDeck3DConfigStore = defineStore('deckConfig', () => {
   const hoverMarkerScale = ref(2.0) // User-adjustable scale factor (percentage of data extent)
   // — LIVE VIEW STATE —
   // these will be updated in onViewStateChange
-  const viewState = reactive<OrbitViewState>({
+  const viewState = reactive<Deck3DViewState>({
     target: [...centroid.value],
     zoom: 5,
     rotationX: 45,
