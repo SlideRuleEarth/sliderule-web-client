@@ -59,6 +59,10 @@ doctor: ## Check that your Node/npm versions match .nvmrc and the packageManager
 
 src-tag-and-push: ## Tag and push the web client source code to the repository
 	$(ROOT)/VITE_VERSION.sh $(VERSION) && git push --tags; git push
+	$(ROOT)/publish-gh-release.sh $(VERSION)
+
+gen-release-notes: ## Generate web-client release notes draft from git log NEEDS VERSION
+	$(ROOT)/gen-release-notes.sh $(VERSION)
 
 upload-assets: ## Upload hashed JS/CSS assets with long cache duration
 	export AWS_MAX_ATTEMPTS=10 AWS_RETRY_MODE=standard && \

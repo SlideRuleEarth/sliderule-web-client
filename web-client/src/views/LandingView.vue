@@ -15,7 +15,7 @@ function stripFrontmatter(md: string): string {
 const aboutHtml = DOMPurify.sanitize(marked(stripFrontmatter(aboutRaw)) as string)
 const contactHtml = DOMPurify.sanitize(marked(stripFrontmatter(contactRaw)) as string)
 
-const tabOptions = ['About', 'Contact', 'Release Notes']
+const tabOptions = ['About', 'Contact', 'SlideRule Releases', 'Web Client Releases']
 const selectedTab = ref('About')
 
 const panelHtml = computed(() => {
@@ -30,6 +30,11 @@ const panelHtml = computed(() => {
 })
 
 // --- Release Notes ---
+//
+// Two release-note sources share the list/detail UI below:
+//  - 'remote' = the SlideRule platform notes scraped from the docs site
+//  - 'local'  = this repo's web-client notes, bundled at build time (see the
+//               import.meta.glob of src/assets/content/release-notes/*.md)
 
 const RELEASE_NOTES_INDEX_URL = DOCS.releaseNotes.index
 const RELEASE_NOTES_BASE_URL = DOCS.releaseNotes.base
@@ -37,8 +42,9 @@ const RELEASE_NOTES_BASE_URL = DOCS.releaseNotes.base
 interface ReleaseNote {
   title: string
   date: string
-  url: string
+  url: string // external link: docs page (remote) or GitHub release tag (local)
   snippet?: string
+  html?: string // precomputed detail HTML (local notes only)
 }
 
 const releaseNotes = ref<ReleaseNote[]>([])
@@ -46,6 +52,82 @@ const selectedRelease = ref<ReleaseNote | null>(null)
 const releaseHtml = ref('')
 const releaseLoading = ref(false)
 const releaseError = ref('')
+
+const releaseMode = computed<'remote' | 'local' | null>(() => {
+  if (selectedTab.value === 'SlideRule Releases') return 'remote'
+  if (selectedTab.value === 'Web Client Releases') return 'local'
+  return null
+})
+
+// --- Local web-client release notes (bundled markdown) ---
+
+const localNoteModules = import.meta.glob('@/assets/content/release-notes/*.md', {
+  query: '?raw',
+  import: 'default',
+  eager: true
+}) as Record<string, string>
+
+function versionKey(v: string): number[] {
+  return v
+    .replace(/^v/, '')
+    .split('.')
+    .map((n) => parseInt(n, 10) || 0)
+}
+
+// Sort newest-first by semantic version (v4.5.10 after v4.5.2).
+function compareVersionDesc(a: string, b: string): number {
+  const av = versionKey(a)
+  const bv = versionKey(b)
+  for (let i = 0; i < Math.max(av.length, bv.length); i++) {
+    const diff = (bv[i] ?? 0) - (av[i] ?? 0)
+    if (diff !== 0) return diff
+  }
+  return 0
+}
+
+const localReleaseNotes = computed<ReleaseNote[]>(() => {
+  const notes = Object.entries(localNoteModules).map(([path, raw]) => {
+    const version = path.split('/').pop()?.replace(/\.md$/, '') ?? ''
+    const body = stripFrontmatter(raw)
+    // First heading line, e.g. "# v4.5.2 — 2026-06-09"
+    const header = body.match(/^#\s+(\S+)\s+[—-]\s+(\d{4}-\d{2}-\d{2})/m)
+    const title = header?.[1] ?? version
+    const date = header?.[2] ?? ''
+    // First bullet line used as a one-line snippet in the list view.
+    const bullet = body.match(/^\s*[-*]\s+(.+)$/m)
+    const snippet = bullet?.[1] ?? ''
+    const html = DOMPurify.sanitize(marked(body) as string)
+    return { title, date, url: DOCS.webClient.tags + version, snippet, html }
+  })
+  return notes.sort((a, b) => compareVersionDesc(a.title, b.title) || b.date.localeCompare(a.date))
+})
+
+const currentNotes = computed<ReleaseNote[]>(() => {
+  if (releaseMode.value === 'local') return localReleaseNotes.value
+  if (releaseMode.value === 'remote') return releaseNotes.value
+  return []
+})
+
+const externalLink = computed(() => {
+  if (!selectedRelease.value) return ''
+  return releaseMode.value === 'local'
+    ? selectedRelease.value.url
+    : RELEASE_NOTES_BASE_URL + selectedRelease.value.url
+})
+
+const externalLinkLabel = computed(() =>
+  releaseMode.value === 'local' ? 'View on GitHub ↗' : 'View on docs site ↗'
+)
+
+function openRelease(note: ReleaseNote) {
+  if (releaseMode.value === 'local') {
+    // Local notes are already rendered — no network fetch needed.
+    selectedRelease.value = note
+    releaseHtml.value = note.html ?? ''
+  } else {
+    void fetchRelease(note)
+  }
+}
 
 async function fetchReleaseNotesIndex() {
   releaseLoading.value = true
@@ -155,8 +237,12 @@ onMounted(() => {
 })
 
 watch(selectedTab, (tab) => {
-  if (tab === 'Release Notes') {
-    selectedRelease.value = null
+  // Reset the detail view whenever the tab changes; only the remote source needs
+  // an on-switch fetch (local notes are bundled and rendered eagerly).
+  selectedRelease.value = null
+  releaseHtml.value = ''
+  releaseError.value = ''
+  if (tab === 'SlideRule Releases') {
     void fetchReleaseNotesIndex()
   }
 })
@@ -175,7 +261,7 @@ watch(selectedTab, (tab) => {
         </div>
       </div>
       <!-- About / Contact -->
-      <div v-if="selectedTab !== 'Release Notes'" ref="panelRef" class="sr-landing-panel">
+      <div v-if="releaseMode === null" ref="panelRef" class="sr-landing-panel">
         <div v-if="panelHtml" class="sr-landing-panel-content">
           <div v-html="panelHtml" />
         </div>
@@ -184,7 +270,7 @@ watch(selectedTab, (tab) => {
         </div>
       </div>
 
-      <!-- Release Notes -->
+      <!-- Release Notes (SlideRule platform = remote, Web Client = local) -->
       <div v-else class="sr-landing-panel">
         <div v-if="releaseLoading" class="sr-news-status">Loading...</div>
         <div v-else-if="releaseError" class="sr-news-status sr-news-error">{{ releaseError }}</div>
@@ -193,15 +279,15 @@ watch(selectedTab, (tab) => {
           <div v-html="releaseHtml" />
           <a
             class="sr-news-original-link"
-            :href="RELEASE_NOTES_BASE_URL + selectedRelease.url"
+            :href="externalLink"
             target="_blank"
             rel="noopener noreferrer"
           >
-            View on docs site ↗
+            {{ externalLinkLabel }}
           </a>
         </div>
-        <ul v-else class="sr-news-list">
-          <li v-for="r in releaseNotes" :key="r.url" @click="fetchRelease(r)">
+        <ul v-else-if="currentNotes.length" class="sr-news-list">
+          <li v-for="r in currentNotes" :key="r.url" @click="openRelease(r)">
             <span class="sr-news-date">{{ r.date }}</span>
             <div class="sr-news-body">
               <span class="sr-news-title">{{ r.title }}</span>
@@ -209,6 +295,7 @@ watch(selectedTab, (tab) => {
             </div>
           </li>
         </ul>
+        <div v-else class="sr-news-status">No release notes available.</div>
       </div>
     </div>
   </div>
