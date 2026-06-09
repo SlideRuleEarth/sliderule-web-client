@@ -77,6 +77,63 @@ This project is designed to be deployed as a secure static site using Amazon Clo
 
 We use [HashiCorp Terraform](https://www.terraform.io/) to deploy this website.
 
+### Releasing
+
+The recommended workflow is to release a new tagged version to the test site first,
+sanity-check it, then promote that same build to production.
+
+**1. Tag and release to test** (requires `VERSION` in `vX.Y.Z` form):
+
+```bash
+make release-live-update-to-testsliderule VERSION=v4.5.3
+```
+
+This step does all the version-stamping work:
+
+1. **Generates and commits the release notes** for the version from the git commit
+   subjects since the previous tag, then creates and pushes the annotated `vX.Y.Z`
+   tag (`src-tag-and-push` → `VITE_VERSION.sh` → `gen-release-notes.sh`).
+2. **Mirrors the notes to a GitHub Release** (`publish-gh-release.sh`). This step is
+   non-fatal — if the `gh` CLI is missing or unauthenticated it warns and is skipped,
+   so it never blocks a deploy.
+3. **Builds and deploys** the client to **testsliderule.org** — the tag is injected
+   as `VITE_APP_VERSION`, assets are uploaded to S3, and CloudFront is invalidated.
+
+Sanity-check the result at <https://client.testsliderule.org>.
+
+**2. Promote the same tagged build to production:**
+
+```bash
+make live-update-slideruleearth
+```
+
+This rebuilds the current checkout and deploys it to **slideruleearth.io**. It does
+**not** create a new tag — the build reads the existing tag via `git describe --tags`,
+so the release notes and the GitHub Release are created exactly once, during step 1.
+
+> A one-shot `make release-live-update-to-slideruleearth VERSION=v4.5.3` also exists
+> (it tags and deploys straight to production), but the test-first workflow above is
+> recommended.
+
+### Release notes
+
+Web-client release notes are maintained in this repo as one Markdown file per
+version under `web-client/src/assets/content/release-notes/` (e.g. `v4.5.3.md`).
+They are bundled into the client at build time and shown in the **Web Client
+Releases** tab on the landing page (the **SlideRule Releases** tab continues to
+show the platform/server notes from the docs site).
+
+The release flow auto-generates a draft from the commits since the previous tag.
+To curate the notes before releasing, generate the draft first, edit it, then run
+the release (step 1 above) — an existing file is preserved (use `--force` to
+regenerate):
+
+```bash
+make gen-release-notes VERSION=v4.5.3   # writes .../release-notes/v4.5.3.md
+# edit the generated file...
+make release-live-update-to-testsliderule VERSION=v4.5.3
+```
+
 ## License
 
 This project is licensed under the following University of Washington Open Source License - see the [LICENSE](LICENSE) file for details.

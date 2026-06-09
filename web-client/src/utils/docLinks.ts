@@ -41,5 +41,9 @@ export const DOCS = {
   releaseNotes: {
     index: `${DOCS_BASE}/developer_guide/release_notes/release_notes.html`,
     base: `${DOCS_BASE}/developer_guide/release_notes/`
+  },
+  webClient: {
+    repo: 'https://github.com/SlideRuleEarth/sliderule-web-client',
+    tags: 'https://github.com/SlideRuleEarth/sliderule-web-client/releases/tag/'
   }
 } as const
