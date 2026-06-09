@@ -14,6 +14,8 @@ import { provide, watch, onMounted, ref, computed, nextTick } from 'vue'
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore'
 import { useChartStore } from '@/stores/chartStore'
 import { callPlotUpdateDebounced, checkAndSetFilterForTimeSeries } from '@/utils/plotUtils'
+import { getXRangeFromLatLonExtent } from '@/utils/SrDuckDbUtils'
+import { useSrToastStore } from '@/stores/srToastStore'
 import { useRecTreeStore } from '@/stores/recTreeStore'
 import { useActiveTabStore } from '@/stores/activeTabStore'
 import SrPlotCntrl from '@/components/SrPlotCntrl.vue'
@@ -195,6 +197,58 @@ function resetChartZoom() {
     })
   } catch (error) {
     logger.error('Error resetting chart zoom', { error })
+  }
+}
+
+// Computed to check if map extent data is available for zoom-plot-to-map feature
+const hasMapExtentData = computed(() => {
+  const mapExtent = globalChartStore.getMapLatLonExtent()
+  const selectedReqId = recTreeStore.selectedReqId
+  return !!(mapExtent && selectedReqId && selectedReqId > 0)
+})
+
+// Tooltip text for zoom-plot-to-map button
+const zoomPlotToMapTooltip = computed(() =>
+  hasMapExtentData.value ? 'Zoom plot to match visible map extent' : 'No map extent available'
+)
+
+// Handler for zoom-plot-to-map button
+async function handleZoomPlotToMapExtent() {
+  const selectedReqId = recTreeStore.selectedReqId
+  const mapExtent = globalChartStore.getMapLatLonExtent()
+
+  if (!hasMapExtentData.value || !selectedReqId || !mapExtent) {
+    logger.warn('handleZoomPlotToMapExtent: No map extent or reqId')
+    return
+  }
+
+  logger.debug('handleZoomPlotToMapExtent: Zooming plot to map extent', {
+    selectedReqId,
+    mapExtent
+  })
+
+  const xRange = await getXRangeFromLatLonExtent(selectedReqId, mapExtent)
+  if (xRange) {
+    // Set the chart zoom values
+    atlChartFilterStore.xZoomStartValue = xRange.xMin
+    atlChartFilterStore.xZoomEndValue = xRange.xMax
+    // Reset percentage values so value-based zoom takes precedence
+    atlChartFilterStore.xZoomStart = 0
+    atlChartFilterStore.xZoomEnd = 100
+
+    logger.debug('handleZoomPlotToMapExtent: Set zoom range', { xRange })
+
+    // Trigger chart update
+    if (chartStore.getSelectedYData(recTreeStore.selectedReqIdStr).length > 0) {
+      await callPlotUpdateDebounced('from handleZoomPlotToMapExtent')
+    }
+  } else {
+    logger.warn('handleZoomPlotToMapExtent: Could not get X range from map extent')
+    useSrToastStore().warn(
+      'No Data in Visible Map Area',
+      'Could not find data within the visible map extent. Try zooming out on the map.',
+      10000
+    )
   }
 }
 
@@ -452,6 +506,21 @@ watch(
               aria-label="Drag to Zoom"
               :class="['sr-glow-button', { 'sr-zoom-select-active': zoomSelectMode }]"
               @click="zoomSelectMode = !zoomSelectMode"
+            />
+          </div>
+          <div
+            @mouseover="tooltipRef.showTooltip($event, zoomPlotToMapTooltip)"
+            @mouseleave="tooltipRef.hideTooltip()"
+          >
+            <Button
+              icon="pi pi-map"
+              severity="secondary"
+              text
+              rounded
+              class="sr-glow-button"
+              aria-label="Zoom Plot to Map Extent"
+              :disabled="!hasMapExtentData"
+              @click="handleZoomPlotToMapExtent"
             />
           </div>
         </div>
