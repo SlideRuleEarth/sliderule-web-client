@@ -15,7 +15,7 @@ function stripFrontmatter(md: string): string {
 const aboutHtml = DOMPurify.sanitize(marked(stripFrontmatter(aboutRaw)) as string)
 const contactHtml = DOMPurify.sanitize(marked(stripFrontmatter(contactRaw)) as string)
 
-const tabOptions = ['About', 'Contact', 'News']
+const tabOptions = ['About', 'Contact', 'Release Notes']
 const selectedTab = ref('About')
 
 const panelHtml = computed(() => {
@@ -29,92 +29,96 @@ const panelHtml = computed(() => {
   }
 })
 
-// --- News ---
+// --- Release Notes ---
 
-const ARTICLES_INDEX_URL = DOCS.articles.index
-const ARTICLES_BASE_URL = DOCS.articles.base
+const RELEASE_NOTES_INDEX_URL = DOCS.releaseNotes.index
+const RELEASE_NOTES_BASE_URL = DOCS.releaseNotes.base
 
-interface NewsArticle {
+interface ReleaseNote {
   title: string
   date: string
   url: string
   snippet?: string
 }
 
-const newsArticles = ref<NewsArticle[]>([])
-const selectedArticle = ref<NewsArticle | null>(null)
-const articleHtml = ref('')
-const newsLoading = ref(false)
-const newsError = ref('')
+const releaseNotes = ref<ReleaseNote[]>([])
+const selectedRelease = ref<ReleaseNote | null>(null)
+const releaseHtml = ref('')
+const releaseLoading = ref(false)
+const releaseError = ref('')
 
-async function fetchNewsIndex() {
-  newsLoading.value = true
-  newsError.value = ''
-  newsArticles.value = []
+async function fetchReleaseNotesIndex() {
+  releaseLoading.value = true
+  releaseError.value = ''
+  releaseNotes.value = []
   try {
-    const res = await fetch(ARTICLES_INDEX_URL)
+    const res = await fetch(RELEASE_NOTES_INDEX_URL)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const html = await res.text()
     const doc = new DOMParser().parseFromString(html, 'text/html')
-    const articles: NewsArticle[] = []
+    const notes: ReleaseNote[] = []
     doc.querySelectorAll('[role="main"] a[href]').forEach((el) => {
       const href = el.getAttribute('href') ?? ''
       if (!href.endsWith('.html') || href.startsWith('http')) return
       const text = el.textContent?.trim() ?? ''
-      // Expected format: "YYYY-MM-DD: Title"
-      const match = text.match(/^(\d{4}-\d{2}-\d{2}):\s*(.+)$/)
+      // Matches "Release v5.4.x", "Release v5.4.1", "Web Client Release v4.5.0", etc.
+      const match = text.match(/^(?:Web Client )?Release v[\d.x]+$/)
       if (match) {
-        articles.push({ date: match[1], title: match[2], url: href })
+        notes.push({ date: '', title: text, url: href })
       }
     })
-    // Sort newest first
-    articles.sort((a, b) => b.date.localeCompare(a.date))
-    newsArticles.value = articles
-    void fetchSnippets()
+    releaseNotes.value = notes
+    void fetchEntryDetails()
   } catch {
-    newsError.value = 'Failed to load articles. Please try again later.'
+    releaseError.value = 'Failed to load release notes. Please try again later.'
   } finally {
-    newsLoading.value = false
+    releaseLoading.value = false
   }
 }
 
-async function fetchSnippets() {
+async function fetchEntryDetails() {
   const MAX_SNIPPET_LENGTH = 200
+  const DATE_RE = /\b(\d{4}-\d{2}-\d{2})\b/
   await Promise.allSettled(
-    newsArticles.value.map(async (article, index) => {
+    releaseNotes.value.map(async (note, index) => {
       try {
-        const res = await fetch(ARTICLES_BASE_URL + article.url)
+        const res = await fetch(RELEASE_NOTES_BASE_URL + note.url)
         if (!res.ok) return
         const html = await res.text()
         const doc = new DOMParser().parseFromString(html, 'text/html')
         const main = doc.querySelector('[role="main"]')
         if (!main) return
+        let date = ''
+        let snippet = ''
+        const dateMatch = main.textContent?.match(DATE_RE)
+        if (dateMatch) date = dateMatch[1]
         const paragraphs = Array.from(main.querySelectorAll('p'))
         for (const p of paragraphs) {
           const text = p.textContent?.trim()
-          if (text && text.length > 10) {
-            newsArticles.value[index] = {
-              ...article,
-              snippet:
-                text.length > MAX_SNIPPET_LENGTH ? text.slice(0, MAX_SNIPPET_LENGTH) + '...' : text
-            }
+          if (text && text.length > 10 && !DATE_RE.test(text)) {
+            snippet =
+              text.length > MAX_SNIPPET_LENGTH ? text.slice(0, MAX_SNIPPET_LENGTH) + '...' : text
             break
           }
         }
+        releaseNotes.value[index] = { ...note, date, snippet }
       } catch {
-        // Snippet fetch failures are non-critical — just leave snippet empty
+        // Detail fetch failures are non-critical — leave date/snippet empty
       }
     })
   )
+  // Re-sort newest first once dates are populated; entries without a date
+  // sort to the end via empty-string compare.
+  releaseNotes.value = [...releaseNotes.value].sort((a, b) => b.date.localeCompare(a.date))
 }
 
-async function fetchArticle(article: NewsArticle) {
-  selectedArticle.value = article
-  articleHtml.value = ''
-  newsLoading.value = true
-  newsError.value = ''
+async function fetchRelease(note: ReleaseNote) {
+  selectedRelease.value = note
+  releaseHtml.value = ''
+  releaseLoading.value = true
+  releaseError.value = ''
   try {
-    const res = await fetch(ARTICLES_BASE_URL + article.url)
+    const res = await fetch(RELEASE_NOTES_BASE_URL + note.url)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const html = await res.text()
     const doc = new DOMParser().parseFromString(html, 'text/html')
@@ -123,15 +127,15 @@ async function fetchArticle(article: NewsArticle) {
       // Remove prev/next navigation links common in Sphinx
       main.querySelectorAll('.rst-footer-buttons, .footer, nav').forEach((n) => n.remove())
       main.querySelectorAll('a.headerlink').forEach((n) => n.remove())
-      articleHtml.value = DOMPurify.sanitize(main.innerHTML)
+      releaseHtml.value = DOMPurify.sanitize(main.innerHTML)
     } else {
-      articleHtml.value = '<p>Could not extract article content.</p>'
+      releaseHtml.value = '<p>Could not extract release notes content.</p>'
     }
   } catch {
-    newsError.value = 'Failed to load article. Please try again later.'
-    selectedArticle.value = null
+    releaseError.value = 'Failed to load release notes. Please try again later.'
+    selectedRelease.value = null
   } finally {
-    newsLoading.value = false
+    releaseLoading.value = false
   }
 }
 
@@ -151,9 +155,9 @@ onMounted(() => {
 })
 
 watch(selectedTab, (tab) => {
-  if (tab === 'News') {
-    selectedArticle.value = null
-    void fetchNewsIndex()
+  if (tab === 'Release Notes') {
+    selectedRelease.value = null
+    void fetchReleaseNotesIndex()
   }
 })
 </script>
@@ -171,7 +175,7 @@ watch(selectedTab, (tab) => {
         </div>
       </div>
       <!-- About / Contact -->
-      <div v-if="selectedTab !== 'News'" ref="panelRef" class="sr-landing-panel">
+      <div v-if="selectedTab !== 'Release Notes'" ref="panelRef" class="sr-landing-panel">
         <div v-if="panelHtml" class="sr-landing-panel-content">
           <div v-html="panelHtml" />
         </div>
@@ -180,23 +184,28 @@ watch(selectedTab, (tab) => {
         </div>
       </div>
 
-      <!-- News -->
+      <!-- Release Notes -->
       <div v-else class="sr-landing-panel">
-        <div v-if="newsLoading" class="sr-news-status">Loading...</div>
-        <div v-else-if="newsError" class="sr-news-status sr-news-error">{{ newsError }}</div>
-        <div v-else-if="selectedArticle" class="sr-landing-panel-content">
-          <button class="sr-news-back" @click="selectedArticle = null">← Back</button>
-          <div v-html="articleHtml" />
-          <a class="sr-news-original-link" :href="ARTICLES_BASE_URL + selectedArticle.url" target="_blank" rel="noopener noreferrer">
-            View original article on docs site ↗
+        <div v-if="releaseLoading" class="sr-news-status">Loading...</div>
+        <div v-else-if="releaseError" class="sr-news-status sr-news-error">{{ releaseError }}</div>
+        <div v-else-if="selectedRelease" class="sr-landing-panel-content">
+          <button class="sr-news-back" @click="selectedRelease = null">← Back</button>
+          <div v-html="releaseHtml" />
+          <a
+            class="sr-news-original-link"
+            :href="RELEASE_NOTES_BASE_URL + selectedRelease.url"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            View on docs site ↗
           </a>
         </div>
         <ul v-else class="sr-news-list">
-          <li v-for="a in newsArticles" :key="a.url" @click="fetchArticle(a)">
-            <span class="sr-news-date">{{ a.date }}</span>
+          <li v-for="r in releaseNotes" :key="r.url" @click="fetchRelease(r)">
+            <span class="sr-news-date">{{ r.date }}</span>
             <div class="sr-news-body">
-              <span class="sr-news-title">{{ a.title }}</span>
-              <span v-if="a.snippet" class="sr-news-snippet">{{ a.snippet }}</span>
+              <span class="sr-news-title">{{ r.title }}</span>
+              <span v-if="r.snippet" class="sr-news-snippet">{{ r.snippet }}</span>
             </div>
           </li>
         </ul>
