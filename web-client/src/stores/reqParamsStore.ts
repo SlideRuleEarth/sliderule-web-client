@@ -506,9 +506,16 @@ const createReqParamsStore = (id: string) =>
           logger.error('Mission not recognized in getAtlReqParams', { mission: this.missionValue })
         }
 
-        // Add CMR version for ATL24 photon cloud overlay
+        // Pin the CMR ATL03 release to match the ATL24 product's input ATL03 version. ATL24
+        // granule names encode that version (ATL24 user guide §1.2.3), and we already carry it
+        // through in the derived resource name (ATL03_[date]_[ttttccss]_[VVV]_[RR].h5). Derive
+        // it from that resource rather than hardcoding, so the overlay tracks the ATL24 product
+        // automatically — e.g. when ATL24 is rebuilt against ATL03 R007, both the resource name
+        // and this version become '007' with no code change. (Note: this only works while the
+        // matching ATL03 release is still available to SlideRule in S3.)
         if (this.isAtl24PhotonOverlay && this.iceSat2SelectedAPI.includes('atl03')) {
-          req.cmr = { version: '006' }
+          const atl03Release = this.resources[0]?.split('_')[3]
+          req.cmr = { version: atl03Release || '006' }
         }
 
         if (this.iceSat2SelectedAPI.includes('atl03')) {

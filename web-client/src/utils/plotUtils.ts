@@ -129,7 +129,11 @@ export interface SrScatterSeriesData {
 
 export function getDefaultColorEncoding(reqId: number, parentFuncStr?: string) {
   if (reqId > 0) {
-    const func = useRecTreeStore().findApiForReqId(reqId)
+    // A photon-cloud overlay (signalled by parentFuncStr) is always an atl03x record.
+    // The rec tree may not yet contain a freshly-created overlay node — it is rebuilt
+    // asynchronously once the OPFS file is ready — so fall back to atl03x rather than
+    // emitting a misleading "solid" default and warning during that window.
+    const func = useRecTreeStore().findApiForReqId(reqId) || (parentFuncStr ? 'atl03x' : '')
     if (func) {
       const fieldNameStore = useFieldNameStore()
       // Special cases that use non-height field for color encoding

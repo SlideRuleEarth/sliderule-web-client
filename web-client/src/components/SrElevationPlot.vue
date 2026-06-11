@@ -1130,7 +1130,7 @@ async function handlePhotonCloudShow() {
       )
       chartStore.setSelectedColorEncodeData(parentReqIdStr, 'solid')
       await initSymbolSize(runContext.reqId) // for new record
-      initializeColorEncoding(runContext.reqId, 'atl03x')
+      initializeColorEncoding(runContext.reqId, parentFuncStr)
       // The worker will now fetch the data from the server
       // and write the opfs file then update
       // the map selected layer and the chart
