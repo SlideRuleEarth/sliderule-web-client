@@ -42,8 +42,10 @@ const expandedPanels = ref<number[]>([])
 const isPhotonProcessingAPI = computed(() => photonProcessingAPIs.has(props.iceSat2SelectedAPI))
 
 // Fixed segment dimensions baked into pre-computed ATL06/ATL08 data products.
-// Source: ICESat-2 ATL06 / ATL08 product specifications.
+// Source: ICESat-2 ATL06 / ATL08 product specifications. atl06sp is the parallel
+// ATL06 subsetter — same source segments as atl06x.
 const fixedExtentsByAPI: Record<string, { len: number; res: number }> = {
+  atl06sp: { len: 40, res: 20 },
   atl06x: { len: 40, res: 20 },
   atl08x: { len: 100, res: 100 }
 }
@@ -56,11 +58,12 @@ const fixedExtentsTooltip = computed(() => {
 })
 
 // Panels that show parameters used at request time are visible when the
-// selected endpoint actually consumes them. X-series endpoints read pre-computed
-// segments from the source HDF5 product so most photon-processing panels are hidden.
+// selected endpoint actually consumes them. Subsetter endpoints (atl06sp, atl06x,
+// atl08x, atl24x, atl13x) read pre-computed segments from the source HDF5
+// product so most photon-processing panels are hidden.
 const showExtentsPanel = computed(() => isPhotonProcessingAPI.value || fixedExtents.value !== null)
 const showSurfaceElevationPanel = computed(() =>
-  ['atl06p', 'atl06sp', 'atl03x-surface'].includes(props.iceSat2SelectedAPI)
+  ['atl06p', 'atl03x-surface'].includes(props.iceSat2SelectedAPI)
 )
 const showPhoRealPanel = computed(() =>
   ['atl08p', 'atl03x-phoreal'].includes(props.iceSat2SelectedAPI)

@@ -1,12 +1,14 @@
 /**
  * Unit tests for endpoint parameter scoping (Issue #1074)
  *
- * Verifies that X-series endpoints (atl06x, atl08x, atl24x, atl13x) do not
- * include photon-processing parameters in their requests, since they read
- * pre-computed segments from HDF5 files and the server ignores these params.
+ * Verifies that subsetter endpoints (atl06sp, atl06x, atl08x, atl24x, atl13x)
+ * do not include photon-processing parameters in their requests, since they
+ * read pre-computed segments from HDF5 files and the server ignores these
+ * params. atl06sp uses the same minimal Atl06Parameters class as atl06x —
+ * both call the atl06s subsetter under the hood.
  *
- * P-series endpoints (atl06p, atl03x, etc.) compute from ATL03 photons and
- * should include these parameters when enabled.
+ * Photon-processing endpoints (atl06p, atl03x, atl08p, etc.) compute from
+ * ATL03 photons and should include these parameters when enabled.
  */
 
 import { describe, it, expect, beforeEach } from 'vitest'
@@ -60,10 +62,10 @@ describe('Endpoint Parameter Scoping', () => {
     'cnt'
   ]
 
-  describe('X-series endpoints should exclude photon-processing params', () => {
-    const xSeriesAPIs = ['atl06x', 'atl08x', 'atl24x', 'atl13x']
+  describe('Subsetter endpoints should exclude photon-processing params', () => {
+    const subsetterAPIs = ['atl06sp', 'atl06x', 'atl08x', 'atl24x', 'atl13x']
 
-    xSeriesAPIs.forEach((api) => {
+    subsetterAPIs.forEach((api) => {
       it(`${api} request should not include photon-processing parameters`, () => {
         enableAllPhotonParams()
         store.iceSat2SelectedAPI = api
@@ -151,6 +153,16 @@ describe('Endpoint Parameter Scoping', () => {
 
       expect(req).toHaveProperty('atl06_fields', ['h_li_sigma'])
     })
+
+    it('atl06sp should include atl06_fields and the icesat2-atl06 asset', () => {
+      store.missionValue = 'ICESat-2'
+      store.iceSat2SelectedAPI = 'atl06sp'
+      store.atl06_fields = ['h_li_sigma']
+      const req = store.getAtlReqParams(1)
+
+      expect(req).toHaveProperty('atl06_fields', ['h_li_sigma'])
+      expect(req).toHaveProperty('asset', 'icesat2-atl06')
+    })
   })
 
   describe('Universal params work for all endpoints', () => {
@@ -168,24 +180,16 @@ describe('Endpoint Parameter Scoping', () => {
   })
 
   describe('photonProcessingAPIs set is correct', () => {
-    it('should contain all P-series and ATL03-based endpoints', () => {
-      const expected = [
-        'atl03x',
-        'atl03x-surface',
-        'atl03x-phoreal',
-        'atl03vp',
-        'atl06p',
-        'atl06sp',
-        'atl08p'
-      ]
+    it('should contain all endpoints that compute from ATL03 photons', () => {
+      const expected = ['atl03x', 'atl03x-surface', 'atl03x-phoreal', 'atl03vp', 'atl06p', 'atl08p']
       for (const api of expected) {
         expect(photonProcessingAPIs.has(api)).toBe(true)
       }
     })
 
-    it('should not contain X-series endpoints', () => {
-      const xSeries = ['atl06x', 'atl08x', 'atl24x', 'atl13x']
-      for (const api of xSeries) {
+    it('should not contain subsetter endpoints', () => {
+      const subsetters = ['atl06sp', 'atl06x', 'atl08x', 'atl24x', 'atl13x']
+      for (const api of subsetters) {
         expect(photonProcessingAPIs.has(api)).toBe(false)
       }
     })
