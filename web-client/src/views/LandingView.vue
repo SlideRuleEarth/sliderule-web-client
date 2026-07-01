@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import DOMPurify from 'dompurify'
 import { marked } from 'marked'
 import SelectButton from 'primevue/selectbutton'
@@ -212,6 +212,16 @@ onMounted(() => {
       })
     }
   }
+})
+
+// .sliderule-content is a persistent container owned by App.vue and shared
+// across every route. Restore it to the top before the next view mounts,
+// since we're the only view that scrolls it away from 0 (see Issue #1087).
+onBeforeUnmount(() => {
+  document.querySelector('.sliderule-content')?.scrollTo({
+    top: 0,
+    behavior: 'instant' as ScrollBehavior
+  })
 })
 
 watch(selectedTab, (tab) => {
