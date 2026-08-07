@@ -7,7 +7,7 @@ permalink: /contact/
 
 ## Email us Directly
 
-Email us directly at [support@mail.slideruleearth.io](mailto:support@mail.slideruleearth.io) for
+Email us directly at [support@slideruleearth.io](mailto:support@slideruleearth.io) for
 * organizational questions (who we are and future collaboration opportunities)
 * sensitive questions that should not be posted publicly
 * if you just need a real person to help address an issue
@@ -30,7 +30,7 @@ Before opening a pull request, please read our [Contributing](/rtd/user_guide/Co
 
 ## Post a Discussion Message
 
-Post a discussion message at [https://github.com/SlideRuleEarth/sliderule/pulls](https://github.com/SlideRuleEarth/sliderule/pulls) for
+Post a discussion message at [https://github.com/orgs/SlideRuleEarth/discussions](https://github.com/orgs/SlideRuleEarth/discussions) for
 * help to install, run, and/or interface with SlideRule
 * questions you have on how things work
 * ideas you want to share and get people thinking about
