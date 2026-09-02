@@ -38,6 +38,14 @@ jobs:
       - name: Install deps + verify lockfile drift (root and web-client)
         run: make verify-lockfiles
 
+      # Fast checks first: they take seconds and fail before the multi-minute
+      # browser install below.
+      - name: Typecheck
+        run: make typecheck
+
+      - name: Unit tests
+        run: make test-unit
+
       - name: Install Playwright browsers
         working-directory: web-client
         run: npx playwright install --with-deps

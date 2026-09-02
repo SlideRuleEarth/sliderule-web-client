@@ -11,6 +11,7 @@ DOMAIN_ROOT = $(firstword $(subst ., ,$(DOMAIN)))
 DOMAIN_APEX ?= $(DOMAIN)
 S3_BUCKET ?=
 DISTRIBUTION_ID = $(shell aws cloudfront list-distributions --query "DistributionList.Items[?Aliases.Items[0]=='$(DOMAIN)'].Id" --output text)
+APEX_DISTRIBUTION_ID = $(shell aws cloudfront list-distributions --query "DistributionList.Items[?Aliases.Items[0]=='$(DOMAIN_APEX)'].Id" --output text)
 BUILD_ENV = $(shell git --git-dir .git --work-tree . describe --abbrev --dirty --always --tags --long)
 VERSION ?= latest
 BANNER_TEXT ?=
@@ -35,10 +36,51 @@ reinstall-deps: clean-all install-deps ## Wipe node_modules then re-run `npm ci`
 
 rebuild-all: reinstall-deps build ## Full refresh: wipe node_modules + dist, reinstall npm deps, and rebuild the web client
 
-verify-lockfiles: ## Run `npm ci` and fail if package.json/package-lock.json drift (local mirror of the CI guardrail)
-	npm ci
-	cd web-client && npm ci
-	git diff --exit-code package.json package-lock.json web-client/package.json web-client/package-lock.json
+LOCKFILES = package.json package-lock.json \
+            web-client/package.json web-client/package-lock.json
+
+# `npm ci` is itself the drift check: it fails with EUSAGE when package.json
+# and package-lock.json disagree. The hash comparison catches the only other
+# failure mode — an install that rewrites either file — without also tripping
+# on ordinary uncommitted edits, which is what `git diff --exit-code` did.
+verify-lockfiles: ## Run `npm ci` and fail if it rewrites package.json/package-lock.json (mirrors the CI guardrail)
+	@set -e; \
+	before=$$(git hash-object $(LOCKFILES)); \
+	npm ci; \
+	(cd web-client && npm ci); \
+	after=$$(git hash-object $(LOCKFILES)); \
+	if [ "$$before" != "$$after" ]; then \
+	  echo "❌ npm ci rewrote package.json/package-lock.json — regenerate with 'make regen-lockfiles'"; \
+	  exit 1; \
+	fi; \
+	echo "✅ lockfiles in sync and unmodified by npm ci"
+
+# Validates the STAGED content, not the working tree. A commit ships what is in
+# the index, so reading package.json off disk would pass a commit whose staged
+# files disagree -- stage a dependency without its lockfile entry, then restore
+# the working copy, and `git status` shows MM while the on-disk pair is
+# consistent. Both files are extracted from the index into a temp dir instead.
+#
+# --ignore-scripts because `npm ci --dry-run` still executes `prepare`, and on
+# a checkout with no node_modules that fails with "husky: command not found" --
+# an error about lifecycle scripts, reported as if the lockfiles were broken.
+check-lockfiles: ## Fast lockfile sync check on the staged files — no node_modules reinstall
+	@set -e; \
+	tmp=$$(mktemp -d); \
+	trap 'rm -rf "$$tmp"' EXIT INT TERM; \
+	for prefix in "" "web-client/"; do \
+		out="$$tmp/$${prefix:-root}"; \
+		mkdir -p "$$out"; \
+		git show ":$${prefix}package.json"      > "$$out/package.json"; \
+		git show ":$${prefix}package-lock.json" > "$$out/package-lock.json"; \
+		if [ -f "$(ROOT)/$${prefix}.npmrc" ]; then cp "$(ROOT)/$${prefix}.npmrc" "$$out/.npmrc"; fi; \
+		(cd "$$out" && npm ci --dry-run --ignore-scripts >/dev/null 2>&1) || { \
+			echo "❌ staged package.json and package-lock.json disagree in $${prefix:-repo root}"; \
+			echo "   run 'npm install' there, then stage BOTH files"; \
+			exit 1; \
+		}; \
+	done; \
+	echo "✅ staged package.json and package-lock.json are in sync (root and web-client)"
 
 audit-deps: ## Run `npm audit` at root AND in web-client/ (read-only — reports vulnerabilities, does not modify anything)
 	@echo "=== ROOT ==="
@@ -229,7 +271,7 @@ deploy-client-to-slideruleearth: ## Deploy the web client to the slideruleearth.
 destroy-client-slideruleearth: ## Destroy the web client from the slideruleearth.io cloudfront and remove the S3 bucket
 	make destroy DOMAIN=client.slideruleearth.io S3_BUCKET=slideruleearth-webclient DOMAIN_APEX=slideruleearth.io
 
-.PHONY: upload-robots install-deps reinstall-deps rebuild-all regen-lockfiles verify-lockfiles audit-deps audit-fix-deps doctor check-vars typecheck lint lint-fix lint-staged pre-commit-check test-unit test-unit-watch coverage-unit test-e2e test-all ci-check keycloak-up keycloak-down keycloak-run
+.PHONY: check-lockfiles typecheck-tests upload-robots install-deps reinstall-deps rebuild-all regen-lockfiles verify-lockfiles audit-deps audit-fix-deps doctor check-vars typecheck lint lint-fix lint-staged pre-commit-check test-unit test-unit-watch coverage-unit test-e2e test-all ci-check keycloak-up keycloak-down keycloak-run
 # =========================
 # Testing / Quality targets
 # =========================
@@ -246,11 +288,15 @@ lint-fix: ## Run ESLint with auto-fix
 lint-staged: ## Run lint-staged on staged files (used by pre-commit hook)
 	cd web-client && npx lint-staged
 
-pre-commit-check: ## Manually run pre-commit checks without committing
-	cd web-client && npx lint-staged && npm run typecheck && npm run test:unit
+# Goes through the make targets rather than the npm scripts, so prerequisites
+# (test-unit -> typecheck-tests) are honored instead of silently skipped.
+pre-commit-check: check-lockfiles lint-staged typecheck test-unit ## Run the same checks the pre-commit hook runs, without committing
 	@echo "✅ Pre-commit checks passed!"
 
-test-unit: ## Run Vitest unit tests (CI-friendly)
+typecheck-tests: ## Typecheck the test sources (tsconfig.vitest.json)
+	cd web-client && npm run typecheck:tests
+
+test-unit: typecheck-tests ## Run Vitest unit tests (CI-friendly), type-checking tests first
 	cd web-client && npm run test:unit
 
 test-unit-watch: ## Run Vitest in watch mode (local dev)
