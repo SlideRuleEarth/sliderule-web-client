@@ -76,7 +76,32 @@ upload-static: ## Upload static files like favicon, logos (excluding index.html 
 	echo "Uploading static files (excluding assets/ and index.html)..." && \
 	aws s3 sync web-client/dist/ s3://$(S3_BUCKET)/ \
 		--exclude "index.html" \
-		--exclude "assets/*"
+		--exclude "assets/*" \
+		--exclude "*.DS_Store"
+
+# robots.txt is the only crawler-facing file this repo publishes, and it
+# publishes it for the web client host only -- the apex hosts nothing and 404s
+# every path but /. upload-static already syncs it like any other static asset;
+# this pass re-uploads it with an explicit Content-Type, because `aws s3 sync`
+# guesses the type from the extension and never sets a charset, and with a short
+# max-age so edits propagate without an invalidation.
+#
+# Only the production deployment may invite crawlers. Any other apex
+# (testsliderule.org, a demo stack, ...) gets robots.noindex.txt instead, so a
+# staging clone of the site never enters a search index.
+PROD_APEX = slideruleearth.io
+ROBOTS_SRC = $(if $(filter $(PROD_APEX),$(DOMAIN_APEX)),web-client/dist/robots.txt,robots.noindex.txt)
+
+upload-robots: ## Upload robots.txt with an explicit content type (noindex variant off production)
+	export AWS_MAX_ATTEMPTS=5 AWS_RETRY_MODE=standard && \
+	if [ "$(DOMAIN_APEX)" != "$(PROD_APEX)" ]; then \
+		echo "  ⚠️  non-production apex ($(DOMAIN_APEX)) — substituting robots.noindex.txt (Disallow: /)"; \
+	fi && \
+	test -f "$(ROBOTS_SRC)" || { echo "❌ missing $(ROBOTS_SRC)"; exit 1; } && \
+	echo "Uploading $(ROBOTS_SRC) -> robots.txt (text/plain; charset=utf-8)..." && \
+	aws s3 cp "$(ROBOTS_SRC)" "s3://$(S3_BUCKET)/robots.txt" \
+		--content-type "text/plain; charset=utf-8" \
+		--cache-control "public, max-age=300"
 
 upload-index: ## Upload index.html with no-cache headers
 	export AWS_MAX_ATTEMPTS=5 AWS_RETRY_MODE=standard && \
@@ -85,7 +110,7 @@ upload-index: ## Upload index.html with no-cache headers
 		--cache-control "no-cache, no-store, must-revalidate" \
 		--content-type "text/html"
 
-live-update: check-vars build upload-assets upload-static upload-index ## Build and deploy all files
+live-update: check-vars build upload-assets upload-static upload-robots upload-index ## Build and deploy all files
 	export VITE_LIVE_UPDATE_DATE=$$(date +"%Y-%m-%d %T"); \
 	echo "VITE_LIVE_UPDATE_DATE=$$VITE_LIVE_UPDATE_DATE" && \
 	echo "S3_BUCKET=$(S3_BUCKET)" && \
@@ -206,7 +231,7 @@ deploy-client-to-slideruleearth: ## Deploy the web client to the slideruleearth.
 destroy-client-slideruleearth: ## Destroy the web client from the slideruleearth.io cloudfront and remove the S3 bucket
 	make destroy DOMAIN=client.slideruleearth.io S3_BUCKET=slideruleearth-webclient DOMAIN_APEX=slideruleearth.io
 
-.PHONY: install-deps reinstall-deps rebuild-all regen-lockfiles verify-lockfiles audit-deps audit-fix-deps doctor check-vars typecheck lint lint-fix lint-staged pre-commit-check test-unit test-unit-watch coverage-unit test-e2e test-all ci-check keycloak-up keycloak-down keycloak-run
+.PHONY: upload-robots install-deps reinstall-deps rebuild-all regen-lockfiles verify-lockfiles audit-deps audit-fix-deps doctor check-vars typecheck lint lint-fix lint-staged pre-commit-check test-unit test-unit-watch coverage-unit test-e2e test-all ci-check keycloak-up keycloak-down keycloak-run
 # =========================
 # Testing / Quality targets
 # =========================

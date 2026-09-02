@@ -1,0 +1,26 @@
+# SlideRule Earth web client — on-demand cloud processing of NASA Earth
+# science data. https://client.slideruleearth.io
+#
+# This file answers for the web client host only. The apex,
+# https://slideruleearth.io, hosts nothing: it 301s / to the client and
+# returns 404 for every other path, this file included.
+#
+# The web client is a single-page app that renders nothing without a live
+# browser session, so there is little here for a crawler to index and no
+# sitemap to advertise. Documentation, which is what an agent or a crawler
+# actually wants, lives at https://docs.slideruleearth.io/ and carries its
+# own robots.txt and sitemap.
+#
+# Automated clients are welcome, but prefer the public API at
+# https://sliderule.slideruleearth.io/source/ over scraping this UI — it is
+# faster for you and cheaper for us.
+
+User-agent: *
+Allow: /
+
+# Per-session application state, not content. These routes render nothing
+# meaningful without a live browser session and a local request ID.
+Disallow: /analyze/
+Disallow: /request/
+Disallow: /auth/
+Disallow: /server
