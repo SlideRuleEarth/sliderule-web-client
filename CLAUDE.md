@@ -42,7 +42,8 @@ Key targets:
 | Full rebuild from scratch | `make rebuild-all` | `reinstall-deps` + `build` |
 | Regenerate lockfiles | `make regen-lockfiles` | Destructive, rarely needed |
 | Verify env | `make doctor` | Shows Node/npm vs pinned versions |
-| Verify lockfiles | `make verify-lockfiles` | Mirrors the CI drift check |
+| Verify lockfiles (fast) | `make check-lockfiles` | `npm ci --dry-run`; no reinstall, ~1s |
+| Verify lockfiles (full) | `make verify-lockfiles` | Mirrors CI; reinstalls both node_modules |
 | Dev server | `make run` | NOT `npm run dev` |
 | Production build | `make build` | NOT `vite build` — Makefile injects VITE_APP_VERSION etc. |
 | Preview build | `make preview` | |
@@ -194,8 +195,27 @@ without coordinating — the legacy config is intentional here.
 - **E2E**: Playwright, `make test-e2e`, config in
   [`web-client/playwright.config.mts`](web-client/playwright.config.mts). The
   CI workflow runs E2E against the production build.
-- Pre-commit hook runs `lint-staged` + typecheck + unit tests. Manual
-  equivalent: `make pre-commit-check`.
+- **Typecheck**: `make typecheck` runs `vue-tsc --noEmit -p tsconfig.app.json`.
+  Mind the scope — that project **excludes `tests/**`**, so unit tests are not
+  type-checked, and `tsconfig.vitest.json` / `tsconfig.node.json` are not
+  covered by this target at all.
+
+### What actually runs automatically
+
+The pre-commit hook is one line: `make pre-commit-check`, which runs
+`check-lockfiles`, `lint-staged`, `typecheck`, then
+`test-unit` (which type-checks the tests first) — about 15 seconds. The hook
+delegates to the target deliberately, so the two cannot drift apart; run the
+target directly to reproduce the hook without committing.
+
+CI ([`.github/workflows/playwright.yml`](.github/workflows/playwright.yml))
+runs `verify-lockfiles`, `typecheck`, `test-unit`, then `test-e2e`. The fast
+checks sit ahead of the Playwright browser install on purpose, so a type error
+fails in seconds instead of minutes.
+
+`make ci-check` bundles the same set plus `lint` for local use. Note the
+workflow invokes the individual targets rather than calling `ci-check`, so
+adding a target to `ci-check` does **not** add it to CI — edit the workflow too.
 
 ## Reproducibility guardrails (what's enforced)
 
@@ -203,8 +223,12 @@ without coordinating — the legacy config is intentional here.
    versions fail install outright
 2. `packageManager: npm@<pinned>` in both `package.json` files + Corepack →
    exact npm version fetched and used
-3. `make verify-lockfiles` (local + CI) → `npm ci` must not rewrite
-   `package.json` or `package-lock.json` in either location
+3. `npm ci` refuses to install (EUSAGE) when `package.json` and
+   `package-lock.json` disagree — that refusal *is* the drift check.
+   `make check-lockfiles` surfaces it in ~1s via `--dry-run`;
+   `make verify-lockfiles` additionally does the real install and fails if it
+   rewrites either file. Neither one cares about uncommitted edits, so both
+   work mid-change.
 4. [`.gitattributes`](.gitattributes) → no line-ending corruption of binaries
    across platforms
 

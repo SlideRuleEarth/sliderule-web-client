@@ -56,7 +56,8 @@ commands so your local workflow matches CI.
 | Full rebuild from scratch (wipe + reinstall + build) | `make rebuild-all` |
 | Regenerate lockfiles from scratch (rare) | `make regen-lockfiles` |
 | Verify your Node/npm versions | `make doctor` |
-| Verify lockfiles are in sync (CI guardrail) | `make verify-lockfiles` |
+| Verify lockfiles are in sync (fast, no reinstall) | `make check-lockfiles` |
+| Verify lockfiles are in sync (full, CI guardrail) | `make verify-lockfiles` |
 | Run dev server | `make run` |
 | Production build | `make build` |
 | Preview production build | `make preview` |
@@ -97,14 +98,18 @@ same commit.
 
 The Playwright workflow calls the same Make targets you use locally:
 
-- **`make verify-lockfiles`** — fails if `npm ci` produces a diff against
-  committed `package.json`/`package-lock.json` in either location.
+- **`make verify-lockfiles`** — runs the real `npm ci` in both locations and
+  fails if the lockfiles are out of sync, or if the install rewrites
+  `package.json`/`package-lock.json`. Use **`make check-lockfiles`** locally
+  for the same sync guarantee in about a second — it uses `npm ci --dry-run`,
+  so it writes nothing and does not reinstall `node_modules`.
 - **`engine-strict=true`** in both `.npmrc` files — blocks Node/npm versions
   below the `engines` range.
 - **`make test-e2e`** — the same Playwright command you can run locally.
 
-If CI fails on lockfile drift, running `make verify-lockfiles` on your branch
-will reproduce the failure.
+If CI fails on lockfile drift, running `make check-lockfiles` on your branch
+reproduces the failure in seconds; `make verify-lockfiles` reproduces it the
+way CI does, at the cost of reinstalling both `node_modules` trees.
 
 ## Line endings and binary files
 

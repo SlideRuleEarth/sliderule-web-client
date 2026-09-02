@@ -1,1 +1,3 @@
-cd web-client && npx lint-staged
+# Runs the same target as `make pre-commit-check` so the hook and the
+# documented checks cannot drift apart.
+make pre-commit-check
