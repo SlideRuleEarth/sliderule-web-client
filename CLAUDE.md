@@ -18,10 +18,8 @@ sliderule-web-client/                  ← git root, outer wrapper
 │   ├── src/                           ← all app source
 │   ├── tests/                         ← Vitest unit + Playwright E2E
 │   └── playwright.config.mts
-├── sliderule-mcp-server/              ← Python MCP server (separate project)
 ├── terraform/                         ← infra (CloudFront + S3)
 ├── keycloak/                          ← local OAuth dev harness
-├── lambda/                            ← AWS Lambda code
 └── docs/
 ```
 
@@ -159,22 +157,15 @@ it used.
 `*.DS_Store`, but the real fix is not to put anything there that is not meant
 to be a public URL.
 
-## MCP integration
+## No MCP integration
 
-A Model Context Protocol bridge exposes web-client state/actions to LLMs:
+The web client does not support the Model Context Protocol, and no MCP server
+ships with this project. Earlier experiments were never merged; the branches
+and the `sliderule-mcp-server/` directory that held them were deleted on
+2026-09-02, and there is no `web-client/src/services/` directory on `main`.
 
-- **Browser side** (authoritative): [`web-client/src/services/mcpClient.ts`](web-client/src/services/mcpClient.ts),
-  [`mcpHandler.ts`](web-client/src/services/mcpHandler.ts),
-  [`toolExecutor.ts`](web-client/src/services/toolExecutor.ts),
-  [`toolDefinitions.ts`](web-client/src/services/toolDefinitions.ts)
-- **Pinia store**: [`web-client/src/stores/mcpStore.ts`](web-client/src/stores/mcpStore.ts)
-- **UI**: [`web-client/src/components/SrMcpActivityIndicator.vue`](web-client/src/components/SrMcpActivityIndicator.vue)
-- **Server side**: [`sliderule-mcp-server/`](sliderule-mcp-server/) (Python;
-  stdio for Claude Desktop, HTTP/SSE for Claude.ai/ChatGPT via ECS relay)
-
-`toolDefinitions.ts` is the authoritative source of tool schemas. Server is a
-transparent bridge — tool logic lives in the browser (Pinia stores, DuckDB,
-OpenLayers).
+Do not describe MCP as a capability of the client or the deployed site, and do
+not reintroduce it without asking first.
 
 ## Build / deploy
 
