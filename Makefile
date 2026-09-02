@@ -92,12 +92,11 @@ upload-static: ## Upload static files like favicon, logos (excluding index.html,
 # propagate without an invalidation.
 #
 # Only the production web client may invite crawlers. The discriminator is
-# DOMAIN, the client host -- NOT DOMAIN_APEX. A non-production client can sit
-# under the production apex: the demo stack passed
-# DOMAIN=demo.slideruleearth.io with DOMAIN_APEX=slideruleearth.io, and keying
-# on the apex would have published the crawlable file to it. Anything that is
-# not exactly the production client host gets robots.noindex.txt, so an
-# unrecognised or mistyped DOMAIN fails safe (noindex) rather than open.
+# DOMAIN, the client host -- NOT DOMAIN_APEX: a non-production client can sit
+# under the production apex, and keying on the apex would publish the crawlable
+# file to it. Anything that is not exactly the production client host gets
+# robots.noindex.txt, so an unrecognised or mistyped DOMAIN fails safe
+# (noindex) rather than open.
 PROD_DOMAIN = client.slideruleearth.io
 ROBOTS_SRC = $(if $(filter $(PROD_DOMAIN),$(DOMAIN)),web-client/dist/robots.txt,robots.noindex.txt)
 

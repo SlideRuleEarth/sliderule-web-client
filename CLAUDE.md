@@ -131,12 +131,11 @@ guesses types from the extension and never sets a charset.
 
 Off production it substitutes [`robots.noindex.txt`](robots.noindex.txt) — a
 bare `Disallow: /`. **The discriminator is `DOMAIN`, the client host, not
-`DOMAIN_APEX`.** A non-production client can sit under the production apex:
-the demo stack passed `DOMAIN=demo.slideruleearth.io` with
-`DOMAIN_APEX=slideruleearth.io`, so keying on the apex would have published
-the crawlable file to it. Anything that is not exactly
-`client.slideruleearth.io` gets the noindex file, which means an unrecognised
-or mistyped `DOMAIN` fails safe. The deploy log says which file it used.
+`DOMAIN_APEX`**, because a non-production client can sit under the production
+apex and keying on the apex would publish the crawlable file to it. Anything
+that is not exactly `client.slideruleearth.io` gets the noindex file, so an
+unrecognised or mistyped `DOMAIN` fails safe. The deploy log says which file
+it used.
 
 ### Nothing else goes in `public/`
 
