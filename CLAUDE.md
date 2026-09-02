@@ -124,10 +124,23 @@ Its `Disallow` rules mirror the router. Adding a per-session route (something
 under `/analyze/`, `/request/<id>`, `/auth/`) means adding it there too.
 
 `make upload-robots`, which `live-update` runs, is the **sole publisher** of
-this file — `upload-static` excludes it deliberately, so a failed upload can
-never leave the previous deployment's `robots.txt` in place. It sets an
-explicit `Content-Type` and a 300-second `max-age`, because `aws s3 sync`
-guesses types from the extension and never sets a charset.
+this file — `upload-static` excludes it deliberately. `dist/robots.txt` is
+always the production, crawlable file, so without that exclusion every deploy
+would publish it first and only then have `upload-robots` overwrite it. On a
+staging bucket that puts the production policy live for the length of the
+deploy, and leaves it live if the second upload fails.
+
+The exclusion does **not** make a failed `upload-robots` harmless. A failed
+`aws s3 cp` leaves whatever the bucket already had: the previous deploy's
+noindex file, or nothing at all on a fresh bucket. Nothing is not safe either
+— the client distribution answers a missing key with `/index.html` at status
+**200** (the 403→200 `custom_error_response`), so a crawler asking for
+`robots.txt` gets HTML with no `Disallow` in it. After a first deploy to a new
+bucket, check that `robots.txt` actually landed.
+
+`upload-robots` also sets an explicit `Content-Type` and a 300-second
+`max-age`, because `aws s3 sync` guesses types from the extension and never
+sets a charset.
 
 Off production it substitutes [`robots.noindex.txt`](robots.noindex.txt) — a
 bare `Disallow: /`. **The discriminator is `DOMAIN`, the client host, not
