@@ -104,20 +104,51 @@ resource "aws_cloudfront_origin_access_identity" "origin_access_identity" {
   comment = "access-identity-${replace(var.domainName, ".", "-")}.s3.amazonaws.com"
 }
 
-# --- <domainApex> → <domainName>/landing redirect ---
+# --- <domainApex>: redirect / to the client, 404 everything else ---
 
 resource "aws_cloudfront_function" "apex_redirect" {
   count   = var.domainName != var.domainApex ? 1 : 0
   name    = "${replace(var.domainName, ".", "-")}-apex-redirect"
   runtime = "cloudfront-js-2.0"
   code    = <<-EOF
+    // The apex hosts no content. Only the root redirects to the web client;
+    // every other path is answered with a 404 generated here at the edge.
+    //
+    // The previous behaviour -- 301 every path to /landing -- told crawlers
+    // and agents that infinitely many URLs on this host were valid, and
+    // answered a request for a file we do not publish with a redirect to an
+    // unrelated page. A 404 is the honest answer: nothing lives here.
+    //
+    // Agent- and crawler-facing files (robots.txt and friends) belong on the
+    // host that actually has content to describe -- docs.slideruleearth.io,
+    // maintained in a different repository -- not here.
+    var NOT_FOUND_BODY = [
+      '404 Not Found',
+      '',
+      'https://${var.domainApex} serves no content at this path.',
+      '',
+      'Web client:    https://${var.domainName}/',
+      'Documentation: https://docs.slideruleearth.io/'
+    ].join('\n');
+
     function handler(event) {
+      if (event.request.uri === '/') {
+        return {
+          statusCode: 301,
+          statusDescription: 'Moved Permanently',
+          headers: {
+            'location': { value: 'https://${var.domainName}/landing' }
+          }
+        };
+      }
       return {
-        statusCode: 301,
-        statusDescription: 'Moved Permanently',
+        statusCode: 404,
+        statusDescription: 'Not Found',
         headers: {
-          'location': { value: 'https://${var.domainName}/landing' }
-        }
+          'content-type':  { value: 'text/plain; charset=utf-8' },
+          'cache-control': { value: 'public, max-age=300' }
+        },
+        body: NOT_FOUND_BODY
       };
     }
   EOF
@@ -129,7 +160,8 @@ resource "aws_cloudfront_distribution" "apex_redirect" {
   enabled    = true
   aliases    = [var.domainApex]
 
-  # Origin is required by CloudFront but never reached (function returns before it)
+  # Required by CloudFront but never reached: the viewer-request function
+  # answers every request, so nothing is ever fetched from this origin.
   origin {
     domain_name = aws_s3_bucket.this_site_bucket.bucket_regional_domain_name
     origin_id   = "dummy-origin-apex-redirect"

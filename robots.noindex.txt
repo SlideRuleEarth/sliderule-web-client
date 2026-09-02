@@ -1,0 +1,11 @@
+# Non-production deployment of the SlideRule web client.
+#
+# This host is a staging clone of https://client.slideruleearth.io and must
+# never be indexed. `make upload-robots` substitutes this file for
+# web-client/public/robots.txt whenever DOMAIN is not exactly
+# client.slideruleearth.io, so a test deployment cannot advertise itself to
+# crawlers or agents. The check is on the client host, not the apex: a
+# non-production client can sit under the production apex.
+
+User-agent: *
+Disallow: /

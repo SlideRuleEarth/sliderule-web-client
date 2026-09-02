@@ -77,6 +77,87 @@ an explicit rule there.
 public API server. Do not parameterize or "generalize" it without discussing
 the architectural implications first.
 
+## The apex, the client, and crawlers
+
+Three hosts, with different jobs:
+
+| Host | Serves | Repo |
+|---|---|---|
+| `slideruleearth.io` | nothing — 301s `/` to the client, 404s everything else | this one (`terraform/`) |
+| `client.slideruleearth.io` | the Vue SPA | this one |
+| `docs.slideruleearth.io` | the documentation | a different one |
+
+**The apex hosts nothing.** A viewer-request CloudFront function in
+[`terraform/modules/cloudfront.tf`](terraform/modules/cloudfront.tf) answers
+every request at the edge: `/` gets a 301 to `<domainName>/landing`, and every
+other path gets a plain-text 404. The distribution's S3 origin exists only
+because CloudFront requires one; it is never reached.
+
+Do not add an allowlist of paths that pass through to the origin. That was
+tried (PR #1094, first revision) and reverted: the apex has no content to
+describe, so anything published there would be describing the client or the
+docs from a host that serves neither.
+
+**Machine-readable files for agents belong on `docs.slideruleearth.io`**,
+which is where the actual content is and is maintained in a separate
+repository. The web client is a single-page app — `client.slideruleearth.io`
+returns a 385-byte empty shell, versus ~115 KB of rendered prose from the docs
+site — so a sitemap or an `llms.txt` pointing at it would index nothing.
+`llms.txt` is not implemented on any SlideRule host, and adding one here is
+not a pending task.
+
+### robots.txt
+
+[`web-client/public/robots.txt`](web-client/public/robots.txt) is the one
+crawler-facing file this repo publishes, and it answers for
+`client.slideruleearth.io` only (the apex 404s its own `/robots.txt`). Vite
+copies `public/` into `dist/` verbatim, so editing the file and deploying is
+the whole workflow:
+
+```bash
+make live-update DOMAIN=client.slideruleearth.io \
+                 S3_BUCKET=slideruleearth-webclient \
+                 DOMAIN_APEX=slideruleearth.io
+```
+
+Its `Disallow` rules mirror the router. Adding a per-session route (something
+under `/analyze/`, `/request/<id>`, `/auth/`) means adding it there too.
+
+`make upload-robots`, which `live-update` runs, is the **sole publisher** of
+this file — `upload-static` excludes it deliberately. `dist/robots.txt` is
+always the production, crawlable file, so without that exclusion every deploy
+would publish it first and only then have `upload-robots` overwrite it. On a
+staging bucket that puts the production policy live for the length of the
+deploy, and leaves it live if the second upload fails.
+
+The exclusion does **not** make a failed `upload-robots` harmless. A failed
+`aws s3 cp` leaves whatever the bucket already had: the previous deploy's
+noindex file, or nothing at all on a fresh bucket. Nothing is not safe either
+— the client distribution answers a missing key with `/index.html` at status
+**200** (the 403→200 `custom_error_response`), so a crawler asking for
+`robots.txt` gets HTML with no `Disallow` in it. After a first deploy to a new
+bucket, check that `robots.txt` actually landed.
+
+`upload-robots` also sets an explicit `Content-Type` and a 300-second
+`max-age`, because `aws s3 sync` guesses types from the extension and never
+sets a charset.
+
+Off production it substitutes [`robots.noindex.txt`](robots.noindex.txt) — a
+bare `Disallow: /`. **The discriminator is `DOMAIN`, the client host, not
+`DOMAIN_APEX`**, because a non-production client can sit under the production
+apex and keying on the apex would publish the crawlable file to it. Anything
+that is not exactly `client.slideruleearth.io` gets the noindex file, so an
+unrecognised or mistyped `DOMAIN` fails safe. The deploy log says which file
+it used.
+
+### Nothing else goes in `public/`
+
+`public/` is copied into `dist/` verbatim, dot-directories included, and
+`upload-static` syncs `dist/` to the bucket. A `.DS_Store` that reached
+`public/` was publicly served until 2026-09-02; `upload-static` now excludes
+`*.DS_Store`, but the real fix is not to put anything there that is not meant
+to be a public URL.
+
 ## MCP integration
 
 A Model Context Protocol bridge exposes web-client state/actions to LLMs:
