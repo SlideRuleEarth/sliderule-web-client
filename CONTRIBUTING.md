@@ -102,7 +102,9 @@ The Playwright workflow calls the same Make targets you use locally:
   fails if the lockfiles are out of sync, or if the install rewrites
   `package.json`/`package-lock.json`. Use **`make check-lockfiles`** locally
   for the same sync guarantee in about a second — it uses `npm ci --dry-run`,
-  so it writes nothing and does not reinstall `node_modules`.
+  so it writes nothing and does not reinstall `node_modules`. It checks the
+  **staged** files, not your working copy, because that is what the commit
+  will contain.
 - **`engine-strict=true`** in both `.npmrc` files — blocks Node/npm versions
   below the `engines` range.
 - **`make test-e2e`** — the same Playwright command you can run locally.

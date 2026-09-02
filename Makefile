@@ -55,10 +55,32 @@ verify-lockfiles: ## Run `npm ci` and fail if it rewrites package.json/package-l
 	fi; \
 	echo "✅ lockfiles in sync and unmodified by npm ci"
 
-check-lockfiles: ## Fast lockfile sync check — no node_modules reinstall
-	@npm ci --dry-run >/dev/null
-	@cd web-client && npm ci --dry-run >/dev/null
-	@echo "✅ package.json and package-lock.json are in sync (root and web-client)"
+# Validates the STAGED content, not the working tree. A commit ships what is in
+# the index, so reading package.json off disk would pass a commit whose staged
+# files disagree -- stage a dependency without its lockfile entry, then restore
+# the working copy, and `git status` shows MM while the on-disk pair is
+# consistent. Both files are extracted from the index into a temp dir instead.
+#
+# --ignore-scripts because `npm ci --dry-run` still executes `prepare`, and on
+# a checkout with no node_modules that fails with "husky: command not found" --
+# an error about lifecycle scripts, reported as if the lockfiles were broken.
+check-lockfiles: ## Fast lockfile sync check on the staged files — no node_modules reinstall
+	@set -e; \
+	tmp=$$(mktemp -d); \
+	trap 'rm -rf "$$tmp"' EXIT INT TERM; \
+	for prefix in "" "web-client/"; do \
+		out="$$tmp/$${prefix:-root}"; \
+		mkdir -p "$$out"; \
+		git show ":$${prefix}package.json"      > "$$out/package.json"; \
+		git show ":$${prefix}package-lock.json" > "$$out/package-lock.json"; \
+		if [ -f "$(ROOT)/$${prefix}.npmrc" ]; then cp "$(ROOT)/$${prefix}.npmrc" "$$out/.npmrc"; fi; \
+		(cd "$$out" && npm ci --dry-run --ignore-scripts >/dev/null 2>&1) || { \
+			echo "❌ staged package.json and package-lock.json disagree in $${prefix:-repo root}"; \
+			echo "   run 'npm install' there, then stage BOTH files"; \
+			exit 1; \
+		}; \
+	done; \
+	echo "✅ staged package.json and package-lock.json are in sync (root and web-client)"
 
 audit-deps: ## Run `npm audit` at root AND in web-client/ (read-only — reports vulnerabilities, does not modify anything)
 	@echo "=== ROOT ==="

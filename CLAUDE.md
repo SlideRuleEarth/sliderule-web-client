@@ -195,18 +195,19 @@ without coordinating — the legacy config is intentional here.
 - **E2E**: Playwright, `make test-e2e`, config in
   [`web-client/playwright.config.mts`](web-client/playwright.config.mts). The
   CI workflow runs E2E against the production build.
-- **Typecheck**: `make typecheck` runs `vue-tsc --noEmit -p tsconfig.app.json`.
-  Mind the scope — that project **excludes `tests/**`**, so unit tests are not
-  type-checked, and `tsconfig.vitest.json` / `tsconfig.node.json` are not
-  covered by this target at all.
+- **Typecheck**: `make typecheck` covers `tsconfig.app.json` **and**
+  `tsconfig.node.json`. It does not cover `tsconfig.vitest.json` — the app
+  project excludes `tests/**`, so test sources are type-checked by
+  `make typecheck-tests`, which `make test-unit` runs first. Between the two
+  targets all three projects are covered; neither one covers all three alone.
 
 ### What actually runs automatically
 
 The pre-commit hook is one line: `make pre-commit-check`, which runs
-`check-lockfiles`, `lint-staged`, `typecheck`, then
-`test-unit` (which type-checks the tests first) — about 15 seconds. The hook
-delegates to the target deliberately, so the two cannot drift apart; run the
-target directly to reproduce the hook without committing.
+`check-lockfiles`, `lint-staged`, `typecheck`, then `test-unit` (which
+type-checks the tests first) — about 15 seconds. The hook delegates to the
+target deliberately, so the two cannot drift apart; run the target directly to
+reproduce the hook without committing.
 
 CI ([`.github/workflows/playwright.yml`](.github/workflows/playwright.yml))
 runs `verify-lockfiles`, `typecheck`, `test-unit`, then `test-e2e`. The fast
@@ -225,10 +226,12 @@ adding a target to `ci-check` does **not** add it to CI — edit the workflow to
    exact npm version fetched and used
 3. `npm ci` refuses to install (EUSAGE) when `package.json` and
    `package-lock.json` disagree — that refusal *is* the drift check.
-   `make check-lockfiles` surfaces it in ~1s via `--dry-run`;
-   `make verify-lockfiles` additionally does the real install and fails if it
-   rewrites either file. Neither one cares about uncommitted edits, so both
-   work mid-change.
+   `make check-lockfiles` surfaces it in ~1s via `--dry-run`, reading both
+   files **from the index** rather than from disk, because a commit ships the
+   index and the two can differ. `make verify-lockfiles` additionally does the
+   real install and fails if it rewrites either file; it reads the working
+   tree, and hashes the files around the install so uncommitted edits do not
+   trip it.
 4. [`.gitattributes`](.gitattributes) → no line-ending corruption of binaries
    across platforms
 
