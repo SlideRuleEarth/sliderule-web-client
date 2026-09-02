@@ -123,13 +123,20 @@ make live-update DOMAIN=client.slideruleearth.io \
 Its `Disallow` rules mirror the router. Adding a per-session route (something
 under `/analyze/`, `/request/<id>`, `/auth/`) means adding it there too.
 
-`make upload-robots`, which `live-update` runs, re-uploads the file with an
+`make upload-robots`, which `live-update` runs, is the **sole publisher** of
+this file — `upload-static` excludes it deliberately, so a failed upload can
+never leave the previous deployment's `robots.txt` in place. It sets an
 explicit `Content-Type` and a 300-second `max-age`, because `aws s3 sync`
-guesses types from the extension and never sets a charset. Off production it
-substitutes [`robots.noindex.txt`](robots.noindex.txt) — a bare `Disallow: /`
-— whenever `DOMAIN_APEX` is not `slideruleearth.io`, so a staging clone on
-`testsliderule.org` cannot invite crawlers. The deploy log says which file it
-used.
+guesses types from the extension and never sets a charset.
+
+Off production it substitutes [`robots.noindex.txt`](robots.noindex.txt) — a
+bare `Disallow: /`. **The discriminator is `DOMAIN`, the client host, not
+`DOMAIN_APEX`.** A non-production client can sit under the production apex:
+the demo stack passed `DOMAIN=demo.slideruleearth.io` with
+`DOMAIN_APEX=slideruleearth.io`, so keying on the apex would have published
+the crawlable file to it. Anything that is not exactly
+`client.slideruleearth.io` gets the noindex file, which means an unrecognised
+or mistyped `DOMAIN` fails safe. The deploy log says which file it used.
 
 ### Nothing else goes in `public/`
 

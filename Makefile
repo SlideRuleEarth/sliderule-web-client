@@ -71,31 +71,40 @@ upload-assets: ## Upload hashed JS/CSS assets with long cache duration
 		--delete \
 		--cache-control "max-age=31536000, immutable"
 
-upload-static: ## Upload static files like favicon, logos (excluding index.html and assets)
+upload-static: ## Upload static files like favicon, logos (excluding index.html, assets and robots.txt)
 	export AWS_MAX_ATTEMPTS=5 AWS_RETRY_MODE=standard && \
-	echo "Uploading static files (excluding assets/ and index.html)..." && \
+	echo "Uploading static files (excluding assets/, index.html and robots.txt)..." && \
 	aws s3 sync web-client/dist/ s3://$(S3_BUCKET)/ \
 		--exclude "index.html" \
 		--exclude "assets/*" \
+		--exclude "robots.txt" \
 		--exclude "*.DS_Store"
 
 # robots.txt is the only crawler-facing file this repo publishes, and it
 # publishes it for the web client host only -- the apex hosts nothing and 404s
-# every path but /. upload-static already syncs it like any other static asset;
-# this pass re-uploads it with an explicit Content-Type, because `aws s3 sync`
-# guesses the type from the extension and never sets a charset, and with a short
-# max-age so edits propagate without an invalidation.
+# every path but /. upload-robots is its SOLE publisher: upload-static excludes
+# it deliberately. If both uploaded it, a failure of the second would leave the
+# first one's file in place, which on a staging bucket means the crawlable
+# production robots.txt stays live.
 #
-# Only the production deployment may invite crawlers. Any other apex
-# (testsliderule.org, a demo stack, ...) gets robots.noindex.txt instead, so a
-# staging clone of the site never enters a search index.
-PROD_APEX = slideruleearth.io
-ROBOTS_SRC = $(if $(filter $(PROD_APEX),$(DOMAIN_APEX)),web-client/dist/robots.txt,robots.noindex.txt)
+# The re-upload also sets an explicit Content-Type (`aws s3 sync` guesses from
+# the extension and never sets a charset) and a short max-age, so edits
+# propagate without an invalidation.
+#
+# Only the production web client may invite crawlers. The discriminator is
+# DOMAIN, the client host -- NOT DOMAIN_APEX. A non-production client can sit
+# under the production apex: the demo stack passed
+# DOMAIN=demo.slideruleearth.io with DOMAIN_APEX=slideruleearth.io, and keying
+# on the apex would have published the crawlable file to it. Anything that is
+# not exactly the production client host gets robots.noindex.txt, so an
+# unrecognised or mistyped DOMAIN fails safe (noindex) rather than open.
+PROD_DOMAIN = client.slideruleearth.io
+ROBOTS_SRC = $(if $(filter $(PROD_DOMAIN),$(DOMAIN)),web-client/dist/robots.txt,robots.noindex.txt)
 
 upload-robots: ## Upload robots.txt with an explicit content type (noindex variant off production)
 	export AWS_MAX_ATTEMPTS=5 AWS_RETRY_MODE=standard && \
-	if [ "$(DOMAIN_APEX)" != "$(PROD_APEX)" ]; then \
-		echo "  ⚠️  non-production apex ($(DOMAIN_APEX)) — substituting robots.noindex.txt (Disallow: /)"; \
+	if [ "$(DOMAIN)" != "$(PROD_DOMAIN)" ]; then \
+		echo "  ⚠️  non-production host ($(DOMAIN)) — substituting robots.noindex.txt (Disallow: /)"; \
 	fi && \
 	test -f "$(ROBOTS_SRC)" || { echo "❌ missing $(ROBOTS_SRC)"; exit 1; } && \
 	echo "Uploading $(ROBOTS_SRC) -> robots.txt (text/plain; charset=utf-8)..." && \
