@@ -42,14 +42,20 @@ const props = defineProps<{
 const emit = defineEmits<{
   (_e: 'update:modelValue', _value: string[]): void
 }>()
+// The docs document ancillary fields per endpoint, so each editor links to the
+// section listing the fields it edits. Keyed on the label the parent passes in
+// ("atl03 Geo Fields", "atl06 Fields", "Gedi Anc Fields", ...).
+const ANCILLARY_DOCS: [string, string][] = [
+  ['atl03', DOCS.ancillaryFields.atl03],
+  ['atl06', DOCS.ancillaryFields.atl06],
+  ['atl08', DOCS.ancillaryFields.atl08],
+  ['atl13', DOCS.ancillaryFields.atl13],
+  ['gedi', DOCS.ancillaryFields.gedi]
+]
+
 const computedUrl = computed(() => {
-  if (props.label?.includes('atl06')) {
-    return DOCS.ancillaryFields.atl06pReq
-  } else if (props.label?.includes('atl03 Corr')) {
-    return DOCS.ancillaryFields.atl03spReq
-  } else {
-    return DOCS.ancillaryFields.base
-  }
+  const label = props.label?.toLowerCase() ?? ''
+  return ANCILLARY_DOCS.find(([key]) => label.includes(key))?.[1] ?? DOCS.icesat2.base
 })
 const newField = ref('')
 

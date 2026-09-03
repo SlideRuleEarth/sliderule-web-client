@@ -1,0 +1,43 @@
+<!doctype html>
+<!--
+  Trimmed copy of https://docs.slideruleearth.io/developer-guide/release-notes
+  Keeps the structural traits the parser depends on:
+    - a sidebar <nav> table of contents that repeats every release link
+    - <article class="... article content"> holding the real list
+    - extensionless release routes whose slug carries the release date
+    - a non-release sibling link inside the article
+    - a prev/next footer link whose label is prefixed with the section name
+-->
+<html lang="en">
+  <body>
+    <nav aria-label="Table of Contents" class="sidebar">
+      <ul>
+        <li><a href="/developer-guide/release-notes/release-2026-05-08-v05-04-00">Release v5.4.x</a></li>
+        <li><a href="/developer-guide/release-notes/release-2026-01-27-v05-00-00">Release v5.0.x</a></li>
+        <li><a href="/developer-guide/release-notes/release-2025-11-01-v04-20-00">Release v4.20.x</a></li>
+      </ul>
+    </nav>
+    <main>
+      <article class="article-grid subgrid-gap col-screen article content">
+        <div class="myst-fm-block">
+          <div class="myst-fm-block-header">
+            <a href="https://github.com/SlideRuleEarth/sliderule" class="myst-fm-github-link">GitHub</a>
+          </div>
+          <h1 class="myst-fm-block-title">Release Notes</h1>
+        </div>
+        <div id="skip-to-article"></div>
+        <ul>
+          <li><a class="link" href="/developer-guide/release-notes/release-2025-11-01-v04-20-00">Release v4.20.x</a></li>
+          <li><a class="link" href="/developer-guide/release-notes/release-2026-05-08-v05-04-00">Release v5.4.x</a></li>
+          <li><a class="link" href="/developer-guide/release-notes/release-2026-01-27-v05-00-00">Release v5.0.x</a></li>
+          <li><a class="link" href="/developer-guide/release-deploy">Release and Deploy</a></li>
+        </ul>
+        <div class="myst-footer-links">
+          <a class="myst-footer-link" href="/developer-guide/release-notes/release-2026-05-08-v05-04-00">
+            <div class="myst-footer-link-group">Developers Guide</div>Release v5.4.x
+          </a>
+        </div>
+      </article>
+    </main>
+  </body>
+</html>
