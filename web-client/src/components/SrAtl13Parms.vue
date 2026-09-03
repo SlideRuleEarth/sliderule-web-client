@@ -5,7 +5,7 @@
         label="Atl13 Specific Parameters"
         labelFontSize="larger"
         tooltipText="Atl13 Specific Parameters"
-        :tooltipUrl="DOCS.dataframe.atl13"
+        :tooltipUrl="DOCS.icesat2.atl13Parameters"
       />
     </div>
     <InputText

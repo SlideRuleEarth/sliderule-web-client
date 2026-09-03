@@ -5,7 +5,7 @@
         label="Atl24 Specific Parameters"
         labelFontSize="larger"
         tooltipText="Atl24 Specific Parameters"
-        :tooltipUrl="DOCS.dataframe.atl24"
+        :tooltipUrl="DOCS.icesat2.atl24Parameters"
       />
     </div>
     <div>

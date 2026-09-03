@@ -32,12 +32,18 @@ const panelHtml = computed(() => {
 // --- Release Notes ---
 
 const RELEASE_NOTES_INDEX_URL = DOCS.releaseNotes.index
-const RELEASE_NOTES_BASE_URL = DOCS.releaseNotes.base
+
+// MyST renders the page body into <article class="... article content">. Every
+// release note is an extensionless child route whose slug carries the release
+// date, e.g. /developer-guide/release-notes/release-2026-05-08-v05-04-00
+const RELEASE_NOTE_PATH_RE =
+  /^\/developer-guide\/release-notes\/release-(\d{4}-\d{2}-\d{2})-v\d{2}-\d{2}-\d{2}\/?$/
+const RELEASE_TITLE_RE = /^Release v[\d.x]+$/
 
 interface ReleaseNote {
   title: string
   date: string
-  url: string // external link: docs page (remote) or GitHub release tag (local)
+  url: string // absolute: docs page (remote) or GitHub release tag (local)
   snippet?: string
   html?: string // precomputed detail HTML (local notes only)
 }
@@ -87,12 +93,7 @@ const currentNotes = computed<ReleaseNote[]>(() => {
   return combined.sort((a, b) => b.date.localeCompare(a.date))
 })
 
-const externalLink = computed(() => {
-  if (!selectedRelease.value) return ''
-  return selectedRelease.value.html
-    ? selectedRelease.value.url
-    : RELEASE_NOTES_BASE_URL + selectedRelease.value.url
-})
+const externalLink = computed(() => selectedRelease.value?.url ?? '')
 
 const externalLinkLabel = computed(() =>
   selectedRelease.value?.html ? 'View on GitHub ↗' : 'View on docs site ↗'
@@ -114,62 +115,38 @@ async function fetchReleaseNotesIndex() {
   try {
     const res = await fetch(RELEASE_NOTES_INDEX_URL)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const html = await res.text()
-    const doc = new DOMParser().parseFromString(html, 'text/html')
+    const doc = new DOMParser().parseFromString(await res.text(), 'text/html')
+    const article = doc.querySelector('article.content')
+    if (!article) throw new Error('Release-notes content not found')
+
+    // Scoping to the article skips the sidebar table of contents, which repeats
+    // every link; the prev/next footer nav lives inside the article but its
+    // label is prefixed with the section name, so the title check drops it.
     const notes: ReleaseNote[] = []
-    doc.querySelectorAll('[role="main"] a[href]').forEach((el) => {
-      const href = el.getAttribute('href') ?? ''
-      if (!href.endsWith('.html') || href.startsWith('http')) return
-      const text = el.textContent?.trim() ?? ''
-      // Matches "Release v5.4.x", "Release v5.4.1", "Web Client Release v4.5.0", etc.
-      const match = text.match(/^(?:Web Client )?Release v[\d.x]+$/)
-      if (match) {
-        notes.push({ date: '', title: 'Server - ' + text, url: href })
+    const seen = new Set<string>()
+    article.querySelectorAll('a[href]').forEach((el) => {
+      const title = el.textContent?.trim() ?? ''
+      if (!RELEASE_TITLE_RE.test(title)) return
+      let url: URL
+      try {
+        url = new URL(el.getAttribute('href') ?? '', RELEASE_NOTES_INDEX_URL)
+      } catch {
+        return
       }
+      const match = RELEASE_NOTE_PATH_RE.exec(url.pathname)
+      if (!match || seen.has(url.href)) return
+      seen.add(url.href)
+      // The slug is the only place the date appears on the index page, so it
+      // saves one detail fetch per release just to read a date back out.
+      notes.push({ title: `Server - ${title}`, date: match[1], url: url.href })
     })
-    releaseNotes.value = notes
-    void fetchEntryDetails()
+
+    releaseNotes.value = notes.sort((a, b) => b.date.localeCompare(a.date))
   } catch {
-    releaseError.value = 'Failed to load release notes. Please try again later.'
+    releaseError.value = 'Could not load server release notes from the docs site.'
   } finally {
     releaseLoading.value = false
   }
-}
-
-async function fetchEntryDetails() {
-  const MAX_SNIPPET_LENGTH = 200
-  const DATE_RE = /\b(\d{4}-\d{2}-\d{2})\b/
-  await Promise.allSettled(
-    releaseNotes.value.map(async (note, index) => {
-      try {
-        const res = await fetch(RELEASE_NOTES_BASE_URL + note.url)
-        if (!res.ok) return
-        const html = await res.text()
-        const doc = new DOMParser().parseFromString(html, 'text/html')
-        const main = doc.querySelector('[role="main"]')
-        if (!main) return
-        let date = ''
-        let snippet = ''
-        const dateMatch = main.textContent?.match(DATE_RE)
-        if (dateMatch) date = dateMatch[1]
-        const paragraphs = Array.from(main.querySelectorAll('p'))
-        for (const p of paragraphs) {
-          const text = p.textContent?.trim()
-          if (text && text.length > 10 && !DATE_RE.test(text)) {
-            snippet =
-              text.length > MAX_SNIPPET_LENGTH ? text.slice(0, MAX_SNIPPET_LENGTH) + '...' : text
-            break
-          }
-        }
-        releaseNotes.value[index] = { ...note, date, snippet }
-      } catch {
-        // Detail fetch failures are non-critical — leave date/snippet empty
-      }
-    })
-  )
-  // Re-sort newest first once dates are populated; entries without a date
-  // sort to the end via empty-string compare.
-  releaseNotes.value = [...releaseNotes.value].sort((a, b) => b.date.localeCompare(a.date))
 }
 
 async function fetchRelease(note: ReleaseNote) {
@@ -178,21 +155,37 @@ async function fetchRelease(note: ReleaseNote) {
   releaseLoading.value = true
   releaseError.value = ''
   try {
-    const res = await fetch(RELEASE_NOTES_BASE_URL + note.url)
+    const res = await fetch(note.url)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const html = await res.text()
-    const doc = new DOMParser().parseFromString(html, 'text/html')
-    const main = doc.querySelector('[role="main"]')
-    if (main) {
-      // Remove prev/next navigation links common in Sphinx
-      main.querySelectorAll('.rst-footer-buttons, .footer, nav').forEach((n) => n.remove())
-      main.querySelectorAll('a.headerlink').forEach((n) => n.remove())
-      releaseHtml.value = DOMPurify.sanitize(main.innerHTML)
+    const doc = new DOMParser().parseFromString(await res.text(), 'text/html')
+    const article = doc.querySelector('article.content')
+    if (article) {
+      // Strip MyST page chrome: the GitHub/edit/download icon row above the
+      // title, the prev/next footer nav, and the "¶" anchor beside every
+      // heading (which would link back into a page we are not rendering).
+      article
+        .querySelectorAll('.myst-fm-block-header, .myst-footer-links, .myst-backmatter-parts, nav')
+        .forEach((n) => n.remove())
+      article.querySelectorAll('a[href^="#"]').forEach((n) => {
+        if (n.textContent?.trim() === '¶') n.remove()
+      })
+      // Remaining links are relative to the docs origin, not to this app.
+      article.querySelectorAll('a[href], img[src]').forEach((n) => {
+        const attr = n.tagName === 'IMG' ? 'src' : 'href'
+        const value = n.getAttribute(attr)
+        if (!value) return
+        try {
+          n.setAttribute(attr, new URL(value, note.url).href)
+        } catch {
+          n.removeAttribute(attr)
+        }
+      })
+      releaseHtml.value = DOMPurify.sanitize(article.innerHTML)
     } else {
       releaseHtml.value = '<p>Could not extract release notes content.</p>'
     }
   } catch {
-    releaseError.value = 'Failed to load release notes. Please try again later.'
+    releaseError.value = 'Failed to load this release note. Please try again later.'
     selectedRelease.value = null
   } finally {
     releaseLoading.value = false
@@ -259,29 +252,33 @@ watch(selectedTab, (tab) => {
       <!-- Release Notes (combined: server + web client) -->
       <div v-else class="sr-landing-panel">
         <div v-if="releaseLoading" class="sr-news-status">Loading...</div>
-        <div v-else-if="releaseError" class="sr-news-status sr-news-error">{{ releaseError }}</div>
-        <div v-else-if="selectedRelease" class="sr-landing-panel-content">
-          <button class="sr-news-back" @click="selectedRelease = null">← Back</button>
-          <div v-html="releaseHtml" />
-          <a
-            class="sr-news-original-link"
-            :href="externalLink"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {{ externalLinkLabel }}
-          </a>
-        </div>
-        <ul v-else-if="currentNotes.length" class="sr-news-list">
-          <li v-for="r in currentNotes" :key="r.url" @click="openRelease(r)">
-            <span class="sr-news-date">{{ r.date }}</span>
-            <div class="sr-news-body">
-              <span class="sr-news-title">{{ r.title }}</span>
-              <span v-if="r.snippet" class="sr-news-snippet">{{ r.snippet }}</span>
-            </div>
-          </li>
-        </ul>
-        <div v-else class="sr-news-status">No release notes available.</div>
+        <template v-else>
+          <!-- A docs-site failure is a warning, not a replacement: the bundled
+               web-client notes are local and still worth showing. -->
+          <div v-if="releaseError" class="sr-news-status sr-news-error">{{ releaseError }}</div>
+          <div v-if="selectedRelease" class="sr-landing-panel-content">
+            <button class="sr-news-back" @click="selectedRelease = null">← Back</button>
+            <div v-html="releaseHtml" />
+            <a
+              class="sr-news-original-link"
+              :href="externalLink"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {{ externalLinkLabel }}
+            </a>
+          </div>
+          <ul v-else-if="currentNotes.length" class="sr-news-list">
+            <li v-for="r in currentNotes" :key="r.url" @click="openRelease(r)">
+              <span class="sr-news-date">{{ r.date }}</span>
+              <div class="sr-news-body">
+                <span class="sr-news-title">{{ r.title }}</span>
+                <span v-if="r.snippet" class="sr-news-snippet">{{ r.snippet }}</span>
+              </div>
+            </li>
+          </ul>
+          <div v-else class="sr-news-status">No release notes available.</div>
+        </template>
       </div>
     </div>
   </div>
