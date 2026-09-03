@@ -37,12 +37,33 @@ const RELEASE_NOTES_INDEX_URL = DOCS.releaseNotes.index
 // release note is an extensionless child route whose slug carries the release
 // date, e.g. /developer-guide/release-notes/release-2026-05-08-v05-04-00
 const RELEASE_NOTE_PATH_RE =
-  /^\/developer-guide\/release-notes\/release-(\d{4}-\d{2}-\d{2})-v\d{2}-\d{2}-\d{2}\/?$/
+  /^\/developer-guide\/release-notes\/release-(\d{4}-\d{2}-\d{2})-v(\d{2})-(\d{2})-(\d{2})\/?$/
 const RELEASE_TITLE_RE = /^Release v[\d.x]+$/
+
+/**
+ * Zero-pad a version so a plain string compare orders it numerically: without
+ * this, "10" sorts before "9". Returns '' for anything unparseable, which sorts
+ * such notes last.
+ */
+function versionKey(version: string): string {
+  const parts = version.replace(/^v/, '').split(/[.-]/)
+  if (!parts.length || parts.some((p) => !/^\d+$/.test(p))) return ''
+  return parts.map((p) => p.padStart(3, '0')).join('.')
+}
+
+/**
+ * Newest first. Two releases can share a date -- v4.7.0 and v4.7.1 both shipped
+ * on 2026-09-03 -- and a date-only sort left the tie to the array's existing
+ * order, which put the older one on top (issue #1102).
+ */
+function byDateThenVersion(a: ReleaseNote, b: ReleaseNote): number {
+  return b.date.localeCompare(a.date) || b.version.localeCompare(a.version)
+}
 
 interface ReleaseNote {
   title: string
   date: string
+  version: string // zero-padded sort key, e.g. '004.007.001'; '' if unparseable
   url: string // absolute: docs page (remote) or GitHub release tag (local)
   snippet?: string
   html?: string // precomputed detail HTML (local notes only)
@@ -79,18 +100,19 @@ const localReleaseNotes = computed<ReleaseNote[]>(() => {
     return {
       title: 'Web Client - ' + title,
       date,
+      version: versionKey(version),
       url: DOCS.webClient.tags + version,
       snippet,
       html
     }
   })
-  return notes.sort((a, b) => b.date.localeCompare(a.date))
+  return notes.sort(byDateThenVersion)
 })
 
 const currentNotes = computed<ReleaseNote[]>(() => {
   if (!showReleaseNotes.value) return []
   const combined = [...releaseNotes.value, ...localReleaseNotes.value]
-  return combined.sort((a, b) => b.date.localeCompare(a.date))
+  return combined.sort(byDateThenVersion)
 })
 
 const externalLink = computed(() => selectedRelease.value?.url ?? '')
@@ -136,12 +158,18 @@ async function fetchReleaseNotesIndex() {
       const match = RELEASE_NOTE_PATH_RE.exec(url.pathname)
       if (!match || seen.has(url.href)) return
       seen.add(url.href)
-      // The slug is the only place the date appears on the index page, so it
-      // saves one detail fetch per release just to read a date back out.
-      notes.push({ title: `Server - ${title}`, date: match[1], url: url.href })
+      // The slug is the only place the date and version appear on the index
+      // page, so it saves one detail fetch per release to read them back out.
+      const [, date, ...version] = match
+      notes.push({
+        title: `Server - ${title}`,
+        date,
+        version: versionKey(version.join('.')),
+        url: url.href
+      })
     })
 
-    releaseNotes.value = notes.sort((a, b) => b.date.localeCompare(a.date))
+    releaseNotes.value = notes.sort(byDateThenVersion)
   } catch {
     releaseError.value = 'Could not load server release notes from the docs site.'
   } finally {

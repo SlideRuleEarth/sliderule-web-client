@@ -64,6 +64,14 @@ async function openServerNote(wrapper: Wrapper, title: string) {
   await flushPromises()
 }
 
+/** "Web Client - v4.7.1" / "Server - Release v5.4.x" -> a comparable number. */
+function versionOf(title: string): number {
+  const [major = 0, minor = 0, patch = 0] = (title.match(/v([\d.x]+)/)?.[1] ?? '')
+    .split('.')
+    .map((p) => (p === 'x' ? 0 : Number(p)))
+  return major * 1e6 + minor * 1e3 + patch
+}
+
 beforeEach(() => {
   fetchMock = vi.fn()
   vi.stubGlobal('fetch', fetchMock)
@@ -87,18 +95,20 @@ describe('release-notes index parsing', () => {
     const wrapper = await openReleaseNotes()
 
     const server = rows(wrapper).filter((t) => t.includes('Server - '))
-    expect(server).toHaveLength(3)
+    expect(server).toHaveLength(5)
     expect(server[0]).toContain('Server - Release v5.4.x')
-    expect(server[1]).toContain('Server - Release v5.0.x')
-    expect(server[2]).toContain('Server - Release v4.20.x')
+    expect(server[1]).toContain('Server - Release v5.3.x')
+    expect(server[2]).toContain('Server - Release v5.2.x')
+    expect(server[3]).toContain('Server - Release v5.0.x')
+    expect(server[4]).toContain('Server - Release v4.20.x')
   })
 
   it('ignores the duplicate sidebar links and the prefixed footer nav link', async () => {
     fetchMock.mockResolvedValue(htmlResponse(indexHtml))
     const wrapper = await openReleaseNotes()
 
-    // The fixture repeats all three releases in the sidebar and repeats v5.4.x
-    // again in the footer nav, so a naive parse would report seven entries.
+    // The fixture repeats all five releases in the sidebar and repeats v5.4.x
+    // again in the footer nav, so a naive parse would report eleven entries.
     const v54 = rows(wrapper).filter((t) => t.includes('Release v5.4.x'))
     expect(v54).toHaveLength(1)
   })
@@ -118,7 +128,7 @@ describe('release-notes index parsing', () => {
       .findAll('.sr-news-list li')
       .filter((li) => li.text().includes('Server - '))
       .map((li) => li.find('.sr-news-date').text())
-    expect(dates).toEqual(['2026-05-08', '2026-01-27', '2025-11-01'])
+    expect(dates).toEqual(['2026-05-08', '2026-03-12', '2026-03-12', '2026-01-27', '2025-11-01'])
 
     // One request for the index, and nothing else: the old implementation
     // fetched every release page just to read a date out of it.
@@ -171,6 +181,46 @@ describe('release-notes detail parsing', () => {
     const hrefs = wrapper.findAll('.sr-landing-panel-content a').map((a) => a.attributes('href'))
     expect(hrefs).toContain(`${DOCS_ORIGIN}/user-guide/icesat2`)
     expect(hrefs).toContain('https://github.com/SlideRuleEarth/sliderule/pull/608')
+  })
+})
+
+describe('ordering', () => {
+  it('breaks a same-date tie by version, newest first', async () => {
+    // The fixture lists v5.2.x before v5.3.x, both dated 2026-03-12, so a
+    // date-only sort would leave them in that (wrong) order -- issue #1102.
+    fetchMock.mockResolvedValue(htmlResponse(indexHtml))
+    const wrapper = await openReleaseNotes()
+
+    const listed = rows(wrapper)
+    const v53 = listed.findIndex((t) => t.includes('Release v5.3.x'))
+    const v52 = listed.findIndex((t) => t.includes('Release v5.2.x'))
+    expect(v53).toBeGreaterThanOrEqual(0)
+    expect(v53).toBeLessThan(v52)
+  })
+
+  it('orders every same-date pair by descending version', async () => {
+    // A property over the whole list, bundled web-client notes included, so it
+    // keeps holding as releases are added.
+    fetchMock.mockResolvedValue(htmlResponse(indexHtml))
+    const wrapper = await openReleaseNotes()
+
+    const entries = wrapper.findAll('.sr-news-list li').map((li) => ({
+      date: li.find('.sr-news-date').text(),
+      title: li.find('.sr-news-title').text()
+    }))
+    expect(entries.length).toBeGreaterThan(1)
+
+    const sameDatePairs = entries
+      .slice(1)
+      .map((entry, i) => [entries[i], entry])
+      .filter(([a, b]) => a.date === b.date)
+    expect(sameDatePairs.length).toBeGreaterThan(0)
+
+    for (const [a, b] of sameDatePairs) {
+      expect(versionOf(a.title), `${a.title} should outrank ${b.title}`).toBeGreaterThan(
+        versionOf(b.title)
+      )
+    }
   })
 })
 
