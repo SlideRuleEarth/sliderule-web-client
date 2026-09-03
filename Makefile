@@ -167,7 +167,7 @@ live-update: check-vars build upload-assets upload-static upload-robots upload-i
 	export AWS_MAX_ATTEMPTS=5 AWS_RETRY_MODE=standard && \
 	echo "Invalidating CloudFront distribution $(DISTRIBUTION_ID)..." && \
 	aws cloudfront create-invalidation --distribution-id $(DISTRIBUTION_ID) --paths "/*"
-	make verify-s3-assets S3_BUCKET=$(S3_BUCKET)
+	$(MAKE) verify-s3-assets S3_BUCKET=$(S3_BUCKET)
 
 verify-s3-assets: ## Check that all index-*.js and index-*.css files referenced in index.html exist in S3
 	@echo "🔍 Verifying index.* assets in S3..."
@@ -182,13 +182,13 @@ verify-s3-assets: ## Check that all index-*.js and index-*.css files referenced 
 	@echo "📅 Verified: $$(date +"%Y-%m-%d %T") (scroll up for exact Build Date/Time)"
 
 verify-s3-assets-testsliderule:
-	make verify-s3-assets S3_BUCKET=testsliderule-webclient
+	$(MAKE) verify-s3-assets S3_BUCKET=testsliderule-webclient
 
 live-update-testsliderule: ## Update the web client at testsliderule.org with new build
-	make live-update S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org DOMAIN=client.testsliderule.org 
+	$(MAKE) live-update S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org DOMAIN=client.testsliderule.org
 
 live-update-slideruleearth: ## Update the web client at slideruleearth.io with new build
-	make live-update S3_BUCKET=slideruleearth-webclient DOMAIN_APEX=slideruleearth.io DOMAIN=client.slideruleearth.io 
+	$(MAKE) live-update S3_BUCKET=slideruleearth-webclient DOMAIN_APEX=slideruleearth.io DOMAIN=client.slideruleearth.io
 
 convert-icons: ## Convert Maki SVG icons in src/assets/maki-svg to PNGs in public/icons
 	@echo "🔄 Converting Maki SVG icons to PNGs..."
@@ -244,32 +244,46 @@ preview: build ## Preview the web client production build locally for developmen
 	cd web-client && npm run preview
 
 deploy: # Deploy the web client to the S3 bucket
-	mkdir -p terraform/ && cd terraform/ && terraform init && terraform workspace select $(DOMAIN)-web-client || terraform workspace new $(DOMAIN)-web-client && terraform validate && \
-	terraform apply -var domainName=$(DOMAIN) -var domainApex=$(DOMAIN_APEX) -var domain_root=$(DOMAIN_ROOT) -var s3_bucket_name=$(S3_BUCKET)
+	cd terraform && \
+	terraform init && \
+	terraform workspace select -or-create "$(DOMAIN)-web-client" && \
+	terraform validate && \
+	terraform apply \
+		-var="domainName=$(DOMAIN)" \
+		-var="domainApex=$(DOMAIN_APEX)" \
+		-var="domain_root=$(DOMAIN_ROOT)" \
+		-var="s3_bucket_name=$(S3_BUCKET)"
 
-destroy: # Destroy the web client 
-	mkdir -p terraform/ && cd terraform/ && terraform init && terraform workspace select $(DOMAIN)-web-client || terraform workspace new $(DOMAIN)-web-client && terraform validate && \
-	terraform destroy -var domainName=$(DOMAIN) -var domainApex=$(DOMAIN_APEX) -var domain_root=$(DOMAIN_ROOT) -var s3_bucket_name=$(S3_BUCKET)
+destroy: # Destroy the web client
+	cd terraform && \
+	terraform init && \
+	terraform workspace select "$(DOMAIN)-web-client" && \
+	terraform validate && \
+	terraform destroy \
+		-var="domainName=$(DOMAIN)" \
+		-var="domainApex=$(DOMAIN_APEX)" \
+		-var="domain_root=$(DOMAIN_ROOT)" \
+		-var="s3_bucket_name=$(S3_BUCKET)"
 
 deploy-client-to-testsliderule: ## Deploy the web client to the testsliderule.org cloudfront and update the s3 bucket
-	make deploy DOMAIN=client.testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org && \
-	make live-update DOMAIN=client.testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org 
+	$(MAKE) deploy DOMAIN=client.testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org && \
+	$(MAKE) live-update DOMAIN=client.testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org
 
 destroy-client-testsliderule: ## Destroy the web client from the testsliderule.org cloudfront and remove the S3 bucket
-	make destroy DOMAIN=client.testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org
+	$(MAKE) destroy DOMAIN=client.testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org
 
 release-live-update-to-testsliderule: src-tag-and-push ## Release the web client to the live environment NEEDS VERSION
-	make live-update DOMAIN=client.testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org 
+	$(MAKE) live-update DOMAIN=client.testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org
 
 release-live-update-to-slideruleearth: src-tag-and-push ## Release the web client to the live environment NEEDS VERSION
-	make live-update DOMAIN=client.slideruleearth.io S3_BUCKET=slideruleearth-webclient DOMAIN_APEX=slideruleearth.io 
+	$(MAKE) live-update DOMAIN=client.slideruleearth.io S3_BUCKET=slideruleearth-webclient DOMAIN_APEX=slideruleearth.io
 
 deploy-client-to-slideruleearth: ## Deploy the web client to the slideruleearth.io cloudfront and update the s3 bucket
-	make deploy DOMAIN=client.slideruleearth.io S3_BUCKET=slideruleearth-webclient DOMAIN_APEX=slideruleearth.io && \
-	make live-update DOMAIN=client.slideruleearth.io S3_BUCKET=slideruleearth-webclient DOMAIN_APEX=slideruleearth.io
+	$(MAKE) deploy DOMAIN=client.slideruleearth.io S3_BUCKET=slideruleearth-webclient DOMAIN_APEX=slideruleearth.io && \
+	$(MAKE) live-update DOMAIN=client.slideruleearth.io S3_BUCKET=slideruleearth-webclient DOMAIN_APEX=slideruleearth.io
 
 destroy-client-slideruleearth: ## Destroy the web client from the slideruleearth.io cloudfront and remove the S3 bucket
-	make destroy DOMAIN=client.slideruleearth.io S3_BUCKET=slideruleearth-webclient DOMAIN_APEX=slideruleearth.io
+	$(MAKE) destroy DOMAIN=client.slideruleearth.io S3_BUCKET=slideruleearth-webclient DOMAIN_APEX=slideruleearth.io
 
 .PHONY: check-lockfiles typecheck-tests upload-robots install-deps reinstall-deps rebuild-all regen-lockfiles verify-lockfiles audit-deps audit-fix-deps doctor check-vars typecheck lint lint-fix lint-staged pre-commit-check test-unit test-unit-watch coverage-unit test-e2e test-all ci-check keycloak-up keycloak-down keycloak-run
 # =========================
