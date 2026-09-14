@@ -25,13 +25,51 @@ ROOT = $(shell pwd)
 DOMAIN_APEX ?=
 DOMAIN = client.$(DOMAIN_APEX)
 DOMAIN_ROOT = $(firstword $(subst ., ,$(DOMAIN)))
-S3_BUCKET ?=
 DISTRIBUTION_ID = $(shell aws cloudfront list-distributions --query "DistributionList.Items[?Aliases.Items[0]=='$(DOMAIN)'].Id" --output text)
 BUILD_ENV = $(shell git --git-dir .git --work-tree . describe --abbrev --dirty --always --tags --long)
 # The CloudFormation template and its lint toolchain (docs/cloudformation-migration-plan.md §5.5).
 # `override`: the template is one file and the lint lock names the only cfn-lint we run.
 override CFN_TEMPLATE = cloudformation/web-client.yaml
 override CFN_LINT_REQUIREMENTS = cloudformation/requirements-lint.txt
+
+# --- CloudFormation stack variables (plan §5.4) -------------------------------
+# Everything derived from DOMAIN, and everything fixed by an external constraint,
+# is `override`: no command line or environment variable can decouple the stack
+# from the host it serves, move it out of us-east-1, or point it at another account.
+override DOMAIN_SLUG = $(subst .,-,$(DOMAIN))
+override STACK_NAME = $(DOMAIN_SLUG)-web-client
+# Not a preference: CloudFront only accepts ACM certificates issued in us-east-1.
+# Every ACM/CloudFormation call passes --region $(STACK_REGION) explicitly.
+override STACK_REGION := us-east-1
+# Every mutating stack target compares sts get-caller-identity against this (V5).
+override EXPECTED_AWS_ACCOUNT_ID := 742127912612
+# The bucket each environment's stack is built against: the origin in both
+# distributions, what bucket-create creates, and the only bucket stack-destroy ever
+# empties. Defaults to the stack name. Fill one of these in ONLY if that name turned
+# out to be unavailable at bucket-create time -- a committed edit, never a command-line
+# override, which is why these are `override` too.
+override BUCKET_client-testsliderule-org-web-client =
+override BUCKET_client-slideruleearth-io-web-client =
+override STACK_BUCKET = $(or $(BUCKET_$(STACK_NAME)),$(STACK_NAME))
+# The bucket UPLOADS go to. Overridable on purpose: until an environment's cutover
+# its live-update-*/release-* wrappers point this at the Terraform-era bucket.
+# No stack operation reads it.
+S3_BUCKET ?= $(STACK_BUCKET)
+# Escape hatch only: leave empty and the stack targets look the zone up (public
+# zones only, exactly one match, resolved ONCE per invocation and the resolved value
+# is the one used). Set it by hand only when that lookup cannot decide.
+HOSTED_ZONE_ID ?=
+# Typed by the operator, equal to the client host, on every target that deletes a stack.
+CONFIRM_DESTROY ?=
+# Tags (plan D10). The three values live here once and are rendered twice, because
+# `cloudformation deploy --tags` wants Key=Value and `s3api put-bucket-tagging` wants a TagSet.
+TAG_OWNER = SlideRule
+TAG_PROJECT = web-client-$(DOMAIN_APEX)
+TAG_GROUP = web-client
+STACK_TAGS = Owner=$(TAG_OWNER) Project=$(TAG_PROJECT) cost-grouping=$(TAG_GROUP)
+S3_TAGSET = TagSet=[{Key=Owner,Value=$(TAG_OWNER)},{Key=Project,Value=$(TAG_PROJECT)},{Key=cost-grouping,Value=$(TAG_GROUP)}]
+STACK_HEALTHY_STATUSES = CREATE_COMPLETE UPDATE_COMPLETE UPDATE_ROLLBACK_COMPLETE
+STACK_FAILED_STATUSES = ROLLBACK_COMPLETE ROLLBACK_FAILED CREATE_FAILED DELETE_FAILED REVIEW_IN_PROGRESS
 VERSION ?= latest
 BANNER_TEXT ?=
 
@@ -270,18 +308,261 @@ run: ## Run the web client locally for development
 preview: build ## Preview the web client production build locally for development 
 	cd web-client && npm run preview
 
-deploy: check-terraform-vars ## Create or update the CloudFront/S3 infrastructure with Terraform (NEEDS DOMAIN_APEX S3_BUCKET)
-	cd terraform && \
-	terraform init && \
-	terraform workspace select -or-create "$(DOMAIN)-web-client" && \
-	terraform validate && \
-	terraform apply \
-		-var="domainName=$(DOMAIN)" \
-		-var="domainApex=$(DOMAIN_APEX)" \
-		-var="domain_root=$(DOMAIN_ROOT)" \
-		-var="s3_bucket_name=$(S3_BUCKET)"
+# =========================
+# CloudFormation stack targets (docs/cloudformation-migration-plan.md §5.4, §7.2, §7.3)
+# =========================
+# From here on `deploy`/`destroy` mean the stack. The only Terraform target left is
+# terraform-destroy, used once per environment at its cutover. There is deliberately
+# no terraform-deploy: until an environment's cutover its infrastructure is frozen;
+# an emergency Terraform change is run by hand from terraform/ with the workspace
+# selected, never through make.
 
-destroy: check-terraform-vars ## Destroy the CloudFront/S3 infrastructure with Terraform (NEEDS DOMAIN_APEX S3_BUCKET)
+# Shell fragment: sets $status (NONE when there is no stack) and $protected. Only the
+# specific "does not exist" error for THIS stack means "no stack"; any other failure --
+# credentials, region, throttling -- aborts, so it can never pass a first-create guard.
+define STACK_STATUS_SH
+out=$$(aws cloudformation describe-stacks --region $(STACK_REGION) --stack-name "$(STACK_NAME)" \
+        --query 'Stacks[0].[StackStatus,EnableTerminationProtection]' --output text 2>&1) && rc=0 || rc=$$?; \
+if [ $$rc -ne 0 ]; then \
+  case "$$out" in \
+    *"Stack with id $(STACK_NAME) does not exist"*) status=NONE; protected=false;; \
+    *) echo "❌ describe-stacks failed:"; echo "$$out"; exit 1;; \
+  esac; \
+else \
+  set -- $$out; status=$${1:-}; protected=$${2:-}; \
+  case "$$status" in *[!A-Z_]*|"") echo "❌ unexpected describe-stacks output: '$$out'"; exit 1;; esac; \
+  case "$$protected" in True|true) protected=true;; False|false) protected=false;; \
+    *) echo "❌ unexpected EnableTerminationProtection: '$$protected'"; exit 1;; esac; \
+fi
+endef
+
+# Shell fragment: sets $hz to the hosted zone ID, resolved ONCE in the calling shell so
+# the value that was checked is the value that is used. HOSTED_ZONE_ID, if set, wins.
+define HOSTED_ZONE_SH
+if [ -n "$(HOSTED_ZONE_ID)" ]; then hz="$(HOSTED_ZONE_ID)"; hz_src="HOSTED_ZONE_ID override"; else \
+  hz=$$(aws route53 list-hosted-zones-by-name --dns-name "$(DOMAIN_APEX)" \
+        --query "HostedZones[?Name=='$(DOMAIN_APEX).' && Config.PrivateZone==\`false\`].Id" --output text) \
+    || { echo "❌ hosted zone lookup for $(DOMAIN_APEX) failed"; exit 1; }; \
+  hz=$${hz//\/hostedzone\//}; hz_src="lookup"; \
+fi; \
+set -- $$hz; \
+if [ $$# -ne 1 ] || [ "$$1" = "None" ]; then \
+  echo "❌ HOSTED_ZONE_ID: expected exactly one public hosted zone for $(DOMAIN_APEX), got: '$$hz'"; \
+  echo "   Establish which zone is right, then pass HOSTED_ZONE_ID=<id> explicitly"; exit 1; \
+fi; hz=$$1
+endef
+
+# Shell fragment: the stack's S3BucketName PARAMETER (not the output) must equal $(STACK_BUCKET).
+define STACK_BUCKET_PARAM_SH
+param=$$(aws cloudformation describe-stacks --region $(STACK_REGION) --stack-name "$(STACK_NAME)" \
+          --query "Stacks[0].Parameters[?ParameterKey=='S3BucketName'].ParameterValue" --output text) \
+  || { echo "❌ could not read the stack's S3BucketName parameter"; exit 1; }; \
+test "$$param" = "$(STACK_BUCKET)" \
+  || { echo "❌ the stack's S3BucketName parameter is '$$param' but STACK_BUCKET is '$(STACK_BUCKET)': refusing"; exit 1; }
+endef
+
+define CONFIRM_DESTROY_SH
+test "$(CONFIRM_DESTROY)" = "$(DOMAIN)" \
+  || { echo "❌ pass CONFIRM_DESTROY=$(DOMAIN) to confirm (got '$(CONFIRM_DESTROY)')"; exit 1; }
+endef
+
+check-account: ## Assert the AWS caller is in the expected account (every mutating stack target runs this)
+	@set -eu; \
+	caller=$$(aws sts get-caller-identity --query '[Account,Arn]' --output text) \
+	  || { echo "❌ sts get-caller-identity failed"; exit 1; }; \
+	set -- $$caller; \
+	test "$${1:-}" = "$(EXPECTED_AWS_ACCOUNT_ID)" \
+	  || { echo "❌ AWS account is '$${1:-}', expected $(EXPECTED_AWS_ACCOUNT_ID): refusing"; exit 1; }; \
+	echo "✅ AWS account $$1 ($${2:-})"
+
+check-stack-vars: check-derived ## Check the create/update inputs: hosted zone resolves to exactly one ID and STACK_BUCKET exists (no DISTRIBUTION_ID needed)
+	@set -eu; \
+	aws s3api head-bucket --bucket "$(STACK_BUCKET)" >/dev/null 2>&1 \
+	  || { echo "❌ bucket $(STACK_BUCKET) does not exist (or is not accessible): run make bucket-create DOMAIN_APEX=$(DOMAIN_APEX) first"; exit 1; }; \
+	$(HOSTED_ZONE_SH); \
+	echo "✅ Stack inputs:"; \
+	echo "   STACK_NAME      = $(STACK_NAME)"; \
+	echo "   STACK_REGION    = $(STACK_REGION)"; \
+	echo "   STACK_BUCKET    = $(STACK_BUCKET)"; \
+	echo "   HOSTED_ZONE_ID  = $$hz ($$hz_src)"; \
+	echo "   STACK_TAGS      = $(STACK_TAGS)"
+
+check-destroy-vars: check-derived check-account ## Run every destruction gate without touching anything (stack-destroy runs this first)
+	@set -eu; \
+	$(STACK_STATUS_SH); \
+	test "$$status" != NONE || { echo "❌ no stack named $(STACK_NAME) in $(STACK_REGION)"; exit 1; }; \
+	case " $(STACK_HEALTHY_STATUSES) " in *" $$status "*) ;; \
+	  *) echo "❌ stack $(STACK_NAME) is $$status; stack-destroy only deletes a healthy stack (see plan §7.3, stack-delete-failed)"; exit 1;; esac; \
+	test "$$protected" = false || { echo "❌ termination protection is on: run make stack-unprotect first, deliberately"; exit 1; }; \
+	$(CONFIRM_DESTROY_SH); \
+	$(STACK_BUCKET_PARAM_SH); \
+	echo "✅ Destroy gates passed for $(STACK_NAME) ($$status), bucket $(STACK_BUCKET)"
+
+bucket-configure: check-derived check-account ## Reassert the public-access block and tags on STACK_BUCKET (idempotent; also the recovery path if bucket-create died mid-way)
+	@set -eu; \
+	owned=$$(aws s3api list-buckets --query "Buckets[?Name=='$(STACK_BUCKET)'].Name" --output text) \
+	  || { echo "❌ list-buckets failed"; exit 1; }; \
+	test -n "$$owned" && test "$$owned" != None \
+	  || { echo "❌ bucket $(STACK_BUCKET) is not owned by this account: refusing"; exit 1; }; \
+	aws s3api put-public-access-block --bucket "$(STACK_BUCKET)" \
+	  --public-access-block-configuration BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true; \
+	aws s3api put-bucket-tagging --bucket "$(STACK_BUCKET)" --tagging '$(S3_TAGSET)'; \
+	echo "✅ bucket $(STACK_BUCKET): public access blocked, tagged"
+
+# Only a confirmed 404 from head-bucket proceeds: a 403 (someone else's bucket, or no
+# permission), a 5xx or a network error is not "does not exist", and create-bucket on a
+# bucket this account already owns can succeed in us-east-1 and reset its ACL.
+bucket-create: check-derived check-account ## Create STACK_BUCKET in us-east-1, once per environment; refuses if it already exists; never deleted by anything here
+	@set -eu; \
+	probe=$$(aws s3api head-bucket --bucket "$(STACK_BUCKET)" 2>&1) && rc=0 || rc=$$?; \
+	if [ $$rc -eq 0 ]; then \
+	  echo "❌ bucket $(STACK_BUCKET) already exists: refusing. To reassert its settings run make bucket-configure"; exit 1; \
+	fi; \
+	case "$$probe" in *"(404)"*|*"Not Found"*) ;; \
+	  *) echo "❌ head-bucket on $(STACK_BUCKET) failed for a reason other than 'not found'; refusing to create:"; echo "$$probe"; exit 1;; esac; \
+	aws s3api create-bucket --region $(STACK_REGION) --bucket "$(STACK_BUCKET)"; \
+	echo "✅ created bucket $(STACK_BUCKET) in $(STACK_REGION)"
+	$(MAKE) bucket-configure DOMAIN_APEX=$(DOMAIN_APEX)
+
+stack-status: check-derived ## Print the stack's status and termination protection, or "no stack"
+	@set -eu; $(STACK_STATUS_SH); \
+	if [ "$$status" = NONE ]; then echo "no stack named $(STACK_NAME) in $(STACK_REGION)"; \
+	else echo "$(STACK_NAME): $$status (termination protection: $$protected)"; fi
+
+stack-outputs: check-derived ## Print the stack's outputs
+	aws cloudformation describe-stacks --region $(STACK_REGION) --stack-name "$(STACK_NAME)" \
+	  --query 'Stacks[0].Outputs[].[OutputKey,OutputValue]' --output table
+
+stack-events: check-derived ## Print the stack's events, newest first (watch a create, debug a failure)
+	aws cloudformation describe-stack-events --region $(STACK_REGION) --stack-name "$(STACK_NAME)" \
+	  --query 'StackEvents[].[Timestamp,LogicalResourceId,ResourceStatus,ResourceStatusReason]' --output table
+
+# Create or update. Refuses every status outside the healthy set, and on a FIRST create
+# refuses if any distribution already carries either hostname (Terraform still owns the
+# environment). The hosted zone is resolved once, here, and that value is what is passed.
+stack-deploy: check-derived check-account lint-cfn ## Create or update the stack from the template (gated; plan §5.4)
+	@set -eu; \
+	aws s3api head-bucket --bucket "$(STACK_BUCKET)" >/dev/null 2>&1 \
+	  || { echo "❌ bucket $(STACK_BUCKET) does not exist: run make bucket-create DOMAIN_APEX=$(DOMAIN_APEX) first"; exit 1; }; \
+	$(HOSTED_ZONE_SH); \
+	$(STACK_STATUS_SH); \
+	case " NONE $(STACK_HEALTHY_STATUSES) " in *" $$status "*) ;; \
+	  *) echo "❌ stack $(STACK_NAME) is $$status: refusing to deploy. See plan §7.3 for what to do in this state"; exit 1;; esac; \
+	if [ "$$status" = NONE ]; then \
+	  taken=$$(aws cloudfront list-distributions \
+	    --query "DistributionList.Items[?contains(not_null(Aliases.Items, \`[]\`), '$(DOMAIN)') || contains(not_null(Aliases.Items, \`[]\`), '$(DOMAIN_APEX)')].Id" \
+	    --output text) || { echo "❌ alias check failed (list-distributions): refusing to create"; exit 1; }; \
+	  if [ -n "$$taken" ] && [ "$$taken" != None ]; then \
+	    echo "❌ distribution(s) $$taken already carry $(DOMAIN) or $(DOMAIN_APEX): this environment is still on Terraform (plan §7.2 step 11)"; exit 1; \
+	  fi; \
+	  echo "▶ first create of $(STACK_NAME)"; \
+	else echo "▶ updating $(STACK_NAME) ($$status)"; fi; \
+	echo "   HostedZoneId=$$hz ($$hz_src)  S3BucketName=$(STACK_BUCKET)"; \
+	aws cloudformation deploy --region $(STACK_REGION) \
+	  --stack-name "$(STACK_NAME)" \
+	  --template-file $(CFN_TEMPLATE) \
+	  --parameter-overrides DomainName=$(DOMAIN) DomainApex=$(DOMAIN_APEX) S3BucketName=$(STACK_BUCKET) HostedZoneId=$$hz \
+	  --tags $(STACK_TAGS) \
+	  --no-fail-on-empty-changeset
+	$(MAKE) stack-outputs DOMAIN_APEX=$(DOMAIN_APEX)
+
+# Stack first, contents second: a failed stack delete (or waiter) stops before the
+# first s3 rm, so the site's files stay where they were. The bucket itself is never deleted.
+stack-destroy: check-destroy-vars ## Delete the stack, then empty STACK_BUCKET (NEEDS CONFIRM_DESTROY=<client host>)
+	@set -eu; \
+	aws cloudformation delete-stack --region $(STACK_REGION) --stack-name "$(STACK_NAME)"; \
+	echo "▶ waiting for $(STACK_NAME) to delete..."; \
+	aws cloudformation wait stack-delete-complete --region $(STACK_REGION) --stack-name "$(STACK_NAME)"; \
+	echo "✅ stack deleted; emptying s3://$(STACK_BUCKET)"; \
+	aws s3 rm "s3://$(STACK_BUCKET)" --recursive; \
+	left=$$(aws s3api list-objects-v2 --bucket "$(STACK_BUCKET)" --max-keys 1 --query KeyCount --output text); \
+	test "$$left" = 0 || { echo "❌ bucket $(STACK_BUCKET) is not empty after rm (KeyCount=$$left)"; exit 1; }; \
+	echo "✅ bucket $(STACK_BUCKET) is empty (and still exists)"
+
+stack-protect: check-derived check-account ## Turn termination protection on (production, right after the create)
+	aws cloudformation update-termination-protection --region $(STACK_REGION) \
+	  --enable-termination-protection --stack-name "$(STACK_NAME)"
+
+stack-unprotect: check-derived check-account ## Turn termination protection off, deliberately (NEEDS CONFIRM_DESTROY=<client host>)
+	@set -eu; $(CONFIRM_DESTROY_SH); \
+	aws cloudformation update-termination-protection --region $(STACK_REGION) \
+	  --no-enable-termination-protection --stack-name "$(STACK_NAME)"
+
+# The recovery path out of a failed state, never a second way to delete a working stack.
+# RETAIN='<logical ids>' and FORCE_DELETE=1 are accepted only in DELETE_FAILED, one at a time.
+stack-delete-failed: check-derived check-account ## Delete a stack stuck in a failed state (NEEDS CONFIRM_DESTROY; RETAIN= / FORCE_DELETE=1 only from DELETE_FAILED)
+	@set -eu; \
+	$(STACK_STATUS_SH); \
+	test "$$status" != NONE || { echo "❌ no stack named $(STACK_NAME)"; exit 1; }; \
+	case " $(STACK_FAILED_STATUSES) " in *" $$status "*) ;; \
+	  *) echo "❌ stack $(STACK_NAME) is $$status, not a failed state: this target refuses (healthy: stack-destroy; CREATE_IN_PROGRESS: stack-abort-create; see plan §7.3)"; exit 1;; esac; \
+	extra=""; \
+	case "$(FORCE_DELETE)" in ""|1) ;; *) echo "❌ FORCE_DELETE must be exactly 1 to enable forced deletion (got '$(FORCE_DELETE)')"; exit 1;; esac; \
+	if [ -n "$(RETAIN)" ] && [ -n "$(FORCE_DELETE)" ]; then echo "❌ RETAIN and FORCE_DELETE are one escalation each; pass only one"; exit 1; fi; \
+	if [ -n "$(RETAIN)" ] || [ -n "$(FORCE_DELETE)" ]; then \
+	  test "$$status" = DELETE_FAILED || { echo "❌ RETAIN / FORCE_DELETE are only accepted from DELETE_FAILED (stack is $$status)"; exit 1; }; \
+	fi; \
+	if [ -n "$(RETAIN)" ]; then extra="--retain-resources $(RETAIN)"; fi; \
+	if [ "$(FORCE_DELETE)" = 1 ]; then extra="--deletion-mode FORCE_DELETE_STACK"; fi; \
+	$(CONFIRM_DESTROY_SH); \
+	echo "▶ deleting $(STACK_NAME) ($$status) $$extra"; \
+	aws cloudformation delete-stack --region $(STACK_REGION) --stack-name "$(STACK_NAME)" $$extra; \
+	aws cloudformation wait stack-delete-complete --region $(STACK_REGION) --stack-name "$(STACK_NAME)"; \
+	echo "✅ $(STACK_NAME) deleted (bucket untouched)"
+
+# The only escape from a hung create. Run it only when plan §7.3's three conditions hold:
+# no new event for 15+ minutes, the certificate is not merely waiting on DNS, budget exceeded.
+stack-abort-create: check-derived check-account ## Delete a stack stuck in CREATE_IN_PROGRESS, after showing the evidence (NEEDS CONFIRM_DESTROY)
+	@set -eu; \
+	$(STACK_STATUS_SH); \
+	test "$$status" = CREATE_IN_PROGRESS \
+	  || { echo "❌ stack $(STACK_NAME) is $$status, not CREATE_IN_PROGRESS: this target refuses"; exit 1; }; \
+	newest=$$(aws cloudformation describe-stack-events --region $(STACK_REGION) --stack-name "$(STACK_NAME)" \
+	  --query 'StackEvents[0].[Timestamp,LogicalResourceId,ResourceStatus,ResourceStatusReason]' --output text) \
+	  || { echo "❌ could not read the stack's events: refusing to abort blind"; exit 1; }; \
+	echo "   newest event (UTC): $$newest"; \
+	echo "   now          (UTC): $$(date -u +%Y-%m-%dT%H:%M:%SZ)"; \
+	echo "   plan §7.3: abort only if the newest event is 15+ minutes old, the certificate is not waiting on DNS, and the budget is exceeded"; \
+	$(CONFIRM_DESTROY_SH); \
+	aws cloudformation delete-stack --region $(STACK_REGION) --stack-name "$(STACK_NAME)"; \
+	aws cloudformation wait stack-delete-complete --region $(STACK_REGION) --stack-name "$(STACK_NAME)"; \
+	echo "✅ $(STACK_NAME) deleted (bucket untouched)"
+
+# Fill the permanent bucket BEFORE a window and prove it landed. One $(MAKE) per line:
+# recipe lines are sequential whatever -j says. No invalidation and no DISTRIBUTION_ID:
+# pre-cutover the alias still resolves to the distribution Terraform owns.
+stack-prestage: check-derived check-account ## Build and upload to STACK_BUCKET, then verify; no invalidation (plan §7.2 step 9)
+	$(MAKE) build DOMAIN_APEX=$(DOMAIN_APEX)
+	$(MAKE) upload-assets DOMAIN_APEX=$(DOMAIN_APEX) S3_BUCKET=$(STACK_BUCKET)
+	$(MAKE) upload-static DOMAIN_APEX=$(DOMAIN_APEX) S3_BUCKET=$(STACK_BUCKET)
+	$(MAKE) upload-robots DOMAIN_APEX=$(DOMAIN_APEX) S3_BUCKET=$(STACK_BUCKET)
+	$(MAKE) upload-index DOMAIN_APEX=$(DOMAIN_APEX) S3_BUCKET=$(STACK_BUCKET)
+	$(MAKE) verify-s3-assets DOMAIN_APEX=$(DOMAIN_APEX) S3_BUCKET=$(STACK_BUCKET)
+	@echo "✅ pre-staged into s3://$(STACK_BUCKET). Do NOT run make build until stack-activate has run."
+
+# Post-create when the bucket was pre-staged: verify against the local dist/ and invalidate.
+# No build, no upload -- a rebuild would change the hashed bundle and discard the staged set.
+stack-activate: check-derived check-account ## Verify the pre-staged bucket against dist/ and invalidate the new distribution; no build (plan §7.2 step 12)
+	$(MAKE) verify-s3-assets DOMAIN_APEX=$(DOMAIN_APEX) S3_BUCKET=$(STACK_BUCKET)
+	@set -eu; \
+	id="$(DISTRIBUTION_ID)"; \
+	test -n "$$id" && test "$$id" != None || { echo "❌ no distribution carries $(DOMAIN) yet"; exit 1; }; \
+	echo "▶ invalidating $$id"; \
+	aws cloudfront create-invalidation --distribution-id "$$id" --paths "/*"
+
+# Post-create when the bucket was NOT pre-staged, and the normal deploy path afterwards:
+# the full live-update, forced to the stack's own bucket by a sub-make command-line
+# assignment, which beats any stale S3_BUCKET in the environment.
+stack-upload: check-derived check-account ## Build, upload to STACK_BUCKET, invalidate and verify (live-update forced to the stack's bucket)
+	$(MAKE) live-update DOMAIN_APEX=$(DOMAIN_APEX) S3_BUCKET=$(STACK_BUCKET)
+
+deploy: stack-deploy ## Alias of stack-deploy
+
+destroy: stack-destroy ## Alias of stack-destroy (NEEDS CONFIRM_DESTROY=<client host>)
+
+# The Terraform-era destroy, run once per environment at its cutover (plan §7.2 step 11).
+# Terraform's own plan-and-confirm prompt is the gate. Deleted in Phase 5.
+terraform-destroy: check-terraform-vars ## Destroy the Terraform-managed infrastructure (NEEDS DOMAIN_APEX and the Terraform-era S3_BUCKET on the command line)
 	cd terraform && \
 	terraform init && \
 	terraform workspace select "$(DOMAIN)-web-client" && \
@@ -292,12 +573,16 @@ destroy: check-terraform-vars ## Destroy the CloudFront/S3 infrastructure with T
 		-var="domain_root=$(DOMAIN_ROOT)" \
 		-var="s3_bucket_name=$(S3_BUCKET)"
 
-deploy-client-to-testsliderule: ## Deploy the web client to the testsliderule.org cloudfront and update the s3 bucket
-	$(MAKE) deploy DOMAIN_APEX=testsliderule.org S3_BUCKET=testsliderule-webclient && \
-	$(MAKE) live-update DOMAIN_APEX=testsliderule.org S3_BUCKET=testsliderule-webclient
+# Environment wrappers. deploy-* / destroy-* are CloudFormation-only from here on and
+# refuse an environment that is still on Terraform (the alias check in stack-deploy).
+# live-update-* / release-* keep S3_BUCKET pinned to the Terraform-era bucket until that
+# environment's cutover; plan §7.2 step 16 removes the override.
+deploy-client-to-testsliderule: ## Create/update the testsliderule.org stack, then build and upload to its bucket
+	$(MAKE) stack-deploy DOMAIN_APEX=testsliderule.org
+	$(MAKE) stack-upload DOMAIN_APEX=testsliderule.org
 
-destroy-client-testsliderule: ## Destroy the web client from the testsliderule.org cloudfront and remove the S3 bucket
-	$(MAKE) destroy DOMAIN_APEX=testsliderule.org S3_BUCKET=testsliderule-webclient
+destroy-client-testsliderule: ## Destroy the testsliderule.org stack and empty its bucket (NEEDS CONFIRM_DESTROY=client.testsliderule.org)
+	$(MAKE) stack-destroy DOMAIN_APEX=testsliderule.org CONFIRM_DESTROY=$(CONFIRM_DESTROY)
 
 release-live-update-to-testsliderule: src-tag-and-push ## Release the web client to the live environment NEEDS VERSION
 	$(MAKE) live-update DOMAIN_APEX=testsliderule.org S3_BUCKET=testsliderule-webclient
@@ -305,14 +590,14 @@ release-live-update-to-testsliderule: src-tag-and-push ## Release the web client
 release-live-update-to-slideruleearth: src-tag-and-push ## Release the web client to the live environment NEEDS VERSION
 	$(MAKE) live-update DOMAIN_APEX=slideruleearth.io S3_BUCKET=slideruleearth-webclient
 
-deploy-client-to-slideruleearth: ## Deploy the web client to the slideruleearth.io cloudfront and update the s3 bucket
-	$(MAKE) deploy DOMAIN_APEX=slideruleearth.io S3_BUCKET=slideruleearth-webclient && \
-	$(MAKE) live-update DOMAIN_APEX=slideruleearth.io S3_BUCKET=slideruleearth-webclient
+deploy-client-to-slideruleearth: ## Create/update the slideruleearth.io stack, then build and upload to its bucket
+	$(MAKE) stack-deploy DOMAIN_APEX=slideruleearth.io
+	$(MAKE) stack-upload DOMAIN_APEX=slideruleearth.io
 
-destroy-client-slideruleearth: ## Destroy the web client from the slideruleearth.io cloudfront and remove the S3 bucket
-	$(MAKE) destroy DOMAIN_APEX=slideruleearth.io S3_BUCKET=slideruleearth-webclient
+destroy-client-slideruleearth: ## Destroy the slideruleearth.io stack and empty its bucket (NEEDS CONFIRM_DESTROY=client.slideruleearth.io)
+	$(MAKE) stack-destroy DOMAIN_APEX=slideruleearth.io CONFIRM_DESTROY=$(CONFIRM_DESTROY)
 
-.PHONY: check-lockfiles typecheck-tests upload-robots install-deps reinstall-deps rebuild-all regen-lockfiles verify-lockfiles audit-deps audit-fix-deps doctor check-derived check-terraform-vars check-vars typecheck lint lint-fix lint-cfn validate-cfn lint-staged pre-commit-check test-unit test-unit-watch coverage-unit test-e2e test-all ci-check keycloak-up keycloak-down keycloak-run
+.PHONY: check-lockfiles typecheck-tests upload-robots install-deps reinstall-deps rebuild-all regen-lockfiles verify-lockfiles audit-deps audit-fix-deps doctor check-derived check-terraform-vars check-vars check-account check-stack-vars check-destroy-vars bucket-create bucket-configure stack-status stack-outputs stack-events stack-deploy stack-destroy stack-protect stack-unprotect stack-delete-failed stack-abort-create stack-prestage stack-activate stack-upload deploy destroy terraform-destroy typecheck lint lint-fix lint-cfn validate-cfn lint-staged pre-commit-check test-unit test-unit-watch coverage-unit test-e2e test-all ci-check keycloak-up keycloak-down keycloak-run
 # =========================
 # Testing / Quality targets
 # =========================
@@ -374,14 +659,19 @@ lint-cfn: ## Lint the CloudFormation template with the pinned cfn-lint (needs uv
 	  cfn-lint $(CFN_TEMPLATE)
 
 validate-cfn: ## Ask the CloudFormation API (us-east-1) whether the template is syntactically valid (needs AWS credentials, changes nothing)
-	aws cloudformation validate-template --region us-east-1 --template-body file://$(CFN_TEMPLATE) --output text --query 'Description'
+	aws cloudformation validate-template --region $(STACK_REGION) --template-body file://$(CFN_TEMPLATE) --output text --query 'Description'
 
-check-derived: ## Assert DOMAIN_APEX is set and DOMAIN is client.<apex>, offline — every deploy, destroy and live-update path runs this first
+check-derived: ## Assert DOMAIN_APEX is set, DOMAIN is client.<apex> and STACK_NAME follows, offline — every deploy, destroy and live-update path runs this first
 	@test -n "$(DOMAIN_APEX)" || (echo "❌ DOMAIN_APEX is not set"; exit 1)
 	@test "$(DOMAIN)" = "client.$(DOMAIN_APEX)" || (echo "❌ DOMAIN=$(DOMAIN) does not match DOMAIN_APEX=$(DOMAIN_APEX): the client host is always client.<apex>, so pass DOMAIN_APEX only"; exit 1)
+	@test "$(STACK_NAME)" = "$(subst .,-,$(DOMAIN))-web-client" || (echo "❌ STACK_NAME=$(STACK_NAME) is not derived from DOMAIN=$(DOMAIN)"; exit 1)
 
-check-terraform-vars: check-derived ## Check the Terraform inputs (deploy and destroy run this first; no DISTRIBUTION_ID, which cannot exist before the first deploy)
-	@test -n "$(S3_BUCKET)" || (echo "❌ S3_BUCKET is not set"; exit 1)
+# The Terraform-era bucket must be TYPED on the command line: S3_BUCKET now defaults to
+# the stack's bucket, and terraform-destroy must never inherit that.
+check-terraform-vars: check-derived ## Check the Terraform inputs (terraform-destroy runs this first)
+	@test "$(origin S3_BUCKET)" = "command line" || (echo "❌ S3_BUCKET must be given on the command line: the Terraform-era bucket, e.g. S3_BUCKET=testsliderule-webclient"; exit 1)
+	@test -n "$(S3_BUCKET)" || (echo "❌ S3_BUCKET is empty"; exit 1)
+	@test "$(S3_BUCKET)" != "$(STACK_BUCKET)" || (echo "❌ S3_BUCKET=$(S3_BUCKET) is the stack's bucket, not a Terraform-era one: refusing"; exit 1)
 	@echo "✅ Terraform inputs:"
 	@echo "   DOMAIN          = $(DOMAIN)"
 	@echo "   DOMAIN_APEX     = $(DOMAIN_APEX)"
@@ -408,4 +698,6 @@ help: ## That's me!
 	@echo DOMAIN_ROOT: $(DOMAIN_ROOT)
 	@echo DOMAIN_APEX: $(DOMAIN_APEX)
 	@echo S3_BUCKET: $(S3_BUCKET)
+	@echo STACK_NAME: $(STACK_NAME)
+	@echo STACK_BUCKET: $(STACK_BUCKET)
 	@echo DISTRIBUTION_ID: $(DISTRIBUTION_ID)
