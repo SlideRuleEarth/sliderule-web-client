@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | UNDER REVIEW in [PR #1105](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1105) — plan only, no template or Makefile code yet. All ten decisions settled 2026-09-14 (see [Decision log](#decision-log)) |
+| **Status** | ACCEPTED — merged via [PR #1105](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1105) on 2026-09-14 with all ten decisions settled ([Decision log](#decision-log)). Phase 0 in progress: the G4 Makefile PR is open |
 | **Branch** | `cloudformation-migration-plan` |
 | **Tracking issue** | none yet (open one and rename the branch `issue-NNNN-cloudformation-migration` if you want the repo's usual convention) |
 | **Owner** | Carlos E. Ugarte |
@@ -297,7 +297,7 @@ Provider-level `default_tags` on everything: `Owner=SlideRule`,
 | `destroy` | `terraform destroy` (bucket has `force_destroy`) | Phase 1 on: alias of `stack-destroy` — deletes the stack, then empties the bucket and verifies it is empty; the bucket itself is never deleted (D8) |
 | `deploy-client-to-*`, `destroy-client-*` wrappers | `deploy` + `live-update` / `destroy`, with `DOMAIN`, `S3_BUCKET`, `DOMAIN_APEX` spelled out | `DOMAIN_APEX=<apex>` only; CloudFormation from Phase 1 on; never override `S3_BUCKET` |
 | `live-update-*`, `release-live-update-to-*` wrappers | same triple spelled out | `DOMAIN_APEX=<apex>` plus `S3_BUCKET=<Terraform-era bucket>` **until that environment's cutover**, then `DOMAIN_APEX` only (D8) |
-| `DOMAIN_APEX ?= $(DOMAIN)` | defaults the apex to the client host — a leftover of the retired client-at-apex mode | removed; `DOMAIN ?= client.$(DOMAIN_APEX)` replaces it (G4) |
+| `DOMAIN_APEX ?= $(DOMAIN)` | defaults the apex to the client host — a leftover of the retired client-at-apex mode | removed; `DOMAIN = client.$(DOMAIN_APEX)` replaces it (G4) |
 | `S3_BUCKET` | set explicitly in every wrapper | Phase 1 on it means **uploads only**, defaulting to `$(STACK_BUCKET)`; the pre-cutover wrapper override with the Terraform-era name is its only other source. The bucket the *stack* is built against is the separate, locked `STACK_BUCKET` (§5.4, D8) |
 | `DISTRIBUTION_ID` | `aws cloudfront list-distributions` by alias | unchanged (D6); it finds the new distribution the moment it carries the alias |
 | `APEX_DISTRIBUTION_ID` | defined, never referenced | removed (G4) |
@@ -544,13 +544,24 @@ does not own).
 
 ```
 DOMAIN_APEX ?=                                   # the ONE per-environment input
-DOMAIN      ?= client.$(DOMAIN_APEX)             # client host is always client.<apex> (G3)
+DOMAIN       = client.$(DOMAIN_APEX)             # client host is always client.<apex> (G3); plain `=`, see below
 ```
 
-`?=` keeps `DOMAIN` overridable, and `check-vars` gains the assertion that it
+`DOMAIN` uses plain `=`, not `?=`, and the distinction was found the hard
+way: the owner's shell exports `DOMAIN=localhost`, and `?=` yields to an
+environment variable, so a `?=` derivation would have produced `localhost` on
+every invocation and every wrapper would have been refused. The pre-G4
+wrappers were immune only because they passed `DOMAIN=` on the command line,
+which the post-G4 wrappers no longer do. With `=`, the environment is ignored
+— an ambient variable is not something the operator typed into *this*
+command — while an explicit `DOMAIN=…` on the command line still overrides
+the derivation, because command-line assignments beat any makefile
+assignment short of `override`. `check-vars` then asserts that `DOMAIN`
 equals `client.$(DOMAIN_APEX)` — in this PR, not Phase 1, because `check-vars`
 and `live-update` already exist and a stale `make live-update DOMAIN=… S3_BUCKET=…`
-is exactly what the assertion is for. Phase 1 factors it into `check-derived`
+is exactly what the assertion is for. It checks `DOMAIN_APEX` is non-empty
+*before* the equality, so an empty input cannot pass as `client.` ==
+`client.`. Phase 1 factors it into `check-derived`
 and adds the `STACK_NAME` clause. `APEX_DISTRIBUTION_ID`
 (defined, never referenced) and the `DOMAIN_APEX ?= $(DOMAIN)` default are
 deleted in the same PR, the wrappers shrink to `DOMAIN_APEX=<apex>` plus
@@ -643,7 +654,8 @@ the pre-cutover wrappers must point `live-update` at the Terraform-era bucket
 `check-stack-vars` cannot resolve — a lookup returning zero or several zones —
 where the operator supplies the ID after establishing which zone is right.
 
-`DOMAIN` is the exception: it keeps `?=` but is **asserted** rather than
+`DOMAIN` is the exception: it is derived with plain `=` — which ignores the
+environment but yields to the command line — and **asserted** rather than
 locked. Locking it would make `make live-update DOMAIN=… S3_BUCKET=…` — the
 shape every wrapper used before the G4 PR, and the shape in anyone's shell
 history — *silently* ignore the `DOMAIN` it was given and derive a different
@@ -1358,7 +1370,7 @@ template edit and `stack-deploy`, and that is the accepted trade.
 | R17 | `verify-s3-assets` reports `MISSING` but `live-update` still "succeeds" | fixed in the G4 PR: exits non-zero |
 | R18 | Two people run `stack-deploy` at once | CloudFormation serialises operations per stack; the second fails fast |
 | R19 | Users lose locally stored records (OPFS Parquet, IndexedDB) | cannot happen from this migration: that data is origin-keyed in the browser and the origin is unchanged (§5.3); the only infra-side threat is a CSP regression, caught by the §7.4 header diff and the pre-cutover-record smoke test |
-| R20 | A caller overrides a derived variable — `DOMAIN` not matching `DOMAIN_APEX`, or a region other than `us-east-1` — and the mismatch surfaces as a certificate or alias failure minutes into a stack create, inside the outage window | `DOMAIN_SLUG`, `STACK_NAME`, `STACK_REGION` and `EXPECTED_AWS_ACCOUNT_ID` are `override`, so they cannot be set from the command line or the environment at all; `DOMAIN` keeps `?=` but `check-derived` asserts it equals `client.$(DOMAIN_APEX)` before any AWS call, so a stale invocation fails offline in a second rather than after the certificate is issued (§5.4) |
+| R20 | A caller overrides a derived variable — `DOMAIN` not matching `DOMAIN_APEX`, or a region other than `us-east-1` — and the mismatch surfaces as a certificate or alias failure minutes into a stack create, inside the outage window | `DOMAIN_SLUG`, `STACK_NAME`, `STACK_REGION` and `EXPECTED_AWS_ACCOUNT_ID` are `override`, so they cannot be set from the command line or the environment at all; `DOMAIN` is derived with plain `=` (the environment cannot reach it) and `check-derived` asserts it equals `client.$(DOMAIN_APEX)` before any AWS call, so a stale invocation fails offline in a second rather than after the certificate is issued (§5.4) |
 | R21 | `stack-delete-failed` or `stack-abort-create` — the other two targets that delete a stack — are pointed at a healthy or wrong-environment stack. Its gates are **not** R5's: it runs `check-derived` and `check-account`, requires `CONFIRM_DESTROY=$(DOMAIN)`, and refuses any status outside its recovery allowlist, but it never calls `check-destroy-vars`, never compares the `BucketName` output, and never touches bucket contents at all | the status allowlist is the load-bearing gate in both — a healthy `CREATE_COMPLETE` or `UPDATE_COMPLETE` stack is refused outright, and `stack-abort-create` accepts only `CREATE_IN_PROGRESS` — while `check-derived` means neither can be aimed at an arbitrary stack name and `CONFIRM_DESTROY` catches the wrong environment. Termination protection still applies, enforced by the CloudFormation API rather than by the target, so production is refused while it is on. Because the target performs no bucket operation, the site's files survive any misuse of it |
 | R22 | `make -j`, or a `MAKEFLAGS` inherited from a parent make, runs `live-update`'s build and upload steps concurrently, publishing an `index.html` that names assets not yet uploaded — or uploading while `build` is still writing `dist/` | `.NOTPARALLEL:` in the Makefile from the G4 PR (§5.4), so no target here can run in parallel; `stack-prestage` additionally uses one recipe line per step. Not deferred: `live-update-<env>` is the everyday content deploy, so this is a live bug independent of the migration |
 

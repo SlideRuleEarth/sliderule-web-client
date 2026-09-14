@@ -6,12 +6,27 @@
 
 SHELL := /bin/bash
 ROOT = $(shell pwd)
-DOMAIN ?=
+
+# A bare `make` runs the first target, which used to be clean-all — i.e. it
+# deleted node_modules and dist/. Show help instead.
+.DEFAULT_GOAL := help
+
+# Every target here orchestrates npm, Vite and aws; none gains anything from
+# `make -j`, and the deploy path is unsafe under it: uploads could race the
+# build, and index.html could land before the assets it names.
+.NOTPARALLEL:
+
+# DOMAIN_APEX is the ONE per-environment input. The client host is always
+# client.<apex>, so DOMAIN is derived. Plain `=`, not `?=`: a DOMAIN sitting
+# in the environment (some shells export DOMAIN=localhost) must not win over
+# the derivation, but an explicit `DOMAIN=...` on the command line still
+# does — and check-vars then refuses it if it disagrees with DOMAIN_APEX, so
+# a stale invocation fails loudly rather than deploying somewhere unexpected.
+DOMAIN_APEX ?=
+DOMAIN = client.$(DOMAIN_APEX)
 DOMAIN_ROOT = $(firstword $(subst ., ,$(DOMAIN)))
-DOMAIN_APEX ?= $(DOMAIN)
 S3_BUCKET ?=
 DISTRIBUTION_ID = $(shell aws cloudfront list-distributions --query "DistributionList.Items[?Aliases.Items[0]=='$(DOMAIN)'].Id" --output text)
-APEX_DISTRIBUTION_ID = $(shell aws cloudfront list-distributions --query "DistributionList.Items[?Aliases.Items[0]=='$(DOMAIN_APEX)'].Id" --output text)
 BUILD_ENV = $(shell git --git-dir .git --work-tree . describe --abbrev --dirty --always --tags --long)
 VERSION ?= latest
 BANNER_TEXT ?=
@@ -169,26 +184,34 @@ live-update: check-vars build upload-assets upload-static upload-robots upload-i
 	aws cloudfront create-invalidation --distribution-id $(DISTRIBUTION_ID) --paths "/*"
 	$(MAKE) verify-s3-assets S3_BUCKET=$(S3_BUCKET)
 
-verify-s3-assets: ## Check that all index-*.js and index-*.css files referenced in index.html exist in S3
+verify-s3-assets: ## Check that all index-*.js and index-*.css files referenced in index.html exist in S3 (fails if any is missing)
 	@echo "🔍 Verifying index.* assets in S3..."
-	@grep -oE 'assets/index-[a-zA-Z0-9_\-]+\.(js|css)' web-client/dist/index.html | sort -u | while read -r asset; do \
-		if aws s3 ls "s3://$(S3_BUCKET)/$$asset" >/dev/null; then \
-			echo "✅ Found: $$asset"; \
-		else \
-			echo "❌ MISSING: $$asset"; \
+	@grep -oE 'assets/index-[a-zA-Z0-9_\-]+\.(js|css)' web-client/dist/index.html | sort -u | { \
+		rc=0; n=0; \
+		while read -r asset; do \
+			n=$$((n+1)); \
+			if aws s3 ls "s3://$(S3_BUCKET)/$$asset" >/dev/null; then \
+				echo "✅ Found: $$asset"; \
+			else \
+				echo "❌ MISSING: $$asset"; rc=1; \
+			fi; \
+		done; \
+		if [ "$$n" -eq 0 ]; then \
+			echo "❌ No index-*.js/css references found in web-client/dist/index.html — is it built?"; rc=1; \
 		fi; \
-	done
+		exit $$rc; \
+	}
 	@echo ""
 	@echo "📅 Verified: $$(date +"%Y-%m-%d %T") (scroll up for exact Build Date/Time)"
 
-verify-s3-assets-testsliderule:
+verify-s3-assets-testsliderule: ## verify-s3-assets against the testsliderule.org bucket
 	$(MAKE) verify-s3-assets S3_BUCKET=testsliderule-webclient
 
 live-update-testsliderule: ## Update the web client at testsliderule.org with new build
-	$(MAKE) live-update S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org DOMAIN=client.testsliderule.org
+	$(MAKE) live-update DOMAIN_APEX=testsliderule.org S3_BUCKET=testsliderule-webclient
 
 live-update-slideruleearth: ## Update the web client at slideruleearth.io with new build
-	$(MAKE) live-update S3_BUCKET=slideruleearth-webclient DOMAIN_APEX=slideruleearth.io DOMAIN=client.slideruleearth.io
+	$(MAKE) live-update DOMAIN_APEX=slideruleearth.io S3_BUCKET=slideruleearth-webclient
 
 convert-icons: ## Convert Maki SVG icons in src/assets/maki-svg to PNGs in public/icons
 	@echo "🔄 Converting Maki SVG icons to PNGs..."
@@ -243,7 +266,7 @@ run: ## Run the web client locally for development
 preview: build ## Preview the web client production build locally for development 
 	cd web-client && npm run preview
 
-deploy: # Deploy the web client to the S3 bucket
+deploy: ## Create or update the CloudFront/S3 infrastructure with Terraform (NEEDS DOMAIN_APEX S3_BUCKET)
 	cd terraform && \
 	terraform init && \
 	terraform workspace select -or-create "$(DOMAIN)-web-client" && \
@@ -254,7 +277,7 @@ deploy: # Deploy the web client to the S3 bucket
 		-var="domain_root=$(DOMAIN_ROOT)" \
 		-var="s3_bucket_name=$(S3_BUCKET)"
 
-destroy: # Destroy the web client
+destroy: ## Destroy the CloudFront/S3 infrastructure with Terraform (NEEDS DOMAIN_APEX S3_BUCKET)
 	cd terraform && \
 	terraform init && \
 	terraform workspace select "$(DOMAIN)-web-client" && \
@@ -266,24 +289,24 @@ destroy: # Destroy the web client
 		-var="s3_bucket_name=$(S3_BUCKET)"
 
 deploy-client-to-testsliderule: ## Deploy the web client to the testsliderule.org cloudfront and update the s3 bucket
-	$(MAKE) deploy DOMAIN=client.testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org && \
-	$(MAKE) live-update DOMAIN=client.testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org
+	$(MAKE) deploy DOMAIN_APEX=testsliderule.org S3_BUCKET=testsliderule-webclient && \
+	$(MAKE) live-update DOMAIN_APEX=testsliderule.org S3_BUCKET=testsliderule-webclient
 
 destroy-client-testsliderule: ## Destroy the web client from the testsliderule.org cloudfront and remove the S3 bucket
-	$(MAKE) destroy DOMAIN=client.testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org
+	$(MAKE) destroy DOMAIN_APEX=testsliderule.org S3_BUCKET=testsliderule-webclient
 
 release-live-update-to-testsliderule: src-tag-and-push ## Release the web client to the live environment NEEDS VERSION
-	$(MAKE) live-update DOMAIN=client.testsliderule.org S3_BUCKET=testsliderule-webclient DOMAIN_APEX=testsliderule.org
+	$(MAKE) live-update DOMAIN_APEX=testsliderule.org S3_BUCKET=testsliderule-webclient
 
 release-live-update-to-slideruleearth: src-tag-and-push ## Release the web client to the live environment NEEDS VERSION
-	$(MAKE) live-update DOMAIN=client.slideruleearth.io S3_BUCKET=slideruleearth-webclient DOMAIN_APEX=slideruleearth.io
+	$(MAKE) live-update DOMAIN_APEX=slideruleearth.io S3_BUCKET=slideruleearth-webclient
 
 deploy-client-to-slideruleearth: ## Deploy the web client to the slideruleearth.io cloudfront and update the s3 bucket
-	$(MAKE) deploy DOMAIN=client.slideruleearth.io S3_BUCKET=slideruleearth-webclient DOMAIN_APEX=slideruleearth.io && \
-	$(MAKE) live-update DOMAIN=client.slideruleearth.io S3_BUCKET=slideruleearth-webclient DOMAIN_APEX=slideruleearth.io
+	$(MAKE) deploy DOMAIN_APEX=slideruleearth.io S3_BUCKET=slideruleearth-webclient && \
+	$(MAKE) live-update DOMAIN_APEX=slideruleearth.io S3_BUCKET=slideruleearth-webclient
 
 destroy-client-slideruleearth: ## Destroy the web client from the slideruleearth.io cloudfront and remove the S3 bucket
-	$(MAKE) destroy DOMAIN=client.slideruleearth.io S3_BUCKET=slideruleearth-webclient DOMAIN_APEX=slideruleearth.io
+	$(MAKE) destroy DOMAIN_APEX=slideruleearth.io S3_BUCKET=slideruleearth-webclient
 
 .PHONY: check-lockfiles typecheck-tests upload-robots install-deps reinstall-deps rebuild-all regen-lockfiles verify-lockfiles audit-deps audit-fix-deps doctor check-vars typecheck lint lint-fix lint-staged pre-commit-check test-unit test-unit-watch coverage-unit test-e2e test-all ci-check keycloak-up keycloak-down keycloak-run
 # =========================
@@ -338,10 +361,10 @@ pw-report: ## Open the last Playwright HTML report
 
 ci-check: verify-lockfiles typecheck lint test-unit test-e2e ## CI gate: lockfile drift + types + lint + unit + e2e
 
-check-vars:
-	@test -n "$(DOMAIN)" || (echo "❌ DOMAIN is not set"; exit 1)
-	@test -n "$(S3_BUCKET)" || (echo "❌ S3_BUCKET is not set"; exit 1)
+check-vars: ## Check that DOMAIN_APEX, DOMAIN, S3_BUCKET and DISTRIBUTION_ID resolve (live-update runs this first)
 	@test -n "$(DOMAIN_APEX)" || (echo "❌ DOMAIN_APEX is not set"; exit 1)
+	@test "$(DOMAIN)" = "client.$(DOMAIN_APEX)" || (echo "❌ DOMAIN=$(DOMAIN) does not match DOMAIN_APEX=$(DOMAIN_APEX): the client host is always client.<apex>, so pass DOMAIN_APEX only"; exit 1)
+	@test -n "$(S3_BUCKET)" || (echo "❌ S3_BUCKET is not set"; exit 1)
 	@test -n "$(DISTRIBUTION_ID)" || (echo "❌ DISTRIBUTION_ID could not be resolved for DOMAIN=$(DOMAIN)"; exit 1)
 	@echo "✅ All required variables are set:"
 	@echo "   DOMAIN          = $(DOMAIN)"
