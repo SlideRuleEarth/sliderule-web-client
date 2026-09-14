@@ -266,7 +266,7 @@ run: ## Run the web client locally for development
 preview: build ## Preview the web client production build locally for development 
 	cd web-client && npm run preview
 
-deploy: ## Create or update the CloudFront/S3 infrastructure with Terraform (NEEDS DOMAIN_APEX S3_BUCKET)
+deploy: check-terraform-vars ## Create or update the CloudFront/S3 infrastructure with Terraform (NEEDS DOMAIN_APEX S3_BUCKET)
 	cd terraform && \
 	terraform init && \
 	terraform workspace select -or-create "$(DOMAIN)-web-client" && \
@@ -277,7 +277,7 @@ deploy: ## Create or update the CloudFront/S3 infrastructure with Terraform (NEE
 		-var="domain_root=$(DOMAIN_ROOT)" \
 		-var="s3_bucket_name=$(S3_BUCKET)"
 
-destroy: ## Destroy the CloudFront/S3 infrastructure with Terraform (NEEDS DOMAIN_APEX S3_BUCKET)
+destroy: check-terraform-vars ## Destroy the CloudFront/S3 infrastructure with Terraform (NEEDS DOMAIN_APEX S3_BUCKET)
 	cd terraform && \
 	terraform init && \
 	terraform workspace select "$(DOMAIN)-web-client" && \
@@ -308,7 +308,7 @@ deploy-client-to-slideruleearth: ## Deploy the web client to the slideruleearth.
 destroy-client-slideruleearth: ## Destroy the web client from the slideruleearth.io cloudfront and remove the S3 bucket
 	$(MAKE) destroy DOMAIN_APEX=slideruleearth.io S3_BUCKET=slideruleearth-webclient
 
-.PHONY: check-lockfiles typecheck-tests upload-robots install-deps reinstall-deps rebuild-all regen-lockfiles verify-lockfiles audit-deps audit-fix-deps doctor check-vars typecheck lint lint-fix lint-staged pre-commit-check test-unit test-unit-watch coverage-unit test-e2e test-all ci-check keycloak-up keycloak-down keycloak-run
+.PHONY: check-lockfiles typecheck-tests upload-robots install-deps reinstall-deps rebuild-all regen-lockfiles verify-lockfiles audit-deps audit-fix-deps doctor check-derived check-terraform-vars check-vars typecheck lint lint-fix lint-staged pre-commit-check test-unit test-unit-watch coverage-unit test-e2e test-all ci-check keycloak-up keycloak-down keycloak-run
 # =========================
 # Testing / Quality targets
 # =========================
@@ -361,9 +361,18 @@ pw-report: ## Open the last Playwright HTML report
 
 ci-check: verify-lockfiles typecheck lint test-unit test-e2e ## CI gate: lockfile drift + types + lint + unit + e2e
 
-check-vars: ## Check that DOMAIN_APEX, DOMAIN, S3_BUCKET and DISTRIBUTION_ID resolve (live-update runs this first)
+check-derived: ## Assert DOMAIN_APEX is set and DOMAIN is client.<apex>, offline — every deploy, destroy and live-update path runs this first
 	@test -n "$(DOMAIN_APEX)" || (echo "❌ DOMAIN_APEX is not set"; exit 1)
 	@test "$(DOMAIN)" = "client.$(DOMAIN_APEX)" || (echo "❌ DOMAIN=$(DOMAIN) does not match DOMAIN_APEX=$(DOMAIN_APEX): the client host is always client.<apex>, so pass DOMAIN_APEX only"; exit 1)
+
+check-terraform-vars: check-derived ## Check the Terraform inputs (deploy and destroy run this first; no DISTRIBUTION_ID, which cannot exist before the first deploy)
+	@test -n "$(S3_BUCKET)" || (echo "❌ S3_BUCKET is not set"; exit 1)
+	@echo "✅ Terraform inputs:"
+	@echo "   DOMAIN          = $(DOMAIN)"
+	@echo "   DOMAIN_APEX     = $(DOMAIN_APEX)"
+	@echo "   S3_BUCKET       = $(S3_BUCKET)"
+
+check-vars: check-derived ## Check that DOMAIN_APEX, DOMAIN, S3_BUCKET and DISTRIBUTION_ID resolve (live-update runs this first)
 	@test -n "$(S3_BUCKET)" || (echo "❌ S3_BUCKET is not set"; exit 1)
 	@test -n "$(DISTRIBUTION_ID)" || (echo "❌ DISTRIBUTION_ID could not be resolved for DOMAIN=$(DOMAIN)"; exit 1)
 	@echo "✅ All required variables are set:"
