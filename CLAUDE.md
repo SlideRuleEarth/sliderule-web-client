@@ -114,10 +114,12 @@ copies `public/` into `dist/` verbatim, so editing the file and deploying is
 the whole workflow:
 
 ```bash
-make live-update DOMAIN=client.slideruleearth.io \
-                 S3_BUCKET=slideruleearth-webclient \
-                 DOMAIN_APEX=slideruleearth.io
+make live-update-slideruleearth
 ```
+
+(`DOMAIN_APEX` is the one per-environment input; `DOMAIN` is derived as
+`client.<apex>` and `check-vars` refuses a value that disagrees. The wrapper
+above is `make live-update DOMAIN_APEX=slideruleearth.io S3_BUCKET=slideruleearth-webclient`.)
 
 Its `Disallow` rules mirror the router. Adding a per-session route (something
 under `/analyze/`, `/request/<id>`, `/auth/`) means adding it there too.
