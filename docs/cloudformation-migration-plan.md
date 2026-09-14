@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | ACCEPTED — merged via [PR #1105](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1105) on 2026-09-14 with all ten decisions settled ([Decision log](#decision-log)). Phase 0 in progress: the G4 Makefile PR is open |
+| **Status** | ACCEPTED — merged via [PR #1105](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1105) on 2026-09-14 with all ten decisions settled ([Decision log](#decision-log)). Phase 0: the G4 Makefile PR merged as [PR #1106](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1106); its post-merge review fix is [Review log](#review-log) row 2 |
 | **Branch** | `cloudformation-migration-plan` |
 | **Tracking issue** | none yet (open one and rename the branch `issue-NNNN-cloudformation-migration` if you want the repo's usual convention) |
 | **Owner** | Carlos E. Ugarte |
@@ -561,8 +561,13 @@ equals `client.$(DOMAIN_APEX)` — in this PR, not Phase 1, because `check-vars`
 and `live-update` already exist and a stale `make live-update DOMAIN=… S3_BUCKET=…`
 is exactly what the assertion is for. It checks `DOMAIN_APEX` is non-empty
 *before* the equality, so an empty input cannot pass as `client.` ==
-`client.`. Phase 1 factors it into `check-derived`
-and adds the `STACK_NAME` clause. `APEX_DISTRIBUTION_ID`
+`client.`. The post-merge review of that PR found that `deploy` and
+`destroy` ran **no** check at all, so a stale `DOMAIN=` on their wrappers
+reached `terraform` against the wrong workspace; the fix factored the two
+offline assertions into `check-derived` straight away and made it, via
+`check-terraform-vars` (adds `S3_BUCKET`, needs no `DISTRIBUTION_ID`), a
+prerequisite of both. Phase 1 adds the `STACK_NAME` clause to `check-derived`
+and retires `check-terraform-vars` with the Terraform targets. `APEX_DISTRIBUTION_ID`
 (defined, never referenced) and the `DOMAIN_APEX ?= $(DOMAIN)` default are
 deleted in the same PR, the wrappers shrink to `DOMAIN_APEX=<apex>` plus
 `S3_BUCKET=<current bucket>`, and `verify-s3-assets` is made to exit non-zero
@@ -1220,15 +1225,20 @@ Tick as done. Add sub-items freely; do not remove them.
 - [x] Pre-commit reviews folded in: two Codex rounds, plus an audit of every
       claim this plan makes about `terraform/` and the `Makefile` against the
       working tree — see [Review log](#review-log)
-- [ ] Plan-only PR opened; D1–D10 settled in its review; merged (G5)
-- [ ] Makefile input PR (G4): `DOMAIN_APEX` single input, derived `DOMAIN`,
+- [x] Plan-only PR opened; D1–D10 settled in its review; merged (G5) ([PR #1105](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1105), 2026-09-14)
+- [x] Makefile input PR (G4): `DOMAIN_APEX` single input, derived `DOMAIN`,
       dead `APEX_DISTRIBUTION_ID` removed, wrappers shrunk,
       `verify-s3-assets` exits non-zero on a missing asset, `check-vars`
       asserts `DOMAIN == client.$(DOMAIN_APEX)`, `.NOTPARALLEL:` added so
       `make -j` cannot reorder build and upload (§5.4), and the four targets
       missing from `make help` get `##` lines (§3.4); checked with
       `make help DOMAIN_APEX=…` for both environments **[agent]**;
-      merged **[owner]**
+      merged **[owner]** ([PR #1106](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1106), 2026-09-14)
+- [ ] Post-merge fix for #1106: `deploy`/`destroy` gained a
+      `check-terraform-vars` prerequisite (`check-derived` + `S3_BUCKET`) so a
+      command-line `DOMAIN` inherited by the wrappers is refused before
+      `terraform` runs — [Review log](#review-log) row 2 **[agent]**; merged
+      **[owner]**
 - [x] **[owner]** Stale `cfn-lint` 0.72 removed (2026-09-04). It was an
       unmanaged 2022 `pip install` into Homebrew's Python 3.10, not a formula;
       it shadowed nothing else and nothing depended on it. It had to go because
@@ -1252,7 +1262,7 @@ Tick as done. Add sub-items freely; do not remove them.
       committed — confirm the version lints the finished template before
       fixing it (§5.5) **[agent]**
 - [ ] Makefile: stack variables (`override` on every derived one and on
-      `STACK_REGION`), the four `check-*` targets including `check-derived`,
+      `STACK_REGION`), the four `check-*` targets (`check-derived` exists since the #1106 follow-up and gains the `STACK_NAME` clause; `check-terraform-vars` goes with `deploy`/`destroy`),
       `bucket-create` / `bucket-configure`, `stack-*` (including
       `stack-abort-create`, `stack-prestage`, `stack-activate` and
       `stack-upload`)
@@ -1412,7 +1422,7 @@ coherent plan rather than a history of itself.
 |---|---|---|---|
 | Draft | 2026-09-03 → 2026-09-04 | Claude Code (author); Codex ×2; Claude Code (plan-vs-repo audit) | Written from a survey of `terraform/`, the `Makefile`, CI, the local Terraform state and the org's existing CloudFormation (`sliderule/docs/cloudfront/documentation.yml`); givens G1–G5 supplied by the owner. Reviewed twice by Codex, which called the plan viable, and once against the working tree to check every claim it makes about `terraform/` and the `Makefile`. All findings folded in above. |
 | 1 | 2026-09-14 | C. Ugarte, JP Swinski (PR #1105) | All ten §6 decisions settled — D1–D8 and D10 accepted as proposed, D9 rejected in favour of its alternative (no scratch rehearsal; G8 added). Consequential edits: Phase 2 marked skipped rather than renumbered; its timing, the `stack-activate` measurement and the first half of V6 move to Phase 3; §7.5's scratch values removed; §7.3's "produced a working environment twice" corrected to once; `HOSTED_ZONE_ID`'s reason for staying overridable restated as an escape hatch rather than a rehearsal need. |
-| 2 | | | |
+| 2 | 2026-09-14 | Codex (post-merge review of PR #1106) | One P1: the G4 PR removed the wrappers' explicit `DOMAIN=` but `deploy` and `destroy` had no validation prerequisite, so `make destroy-client-testsliderule DOMAIN=client.slideruleearth.io` inherited the command-line `DOMAIN` through the recursive make and selected the **production** workspace (reproduced with stubs). Fix: `check-derived` (the two offline assertions, pulled forward from Phase 1) and `check-terraform-vars` (`check-derived` + `S3_BUCKET`, no `DISTRIBUTION_ID` so a first deploy still works) as a prerequisite of both; `check-vars` now depends on `check-derived`. Verified with stubs that both wrappers are refused before `terraform` runs and the normal mappings still pass. §5.4 and Phase 0 updated. |
 
 ## Decision log
 
