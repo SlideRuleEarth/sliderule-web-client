@@ -1,0 +1,365 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  SlideRule web client: CloudFront in front of a pre-existing S3 bucket for the
+  client host (client.<apex>), plus the apex distribution whose viewer-request
+  function 301s / to the client and 404s everything else. One stack per
+  environment, always in us-east-1. Design: docs/cloudformation-migration-plan.md
+
+# ---------------------------------------------------------------------------
+# What is deliberately NOT here
+#
+# - The S3 bucket. It is created once per environment by `make bucket-create`
+#   and passed in as S3BucketName; the stack never creates, replaces or deletes
+#   it, so `stack-destroy` cannot take the site's files with it (plan D8).
+# - The ACM validation CNAME. ACM's validation record is the same for every
+#   certificate for a domain in an account and is retained in the zone from the
+#   Terraform era, so the Certificate below validates immediately (plan D2).
+# - Conditions and DeletionPolicy. Both environments have a separate apex, so
+#   the apex resources are unconditional (plan G3, D4).
+#
+# Every property whose Terraform default differed from the CloudFormation
+# default is set explicitly (HttpVersion, IPV6Enabled, Restrictions); treat
+# anything this template does not state as a question, not a safe default.
+# ---------------------------------------------------------------------------
+
+Parameters:
+  DomainName:
+    Type: String
+    Description: >-
+      The client host, always client.<DomainApex>. The Makefile derives it from
+      DOMAIN_APEX and check-derived refuses a value that disagrees; it is a
+      parameter so the template states the host once.
+    AllowedPattern: "^client\\.[a-z0-9.-]+$"
+  DomainApex:
+    Type: String
+    Description: The apex domain (slideruleearth.io or testsliderule.org).
+    AllowedPattern: "^[a-z0-9-]+(\\.[a-z0-9-]+)+$"
+  S3BucketName:
+    Type: String
+    Description: >-
+      The environment's permanent site bucket, created by `make bucket-create`
+      in us-east-1 before the first stack create. Never owned by this stack.
+    AllowedPattern: "^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"
+  HostedZoneId:
+    Type: AWS::Route53::HostedZone::Id
+    Description: >-
+      The public hosted zone for DomainApex. The Makefile resolves it with
+      list-hosted-zones-by-name filtered to the exact name and PrivateZone ==
+      false, and refuses anything but exactly one match.
+
+Resources:
+  # --- Certificate (plan D2) -------------------------------------------------
+  # Covers the apex and *.<apex>. CloudFormation waits for ISSUED before it
+  # creates the distributions; with the validation CNAME retained that is
+  # minutes, not a DNS round-trip.
+  Certificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !Ref DomainApex
+      SubjectAlternativeNames:
+        - !Sub "*.${DomainApex}"
+      ValidationMethod: DNS
+      DomainValidationOptions:
+        - DomainName: !Ref DomainApex
+          HostedZoneId: !Ref HostedZoneId
+        - DomainName: !Sub "*.${DomainApex}"
+          HostedZoneId: !Ref HostedZoneId
+
+  # --- Origin access (plan D1a) ----------------------------------------------
+  # OAC replaces the Terraform-era OAI. Both distributions use it; the bucket
+  # policy below admits only those two distributions.
+  OriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub "${AWS::StackName}-oac"
+        Description: !Sub "S3 origin access for ${DomainName} and ${DomainApex}"
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  SiteBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref S3BucketName
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowCloudFrontServicePrincipalReadOnly
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub "arn:aws:s3:::${S3BucketName}/*"
+            Condition:
+              StringEquals:
+                AWS:SourceArn:
+                  - !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${ClientDistribution}"
+                  - !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${ApexDistribution}"
+
+  # --- Cache policy (plan D1b) -----------------------------------------------
+  # Terraform's TTLs (0 / 3600 / 86400) and its forwarding (nothing), plus
+  # compression, which the Terraform resource left at its default of off.
+  CachePolicy:
+    Type: AWS::CloudFront::CachePolicy
+    Properties:
+      CachePolicyConfig:
+        Name: !Sub "${AWS::StackName}-cache"
+        Comment: !Sub "Static site cache for ${DomainName}"
+        MinTTL: 0
+        DefaultTTL: 3600
+        MaxTTL: 86400
+        ParametersInCacheKeyAndForwardedToOrigin:
+          EnableAcceptEncodingGzip: true
+          EnableAcceptEncodingBrotli: true
+          CookiesConfig:
+            CookieBehavior: none
+          HeadersConfig:
+            HeaderBehavior: none
+          QueryStringsConfig:
+            QueryStringBehavior: none
+
+  # --- Security headers ------------------------------------------------------
+  # Byte-for-byte the policy in terraform/modules/cloudfront.tf. The CSP string
+  # is copied verbatim, including its repeated hosts and doubled spaces, with
+  # only ${var.domainApex} rewritten to ${DomainApex}: the client's workers and
+  # WASM load only if this header is identical (plan section 5.3).
+  SecurityHeadersPolicy:
+    Type: AWS::CloudFront::ResponseHeadersPolicy
+    Properties:
+      ResponseHeadersPolicyConfig:
+        Name: !Sub "${AWS::StackName}-headers"
+        Comment: !Sub "Security headers for ${DomainName}"
+        SecurityHeadersConfig:
+          ContentTypeOptions:
+            Override: true
+          FrameOptions:
+            FrameOption: DENY
+            Override: true
+          ReferrerPolicy:
+            ReferrerPolicy: same-origin
+            Override: true
+          XSSProtection:
+            ModeBlock: true
+            Protection: true
+            Override: true
+          StrictTransportSecurity:
+            AccessControlMaxAgeSec: 63072000
+            IncludeSubdomains: true
+            Preload: true
+            Override: true
+          ContentSecurityPolicy:
+            ContentSecurityPolicy: !Sub "frame-ancestors 'none'; default-src 'none'; img-src 'self' data: https://*.openstreetmap.org https://openlayers.org https://mt1.google.com https://tile.googleapis.com https://server.arcgisonline.com https://services.arcgisonline.com https://cdn.rawgit.com https://cdn.jsdelivr.net https://www.opengis.net https://worldwind25.arc.nasa.gov https://neo.gsfc.nasa.gov https://gibs.earthdata.nasa.gov https://gibs.earthdata.nasa.gov https://gitc.earthdata.nasa.gov https://www.glims.org https://*.arcgis.com https://elevation.nationalmap.gov https://nimbus.cr.usgs.gov https://tiles.maps.eox.at https://*.tile.opentopomap.org https://docs.slideruleearth.io ; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self'; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; object-src 'none'; font-src 'self' https://fonts.gstatic.com; connect-src 'self' blob: https://*.slideruleearth.io https://*.${DomainApex} https://${DomainApex} https://photon.komoot.io https://nominatim.openstreetmap.org https://server.arcgisonline.com https://www.opengis.net https://worldwind25.arc.nasa.gov  https://neo.gsfc.nasa.gov https://gibs.earthdata.nasa.gov https://gitc.earthdata.nasa.gov https://www.glims.org https://*.arcgis.com https://elevation.nationalmap.gov https://elevation.nationalmap.gov https://extensions.duckdb.org https://tile.googleapis.com https://tiles.maps.eox.at;"
+            Override: true
+
+  # --- Client distribution: client.<apex> ------------------------------------
+  ClientDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Comment: !Sub "${DomainName} (web client)"
+        Enabled: true
+        HttpVersion: http2
+        IPV6Enabled: true
+        PriceClass: PriceClass_200
+        DefaultRootObject: index.html
+        Aliases:
+          - !Ref DomainName
+        Origins:
+          - Id: s3-client
+            DomainName: !Sub "${S3BucketName}.s3.${AWS::Region}.amazonaws.com"
+            OriginAccessControlId: !GetAtt OriginAccessControl.Id
+            # The empty string is what AWS requires here when an OAC is used.
+            S3OriginConfig:
+              OriginAccessIdentity: ""
+        DefaultCacheBehavior:
+          TargetOriginId: s3-client
+          ViewerProtocolPolicy: redirect-to-https
+          # GET/HEAD/OPTIONS only (plan D1d): nothing in the client POSTs to
+          # its own origin. Terraform allowed all seven methods.
+          AllowedMethods: [GET, HEAD, OPTIONS]
+          CachedMethods: [GET, HEAD]
+          Compress: true
+          CachePolicyId: !Ref CachePolicy
+          ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
+        # SPA fallback: a missing key (403 from S3 via OAC, or 404) serves
+        # index.html at 200 so the router owns the path. This is also why a
+        # missing robots.txt is HTML, not empty (see CLAUDE.md).
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 0
+        Restrictions:
+          GeoRestriction:
+            RestrictionType: none
+        ViewerCertificate:
+          AcmCertificateArn: !Ref Certificate
+          SslSupportMethod: sni-only
+          MinimumProtocolVersion: TLSv1.2_2021
+
+  ClientAliasA:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref DomainName
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt ClientDistribution.DomainName
+        HostedZoneId: Z2FDTNDATAQYW2 # CloudFront's fixed hosted zone
+        EvaluateTargetHealth: false
+
+  # New (plan D1c): the distribution had IPv6 on but no AAAA record.
+  ClientAliasAAAA:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref DomainName
+      Type: AAAA
+      AliasTarget:
+        DNSName: !GetAtt ClientDistribution.DomainName
+        HostedZoneId: Z2FDTNDATAQYW2
+        EvaluateTargetHealth: false
+
+  # --- Apex: <apex> hosts nothing --------------------------------------------
+  # The function answers every request at the edge; the origin below is never
+  # reached. Do not add an allowlist of paths that pass through (CLAUDE.md).
+  #
+  # The JS is the Terraform heredoc verbatim. It is inside !Sub, so any "${"
+  # in it is a substitution: today only ${DomainApex} and ${DomainName}. If a
+  # future edit needs a literal "${" (a JS template literal), write "${!".
+  ApexRedirectFunction:
+    Type: AWS::CloudFront::Function
+    Properties:
+      Name: !Sub "${AWS::StackName}-apex-redirect"
+      AutoPublish: true
+      FunctionConfig:
+        Comment: !Sub "${DomainApex}: 301 / to the client, 404 everything else"
+        Runtime: cloudfront-js-2.0
+      FunctionCode: !Sub |
+        // The apex hosts no content. Only the root redirects to the web client;
+        // every other path is answered with a 404 generated here at the edge.
+        //
+        // The previous behaviour -- 301 every path to /landing -- told crawlers
+        // and agents that infinitely many URLs on this host were valid, and
+        // answered a request for a file we do not publish with a redirect to an
+        // unrelated page. A 404 is the honest answer: nothing lives here.
+        //
+        // Agent- and crawler-facing files (robots.txt and friends) belong on the
+        // host that actually has content to describe -- docs.slideruleearth.io,
+        // maintained in a different repository -- not here.
+        var NOT_FOUND_BODY = [
+          '404 Not Found',
+          '',
+          'https://${DomainApex} serves no content at this path.',
+          '',
+          'Web client:    https://${DomainName}/',
+          'Documentation: https://docs.slideruleearth.io/'
+        ].join('\n');
+
+        function handler(event) {
+          if (event.request.uri === '/') {
+            return {
+              statusCode: 301,
+              statusDescription: 'Moved Permanently',
+              headers: {
+                'location': { value: 'https://${DomainName}/landing' }
+              }
+            };
+          }
+          return {
+            statusCode: 404,
+            statusDescription: 'Not Found',
+            headers: {
+              'content-type':  { value: 'text/plain; charset=utf-8' },
+              'cache-control': { value: 'public, max-age=300' }
+            },
+            body: NOT_FOUND_BODY
+          };
+        }
+
+  ApexDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Comment: !Sub "${DomainApex} (apex redirect, no content)"
+        Enabled: true
+        HttpVersion: http2
+        # New (plan D1c): the Terraform apex distribution never set this, so
+        # it was off.
+        IPV6Enabled: true
+        PriceClass: PriceClass_100
+        Aliases:
+          - !Ref DomainApex
+        # Required by CloudFront but never reached.
+        Origins:
+          - Id: s3-apex-dummy
+            DomainName: !Sub "${S3BucketName}.s3.${AWS::Region}.amazonaws.com"
+            OriginAccessControlId: !GetAtt OriginAccessControl.Id
+            S3OriginConfig:
+              OriginAccessIdentity: ""
+        DefaultCacheBehavior:
+          TargetOriginId: s3-apex-dummy
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD]
+          CachedMethods: [GET, HEAD]
+          # Shared with the client distribution but never exercised: a
+          # viewer-request function that returns a response short-circuits
+          # before the cache lookup.
+          CachePolicyId: !Ref CachePolicy
+          FunctionAssociations:
+            - EventType: viewer-request
+              FunctionARN: !GetAtt ApexRedirectFunction.FunctionARN
+        Restrictions:
+          GeoRestriction:
+            RestrictionType: none
+        ViewerCertificate:
+          AcmCertificateArn: !Ref Certificate
+          SslSupportMethod: sni-only
+          MinimumProtocolVersion: TLSv1.2_2021
+
+  ApexAliasA:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref DomainApex
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt ApexDistribution.DomainName
+        HostedZoneId: Z2FDTNDATAQYW2
+        EvaluateTargetHealth: false
+
+  # New (plan D1c)
+  ApexAliasAAAA:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref DomainApex
+      Type: AAAA
+      AliasTarget:
+        DNSName: !GetAtt ApexDistribution.DomainName
+        HostedZoneId: Z2FDTNDATAQYW2
+        EvaluateTargetHealth: false
+
+Outputs:
+  ClientDistributionId:
+    Description: The client distribution; `make live-update` resolves this by alias, not from here.
+    Value: !Ref ClientDistribution
+  ApexDistributionId:
+    Description: The apex distribution.
+    Value: !Ref ApexDistribution
+  ClientDistributionDomainName:
+    Description: The *.cloudfront.net name the client alias points at.
+    Value: !GetAtt ClientDistribution.DomainName
+  BucketName:
+    Description: >-
+      Echo of the S3BucketName parameter, for humans reading `make stack-outputs`.
+      The destroy gate compares the parameter itself, not this output.
+    Value: !Ref S3BucketName
+  CertificateArn:
+    Description: The wildcard certificate this stack issued and owns.
+    Value: !Ref Certificate

@@ -1,0 +1,4 @@
+# What we ask for. The lock is requirements-lint.txt, regenerated with:
+#   uv pip compile cloudformation/requirements-lint.in -o cloudformation/requirements-lint.txt --universal --python-version 3.10
+# See docs/cloudformation-migration-plan.md section 5.5.
+cfn-lint==1.56.3

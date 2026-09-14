@@ -1,0 +1,33 @@
+name: CloudFormation template lint
+# Deliberately separate from playwright.yml so the Playwright job is untouched
+# and this one runs only when the template, its lint lock, the Makefile or
+# this file changes. It never talks to AWS: `make lint-cfn` runs the pinned
+# cfn-lint through uv (docs/cloudformation-migration-plan.md section 5.5).
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'cloudformation/**'
+      - 'Makefile'
+      - '.github/workflows/cloudformation.yml'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'cloudformation/**'
+      - 'Makefile'
+      - '.github/workflows/cloudformation.yml'
+  workflow_dispatch: {}
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: cloudformation/requirements-lint.txt
+
+      - name: Lint the template with the pinned cfn-lint
+        run: make lint-cfn
