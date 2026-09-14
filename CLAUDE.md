@@ -173,8 +173,19 @@ not reintroduce it without asking first.
 ## Build / deploy
 
 - `make build` produces `web-client/dist/`
-- Deploy targets like `make deploy-client-to-slideruleearth` handle S3 upload
-  and CloudFront invalidation via Terraform (`terraform/`)
+- Content deploys are `make live-update-<env>` (build, upload, invalidate,
+  verify). These are the everyday path and are unchanged by the migration.
+- Infrastructure is mid-migration from Terraform to CloudFormation
+  ([`docs/cloudformation-migration-plan.md`](docs/cloudformation-migration-plan.md),
+  [`cloudformation/README.md`](cloudformation/README.md), issue #1108). The
+  `stack-*` / `bucket-*` targets and `deploy-client-to-<env>` /
+  `destroy-client-<env>` are **CloudFormation-only** and refuse an environment
+  that is still on Terraform. Until an environment's cutover its
+  infrastructure is **frozen**: nothing under `terraform/` changes, and the
+  one exception — an emergency change such as republishing the apex function
+  — is run by hand from `terraform/` with the workspace selected, never
+  through `make`. Check the plan's Phase 3/4 checkboxes to see which
+  environments have cut over.
 - `make keycloak-up`/`keycloak-down` spin up a local OAuth server for auth dev
 
 ## Lint config quirk
