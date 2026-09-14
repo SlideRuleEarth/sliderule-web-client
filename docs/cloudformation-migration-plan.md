@@ -1286,7 +1286,8 @@ the README's runbook section.
 - [x] `make lint-cfn` passes with the pinned `cfn-lint` **[agent]** (PR A, 2026-09-14)
 - [x] `.github/workflows/cloudformation.yml` (paths include itself) +
       `ci-check` updated **[agent]** (PR A)
-- [ ] Codex review of the template (PR A) and of the Makefile changes (PR B) — log each
+- [x] Codex review of the template (PR A) — [Review log](#review-log) row 3, no findings
+- [ ] Codex review of the Makefile changes (PR B) — log it
 - [x] **[owner]** `make validate-cfn` passes (2026-09-14, on the PR A template)
 - [ ] PR A opened; PR B opened. Each description declares the infrastructure
       freeze (§5.4): until an environment's cutover its infrastructure is not
@@ -1437,6 +1438,7 @@ coherent plan rather than a history of itself.
 | Draft | 2026-09-03 → 2026-09-04 | Claude Code (author); Codex ×2; Claude Code (plan-vs-repo audit) | Written from a survey of `terraform/`, the `Makefile`, CI, the local Terraform state and the org's existing CloudFormation (`sliderule/docs/cloudfront/documentation.yml`); givens G1–G5 supplied by the owner. Reviewed twice by Codex, which called the plan viable, and once against the working tree to check every claim it makes about `terraform/` and the `Makefile`. All findings folded in above. |
 | 1 | 2026-09-14 | C. Ugarte, JP Swinski (PR #1105) | All ten §6 decisions settled — D1–D8 and D10 accepted as proposed, D9 rejected in favour of its alternative (no scratch rehearsal; G8 added). Consequential edits: Phase 2 marked skipped rather than renumbered; its timing, the `stack-activate` measurement and the first half of V6 move to Phase 3; §7.5's scratch values removed; §7.3's "produced a working environment twice" corrected to once; `HOSTED_ZONE_ID`'s reason for staying overridable restated as an escape hatch rather than a rehearsal need. |
 | 2 | 2026-09-14 | Codex (post-merge review of PR #1106) | One P1: the G4 PR removed the wrappers' explicit `DOMAIN=` but `deploy` and `destroy` had no validation prerequisite, so `make destroy-client-testsliderule DOMAIN=client.slideruleearth.io` inherited the command-line `DOMAIN` through the recursive make and selected the **production** workspace (reproduced with stubs). Fix: `check-derived` (the two offline assertions, pulled forward from Phase 1) and `check-terraform-vars` (`check-derived` + `S3_BUCKET`, no `DISTRIBUTION_ID` so a first deploy still works) as a prerequisite of both; `check-vars` now depends on `check-derived`. Verified with stubs that both wrappers are refused before `terraform` runs and the normal mappings still pass. §5.4 and Phase 0 updated. |
+| 3 | 2026-09-14 | Codex (PR #1109, `a9f5aa55` — the template) | No actionable findings. Confirmed independently: `make lint-cfn` passes; CSP and apex function code match Terraform exactly for both environments; 24 local checks of the redirect function's behaviour pass; both CI jobs green. Noted as still unverified, and already tracked here: live stack create/delete and the retained validation CNAME's behaviour (V6, Phase 3). |
 
 ## Decision log
 
