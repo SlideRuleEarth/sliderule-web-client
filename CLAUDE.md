@@ -49,6 +49,7 @@ Key targets:
 | Lint / fix | `make lint` / `make lint-fix` | |
 | Unit tests | `make test-unit` | Vitest |
 | E2E tests | `make test-e2e` | Playwright (runs from web-client/) |
+| Lint the CloudFormation template | `make lint-cfn` | Pinned `cfn-lint` via `uv`; nothing installed, no AWS |
 | All CI checks | `make ci-check` | |
 | Full list | `make help` | |
 
@@ -207,9 +208,15 @@ runs `verify-lockfiles`, `typecheck`, `test-unit`, then `test-e2e`. The fast
 checks sit ahead of the Playwright browser install on purpose, so a type error
 fails in seconds instead of minutes.
 
-`make ci-check` bundles the same set plus `lint` for local use. Note the
-workflow invokes the individual targets rather than calling `ci-check`, so
-adding a target to `ci-check` does **not** add it to CI — edit the workflow too.
+A second workflow
+([`.github/workflows/cloudformation.yml`](.github/workflows/cloudformation.yml))
+runs `make lint-cfn` only when `cloudformation/**`, the `Makefile` or the
+workflow itself changes.
+
+`make ci-check` bundles the same set plus `lint` and `lint-cfn` for local use.
+Note the workflows invoke the individual targets rather than calling
+`ci-check`, so adding a target to `ci-check` does **not** add it to CI — edit
+the workflow too.
 
 ## Reproducibility guardrails (what's enforced)
 

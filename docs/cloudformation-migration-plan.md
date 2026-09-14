@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Status** | ACCEPTED — merged via [PR #1105](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1105) on 2026-09-14 with all ten decisions settled ([Decision log](#decision-log)). Phase 0: the G4 Makefile PR merged as [PR #1106](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1106); its post-merge review fix is [Review log](#review-log) row 2 |
-| **Branch** | `cloudformation-migration-plan` |
-| **Tracking issue** | none yet (open one and rename the branch `issue-NNNN-cloudformation-migration` if you want the repo's usual convention) |
+| **Status** | ACCEPTED — merged via [PR #1105](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1105) on 2026-09-14 with all ten decisions settled ([Decision log](#decision-log)). Phase 0 complete on the agent side ([PR #1106](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1106), [PR #1107](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1107)). Phase 1 in progress as two PRs: template + lint + CI first, Makefile targets second |
+| **Branch** | merged; Phase 1 work is on `issue-1108-cloudformation-template` and `issue-1108-cloudformation-makefile` |
+| **Tracking issue** | [#1108](https://github.com/SlideRuleEarth/sliderule-web-client/issues/1108) (opened 2026-09-14) |
 | **Owner** | Carlos E. Ugarte |
 | **Authored by** | Claude Code (Fable 5.1), 2026-09-03, from the repo contents and the local Terraform state |
 | **Review** | Reviewed before commit; rounds from the plan PR onward are logged in the [Review log](#review-log) |
@@ -320,8 +320,8 @@ Provider-level `default_tags` on everything: `Owner=SlideRule`,
 
 `aws`, `terraform` and `uv` (Homebrew). **`cfn-lint` is deliberately not
 installed** — there is no `cfn-lint` on `PATH` — because `lint-cfn` runs it
-through `uv` from the pinned requirements file (§5.5). The current release is
-**1.56.0**, verified on 2026-09-04 by running it that way. Not installed and
+through `uv` from the pinned requirements file (§5.5). The pinned release is
+**1.56.3** (current on 2026-09-14, when the lock was compiled; 1.56.0 was current on 2026-09-04). Not installed and
 not needed: `rain`, `sam`, `cfn-guard`, `taskcat`, `cdk`.
 
 ---
@@ -775,7 +775,7 @@ one later if it earns its keep.
   files, the `pip-compile` pattern:
 
   ```
-  cloudformation/requirements-lint.in    cfn-lint==1.56.0        # what we ask for
+  cloudformation/requirements-lint.in    cfn-lint==1.56.3        # what we ask for
   cloudformation/requirements-lint.txt   generated, committed    # what actually gets installed
   ```
 
@@ -1234,11 +1234,11 @@ Tick as done. Add sub-items freely; do not remove them.
       missing from `make help` get `##` lines (§3.4); checked with
       `make help DOMAIN_APEX=…` for both environments **[agent]**;
       merged **[owner]** ([PR #1106](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1106), 2026-09-14)
-- [ ] Post-merge fix for #1106: `deploy`/`destroy` gained a
+- [x] Post-merge fix for #1106: `deploy`/`destroy` gained a
       `check-terraform-vars` prerequisite (`check-derived` + `S3_BUCKET`) so a
       command-line `DOMAIN` inherited by the wrappers is refused before
       `terraform` runs — [Review log](#review-log) row 2 **[agent]**; merged
-      **[owner]**
+      **[owner]** ([PR #1107](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1107), 2026-09-14)
 - [x] **[owner]** Stale `cfn-lint` 0.72 removed (2026-09-04). It was an
       unmanaged 2022 `pip install` into Homebrew's Python 3.10, not a formula;
       it shadowed nothing else and nothing depended on it. It had to go because
@@ -1246,21 +1246,35 @@ Tick as done. Add sub-items freely; do not remove them.
       properties that D1a/D1b add, so a hand-run `cfn-lint` would have reported
       false errors on exactly the new resources. Nothing replaces it — `uv`
       runs the pinned version (§5.5)
-- [ ] Open a tracking issue; rename branch to `issue-NNNN-…` (optional)
+- [x] Tracking issue [#1108](https://github.com/SlideRuleEarth/sliderule-web-client/issues/1108) opened 2026-09-14; Phase 1 branches are `issue-1108-cloudformation-*`
 - [ ] **[owner]** Certificate inventory for both apexes in both regions (V1)
 - [ ] **[owner]** External references to distribution IDs / CloudFront names /
       bucket names checked (V2)
-- [ ] **[owner]** AWS account ID confirmed for production (V5)
+- [x] **[owner]** AWS account ID confirmed for production (V5): `742127912612`, one account for both environments (2026-09-14)
 
 ### Phase 1 — Author (no AWS access needed)
 
-- [ ] `cloudformation/web-client.yaml` — full template per §4/§5 **[agent]**
+Split into two PRs (owner, 2026-09-14) so the template is reviewed on its own
+terms: **PR A** — template, lint lock, `lint-cfn`/`validate-cfn`, CI workflow,
+README; **PR B** — the Makefile `check-*` / `bucket-*` / `stack-*` targets and
+the README's runbook section.
+
+- [x] `cloudformation/web-client.yaml` — full template per §4/§5 **[agent]**
+      (PR A). CSP string and function code checked byte-identical to
+      `cloudfront.tf` after substitution, and the template's
+      `SecurityHeadersConfig` diffed field-by-field against the **live** test
+      policy (`get-response-headers-policy`, 2026-09-14): all six blocks
+      identical, only `Name` differs (G2). `Comment` set on both
+      distributions and both policies (cosmetic, not in the §4.5 table —
+      review)
 - [ ] `cloudformation/README.md` — deploy / cutover / destroy runbook
-      (a condensed §7.2 + §7.3) **[agent]**
-- [ ] `cloudformation/requirements-lint.in` (`cfn-lint==<version>`; 1.56.0 is
-      current) and the `uv pip compile` output `requirements-lint.txt`, both
-      committed — confirm the version lints the finished template before
-      fixing it (§5.5) **[agent]**
+      (a condensed §7.2 + §7.3) **[agent]**: template, parameters, lint and
+      editing rules in PR A; the runbook section in PR B with the targets it
+      describes
+- [x] `cloudformation/requirements-lint.in` (`cfn-lint==1.56.3`) and the
+      `uv pip compile --universal` output `requirements-lint.txt`, both
+      committed; the pinned version lints the finished template clean and
+      fails on deliberate faults (§5.5) **[agent]** (PR A)
 - [ ] Makefile: stack variables (`override` on every derived one and on
       `STACK_REGION`), the four `check-*` targets (`check-derived` exists since the #1106 follow-up and gains the `STACK_NAME` clause; `check-terraform-vars` goes with `deploy`/`destroy`),
       `bucket-create` / `bucket-configure`, `stack-*` (including
@@ -1269,12 +1283,13 @@ Tick as done. Add sub-items freely; do not remove them.
       targets, `terraform-destroy`, `deploy`/`destroy`
       aliased to the stack targets, wrappers per §5.4 with both environments'
       `live-update-*` / `release-*` still overriding `S3_BUCKET` **[agent]**
-- [ ] `make lint-cfn` passes with the pinned `cfn-lint` **[agent]**
-- [ ] `.github/workflows/cloudformation.yml` (paths include itself) +
-      `ci-check` updated **[agent]**
-- [ ] Codex review of the template and the Makefile changes — log it
-- [ ] **[owner]** `make validate-cfn` passes
-- [ ] PR opened for Phase 1; its description declares the infrastructure
+- [x] `make lint-cfn` passes with the pinned `cfn-lint` **[agent]** (PR A, 2026-09-14)
+- [x] `.github/workflows/cloudformation.yml` (paths include itself) +
+      `ci-check` updated **[agent]** (PR A)
+- [x] Codex review of the template (PR A) — [Review log](#review-log) row 3, no findings
+- [ ] Codex review of the Makefile changes (PR B) — log it
+- [x] **[owner]** `make validate-cfn` passes (2026-09-14, on the PR A template)
+- [ ] PR A opened; PR B opened. Each description declares the infrastructure
       freeze (§5.4): until an environment's cutover its infrastructure is not
       changed, and content deploys continue through `live-update-*`
 
@@ -1394,7 +1409,7 @@ template edit and `stack-deploy`, and that is the accepted trade.
 | V2 | Does anything outside this repo reference the distribution IDs, the `*.cloudfront.net` domain names or the bucket names (`testsliderule-webclient`, `slideruleearth-webclient`)? other SlideRuleEarth repositories, monitoring, dashboards, the docs site, bookmarks in runbooks | **[owner]** grep the `SlideRuleEarth` checkouts; check CloudWatch alarms and any uptime monitor | open |
 | V3 | Does the client ever send a non-GET request to its own origin? | **[agent]** grep of `web-client/src`, re-run 2026-09-04: all eleven `method: 'POST'` sites resolve to an absolute cross-origin URL — `https://<api host>/<path>` (`sliderule/core.ts`, `utils/fetchUtils.ts`), the OAuth `registration_endpoint` / `token_endpoint`, `https://provisioner.<base domain>`, or `tile.googleapis.com`. No relative `fetch('/…')` exists anywhere, and every `location.origin` use is an OAuth **redirect URI** (`/auth/github/callback`), i.e. a browser navigation, not a request method the distribution sees | **closed — no** |
 | V4 | With an OAC, is `S3OriginConfig: {OriginAccessIdentity: ""}` the required form? | AWS CloudFormation reference for `S3OriginConfig`: yes — the property must be present and empty when an OAC is used | **closed — yes** |
-| V5 | Is production in the same AWS account as test (`742127912612`)? The `AWS_ACCOUNT_ID` guard assumes one account. | **[owner]** `aws sts get-caller-identity` under the production profile | open |
+| V5 | Is production in the same AWS account as test (`742127912612`)? The `AWS_ACCOUNT_ID` guard assumes one account. | **[owner]** `aws sts get-caller-identity` under the production profile | **closed — yes**, one account, `742127912612` (owner, 2026-09-14) |
 | V6 | When `AWS::CertificateManager::Certificate` creates with DNS validation and the validation CNAME already exists with the same value, does it proceed (upsert / no-op) rather than fail? And does deleting the stack delete that CNAME? Both matter for a record shared with other certificates. | **[owner]** the create-side half is observed in Phase 3, where the retained Terraform-era CNAME is exactly the pre-existing record in question; the delete-side half is only observed if the test stack is ever destroyed, and until then the retained CNAME is assumed to survive a stack delete (it is not a stack resource); AWS docs for the certificate resource; if the delete-side answer is "yes", note it in `cloudformation/README.md` next to `stack-destroy` | open |
 | V7 | Which other certificates in the account validate through the same CNAME? A validation CNAME is per account and domain and is shared by every certificate for those names, in any region, whether the apex is the primary name or a SAN. Informs only whether the retained CNAME must stay forever; nothing in the runbook depends on the answer. | **[owner]** in every region the account uses (at least `us-east-1`, `us-west-2`): `aws acm list-certificates --includes keyTypes=RSA_1024,RSA_2048,RSA_3072,RSA_4096,EC_prime256v1,EC_secp384r1,EC_secp521r1` (the default lists only RSA 1024/2048), filtered on `DomainName` **and** `SubjectAlternativeNameSummaries`; then `describe-certificate … DomainValidationOptions[].ResourceRecord.Name` | open |
 | V8 | What `aws` CLI version is in use, and does it support `delete-stack --deletion-mode FORCE_DELETE_STACK`? Only affects the last-resort branch of the `DELETE_FAILED` row (§7.3); everything else in the plan uses long-standing commands. | `aws-cli/2.36.39` (Homebrew, upgraded 2026-09-04 from a 2024-vintage 2.18.8). Its bundled CloudFormation service model declares both `DeletionMode` and `FORCE_DELETE_STACK`, checked in `…/awscli/2.36.39/libexec/.../botocore/data/cloudformation/2010-05-15/service-2.json` | **closed — supported** |
@@ -1423,6 +1438,7 @@ coherent plan rather than a history of itself.
 | Draft | 2026-09-03 → 2026-09-04 | Claude Code (author); Codex ×2; Claude Code (plan-vs-repo audit) | Written from a survey of `terraform/`, the `Makefile`, CI, the local Terraform state and the org's existing CloudFormation (`sliderule/docs/cloudfront/documentation.yml`); givens G1–G5 supplied by the owner. Reviewed twice by Codex, which called the plan viable, and once against the working tree to check every claim it makes about `terraform/` and the `Makefile`. All findings folded in above. |
 | 1 | 2026-09-14 | C. Ugarte, JP Swinski (PR #1105) | All ten §6 decisions settled — D1–D8 and D10 accepted as proposed, D9 rejected in favour of its alternative (no scratch rehearsal; G8 added). Consequential edits: Phase 2 marked skipped rather than renumbered; its timing, the `stack-activate` measurement and the first half of V6 move to Phase 3; §7.5's scratch values removed; §7.3's "produced a working environment twice" corrected to once; `HOSTED_ZONE_ID`'s reason for staying overridable restated as an escape hatch rather than a rehearsal need. |
 | 2 | 2026-09-14 | Codex (post-merge review of PR #1106) | One P1: the G4 PR removed the wrappers' explicit `DOMAIN=` but `deploy` and `destroy` had no validation prerequisite, so `make destroy-client-testsliderule DOMAIN=client.slideruleearth.io` inherited the command-line `DOMAIN` through the recursive make and selected the **production** workspace (reproduced with stubs). Fix: `check-derived` (the two offline assertions, pulled forward from Phase 1) and `check-terraform-vars` (`check-derived` + `S3_BUCKET`, no `DISTRIBUTION_ID` so a first deploy still works) as a prerequisite of both; `check-vars` now depends on `check-derived`. Verified with stubs that both wrappers are refused before `terraform` runs and the normal mappings still pass. §5.4 and Phase 0 updated. |
+| 3 | 2026-09-14 | Codex (PR #1109, `a9f5aa55` — the template) | No actionable findings. Confirmed independently: `make lint-cfn` passes; CSP and apex function code match Terraform exactly for both environments; 24 local checks of the redirect function's behaviour pass; both CI jobs green. Noted as still unverified, and already tracked here: live stack create/delete and the retained validation CNAME's behaviour (V6, Phase 3). |
 
 ## Decision log
 

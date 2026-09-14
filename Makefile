@@ -28,6 +28,10 @@ DOMAIN_ROOT = $(firstword $(subst ., ,$(DOMAIN)))
 S3_BUCKET ?=
 DISTRIBUTION_ID = $(shell aws cloudfront list-distributions --query "DistributionList.Items[?Aliases.Items[0]=='$(DOMAIN)'].Id" --output text)
 BUILD_ENV = $(shell git --git-dir .git --work-tree . describe --abbrev --dirty --always --tags --long)
+# The CloudFormation template and its lint toolchain (docs/cloudformation-migration-plan.md §5.5).
+# `override`: the template is one file and the lint lock names the only cfn-lint we run.
+override CFN_TEMPLATE = cloudformation/web-client.yaml
+override CFN_LINT_REQUIREMENTS = cloudformation/requirements-lint.txt
 VERSION ?= latest
 BANNER_TEXT ?=
 
@@ -308,7 +312,7 @@ deploy-client-to-slideruleearth: ## Deploy the web client to the slideruleearth.
 destroy-client-slideruleearth: ## Destroy the web client from the slideruleearth.io cloudfront and remove the S3 bucket
 	$(MAKE) destroy DOMAIN_APEX=slideruleearth.io S3_BUCKET=slideruleearth-webclient
 
-.PHONY: check-lockfiles typecheck-tests upload-robots install-deps reinstall-deps rebuild-all regen-lockfiles verify-lockfiles audit-deps audit-fix-deps doctor check-derived check-terraform-vars check-vars typecheck lint lint-fix lint-staged pre-commit-check test-unit test-unit-watch coverage-unit test-e2e test-all ci-check keycloak-up keycloak-down keycloak-run
+.PHONY: check-lockfiles typecheck-tests upload-robots install-deps reinstall-deps rebuild-all regen-lockfiles verify-lockfiles audit-deps audit-fix-deps doctor check-derived check-terraform-vars check-vars typecheck lint lint-fix lint-cfn validate-cfn lint-staged pre-commit-check test-unit test-unit-watch coverage-unit test-e2e test-all ci-check keycloak-up keycloak-down keycloak-run
 # =========================
 # Testing / Quality targets
 # =========================
@@ -359,7 +363,18 @@ test-all: typecheck lint test-unit test-e2e ## Run all checks
 pw-report: ## Open the last Playwright HTML report
 	cd web-client && npm run pw:report
 
-ci-check: verify-lockfiles typecheck lint test-unit test-e2e ## CI gate: lockfile drift + types + lint + unit + e2e
+ci-check: verify-lockfiles typecheck lint test-unit test-e2e lint-cfn ## CI gate: lockfile drift + types + lint + unit + e2e + CloudFormation lint
+
+# Nothing is installed: uv resolves the pinned lock into a cache and runs cfn-lint from
+# it. The interpreter is pinned too so local and CI take the same branch of the lock's
+# markers. Regenerate the lock per the comment in cloudformation/requirements-lint.in.
+lint-cfn: ## Lint the CloudFormation template with the pinned cfn-lint (needs uv, no AWS)
+	uv run --no-project --python 3.13 \
+	  --with-requirements $(CFN_LINT_REQUIREMENTS) \
+	  cfn-lint $(CFN_TEMPLATE)
+
+validate-cfn: ## Ask the CloudFormation API (us-east-1) whether the template is syntactically valid (needs AWS credentials, changes nothing)
+	aws cloudformation validate-template --region us-east-1 --template-body file://$(CFN_TEMPLATE) --output text --query 'Description'
 
 check-derived: ## Assert DOMAIN_APEX is set and DOMAIN is client.<apex>, offline — every deploy, destroy and live-update path runs this first
 	@test -n "$(DOMAIN_APEX)" || (echo "❌ DOMAIN_APEX is not set"; exit 1)
