@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | ACCEPTED — merged via [PR #1105](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1105) on 2026-09-14 with all ten decisions settled ([Decision log](#decision-log)). Phase 0 complete on the agent side ([PR #1106](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1106), [PR #1107](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1107)). Phase 1 in progress as two PRs: template + lint + CI first, Makefile targets second |
+| **Status** | ACCEPTED — merged via [PR #1105](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1105) on 2026-09-14 with all ten decisions settled ([Decision log](#decision-log)). Phases 0 and 1 complete ([#1106](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1106), [#1107](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1107), [#1109](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1109), [#1110](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1110)). **Next: Phase 3, the `testsliderule.org` cutover** (§7.2), owner-run |
 | **Branch** | merged; Phase 1 work is on `issue-1108-cloudformation-template` and `issue-1108-cloudformation-makefile` |
 | **Tracking issue** | [#1108](https://github.com/SlideRuleEarth/sliderule-web-client/issues/1108) (opened 2026-09-14) |
 | **Owner** | Carlos E. Ugarte |
@@ -1305,10 +1305,10 @@ the README's runbook section.
 - [x] `.github/workflows/cloudformation.yml` (paths include itself) +
       `ci-check` updated **[agent]** (PR A)
 - [x] Codex review of the template (PR A) — [Review log](#review-log) row 3, no findings
-- [ ] Codex review of the Makefile changes (PR B) — log it
+- [x] Codex review of the Makefile changes (PR B) — [Review log](#review-log) rows 4 (design) and 5 (draft, two findings fixed)
 - [x] **[owner]** `make validate-cfn` passes (2026-09-14, on the PR A template)
-- [ ] PR A opened; PR B opened. Each description declares the infrastructure
-      freeze (§5.4): until an environment's cutover its infrastructure is not
+- [x] PR A opened; PR B opened. Each description declares the infrastructure
+      freeze (§5.4) — [PR #1109](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1109) and [PR #1110](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1110), both merged 2026-09-14. **Phase 1 complete.**: until an environment's cutover its infrastructure is not
       changed, and content deploys continue through `live-update-*`
 
 ### Phase 2 — Scratch rehearsal — **skipped** (D9 rejected 2026-09-14)
