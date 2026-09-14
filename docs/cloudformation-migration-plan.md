@@ -2,13 +2,13 @@
 
 | | |
 |---|---|
-| **Status** | DRAFT — plan only, no template or Makefile code yet |
+| **Status** | UNDER REVIEW in [PR #1105](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1105) — plan only, no template or Makefile code yet. All ten decisions settled 2026-09-14 (see [Decision log](#decision-log)) |
 | **Branch** | `cloudformation-migration-plan` |
 | **Tracking issue** | none yet (open one and rename the branch `issue-NNNN-cloudformation-migration` if you want the repo's usual convention) |
 | **Owner** | Carlos E. Ugarte |
 | **Authored by** | Claude Code (Fable 5.1), 2026-09-03, from the repo contents and the local Terraform state |
 | **Review** | Reviewed before commit; rounds from the plan PR onward are logged in the [Review log](#review-log) |
-| **Last updated** | 2026-09-04 |
+| **Last updated** | 2026-09-14 |
 
 This document is the single source of truth for the migration. It is meant to
 be handed off: anyone (or any agent) picking it up should be able to see what
@@ -90,6 +90,7 @@ Fixed by the owner. The plan is built on these and does not revisit them.
 | **G5** | **PR order:** this plan alone → the G4 Makefile PR → Phase 1 (template, stack targets, CI). Decisions in §6 are settled through the plan PR's review, not before. |
 | **G6** | **`terraform destroy` is trusted.** The owner runs it routinely and it is reliable. The plan builds no leftover detection or extra confirmation around it; Terraform's own plan-and-confirm prompt is the gate. |
 | **G7** | **Both environments start from a working Terraform deployment.** `terraform apply` is clean in each workspace and the live resources match `terraform/`. The plan neither verifies this nor carries recovery paths for a stale or partial starting state. |
+| **G8** | **`testsliderule.org` may be down for an extended period.** Fixed 2026-09-14 (C. Ugarte, JP Swinski). The test environment exists to be broken, so the ~1 h budget of G1 binds production only; test absorbs whatever the first-ever create from this template costs. This is what makes the scratch rehearsal unnecessary (D9). |
 
 ### 1.4 Constraints
 
@@ -127,7 +128,7 @@ be handed.
 
 | Tool | Needed for | Note |
 |---|---|---|
-| `aws` | every AWS step, all owner-run | `2.36.39` (upgraded 2026-09-04, in Phase 0 and so before the Phase 2 rehearsal). It supports `delete-stack --deletion-mode FORCE_DELETE_STACK`, the last resort in §7.3 (V8). **Do not upgrade it again between the rehearsal and a cutover** — the rehearsal's value is that it exercises the toolchain the window will use |
+| `aws` | every AWS step, all owner-run | `2.36.39` (upgraded 2026-09-04, in Phase 0). It supports `delete-stack --deletion-mode FORCE_DELETE_STACK`, the last resort in §7.3 (V8). **Do not upgrade it again between the test cutover and the production cutover** — the test cutover's value as a rehearsal depends on production running the same toolchain |
 | `terraform` | the cutover only — `plan`, `state pull`, `state rm`, `destroy`, `workspace delete`. Gone after Phase 5 | `1.14.9` (V9), current enough for every command the runbook uses. The provider is pinned at `hashicorp/aws` 5.31.0 by `.terraform.lock.hcl` |
 | `uv` | `make lint-cfn`, which runs `cfn-lint` from the pinned requirements file (§5.5) | **The only new prerequisite this migration adds.** `cfn-lint` itself is deliberately not installed (§3.6) |
 | `make`, `git`, Node, npm | the existing build and deploy path, unchanged | Node and npm are version-pinned; see `CLAUDE.md` |
@@ -186,10 +187,10 @@ be handed.
   switch buckets only after that environment's cutover.
 - **Cut over each environment with one runbook** (§7.2): retain the ACM
   validation CNAME, `terraform-destroy`, `deploy-client-to-<env>` (stack create + build + upload + invalidation),
-  verify, retire the Terraform workspace. A scratch-hostname rehearsal
-  proves the template creates a working environment before any live host is
-  touched (D9); test goes first, timed; production follows in an announced
-  window sized from that measurement.
+  verify, retire the Terraform workspace. Test goes first and is the first
+  real create from the template — no scratch rehearsal, because an extended
+  test outage is acceptable (G8, D9); it is timed, and production follows in
+  an announced window sized from that measurement.
 - Rollback is fix-forward, with explicit recovery paths for every failed
   stack state (§7.3).
 - Then delete `terraform/`, fix the docs, add `cfn-lint` to CI.
@@ -358,7 +359,7 @@ cloudformation/
 | `DomainName` | `$(DOMAIN)`, derived as `client.$(DOMAIN_APEX)` (G4) | `var.domainName`. Kept as a parameter so the template states the client host once instead of repeating `!Sub "client.${DomainApex}"` in every alias, record, output and the function body; the Makefile derives it, so the two cannot disagree. |
 | `DomainApex` | `$(DOMAIN_APEX)` | `var.domainApex` |
 | `S3BucketName` | `$(STACK_BUCKET)` (locked; defaults to `$(STACK_NAME)`, §5.4): the environment's permanent bucket, created once by `make bucket-create` before the first stack create and never deleted (D8) | `var.s3_bucket_name`. A parameter, not a resource — exactly as in the org's docs-site template. |
-| `HostedZoneId` | `$(HOSTED_ZONE_ID)`: `aws route53 list-hosted-zones-by-name --dns-name $(DOMAIN_APEX)` filtered to the exact name **and `Config.PrivateZone == false`**, and rejected unless exactly one ID comes back (Terraform's lookup had `private_zone = false`; a private zone of the same name would otherwise win a name-only filter). Overridable for the scratch rehearsal, whose apex is a subdomain of the zone. | `data.aws_route53_zone.public` — CloudFormation has no data sources. `AWS::Route53::RecordSet` could take `HostedZoneName`, but `AWS::CertificateManager::Certificate` DNS auto-validation needs the **ID**, so pass the ID once and use it everywhere. |
+| `HostedZoneId` | `$(HOSTED_ZONE_ID)`: `aws route53 list-hosted-zones-by-name --dns-name $(DOMAIN_APEX)` filtered to the exact name **and `Config.PrivateZone == false`**, and rejected unless exactly one ID comes back (Terraform's lookup had `private_zone = false`; a private zone of the same name would otherwise win a name-only filter). Overridable only as the escape hatch when the lookup does not return exactly one zone (§5.4). | `data.aws_route53_zone.public` — CloudFormation has no data sources. `AWS::Route53::RecordSet` could take `HostedZoneName`, but `AWS::CertificateManager::Certificate` DNS auto-validation needs the **ID**, so pass the ID once and use it everywhere. |
 
 No slug parameter: Terraform used `replace(var.domainName, ".", "-")` to name
 resources, and CloudFormation has no string-replace intrinsic, but fresh
@@ -638,8 +639,9 @@ serves the old one, and every subsequent deploy silently changes nothing.
 or environment variable can decouple the stack from the host it serves or move
 it out of `us-east-1`. Two stay overridable on purpose: `S3_BUCKET`, because
 the pre-cutover wrappers must point `live-update` at the Terraform-era bucket
-(D8), and `HOSTED_ZONE_ID`, because the scratch rehearsal's apex is a
-subdomain of its zone (§7.5).
+(D8), and `HOSTED_ZONE_ID`, as the manual escape hatch for the one case
+`check-stack-vars` cannot resolve — a lookup returning zero or several zones —
+where the operator supplies the ID after establishing which zone is right.
 
 `DOMAIN` is the exception: it keeps `?=` but is **asserted** rather than
 locked. Locking it would make `make live-update DOMAIN=… S3_BUCKET=…` — the
@@ -801,7 +803,7 @@ Choices the plan makes on top of the givens. Status legend: `proposed`
 (needs review) · `accepted` · `rejected`. Statuses change through the plan
 PR's review (G5).
 
-### D1 — Adopt current CloudFront primitives at creation — `proposed`
+### D1 — Adopt current CloudFront primitives at creation — `accepted`
 
 Because nothing is imported, there is no parity constraint on *how* the
 behaviour is produced. Four small changes, each reviewable on its own line of
@@ -833,7 +835,7 @@ no AAAA), matching the org's docs-site template exactly, with these four as
 follow-ups. Recommendation: take all four now; each is a few lines, and
 follow-ups on a fresh stack are just more CloudFront update cycles.
 
-### D2 — Certificate lives inside the stack, validation CNAME retained — `proposed`
+### D2 — Certificate lives inside the stack, validation CNAME retained — `accepted`
 
 Model `AWS::CertificateManager::Certificate` in the stack, as the docs-site
 template does, **and keep the Terraform-era validation CNAME in the zone**
@@ -851,10 +853,10 @@ as a parameter. Removes certificate issuance from the outage entirely and
 decouples the certificate's lifecycle from the site stack, at the cost of a
 second stack (or an unmanaged certificate) and a `CERTIFICATE_ARN` lookup in
 the Makefile. Recommendation: in-stack with the CNAME retained; switch to
-pre-issuing if the scratch rehearsal (Phase 2) shows issuance taking more
-than a few minutes, or if V1 finds a certificate shared with something else.
+pre-issuing if the test cutover (Phase 3) shows issuance taking more than a
+few minutes, or if V1 finds a certificate shared with something else.
 
-### D3 — Parameters via `--parameter-overrides` from the Makefile, no param files — `proposed`
+### D3 — Parameters via `--parameter-overrides` from the Makefile, no param files — `accepted`
 
 The Makefile already owns every value (`DOMAIN_APEX`, and everything derived
 from it) and looks up the zone; pass them on the command line, exactly like
@@ -862,7 +864,7 @@ the Terraform `-var` flags today. **Alternative:** committed JSON parameter
 files per environment — more discoverable, but a second place where
 `slideruleearth.io` is spelled out.
 
-### D4 — No `DeletionPolicy` — `proposed`
+### D4 — No `DeletionPolicy` — `accepted`
 
 The bucket is not a stack resource (D8), so the only things a
 `DeletionPolicy` could protect are distributions, policies, a function and a
@@ -873,7 +875,7 @@ to run while it is on. **Alternative:** `Retain` on the certificate alone, so
 a stack delete never leaves the domain without one — only worth it if V1 or
 V7 find the certificate shared.
 
-### D5 — `stack-destroy` gates everything, deletes the stack, then empties the bucket — `proposed`
+### D5 — `stack-destroy` gates everything, deletes the stack, then empties the bucket — `accepted`
 
 `terraform destroy` today deletes the bucket and its contents without
 ceremony (`force_destroy = true`). The new target never deletes the bucket
@@ -892,7 +894,7 @@ failed stack delete leaves the site's files where they were. Turning
 termination protection off is `stack-unprotect`, a separate command that also
 demands the confirmation — never a side effect of `destroy`.
 
-### D6 — Keep resolving `DISTRIBUTION_ID` by alias — `proposed`
+### D6 — Keep resolving `DISTRIBUTION_ID` by alias — `accepted`
 
 `live-update` finds the distribution with `list-distributions` by alias. It
 finds the new distribution as soon as it carries the alias, and it works in
@@ -902,13 +904,13 @@ lookup at all under D8: the bucket's name defaults to the stack's, so the
 Makefile derives it.) Reading
 `ClientDistributionId` from stack outputs too is a Phase 6 tidy-up.
 
-### D7 — Stack name mirrors the Terraform workspace name — `proposed`
+### D7 — Stack name mirrors the Terraform workspace name — `accepted`
 
 `$(DOMAIN_SLUG)-web-client`. **Alternative:** `web-client-<env>` with a
 short environment label (`testsliderule`, `slideruleearth`) — friendlier in
 the console, but a second naming scheme next to the hostnames.
 
-### D8 — One permanent bucket per environment, outside the stack — `proposed`
+### D8 — One permanent bucket per environment, outside the stack — `accepted`
 
 Bucket names need not survive the migration (G2), but no *chosen* name can be
 guaranteed at create time: names are global, S3 can hold a deleted name for an
@@ -946,7 +948,7 @@ back from stack outputs for every upload, and the bucket dies with the stack;
 read back on every update and a collision fallback, all because a name was
 chosen.
 
-### D9 — Rehearse on scratch hostnames before touching the test site — `proposed`
+### D9 — Rehearse on scratch hostnames before touching the test site — `rejected`
 
 `cfn-lint` and `validate-template` check syntax and schema; neither can tell
 whether a property value is accepted by the service, whether a name is
@@ -959,7 +961,7 @@ the test site exists to be broken, but a template bug then extends the test
 outage while it is fixed under time pressure, and the runbook is rehearsed
 one time fewer before production.
 
-### D10 — Stack tags — `proposed`
+### D10 — Stack tags — `accepted`
 
 Terraform tags every resource `Owner=SlideRule`,
 `Project=web-client-${domain_root}`, `cost-grouping=web-client` and
@@ -990,8 +992,7 @@ fourth key for no present benefit.
 ```
 Phase 0  prep           plan reviewed and merged; Makefile input PR (G4); TF state complete; pre-checks
 Phase 1  author         template + stack-* / terraform-* targets + lint + CI; no AWS calls
-Phase 2  rehearsal      scratch stack under testsliderule.org: prestage, create, activate, verify,
-                        then stack-upload as the fallback, then destroy (D9)
+Phase 2  (skipped)      scratch rehearsal — D9 rejected 2026-09-14; the test cutover is the rehearsal (G8)
 Phase 3  test cutover   prestage; terraform-destroy client.testsliderule.org; create; activate; verify; TIME IT
 Phase 4  prod cutover   announced window sized from Phase 3; identical runbook
 Phase 5  decommission   delete terraform/ and the terraform-* targets, docs, .gitignore, memory, old buckets
@@ -1102,7 +1103,7 @@ Phase 6  follow-ups     DISTRIBUTION_ID from stack outputs (D6); anything D1 def
 
 ### 7.3 Outage budget, failed-state recovery, rollback
 
-| Step | Expected | Measured (Phase 2 / Phase 3) |
+| Step | Expected | Measured (Phase 3) |
 |---|---|---|
 | `terraform destroy` | 10–20 min | — / |
 | stack create (cert + 2 distributions) | 10–25 min (cert is fast with the CNAME retained) | / |
@@ -1151,11 +1152,11 @@ is handled by the table above and a re-run; a working create that fails
 verification is fixed with a template edit and a stack update (5–15 min per
 CloudFront change). Rebuilding the Terraform environment from the archived
 state is possible but slower than any fix-forward, and is the option of last
-resort. What makes this acceptable is Phases 2 and 3: production runs a
-runbook and a template that have already produced a working environment
-twice.
+resort. What makes this acceptable is Phase 3: production runs a runbook and
+a template that have already produced a working environment once, on test —
+and G8 is what lets test absorb the cost of being first.
 
-### 7.4 Behaviour verification (run after Phases 2, 3 and 4)
+### 7.4 Behaviour verification (run after Phases 3 and 4)
 
 ```
 curl -sI  https://<apex>/                 # 301 → https://<client>/landing
@@ -1185,25 +1186,14 @@ plot, **and opening a record that existed before the cutover** — proves the
 OPFS/IndexedDB data survived, §5.3) — the CSP is the thing most likely to
 bite if a header is off by a character.
 
-### 7.5 Scratch rehearsal (Phase 2) — values
+### 7.5 Scratch rehearsal (Phase 2) — not used
 
-| | value |
-|---|---|
-| `DOMAIN_APEX` | `cfn.testsliderule.org` |
-| `DOMAIN` | `client.cfn.testsliderule.org` (derived) |
-| `STACK_NAME` / `STACK_BUCKET` | both `client-cfn-testsliderule-org-web-client` — `STACK_BUCKET` defaults to the stack name and no `BUCKET_<stack>` value is set for the scratch stack; the bucket is created by `make bucket-create` before the stack |
-| `HOSTED_ZONE_ID` | **must be passed explicitly** as the `testsliderule.org` zone: the lookup by name finds no zone called `cfn.testsliderule.org`, which is the intended failure mode for a mistyped apex |
-| certificate | `cfn.testsliderule.org` + `*.cfn.testsliderule.org`. **Seed the validation CNAME first**, so the rehearsal meets what the cutovers will meet — a pre-existing, unmanaged record (V6): `aws acm request-certificate --region us-east-1` for the two names with DNS validation, read the CNAME from `describe-certificate --region us-east-1`, create it in the `testsliderule.org` zone, `aws acm wait certificate-validated --region us-east-1`, then `delete-certificate --region us-east-1` (the record stays). Every ACM call carries the region: CloudFront only accepts certificates from `us-east-1`, and a certificate quietly issued elsewhere is useless here (§1.4). The stack's own certificate then issues against the seeded record. |
-| `robots.txt` | the noindex variant, correctly, because `DOMAIN` is not production |
-
-Seed the CNAME → `make bucket-create …` → `make stack-prestage …` →
-`make stack-deploy …` → `make stack-activate …` → §7.4 → then, separately,
-`make stack-upload …` to exercise the non-pre-staged fallback → §7.4 again →
-`make stack-destroy … CONFIRM_DESTROY=client.cfn.testsliderule.org` → note
-whether the seeded CNAME survived the stack delete (the second half of V6) →
-remove it by hand, delete the scratch bucket by hand (`aws s3 rb --force`; the
-one bucket this plan ever deletes) and confirm nothing is left for `cfn.` in
-Route 53, ACM, CloudFront or S3.
+D9 was rejected on 2026-09-14 (Decision log): there is no scratch-hostname
+rehearsal, because an extended `testsliderule.org` outage is acceptable (G8)
+and the test cutover is therefore the first real create from the template. The
+`cfn.testsliderule.org` values, the seeded-CNAME procedure and the scratch
+cleanup steps that stood here are in this file's history before that date, if
+the decision is ever revisited.
 
 ---
 
@@ -1266,42 +1256,37 @@ Tick as done. Add sub-items freely; do not remove them.
       freeze (§5.4): until an environment's cutover its infrastructure is not
       changed, and content deploys continue through `live-update-*`
 
-### Phase 2 — Scratch rehearsal **[owner]** (D9)
+### Phase 2 — Scratch rehearsal — **skipped** (D9 rejected 2026-09-14)
 
-- [ ] Validation CNAME for `cfn.testsliderule.org` seeded by hand (§7.5, V6)
-- [ ] `make bucket-create DOMAIN_APEX=cfn.testsliderule.org` — the scratch
-      stack's bucket, then `bucket-configure` re-run once to prove it is
-      idempotent
-- [ ] `make stack-prestage DOMAIN_APEX=cfn.testsliderule.org …` — fills the
-      bucket and ends in a passing `verify-s3-assets`, before any stack exists
-- [ ] `make stack-deploy DOMAIN_APEX=cfn.testsliderule.org HOSTED_ZONE_ID=Z1039660300QJ4GJRI5NT`
-      reaches `CREATE_COMPLETE` against the seeded record; **record the create
-      time in §7.3**
-- [ ] `make stack-activate …`; site loads. **Time it** — this is the number
-      that decides whether production is pre-staged (§7.3)
-- [ ] §7.4 verification passes (noindex robots expected)
-- [ ] `make stack-upload …` afterwards, exercising the non-pre-staged fallback
-      end to end; §7.4 still passes. Both paths are rehearsed here because the
-      cutover uses `stack-activate` and falls back to `stack-upload`, and
-      neither is exercised anywhere else before the test cutover
-- [ ] `make stack-destroy … CONFIRM_DESTROY=client.cfn.testsliderule.org`
-      completes; noted whether it removed the seeded CNAME (V6); the record
-      removed by hand; the scratch bucket deleted by hand; nothing left for
-      `cfn.` in Route 53 / ACM / CloudFront / S3
-- [ ] Findings folded back into the template; Review log row
+Not renumbered, so every cross-reference to Phases 3–6 stays valid. What this
+phase would have established moves to Phase 3: the first real create from the
+template, its timing, the `stack-activate` measurement, and the create-side
+half of V6. The price is that a template fault surfaces during the test outage
+rather than before it — accepted under G8.
 
 ### Phase 3 — Test cutover **[owner]**
 
+This is the first time the template creates anything (D9 rejected, G8). Expect
+to iterate: a template fault here costs test downtime while it is fixed with a
+template edit and `stack-deploy`, and that is the accepted trade.
+
 - [ ] §7.2 steps 1–10 (state clean, snapshot, certificate check, validation
       CNAME retained, permanent bucket created and pre-staged; **no `make build`
-      after step 9**)
+      after step 9**). `bucket-configure` re-run once after `bucket-create` to
+      prove it is idempotent
 - [ ] Steps 11–13: `terraform-destroy` → `stack-deploy` → `stack-activate` →
       verify. **Record the outage duration in §7.3**, and note separately how
       long `stack-activate` took — that number is what justifies pre-staging
-      production
+      production. **Record the certificate issuance time** against the
+      retained CNAME (the create-side half of V6, and D2's trigger for
+      switching to a pre-issued certificate)
 - [ ] Steps 15–16: workspace retired (state archived first); `S3_BUCKET`
       override removed from the testsliderule wrappers; a normal
       `make live-update-testsliderule` works via the derived default
+- [ ] `make deploy-client-to-testsliderule` run once end to end, so
+      `stack-upload` — the cutover fallback and the normal post-migration
+      deploy — is exercised before production depends on it (this was the
+      rehearsal's job)
 - [ ] Memory `apex-404-testsliderule-deploy.md` updated: the function is
       republished by `make deploy-client-to-testsliderule` via CloudFormation
 - [ ] Findings folded back into the template; Review log row
@@ -1354,10 +1339,10 @@ Tick as done. Add sub-items freely; do not remove them.
 
 | # | Risk | Mitigation |
 |---|---|---|
-| R1 | The outage runs long: certificate issuance stalls, CloudFront is slow, the build fails | the validation CNAME is retained so issuance does not wait on DNS (D2); Phases 2 and 3 measure every step; the production window is twice the measurement; run a `live-update` the day before to exercise the build |
+| R1 | The outage runs long: certificate issuance stalls, CloudFront is slow, the build fails | the validation CNAME is retained so issuance does not wait on DNS (D2); Phase 3 measures every step; the production window is twice the measurement; run a `live-update` the day before to exercise the build |
 | R2 | Something outside this repo is pinned to the old distribution IDs, `*.cloudfront.net` names or bucket names | V2; nothing in this repo is (the Makefile resolves the distribution by alias, and the bucket name is derived from the stack name — D8) |
 | R3 | Resolvers cache the missing A record after the destroy and keep answering NXDOMAIN for a while after the site is back | bounded by the zone's SOA minimum TTL (15 min default); accepted as part of the outage |
-| R4 | A template bug that passed on scratch and test still bites production (different apex, different CSP host list) | the only environment-specific values are parameters; §7.4 diffs the headers policy against the snapshot; browser smoke test |
+| R4 | A template bug that passed on test still bites production (different apex, different CSP host list) | the only environment-specific values are parameters; §7.4 diffs the headers policy against the snapshot; browser smoke test |
 | R5 | `stack-destroy` pointed at the wrong environment, or run while production's termination protection is on, emptying the bucket before the delete is refused | every gate runs before the first `s3 rm`: account, stack existence and status, protection off, `CONFIRM_DESTROY=<client host>`, and the stack's `S3BucketName` parameter equal to the bucket being emptied (D5) |
 | R6 | A stack operation fails and the operator re-runs `deploy` against a stack in a failed or in-progress state (a `ROLLBACK_COMPLETE` shell, for one, accepts only delete) | `stack-deploy` proceeds only from a stable status and points at §7.3; `stack-delete-failed` is the way out |
 | R7 | `deploy-client-to-<env>` is run while the environment is still on Terraform, creating a stack that fails on `CNAMEAlreadyExists` after minutes | `stack-deploy` checks for the alias on a foreign distribution before creating |
@@ -1388,7 +1373,7 @@ Tick as done. Add sub-items freely; do not remove them.
 | V3 | Does the client ever send a non-GET request to its own origin? | **[agent]** grep of `web-client/src`, re-run 2026-09-04: all eleven `method: 'POST'` sites resolve to an absolute cross-origin URL — `https://<api host>/<path>` (`sliderule/core.ts`, `utils/fetchUtils.ts`), the OAuth `registration_endpoint` / `token_endpoint`, `https://provisioner.<base domain>`, or `tile.googleapis.com`. No relative `fetch('/…')` exists anywhere, and every `location.origin` use is an OAuth **redirect URI** (`/auth/github/callback`), i.e. a browser navigation, not a request method the distribution sees | **closed — no** |
 | V4 | With an OAC, is `S3OriginConfig: {OriginAccessIdentity: ""}` the required form? | AWS CloudFormation reference for `S3OriginConfig`: yes — the property must be present and empty when an OAC is used | **closed — yes** |
 | V5 | Is production in the same AWS account as test (`742127912612`)? The `AWS_ACCOUNT_ID` guard assumes one account. | **[owner]** `aws sts get-caller-identity` under the production profile | open |
-| V6 | When `AWS::CertificateManager::Certificate` creates with DNS validation and the validation CNAME already exists with the same value, does it proceed (upsert / no-op) rather than fail? And does deleting the stack delete that CNAME? Both matter for a record shared with other certificates. | **[owner]** observed in Phase 2 — the scratch rehearsal seeds an unmanaged CNAME first (§7.5), so both halves are seen before any live host is touched — and again in Phase 3; AWS docs for the certificate resource; if the delete-side answer is "yes", note it in `cloudformation/README.md` next to `stack-destroy` | open |
+| V6 | When `AWS::CertificateManager::Certificate` creates with DNS validation and the validation CNAME already exists with the same value, does it proceed (upsert / no-op) rather than fail? And does deleting the stack delete that CNAME? Both matter for a record shared with other certificates. | **[owner]** the create-side half is observed in Phase 3, where the retained Terraform-era CNAME is exactly the pre-existing record in question; the delete-side half is only observed if the test stack is ever destroyed, and until then the retained CNAME is assumed to survive a stack delete (it is not a stack resource); AWS docs for the certificate resource; if the delete-side answer is "yes", note it in `cloudformation/README.md` next to `stack-destroy` | open |
 | V7 | Which other certificates in the account validate through the same CNAME? A validation CNAME is per account and domain and is shared by every certificate for those names, in any region, whether the apex is the primary name or a SAN. Informs only whether the retained CNAME must stay forever; nothing in the runbook depends on the answer. | **[owner]** in every region the account uses (at least `us-east-1`, `us-west-2`): `aws acm list-certificates --includes keyTypes=RSA_1024,RSA_2048,RSA_3072,RSA_4096,EC_prime256v1,EC_secp384r1,EC_secp521r1` (the default lists only RSA 1024/2048), filtered on `DomainName` **and** `SubjectAlternativeNameSummaries`; then `describe-certificate … DomainValidationOptions[].ResourceRecord.Name` | open |
 | V8 | What `aws` CLI version is in use, and does it support `delete-stack --deletion-mode FORCE_DELETE_STACK`? Only affects the last-resort branch of the `DELETE_FAILED` row (§7.3); everything else in the plan uses long-standing commands. | `aws-cli/2.36.39` (Homebrew, upgraded 2026-09-04 from a 2024-vintage 2.18.8). Its bundled CloudFormation service model declares both `DeletionMode` and `FORCE_DELETE_STACK`, checked in `…/awscli/2.36.39/libexec/.../botocore/data/cloudformation/2010-05-15/service-2.json` | **closed — supported** |
 | V9 | What `terraform` version is in use? The cutover depends on `state pull`, `state rm`, `destroy` and `workspace delete` behaving as §7.2 describes — in particular that `workspace delete` removes the remote state object (§7.2 step 15). | `1.14.9` (Homebrew, linked 2026-04-20), well past every command the runbook uses | **closed — 1.14.9** |
@@ -1397,15 +1382,10 @@ Tick as done. Add sub-items freely; do not remove them.
 
 ## 11. Open questions for the owner
 
-1. D1a–d: adopt OAC, the cache policy with compression, AAAA records and
-   `GET/HEAD/OPTIONS` at creation, or translate faithfully first?
-2. D2: certificate in the stack (with the CNAME retained), or pre-issued
-   before the window and passed as a parameter?
-3. D4: no `DeletionPolicy` at all, or `Retain` on the certificate? (The
-   bucket is not a stack resource, so it is not a candidate — D8.)
-4. D9: keep the scratch rehearsal (recommended) or go straight to the test
-   cutover?
-5. Who needs to hear about the production window, and how far ahead?
+The decision questions that stood here (D1, D2, D4, D9) were settled on
+2026-09-14 — see the [Decision log](#decision-log). One remains:
+
+1. Who needs to hear about the production window, and how far ahead?
 
 ---
 
@@ -1419,7 +1399,8 @@ coherent plan rather than a history of itself.
 | Round | Date | Reviewer | Summary of changes made to this plan |
 |---|---|---|---|
 | Draft | 2026-09-03 → 2026-09-04 | Claude Code (author); Codex ×2; Claude Code (plan-vs-repo audit) | Written from a survey of `terraform/`, the `Makefile`, CI, the local Terraform state and the org's existing CloudFormation (`sliderule/docs/cloudfront/documentation.yml`); givens G1–G5 supplied by the owner. Reviewed twice by Codex, which called the plan viable, and once against the working tree to check every claim it makes about `terraform/` and the `Makefile`. All findings folded in above. |
-| 1 | | | |
+| 1 | 2026-09-14 | C. Ugarte, JP Swinski (PR #1105) | All ten §6 decisions settled — D1–D8 and D10 accepted as proposed, D9 rejected in favour of its alternative (no scratch rehearsal; G8 added). Consequential edits: Phase 2 marked skipped rather than renumbered; its timing, the `stack-activate` measurement and the first half of V6 move to Phase 3; §7.5's scratch values removed; §7.3's "produced a working environment twice" corrected to once; `HOSTED_ZONE_ID`'s reason for staying overridable restated as an escape hatch rather than a rehearsal need. |
+| 2 | | | |
 
 ## Decision log
 
@@ -1427,7 +1408,8 @@ Status changes to §6 items, recorded through the plan PR's review and after.
 
 | Date | Decision | By |
 |---|---|---|
-| | | |
+| 2026-09-14 | **D1–D8, D10: `proposed` → `accepted`**, each as written. D1 with all four sub-items (a–d) taken at creation. | C. Ugarte, JP Swinski (PR #1105 review) |
+| 2026-09-14 | **D9: `proposed` → `rejected`; alternative adopted.** No scratch-hostname rehearsal: the test cutover is the first real create from the template, and an extended `testsliderule.org` outage is acceptable while any template fault is fixed (new given G8). Phase 2 is skipped; its measurements and the V6 observation move to Phase 3. | C. Ugarte, JP Swinski (PR #1105 review) |
 
 ---
 
@@ -1622,9 +1604,9 @@ Every generated name differs from the Terraform-era name for the same thing
 (`…-web-client-apex-redirect` vs `…-apex-redirect`, `…-web-client-headers` vs
 `…-shp`), and CloudFront function, OAC, cache-policy and response-headers-policy
 names are unique **per account**. So a stack can be created while the Terraform
-resources still exist without colliding on a name — which is what lets the
-scratch rehearsal (D9) run against the live test account, and what lets a
-failed create be retried after a partial rollback. The only names that must not
+resources still exist without colliding on a name — which is what lets a
+failed create be retried after a partial rollback, and what would let a
+scratch rehearsal run against the live account if D9 were ever revisited. The only names that must not
 collide within the plan are the two stacks' own, and those differ by apex.
 
 Longest generated name: `client-slideruleearth-io-web-client-apex-redirect`, 49
