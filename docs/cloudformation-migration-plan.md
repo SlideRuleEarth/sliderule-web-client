@@ -1257,7 +1257,7 @@ Tick as done. Add sub-items freely; do not remove them.
       false errors on exactly the new resources. Nothing replaces it — `uv`
       runs the pinned version (§5.5)
 - [x] Tracking issue [#1108](https://github.com/SlideRuleEarth/sliderule-web-client/issues/1108) opened 2026-09-14; Phase 1 branches are `issue-1108-cloudformation-*`
-- [ ] **[owner]** Certificate inventory for both apexes in both regions (V1)
+- [ ] **[owner]** Certificate inventory for both apexes in both regions (V1) — test done 2026-09-14, clean; production before Phase 4
 - [ ] **[owner]** External references to distribution IDs / CloudFront names /
       bucket names checked (V2)
 - [x] **[owner]** AWS account ID confirmed for production (V5): `742127912612`, one account for both environments (2026-09-14)
@@ -1423,7 +1423,7 @@ template edit and `stack-deploy`, and that is the accepted trade.
 
 | # | Question | How | Status |
 |---|---|---|---|
-| V1 | Is this environment's Terraform-managed certificate (the ARN in the state) `InUseBy` anything besides its own two distributions? If so, the destroy would try to delete a certificate something else needs. | **[owner]** `aws acm describe-certificate --region us-east-1 --certificate-arn <arn> --query Certificate.InUseBy`; the runbook branches on the answer (§7.2 step 3) | open |
+| V1 | Is this environment's Terraform-managed certificate (the ARN in the state) `InUseBy` anything besides its own two distributions? If so, the destroy would try to delete a certificate something else needs. | **[owner]** `aws acm describe-certificate --region us-east-1 --certificate-arn <arn> --query Certificate.InUseBy`; the runbook branches on the answer (§7.2 step 3) | **test: closed — clean** (2026-09-14, owner): `…certificate/2cf02d11-9b1c-47af-8f63-d71e7cc005e8` is `InUseBy` exactly `E1LORWIIYX82WR` and `E675VP482LBL9`, the test apex and client distributions, so step 3 takes the plain path. **Production: open** — same two commands under the `client.slideruleearth.io-web-client` workspace, before Phase 4 |
 | V2 | Does anything outside this repo reference the distribution IDs, the `*.cloudfront.net` domain names or the bucket names (`testsliderule-webclient`, `slideruleearth-webclient`)? other SlideRuleEarth repositories, monitoring, dashboards, the docs site, bookmarks in runbooks | **[owner]** grep the `SlideRuleEarth` checkouts; check CloudWatch alarms and any uptime monitor | open |
 | V3 | Does the client ever send a non-GET request to its own origin? | **[agent]** grep of `web-client/src`, re-run 2026-09-04: all eleven `method: 'POST'` sites resolve to an absolute cross-origin URL — `https://<api host>/<path>` (`sliderule/core.ts`, `utils/fetchUtils.ts`), the OAuth `registration_endpoint` / `token_endpoint`, `https://provisioner.<base domain>`, or `tile.googleapis.com`. No relative `fetch('/…')` exists anywhere, and every `location.origin` use is an OAuth **redirect URI** (`/auth/github/callback`), i.e. a browser navigation, not a request method the distribution sees | **closed — no** |
 | V4 | With an OAC, is `S3OriginConfig: {OriginAccessIdentity: ""}` the required form? | AWS CloudFormation reference for `S3OriginConfig`: yes — the property must be present and empty when an OAC is used | **closed — yes** |
