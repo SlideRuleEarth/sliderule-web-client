@@ -1403,6 +1403,10 @@ conditions, carrying every Phase 3 finding. Its go/no-go list is the gate.
       the apex; record both in §10
 - [ ] Announcement method and lead time agreed with the other developer
       (§11's open question); window announced, sized from §7.3 (60 min)
+- [ ] In-app banner deployed days ahead with
+      `make live-update-slideruleearth BANNER_TEXT='…'` (runbook step 8b —
+      a content deploy, permitted under the freeze); no content deploy after
+      it until the pre-stage, which drops the banner
 - [ ] §7.2 steps 1–14 on `slideruleearth.io` / `client.slideruleearth.io`,
       with step 5 (retain the old bucket) taken
 - [ ] `stack-protect` run; `make stack-status` shows protection on

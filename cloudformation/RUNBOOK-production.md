@@ -45,6 +45,7 @@ Do not open the window until every line is true.
 - [ ] Part A done: V1 and V7 for `slideruleearth.io` recorded in the plan (§10)
 - [ ] Announcement agreed with the other developer — method: ______ lead time: ______
 - [ ] Announcement sent, window: date ______ start (local) ______ length **60 min**
+- [ ] In-app banner deployed on ______ (step 8b); **no `make live-update-slideruleearth` since**, or the banner is gone
 - [ ] `main` is clean and pulled; `make lint-cfn` and `make validate-cfn` pass
 - [ ] The post-cutover wrappers PR for `slideruleearth.io` is open and **not merged** (Part D, step 16)
 - [ ] Part B steps 0–9 done, in this order, on the day (or the evening before, for 1–8)
@@ -101,8 +102,8 @@ the CNAME were ever deleted — so it never is.
 
 ## Part B — before the window (site up, no clock)
 
-Steps 1–8 can be done the evening before. Step 9 too, as long as nobody runs
-`make build` afterwards.
+Step 8b (the banner) is days ahead. Steps 1–8 can be done the evening before.
+Step 9 too, as long as nobody runs `make build` afterwards.
 
 **Step 0 — the right profile, logged in, verified.** Everything from here
 writes. `sliderule-power` (`Project-Power-User`) was sufficient for every
@@ -241,6 +242,29 @@ certificate would hang in `CREATE_IN_PROGRESS`. (If step 3 took its branch,
 the `CERT_ARN` line fails because the address is gone — use the ARN you noted
 in A1 instead.)
 
+**Step 8b — the in-app banner, days ahead.** The client already supports a
+banner: `BANNER_TEXT` is inlined at build time and `SrAppBar.vue` shows it
+whenever it is non-empty. This is an ordinary content deploy to the
+Terraform-era bucket and distribution — exactly what the freeze permits — and
+it needs no infrastructure change. Do it as many days ahead as the
+announcement agreed. Only people who open the client see it, so it complements
+the announcement; it does not replace it. Edit the text and the date first.
+
+```bash
+make live-update-slideruleearth BANNER_TEXT='Scheduled maintenance: the SlideRule web client will be unavailable for about an hour on DAY DD MONTH from HH:MM to HH:MM UTC. Your saved records are not affected.'
+```
+
+Expect: the build echoes `VITE_BANNER_TEXT=Scheduled maintenance: …`, the
+usual uploads to `s3://slideruleearth-webclient/…`, an invalidation, and
+`✅ Found:` lines. Reload `https://client.slideruleearth.io/` — the banner is
+in the app bar.
+
+**After this, do not run `make live-update-slideruleearth` again without
+`BANNER_TEXT`**: a deploy with it empty removes the banner. To change the
+wording, run the same command with the new text. The banner comes off by
+itself at the cutover: step 9 builds with `BANNER_TEXT` empty, so the
+pre-staged site that goes live at step 12 has none.
+
 **Step 9 — the permanent bucket, then pre-stage the site into it.**
 
 ```bash
@@ -260,7 +284,8 @@ see the plan's §5.4.
 make stack-prestage DOMAIN_APEX=slideruleearth.io
 ```
 
-Expect (several minutes): a full build, uploads to
+Expect (several minutes): a full build echoing **`VITE_BANNER_TEXT=`**
+(empty — the banner is not carried into the new site), uploads to
 `s3://client-slideruleearth-io-web-client/…`, **`Uploading web-client/dist/robots.txt`**
 (the real, crawlable file — this is production; test said "substituting
 robots.noindex.txt"), `✅ Found:` for each `index-*.js/css`, and
@@ -399,7 +424,8 @@ non-empty answer sets — the AAAA ones are new (D1c).
 Browser: `https://client.slideruleearth.io/` — landing page, a new request,
 the elevation plot, and **open a record that existed before the cutover**
 (proves the browser-side data survived; it is keyed on the origin, which did
-not change). The build date in the UI is step 9's.
+not change). The build date in the UI is step 9's, and **the banner is
+gone**.
 
 **Step 14 — termination protection, mandatory.**
 
