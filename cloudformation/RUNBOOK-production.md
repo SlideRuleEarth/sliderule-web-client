@@ -62,7 +62,9 @@ Do not open the window until every line is true.
 ## Part A — scheduling gate (read-only) — **done 2026-09-15**
 
 Run under any profile (`Project-Read-Only` suffices). Results as of
-2026-09-15; the same block re-runs everything if the window is weeks away.
+2026-09-15. The block below re-runs all of it **except the validation-CNAME
+comparison, which is step 8's block** — run that too if the window is weeks
+away.
 
 - **V1**: `c0b7a6c8…` is `InUseBy` exactly `E36AZ5X3OLE9QQ` and
   `EP6A1RAAHWFW0` — nothing else uses it, so step 3 has no branch.
@@ -89,8 +91,9 @@ aws route53 list-hosted-zones-by-name --dns-name slideruleearth.io --query "Host
 ```
 
 Expect, in order: `no changes are needed`; `InUseBy` with exactly the two ids
-above; the V7 tables; `(404) … Not Found` and `rc=254`; one zone id.
-**STOP** on any difference from the results listed above and tell Claude Code.
+above; the V7 tables; `(404) … Not Found` and `rc=254`; one zone id
+(`/hostedzone/Z0526045IQLILBFI9THF`). **STOP** on any difference from the
+results listed above and tell Claude Code.
 
 ---
 
