@@ -39,6 +39,34 @@ the window is announced (step 10). Verification is the full §7.4 list, not
 the short one. Expect the window to be shorter than test's 28 minutes: the
 template fault that cost 15 minutes there is fixed.
 
+**What this does not touch.** The SlideRule service (`sliderule.slideruleearth.io`)
+and the per-user clusters (`<name>.slideruleearth.io`) share this apex and
+its hosted zone, and may be provisioned during the window. Nothing here
+reaches them:
+
+- **Route 53.** The only records touched are `slideruleearth.io` and
+  `client.slideruleearth.io` — Terraform deletes their A records, the stack
+  creates A and AAAA for the same two names, and both names are derived from
+  the template's parameters, so no other host can be named. The zone itself
+  is a parameter, never managed. Route 53 applies each change batch on its
+  own; a cluster record created mid-window is unaffected. Step 2 snapshots
+  the whole zone and step 13 diffs it, so this is checked, not assumed.
+- **Certificates.** The destroy deletes `c0b7a6c8…` (us-east-1), whose only
+  users are our two distributions (V1, 2026-09-15; and a us-east-1
+  certificate cannot be attached to a us-west-2 load balancer). The
+  clusters' TLS is `c8b7089a…` in us-west-2 — a different certificate. What
+  they share is the validation CNAME, which step 4 retains and the template
+  never manages: it is not deleted by anything in this document.
+- **The API stays up.** `sliderule.slideruleearth.io` is not in this repo's
+  Terraform or the template. A user already inside the web client keeps
+  working against the API for the parts of the app already loaded; only new
+  page loads and lazily-loaded chunks fail during the outage. The Python
+  client is unaffected. The CSP is byte-identical, so `*.slideruleearth.io`
+  stays admitted afterwards.
+- Everything else — two distributions, the OAC, two policies, one function,
+  two buckets, one Terraform state object selected by workspace name — is
+  this project's alone.
+
 ---
 
 ## Go / no-go
@@ -134,8 +162,10 @@ resources ending in **`No changes.`**
 **STOP** on anything but `No changes.` — the infrastructure freeze was
 broken; the drift must be explained before anything is destroyed.
 
-**Step 2 — snapshot, before any `state rm`.** Five files; the `echo` must
-print one `E…` id for each distribution.
+**Step 2 — snapshot, before any `state rm`.** Six files; the `echo` must
+print the two distribution ids. The last file is the **whole hosted zone**,
+every record, sorted — step 13 diffs against it to prove nothing but our two
+names changed.
 
 ```bash
 terraform state pull > "$HOME/sliderule-tf-archive/slideruleearth.io-pre-cutover.tfstate.json"
@@ -147,12 +177,15 @@ aws cloudfront get-distribution-config --id "$APEX_ID" > "$HOME/sliderule-tf-arc
 POLICY_ID=$(terraform state show module.cloudfront.aws_cloudfront_response_headers_policy.security_headers_policy | awk '$1=="id"{gsub(/"/,"",$3); print $3}')
 aws cloudfront get-response-headers-policy --id "$POLICY_ID" > "$HOME/sliderule-tf-archive/slideruleearth.io-headers-policy.json"
 aws cloudfront get-function --name client-slideruleearth-io-apex-redirect --stage LIVE "$HOME/sliderule-tf-archive/slideruleearth.io-apex-function.js"
+aws route53 list-resource-record-sets --hosted-zone-id Z0526045IQLILBFI9THF --query 'ResourceRecordSets[].[Name,Type,AliasTarget.DNSName,ResourceRecords[0].Value]' --output text | sort > "$HOME/sliderule-tf-archive/slideruleearth.io-zone-pre-cutover.txt"
+wc -l "$HOME/sliderule-tf-archive/slideruleearth.io-zone-pre-cutover.txt"
 ls -l "$HOME/sliderule-tf-archive"
 ```
 
 Expect: `client=E36AZ5X3OLE9QQ apex=EP6A1RAAHWFW0`, one `ETag` line from
-`get-function`, and `ls` showing the five `slideruleearth.io-*` files, all
-non-zero. **STOP** if the ids differ, or a file is missing.
+`get-function`, a record count for the zone (dozens, not zero), and `ls`
+showing the six `slideruleearth.io-*` files, all non-zero. **STOP** if the
+ids differ, the count is zero, or a file is missing.
 
 **Step 3 — certificate check, repeated on the day.** V1 was clean on
 2026-09-15 (Part A); this confirms nothing has started using the
@@ -429,6 +462,22 @@ dig +short client.slideruleearth.io AAAA
 
 Expect: a TLS failure line (1.1 refused — `TLSv1.2_2021`), then four
 non-empty answer sets — the AAAA ones are new (D1c).
+
+Then the zone, against step 2's snapshot. Our own two names are excluded
+from the comparison (their A records were replaced and AAAA added, as
+intended); anything else that changed is printed.
+
+```bash
+aws route53 list-resource-record-sets --hosted-zone-id Z0526045IQLILBFI9THF --query 'ResourceRecordSets[].[Name,Type,AliasTarget.DNSName,ResourceRecords[0].Value]' --output text | sort > /tmp/zone-after.txt
+if test -s "$HOME/sliderule-tf-archive/slideruleearth.io-zone-pre-cutover.txt" && test -s /tmp/zone-after.txt; then diff "$HOME/sliderule-tf-archive/slideruleearth.io-zone-pre-cutover.txt" /tmp/zone-after.txt | grep '^[<>]' | grep -v -E '^[<>] (client\.)?slideruleearth\.io\.[[:space:]]+(A|AAAA)[[:space:]]' > /tmp/zone-unexpected.txt; cat /tmp/zone-unexpected.txt; grep -q '^<' /tmp/zone-unexpected.txt && echo ZONE-RECORD-REMOVED || echo ZONE-OK; else echo ZONE-CHECK-FAILED; fi
+```
+
+Expect: **`ZONE-OK`**, usually with nothing above it. Lines starting `>`
+are records that appeared during the window — a cluster spun up, say — and
+are fine; note them. **`ZONE-RECORD-REMOVED`** means a record other than our
+two disappeared: **STOP**, that is the one outcome this document says cannot
+happen, and the `<` line names it. `ZONE-CHECK-FAILED` means one of the two
+listings is empty; re-run before trusting anything.
 
 Browser: `https://client.slideruleearth.io/` — landing page, a new request,
 the elevation plot, and **open a record that existed before the cutover**
