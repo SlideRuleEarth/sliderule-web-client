@@ -49,14 +49,24 @@ reaches them:
   creates A and AAAA for the same two names, and both names are derived from
   the template's parameters, so no other host can be named. The zone itself
   is a parameter, never managed. Route 53 applies each change batch on its
-  own; a cluster record created mid-window is unaffected. Step 2 snapshots
-  the whole zone and step 13 diffs it, so this is checked, not assumed.
+  own; a cluster record created mid-window is unaffected. Cluster records
+  belong to the clusters' own CloudFormation stacks
+  (`sliderule/applications/provisioner/cluster.yml`) and are **ephemeral by
+  design** — clusters auto-delete on a schedule — so records appearing and
+  disappearing between the snapshot and the check is normal. Step 2
+  snapshots the zone and step 13 checks that the records this migration must
+  not touch are still there, and lists every other change for judgement.
 - **Certificates.** The destroy deletes `c0b7a6c8…` (us-east-1), whose only
   users are our two distributions (V1, 2026-09-15; and a us-east-1
-  certificate cannot be attached to a us-west-2 load balancer). The
-  clusters' TLS is `c8b7089a…` in us-west-2 — a different certificate. What
-  they share is the validation CNAME, which step 4 retains and the template
-  never manages: it is not deleted by anything in this document.
+  certificate cannot be attached to a us-west-2 load balancer). Neither of
+  the other two certificate systems under this apex is involved: the
+  **clusters** terminate TLS with a Let's Encrypt wildcard PEM that their
+  instances download from S3 (`sliderule/applications/certbot`,
+  `provisioner/ilb.sh`), which is not ACM at all; and the **us-west-2 ACM
+  wildcard** `c8b7089a…` serves the regional API Gateway services
+  (authenticator, provisioner, runner). What the ACM certificates share is
+  the validation CNAME, which step 4 retains and the template never manages:
+  it is not deleted by anything in this document.
 - **The API stays up.** `sliderule.slideruleearth.io` is not in this repo's
   Terraform or the template. A user already inside the web client keeps
   working against the API for the parts of the app already loaded; only new
@@ -162,10 +172,10 @@ resources ending in **`No changes.`**
 **STOP** on anything but `No changes.` — the infrastructure freeze was
 broken; the drift must be explained before anything is destroyed.
 
-**Step 2 — snapshot, before any `state rm`.** Six files; the `echo` must
-print the two distribution ids. The last file is the **whole hosted zone**,
-every record, sorted — step 13 diffs against it to prove nothing but our two
-names changed.
+**Step 2 — snapshot, before any `state rm`.** Seven files; the `echo` must
+print the two distribution ids. The last two are the hosted zone: the full
+record set as JSON (complete, for the archive) and a sorted text form of the
+four fields step 13 compares — name, type, alias target, first value.
 
 ```bash
 terraform state pull > "$HOME/sliderule-tf-archive/slideruleearth.io-pre-cutover.tfstate.json"
@@ -177,6 +187,7 @@ aws cloudfront get-distribution-config --id "$APEX_ID" > "$HOME/sliderule-tf-arc
 POLICY_ID=$(terraform state show module.cloudfront.aws_cloudfront_response_headers_policy.security_headers_policy | awk '$1=="id"{gsub(/"/,"",$3); print $3}')
 aws cloudfront get-response-headers-policy --id "$POLICY_ID" > "$HOME/sliderule-tf-archive/slideruleearth.io-headers-policy.json"
 aws cloudfront get-function --name client-slideruleearth-io-apex-redirect --stage LIVE "$HOME/sliderule-tf-archive/slideruleearth.io-apex-function.js"
+aws route53 list-resource-record-sets --hosted-zone-id Z0526045IQLILBFI9THF --output json > "$HOME/sliderule-tf-archive/slideruleearth.io-zone-pre-cutover.json"
 aws route53 list-resource-record-sets --hosted-zone-id Z0526045IQLILBFI9THF --query 'ResourceRecordSets[].[Name,Type,AliasTarget.DNSName,ResourceRecords[0].Value]' --output text | sort > "$HOME/sliderule-tf-archive/slideruleearth.io-zone-pre-cutover.txt"
 wc -l "$HOME/sliderule-tf-archive/slideruleearth.io-zone-pre-cutover.txt"
 ls -l "$HOME/sliderule-tf-archive"
@@ -184,7 +195,7 @@ ls -l "$HOME/sliderule-tf-archive"
 
 Expect: `client=E36AZ5X3OLE9QQ apex=EP6A1RAAHWFW0`, one `ETag` line from
 `get-function`, a record count for the zone (dozens, not zero), and `ls`
-showing the six `slideruleearth.io-*` files, all non-zero. **STOP** if the
+showing the seven `slideruleearth.io-*` files, all non-zero. **STOP** if the
 ids differ, the count is zero, or a file is missing.
 
 **Step 3 — certificate check, repeated on the day.** V1 was clean on
@@ -463,21 +474,24 @@ dig +short client.slideruleearth.io AAAA
 Expect: a TLS failure line (1.1 refused — `TLSv1.2_2021`), then four
 non-empty answer sets — the AAAA ones are new (D1c).
 
-Then the zone, against step 2's snapshot. Our own two names are excluded
-from the comparison (their A records were replaced and AAAA added, as
-intended); anything else that changed is printed.
+Then the zone, against step 2's snapshot. Two records are **protected** —
+`sliderule.slideruleearth.io` (the service) and the ACM validation CNAME —
+and must still be there. Our own two names are excluded (replaced and
+extended, as intended). Every other change is listed for judgement, not
+failed: clusters are ephemeral, so a `<name>.slideruleearth.io` record that
+expired or appeared between step 2 and now is normal.
 
 ```bash
 aws route53 list-resource-record-sets --hosted-zone-id Z0526045IQLILBFI9THF --query 'ResourceRecordSets[].[Name,Type,AliasTarget.DNSName,ResourceRecords[0].Value]' --output text | sort > /tmp/zone-after.txt
-if test -s "$HOME/sliderule-tf-archive/slideruleearth.io-zone-pre-cutover.txt" && test -s /tmp/zone-after.txt; then diff "$HOME/sliderule-tf-archive/slideruleearth.io-zone-pre-cutover.txt" /tmp/zone-after.txt | grep '^[<>]' | grep -v -E '^[<>] (client\.)?slideruleearth\.io\.[[:space:]]+(A|AAAA)[[:space:]]' > /tmp/zone-unexpected.txt; cat /tmp/zone-unexpected.txt; grep -q '^<' /tmp/zone-unexpected.txt && echo ZONE-RECORD-REMOVED || echo ZONE-OK; else echo ZONE-CHECK-FAILED; fi
+if test -s "$HOME/sliderule-tf-archive/slideruleearth.io-zone-pre-cutover.txt" && test -s /tmp/zone-after.txt; then for n in sliderule.slideruleearth.io. _548ec33251d498d2f155a699039125cb.slideruleearth.io.; do if grep -q "^$n" "$HOME/sliderule-tf-archive/slideruleearth.io-zone-pre-cutover.txt" && ! grep -q "^$n" /tmp/zone-after.txt; then echo "PROTECTED RECORD MISSING: $n"; fi; done > /tmp/zone-protected.txt; diff "$HOME/sliderule-tf-archive/slideruleearth.io-zone-pre-cutover.txt" /tmp/zone-after.txt | grep '^[<>]' | grep -v -E '^[<>] (client\.)?slideruleearth\.io\.[[:space:]]+(A|AAAA)[[:space:]]' > /tmp/zone-other.txt; echo "--- other records removed during the interval (expired clusters are normal; anything else, investigate):"; grep '^<' /tmp/zone-other.txt; echo "--- records that appeared during the interval:"; grep '^>' /tmp/zone-other.txt; cat /tmp/zone-protected.txt; test -s /tmp/zone-protected.txt && echo ZONE-PROTECTED-RECORD-REMOVED || echo ZONE-OK; else echo ZONE-CHECK-FAILED; fi
 ```
 
-Expect: **`ZONE-OK`**, usually with nothing above it. Lines starting `>`
-are records that appeared during the window — a cluster spun up, say — and
-are fine; note them. **`ZONE-RECORD-REMOVED`** means a record other than our
-two disappeared: **STOP**, that is the one outcome this document says cannot
-happen, and the `<` line names it. `ZONE-CHECK-FAILED` means one of the two
-listings is empty; re-run before trusting anything.
+Expect: **`ZONE-OK`**. Under "removed", `<name>.slideruleearth.io` lines
+are expired clusters — normal; anything that is not a cluster name needs an
+explanation before the all-clear. Under "appeared", new clusters — normal.
+**`ZONE-PROTECTED-RECORD-REMOVED`** names a record this migration must not
+have touched and cannot have: **STOP** and investigate before the all-clear.
+`ZONE-CHECK-FAILED` means a listing is empty; re-run before trusting anything.
 
 Browser: `https://client.slideruleearth.io/` — landing page, a new request,
 the elevation plot, and **open a record that existed before the cutover**
