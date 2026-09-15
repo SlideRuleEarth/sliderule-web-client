@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | ACCEPTED — merged via [PR #1105](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1105) on 2026-09-14 with all ten decisions settled ([Decision log](#decision-log)). Phases 0 and 1 complete ([#1106](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1106), [#1107](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1107), [#1109](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1109), [#1110](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1110)). **Phase 3 done 2026-09-15: `testsliderule.org` is on CloudFormation** (28 min outage; one template fix, V6). Next: Phase 4, gated on V1/V7 for production and on the explicit production runbook |
+| **Status** | ACCEPTED — merged via [PR #1105](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1105) on 2026-09-14 with all ten decisions settled ([Decision log](#decision-log)). Phases 0 and 1 complete ([#1106](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1106), [#1107](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1107), [#1109](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1109), [#1110](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1110)). **Phase 3 done 2026-09-15: `testsliderule.org` is on CloudFormation** (28 min outage; one template fix, V6). Phase 4 prerequisites done: V1/V7 for production closed, [`cloudformation/RUNBOOK-production.md`](../cloudformation/RUNBOOK-production.md) reviewed. Next: agree the announcement, set the date, run the runbook |
 | **Branch** | merged; Phase 1 work is on `issue-1108-cloudformation-template` and `issue-1108-cloudformation-makefile` |
 | **Tracking issue** | [#1108](https://github.com/SlideRuleEarth/sliderule-web-client/issues/1108) (opened 2026-09-14) |
 | **Owner** | Carlos E. Ugarte |
@@ -1061,7 +1061,9 @@ Phase 6  follow-ups     DISTRIBUTION_ID from stack outputs (D6); anything D1 def
    added. `state pull`, `state rm`, `state show` and `workspace` commands do
    not read variables. The cut-and-paste form of every command in this
    runbook, driven by four shell variables, is in
-   [`cloudformation/README.md`](../cloudformation/README.md).
+   [`cloudformation/README.md`](../cloudformation/README.md); the production
+   cutover has its own fully literal version,
+   [`cloudformation/RUNBOOK-production.md`](../cloudformation/RUNBOOK-production.md).
 2. **Snapshot, before anything below touches the state:**
    `terraform state pull > $ARCHIVE/<env>-pre-cutover.tfstate.json`, where
    `$ARCHIVE` is a directory **outside the checkout** (Phase 5 removes the
@@ -1293,7 +1295,7 @@ Tick as done. Add sub-items freely; do not remove them.
       false errors on exactly the new resources. Nothing replaces it — `uv`
       runs the pinned version (§5.5)
 - [x] Tracking issue [#1108](https://github.com/SlideRuleEarth/sliderule-web-client/issues/1108) opened 2026-09-14; Phase 1 branches are `issue-1108-cloudformation-*`
-- [ ] **[owner]** Certificate inventory for both apexes in both regions (V1) — test done 2026-09-14, clean; production before Phase 4
+- [x] **[owner]** Certificate inventory for both apexes in both regions (V1, V7) — test 2026-09-14, production 2026-09-15; both clean for V1; V7 found an in-use wildcard certificate in us-west-2 sharing the production validation CNAME
 - [x] **[owner]** External references to distribution IDs / CloudFront names /
       bucket names checked (V2): none, 2026-09-14
 - [x] **[owner]** AWS account ID confirmed for production (V5): `742127912612`, one account for both environments (2026-09-14)
@@ -1389,11 +1391,23 @@ template edit and `stack-deploy`, and that is the accepted trade.
 
 ### Phase 4 — Production cutover **[owner]**
 
-- [ ] V1 and V7 re-run for `slideruleearth.io` **before scheduling**: the
-      production certificate's `InUseBy` (decides whether §7.2 step 3 takes
-      the `state rm` branch) and the account-wide certificate inventory for
-      the apex; record both in §10
-- [ ] Window announced, sized from §7.3
+The procedure is [`cloudformation/RUNBOOK-production.md`](../cloudformation/RUNBOOK-production.md):
+§7.2 expanded to literal, paste-whole blocks with expected output and stop
+conditions, carrying every Phase 3 finding. Its go/no-go list is the gate.
+
+- [ ] `cloudformation/RUNBOOK-production.md` reviewed by the owner and the
+      other developer **[agent drafts, owner reviews]**
+- [x] V1 and V7 re-run for `slideruleearth.io` **before scheduling** —
+      done 2026-09-15 with the runbook's Part A (which also confirmed no
+      drift, the bucket name free, the zone unique and the validation CNAME
+      matching ACM); recorded in §10. Re-run Part A if the window is weeks
+      away
+- [ ] Announcement method and lead time agreed with the other developer
+      (§11's open question); window announced, sized from §7.3 (60 min)
+- [ ] In-app banner deployed days ahead with
+      `make live-update-slideruleearth BANNER_TEXT='…'` (runbook step 8b —
+      a content deploy, permitted under the freeze); no content deploy after
+      it until the pre-stage, which drops the banner
 - [ ] §7.2 steps 1–14 on `slideruleearth.io` / `client.slideruleearth.io`,
       with step 5 (retain the old bucket) taken
 - [ ] `stack-protect` run; `make stack-status` shows protection on
@@ -1471,13 +1485,13 @@ template edit and `stack-deploy`, and that is the accepted trade.
 
 | # | Question | How | Status |
 |---|---|---|---|
-| V1 | Is this environment's Terraform-managed certificate (the ARN in the state) `InUseBy` anything besides its own two distributions? If so, the destroy would try to delete a certificate something else needs. | **[owner]** `aws acm describe-certificate --region us-east-1 --certificate-arn <arn> --query Certificate.InUseBy`; the runbook branches on the answer (§7.2 step 3) | **test: closed — clean** (2026-09-14, owner): `…certificate/2cf02d11-9b1c-47af-8f63-d71e7cc005e8` is `InUseBy` exactly `E1LORWIIYX82WR` and `E675VP482LBL9`, the test apex and client distributions, so step 3 takes the plain path. **Production: open** — same two commands under the `client.slideruleearth.io-web-client` workspace, before Phase 4 |
+| V1 | Is this environment's Terraform-managed certificate (the ARN in the state) `InUseBy` anything besides its own two distributions? If so, the destroy would try to delete a certificate something else needs. | **[owner]** `aws acm describe-certificate --region us-east-1 --certificate-arn <arn> --query Certificate.InUseBy`; the runbook branches on the answer (§7.2 step 3) | **test: closed — clean** (2026-09-14, owner): `…certificate/2cf02d11-9b1c-47af-8f63-d71e7cc005e8` is `InUseBy` exactly `E1LORWIIYX82WR` and `E675VP482LBL9`, the test apex and client distributions, so step 3 takes the plain path. **Production: closed — clean** (2026-09-15): `…certificate/c0b7a6c8-de01-4673-b6a8-cff62d04d96d` is `InUseBy` exactly `E36AZ5X3OLE9QQ` and `EP6A1RAAHWFW0`. Step 3 has no branch in either environment; the production runbook drops it |
 | V2 | Does anything outside this repo reference the distribution IDs, the `*.cloudfront.net` domain names or the bucket names (`testsliderule-webclient`, `slideruleearth-webclient`)? other SlideRuleEarth repositories, monitoring, dashboards, the docs site, bookmarks in runbooks | **[owner]** grep the `SlideRuleEarth` checkouts; check CloudWatch alarms and any uptime monitor | **closed — nothing** (2026-09-14): the ten sibling checkouts contain neither bucket name, neither test distribution ID, no `*.cloudfront.net` name and no distribution ARN (hostnames appear, as expected — they are preserved); `describe-alarms` in `us-east-1` has no `AWS/CloudFront` or `AWS/S3` alarms; no external uptime monitor known to the owner |
 | V3 | Does the client ever send a non-GET request to its own origin? | **[agent]** grep of `web-client/src`, re-run 2026-09-04: all eleven `method: 'POST'` sites resolve to an absolute cross-origin URL — `https://<api host>/<path>` (`sliderule/core.ts`, `utils/fetchUtils.ts`), the OAuth `registration_endpoint` / `token_endpoint`, `https://provisioner.<base domain>`, or `tile.googleapis.com`. No relative `fetch('/…')` exists anywhere, and every `location.origin` use is an OAuth **redirect URI** (`/auth/github/callback`), i.e. a browser navigation, not a request method the distribution sees | **closed — no** |
 | V4 | With an OAC, is `S3OriginConfig: {OriginAccessIdentity: ""}` the required form? | AWS CloudFormation reference for `S3OriginConfig`: yes — the property must be present and empty when an OAC is used | **closed — yes** |
 | V5 | Is production in the same AWS account as test (`742127912612`)? The `AWS_ACCOUNT_ID` guard assumes one account. | **[owner]** `aws sts get-caller-identity` under the production profile | **closed — yes**, one account, `742127912612` (owner, 2026-09-14) |
 | V6 | When `AWS::CertificateManager::Certificate` creates with DNS validation and the validation CNAME already exists with the same value, does it proceed (upsert / no-op) rather than fail? And does deleting the stack delete that CNAME? Both matter for a record shared with other certificates. | **[owner]** the create-side half is observed in Phase 3, where the retained Terraform-era CNAME is exactly the pre-existing record in question; the delete-side half is only observed if the test stack is ever destroyed, and until then the retained CNAME is assumed to survive a stack delete (it is not a stack resource); AWS docs for the certificate resource; if the delete-side answer is "yes", note it in `cloudformation/README.md` next to `stack-destroy` | **create-side: closed — NO, and it fails rather than no-ops** (2026-09-15, Phase 3): with `HostedZoneId` in `DomainValidationOptions` CloudFormation issued a `CREATE` for `_e359ba1d….testsliderule.org CNAME` and Route 53 answered "invalid set of changes" because the retained record exists; the certificate went `CREATE_FAILED`, the stack `ROLLBACK_COMPLETE`. Fix: no `DomainValidationOptions` at all (`1600a4c3`); the second create validated against the existing record in minutes. **Delete-side: moot** — the record is no longer a stack resource in any sense, so a stack delete cannot touch it |
-| V7 | Which other certificates in the account validate through the same CNAME? A validation CNAME is per account and domain and is shared by every certificate for those names, in any region, whether the apex is the primary name or a SAN. Informs only whether the retained CNAME must stay forever; nothing in the runbook depends on the answer. | **[owner]** in every region the account uses (at least `us-east-1`, `us-west-2`): `aws acm list-certificates --includes keyTypes=RSA_1024,RSA_2048,RSA_3072,RSA_4096,EC_prime256v1,EC_secp384r1,EC_secp521r1` (the default lists only RSA 1024/2048), filtered on `DomainName` **and** `SubjectAlternativeNameSummaries`; then `describe-certificate … DomainValidationOptions[].ResourceRecord.Name` | **test: closed — yes, four others** (2026-09-14): besides ours (`2cf02d11…`, in use), `us-east-1` holds `98b657ec…` and `620d2378…` (ISSUED, unused) and `us-west-2` holds `5f52cfa5…` (ISSUED, unused) and `68dd8e45…` (EXPIRED). All share the validation CNAME by construction, so it stays in the zone indefinitely; none is in use, so the runbook is unchanged. Cleanup candidate noted in Phase 6. **Production: open** — same loop with `slideruleearth.io`, before Phase 4 |
+| V7 | Which other certificates in the account validate through the same CNAME? A validation CNAME is per account and domain and is shared by every certificate for those names, in any region, whether the apex is the primary name or a SAN. Informs only whether the retained CNAME must stay forever; nothing in the runbook depends on the answer. | **[owner]** in every region the account uses (at least `us-east-1`, `us-west-2`): `aws acm list-certificates --includes keyTypes=RSA_1024,RSA_2048,RSA_3072,RSA_4096,EC_prime256v1,EC_secp384r1,EC_secp521r1` (the default lists only RSA 1024/2048), filtered on `DomainName` **and** `SubjectAlternativeNameSummaries`; then `describe-certificate … DomainValidationOptions[].ResourceRecord.Name` | **test: closed — yes, four others** (2026-09-14): besides ours (`2cf02d11…`, in use), `us-east-1` holds `98b657ec…` and `620d2378…` (ISSUED, unused) and `us-west-2` holds `5f52cfa5…` (ISSUED, unused) and `68dd8e45…` (EXPIRED). All share the validation CNAME by construction, so it stays in the zone indefinitely; none is in use, so the runbook is unchanged. Cleanup candidate noted in Phase 6. **Production: closed — yes, three others** (2026-09-15): `c0a671e6…` (us-east-1, ISSUED, unused), `1ae31aa9…` (us-west-2, EXPIRED) and **`c8b7089a…` (us-west-2, `*.slideruleearth.io`, ISSUED, in use** by something outside this repo — the strongest reason the record is never deleted). Bucket name `client-slideruleearth-io-web-client` free; zone `Z0526045IQLILBFI9THF` unique; validation CNAME matches ACM (`VALIDATION-CNAME-OK`) |
 | V8 | What `aws` CLI version is in use, and does it support `delete-stack --deletion-mode FORCE_DELETE_STACK`? Only affects the last-resort branch of the `DELETE_FAILED` row (§7.3); everything else in the plan uses long-standing commands. | `aws-cli/2.36.39` (Homebrew, upgraded 2026-09-04 from a 2024-vintage 2.18.8). Its bundled CloudFormation service model declares both `DeletionMode` and `FORCE_DELETE_STACK`, checked in `…/awscli/2.36.39/libexec/.../botocore/data/cloudformation/2010-05-15/service-2.json` | **closed — supported** |
 | V9 | What `terraform` version is in use? The cutover depends on `state pull`, `state rm`, `destroy` and `workspace delete` behaving as §7.2 describes — in particular that `workspace delete` removes the remote state object (§7.2 step 15). | `1.14.9` (Homebrew, linked 2026-04-20), well past every command the runbook uses | **closed — 1.14.9** |
 
