@@ -1033,9 +1033,20 @@ Phase 6  follow-ups     DISTRIBUTION_ID from stack outputs (D6); anything D1 def
 1. `terraform workspace select <env>-web-client`, and confirm with
    `terraform workspace show`. Steps 2–6 all act on the selected workspace's
    state and are typed by hand, so getting this wrong strips the *other*
-   environment's records. `terraform plan` should then show no changes; if it
-   does not, the infrastructure freeze (§5.4) was broken and the drift needs
-   explaining before the destroy.
+   environment's records. Then `terraform plan` **with the same four `-var`s
+   the Makefile passes** —
+   `-var="domainName=client.<apex>" -var="domainApex=<apex>" -var="domain_root=client" -var="s3_bucket_name=<old bucket>"`
+   — must show no changes; if it does not, the infrastructure freeze (§5.4)
+   was broken and the drift needs explaining before the destroy. **Never run
+   `plan` or `apply` bare:** the root `variables.tf` defaults `domainName` to
+   the apex itself (the retired client-at-apex mode), so a bare `plan`
+   proposes destroying the apex distribution, function and record and
+   re-aliasing the client distribution to the apex — which is what a bare
+   `plan` on the test workspace showed on 2026-09-15 before the vars were
+   added. `state pull`, `state rm`, `state show` and `workspace` commands do
+   not read variables. The cut-and-paste form of every command in this
+   runbook, driven by four shell variables, is in
+   [`cloudformation/README.md`](../cloudformation/README.md).
 2. **Snapshot, before anything below touches the state:**
    `terraform state pull > $ARCHIVE/<env>-pre-cutover.tfstate.json`, where
    `$ARCHIVE` is a directory **outside the checkout** (Phase 5 removes the
@@ -1328,7 +1339,9 @@ template edit and `stack-deploy`, and that is the accepted trade.
 - [ ] §7.2 steps 1–10 (state clean, snapshot, certificate check, validation
       CNAME retained, permanent bucket created and pre-staged; **no `make build`
       after step 9**). `bucket-configure` re-run once after `bucket-create` to
-      prove it is idempotent
+      prove it is idempotent. Step 1 done 2026-09-15: `plan` with the vars is
+      "No changes" (a bare `plan` first showed the client-at-apex conversion —
+      inputs, not drift; runbook fixed)
 - [ ] Steps 11–13: `terraform-destroy` → `stack-deploy` → `stack-activate` →
       verify. **Record the outage duration in §7.3**, and note separately how
       long `stack-activate` took — that number is what justifies pre-staging

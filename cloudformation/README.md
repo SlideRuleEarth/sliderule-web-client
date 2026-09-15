@@ -54,9 +54,13 @@ No parameter files; the Makefile passes `--parameter-overrides`.
 
 ## Checking the template
 
+`lint-cfn` is cfn-lint, pinned; it needs `uv` and nothing else, and no AWS.
+`validate-cfn` is the CloudFormation API's own syntax check; it needs
+credentials and changes nothing.
+
 ```bash
-make lint-cfn       # cfn-lint, pinned; needs uv and nothing else, no AWS
-make validate-cfn   # the CloudFormation API's syntax check; needs credentials, changes nothing
+make lint-cfn
+make validate-cfn
 ```
 
 `lint-cfn` runs in CI ([`.github/workflows/cloudformation.yml`](../.github/workflows/cloudformation.yml))
@@ -138,30 +142,198 @@ go; it defaults to `STACK_BUCKET`, and until an environment's cutover its
 operation reads `S3_BUCKET`; `terraform-destroy` insists it is typed on the
 command line and is not the stack's bucket.
 
-### Cutover runbook (condensed §7.2 — the plan is authoritative)
+### Cutover runbook (§7.2 of the plan, made cut-and-paste)
 
-Before the window:
+Every fenced block below is meant to be pasted whole, with the copy button.
+**The blocks contain commands only — no comments** — because an interactive
+zsh does not treat `#` as a comment and would run it. Everything you need to
+know is in the prose above each block.
 
-1. `cd terraform && terraform workspace select client.<apex>-web-client`; `terraform plan` shows no changes.
-2. Snapshot to a directory **outside the checkout**: `terraform state pull > $ARCHIVE/<env>-pre-cutover.tfstate.json`, plus `get-distribution-config` for both distributions, the headers policy and the function.
-3. Certificate check (V1): `aws acm describe-certificate --region us-east-1 --certificate-arn <arn> --query Certificate.InUseBy` lists exactly this environment's two distributions. If not, `terraform state rm` the certificate and its validation so the destroy leaves it.
-4. Retain the validation CNAME: `terraform state rm module.cloudfront.aws_route53_record.cert_validation_root module.cloudfront.aws_route53_record.cert_validation_wildcard`.
-5. Production: `terraform state rm` the bucket, its policy and its public-access block too, so the old bucket survives as a fallback copy.
-6. `make lint-cfn`, `make validate-cfn`; `make stack-status DOMAIN_APEX=<apex>` says no stack.
-7. `make bucket-create DOMAIN_APEX=<apex>`, then `make stack-prestage DOMAIN_APEX=<apex>`. **From here until step 10, do not run `make build`** — a rebuild changes the hashed bundle and `upload-assets` deletes what was staged. Leave `web-client/dist/` alone.
-8. Production: announce the window.
+Set these once, in the shell you will use for the whole procedure. Phase 4
+uses `slideruleearth.io` and `slideruleearth-webclient`. `ARCHIVE` is any
+directory outside the checkout.
 
-In the window — the outage runs from step 9 to step 11:
+```bash
+export APEX=testsliderule.org
+export OLD_BUCKET=testsliderule-webclient
+export ARCHIVE=$HOME/sliderule-tf-archive
+export CLIENT=client.$APEX
+export WS=$CLIENT-web-client
+mkdir -p "$ARCHIVE"
+```
 
-9. `make terraform-destroy DOMAIN_APEX=<apex> S3_BUCKET=<old bucket>`; answer Terraform's prompt. 10–20 min.
-10. `make stack-deploy DOMAIN_APEX=<apex>` (10–25 min; `make stack-events` in a second terminal), then `make stack-activate DOMAIN_APEX=<apex>`. Not `deploy-client-to-<env>` and not `stack-upload`: both rebuild. If step 7's pre-staging was skipped, `stack-upload` is the fallback and the window absorbs the build.
-11. Verify (§7.4 of the plan): apex 301 and 404, client 200, headers, `dig` A and AAAA for both hosts. Note the elapsed time.
-12. Production: `make stack-protect DOMAIN_APEX=slideruleearth.io`.
+**Terraform `plan` and `apply` need the four `-var`s.** The root
+`variables.tf` defaults `domainName` to the apex itself — the retired
+client-at-apex mode — so a bare `terraform plan` proposes destroying the apex
+distribution and re-aliasing the client to the apex. The block below carries
+the same values the Makefile passes. `state pull`, `state rm`, `state show`
+and `workspace` commands do not read variables and are safe bare.
 
-After the window:
+#### Before the window
 
-13. `terraform workspace select default && terraform workspace delete client.<apex>-web-client` — this deletes the state object; step 2's archive is the only record.
-14. Merge the prepared PR that drops `S3_BUCKET=<old>` from this environment's `live-update-*` / `release-*` wrappers, and run `make live-update-<env>` once to prove the default path.
+The site stays up and no clock is running.
+
+**Step 1 — select the workspace, prove it, prove there is no drift.** The
+plan must end with `No changes.` Anything else means the freeze was broken;
+stop and explain it before going on.
+
+```bash
+cd terraform
+terraform workspace select "$WS"
+terraform workspace show
+terraform plan -var="domainName=$CLIENT" -var="domainApex=$APEX" -var="domain_root=client" -var="s3_bucket_name=$OLD_BUCKET"
+```
+
+**Step 2 — snapshot, before any `state rm`.** Five files land in `$ARCHIVE`;
+the `echo` must print one `E…` id for each distribution.
+
+```bash
+terraform state pull > "$ARCHIVE/$APEX-pre-cutover.tfstate.json"
+CLIENT_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?Aliases.Items[0]=='$CLIENT'].Id" --output text)
+APEX_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?Aliases.Items[0]=='$APEX'].Id" --output text)
+echo "client=$CLIENT_ID apex=$APEX_ID"
+aws cloudfront get-distribution-config --id "$CLIENT_ID" > "$ARCHIVE/$APEX-client-distribution.json"
+aws cloudfront get-distribution-config --id "$APEX_ID" > "$ARCHIVE/$APEX-apex-distribution.json"
+POLICY_ID=$(terraform state show module.cloudfront.aws_cloudfront_response_headers_policy.security_headers_policy | awk '$1=="id"{gsub(/"/,"",$3); print $3}')
+aws cloudfront get-response-headers-policy --id "$POLICY_ID" > "$ARCHIVE/$APEX-headers-policy.json"
+aws cloudfront get-function --name "$(echo "$CLIENT" | tr . -)-apex-redirect" --stage LIVE "$ARCHIVE/$APEX-apex-function.js"
+ls -l "$ARCHIVE"
+```
+
+**Step 3 — certificate check (V1).** `InUseBy` must list exactly
+`$CLIENT_ID` and `$APEX_ID`.
+
+```bash
+CERT_ARN=$(terraform state show module.cloudfront.aws_acm_certificate.mysite | awk '$1=="arn"{gsub(/"/,"",$3); print $3}')
+aws acm describe-certificate --region us-east-1 --certificate-arn "$CERT_ARN" --query Certificate.InUseBy
+```
+
+Only if it lists anything else, also run this, so the destroy leaves the
+certificate in place:
+
+```bash
+terraform state rm module.cloudfront.aws_acm_certificate.mysite module.cloudfront.aws_acm_certificate_validation.cert
+```
+
+**Step 4 — retain the validation CNAME.** Terraform stops managing the
+record; the record itself stays in the zone.
+
+```bash
+terraform state rm module.cloudfront.aws_route53_record.cert_validation_root module.cloudfront.aws_route53_record.cert_validation_wildcard
+```
+
+**Step 5 — production only, recommended.** Keeps the old bucket and its
+content as a fallback copy; delete it by hand in Phase 5. Skip for test.
+
+```bash
+terraform state rm module.cloudfront.aws_s3_bucket.this_site_bucket module.cloudfront.aws_s3_bucket_policy.web module.cloudfront.aws_s3_bucket_public_access_block.web_client_site_access_block
+```
+
+**Step 6 — optional: record exactly what the destroy is about to remove, and
+leave `terraform/`.**
+
+```bash
+terraform state pull > "$ARCHIVE/$APEX-pre-destroy.tfstate.json"
+cd ..
+```
+
+**Step 7 — V2.** Done for both environments on 2026-09-14; nothing to run.
+
+**Step 8 — the template and the account are ready; there is no stack yet.**
+`stack-status` must say `no stack named …`.
+
+```bash
+make lint-cfn
+make validate-cfn
+make stack-status DOMAIN_APEX=$APEX
+```
+
+**Step 9 — the permanent bucket, then pre-stage the site into it.** After
+this block, **do not run `make build`** until step 12 has run, and leave
+`web-client/dist/` alone: a rebuild changes the hashed bundle and
+`upload-assets` deletes what was staged.
+
+```bash
+make bucket-create DOMAIN_APEX=$APEX
+make check-stack-vars DOMAIN_APEX=$APEX
+make stack-prestage DOMAIN_APEX=$APEX
+```
+
+**Step 10 — production only:** announce the window, sized at twice what
+Phase 3 measured.
+
+#### In the window
+
+The outage runs from step 11 to step 13. Note the time at 11 and at 13.
+
+**Step 11 — Terraform destroy, 10–20 minutes.** Answer Terraform's prompt.
+
+```bash
+make terraform-destroy DOMAIN_APEX=$APEX S3_BUCKET=$OLD_BUCKET
+```
+
+**Step 12 — create the stack (10–25 minutes), then activate the pre-staged
+bucket (seconds).** In a second terminal, `make stack-events DOMAIN_APEX=$APEX`
+shows progress. **Not** `deploy-client-to-<env>` and **not** `stack-upload`:
+both rebuild and discard the pre-staged set. If the create fails, see the
+table below.
+
+```bash
+make stack-deploy DOMAIN_APEX=$APEX
+make stack-activate DOMAIN_APEX=$APEX
+```
+
+Only if step 9's pre-staging was skipped, use this instead of
+`stack-activate`; the window absorbs the build:
+
+```bash
+make stack-upload DOMAIN_APEX=$APEX
+```
+
+**Step 13 — verify** (§7.4 of the plan). Expected, in order: the apex `/`
+is a 301 whose `location` is `https://$CLIENT/landing`; the apex
+`robots.txt` is a 404 `text/plain` naming `$CLIENT` and
+`docs.slideruleearth.io`; the client `/` is a 200 carrying the security
+headers; the client `robots.txt` is a 200 `text/plain`; all four `dig`
+queries answer.
+
+```bash
+curl -sI "https://$APEX/" | head -5
+curl -si "https://$APEX/robots.txt" | head -12
+curl -sI "https://$CLIENT/" | head -20
+curl -sI "https://$CLIENT/robots.txt" | head -5
+dig +short "$APEX" A
+dig +short "$APEX" AAAA
+dig +short "$CLIENT" A
+dig +short "$CLIENT" AAAA
+```
+
+**Step 14 — production only.**
+
+```bash
+make stack-protect DOMAIN_APEX=$APEX
+make stack-status DOMAIN_APEX=$APEX
+```
+
+#### After the window
+
+**Step 15 — retire the workspace.** This **deletes its state object**; step
+2's archive is the only record.
+
+```bash
+cd terraform
+terraform workspace select default
+terraform workspace delete "$WS"
+cd ..
+```
+
+**Step 16 — merge the prepared PR** that drops `S3_BUCKET=$OLD_BUCKET` from
+this environment's `live-update-*` / `release-*` wrappers, then prove the
+default path once (Phase 4: `live-update-slideruleearth`):
+
+```bash
+make live-update-testsliderule
+```
 
 ### When a stack operation fails (condensed §7.3)
 
