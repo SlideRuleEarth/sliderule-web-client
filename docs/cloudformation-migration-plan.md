@@ -1030,6 +1030,19 @@ Phase 6  follow-ups     DISTRIBUTION_ID from stack outputs (D6); anything D1 def
 
 **Before the window**
 
+0. **`export AWS_PROFILE=sliderule-power && aws sso login`**, then verify
+   with `aws sts get-caller-identity --query '[Account,Arn]'`: the ARN must
+   contain `Project-Power-User`. The owner's `default` profile is
+   `Project-Read-Only`, which passes every lookup in steps 1–3 and
+   `check-account` (which compares only the account number), then fails at
+   the first write — step 4 on 2026-09-15, twice, the second time because
+   `aws sso login` had been run without exporting the profile. Power-user
+   is the least-privilege set that can do all of this; its session is 8
+   hours, so one login covers the procedure. Verify again (one command)
+   before step 11. If a single command is refused, run that one under
+   `sliderule-admin`. If a session ever expires while `stack-deploy` is
+   waiting, the create continues server-side and `stack-status` /
+   `stack-events` pick it up after a fresh login.
 1. `terraform workspace select <env>-web-client`, and confirm with
    `terraform workspace show`. Steps 2–6 all act on the selected workspace's
    state and are typed by hand, so getting this wrong strips the *other*

@@ -173,6 +173,35 @@ and `workspace` commands do not read variables and are safe bare.
 
 The site stays up and no clock is running.
 
+**Step 0 — the right AWS profile, logged in, verified.** The `default`
+profile is `Project-Read-Only`. It can run every lookup in this runbook and
+then fails at the first write (`state rm` on 2026-09-15: "The state was not
+saved"), and `check-account` will not catch it — it compares the account
+number, not the role. Use `sliderule-power` (`Project-Power-User`, least
+privilege that can do all of this); its session lasts 8 hours, so one login
+covers the whole procedure. `AWS_PROFILE` must be exported **in the same
+shell as the variables above** — `make`, `aws` and `terraform` all read it.
+The last line must print `742127912612` and an ARN containing
+`Project-Power-User`; if it says `Read-Only`, the export did not happen in
+this shell.
+
+```bash
+export AWS_PROFILE=sliderule-power
+aws sso login
+aws sts get-caller-identity --query '[Account,Arn]' --output text
+```
+
+If one specific command is refused for a permission the power-user set lacks,
+run that command alone under `sliderule-admin` (`AWS_PROFILE=sliderule-admin
+<command>`), then return to `sliderule-power`.
+
+Verify again before step 11 — it is one command and it is what the whole
+window depends on:
+
+```bash
+aws sts get-caller-identity --query '[Account,Arn]' --output text
+```
+
 **Step 1 — select the workspace, prove it, prove there is no drift.** The
 plan must end with `No changes.` Anything else means the freeze was broken;
 stop and explain it before going on.
@@ -266,7 +295,8 @@ Phase 3 measured.
 
 The outage runs from step 11 to step 13. Note the time at 11 and at 13.
 
-**Step 11 — Terraform destroy, 10–20 minutes.** Answer Terraform's prompt.
+**Step 11 — Terraform destroy, 10–20 minutes.** Verify the session first
+(step 0's last command). Answer Terraform's prompt.
 
 ```bash
 make terraform-destroy DOMAIN_APEX=$APEX S3_BUCKET=$OLD_BUCKET
@@ -317,8 +347,8 @@ make stack-status DOMAIN_APEX=$APEX
 
 #### After the window
 
-**Step 15 — retire the workspace.** This **deletes its state object**; step
-2's archive is the only record.
+**Step 15 — retire the workspace.** Verify the session first. This
+**deletes its state object**; step 2's archive is the only record.
 
 ```bash
 cd terraform
