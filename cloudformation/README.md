@@ -138,7 +138,9 @@ can be given but is refused if it is not `client.<DOMAIN_APEX>`.
 **Two bucket variables.** `STACK_BUCKET` is the bucket the stack is built
 against and the only one `stack-destroy` empties. `S3_BUCKET` is where uploads
 go; it defaults to `STACK_BUCKET`, and until an environment's cutover its
-`live-update-<env>` wrapper pins it to the Terraform-era bucket. No stack
+`live-update-<env>` wrapper pins it to the Terraform-era bucket. After the
+cutover the wrappers call `stack-upload` / `stack-verify`, which force the
+stack's bucket and ignore any `S3_BUCKET` on the command line. No stack
 operation reads `S3_BUCKET`; `terraform-destroy` insists it is typed on the
 command line and is not the stack's bucket.
 
@@ -357,9 +359,13 @@ terraform workspace delete "$WS"
 cd ..
 ```
 
-**Step 16 — merge the prepared PR** that drops `S3_BUCKET=$OLD_BUCKET` from
-this environment's `live-update-*` / `release-*` wrappers, then prove the
-default path once (Phase 4: `live-update-slideruleearth`):
+**Step 16 — merge the prepared PR** that switches this environment's
+`live-update-*`, `release-*` and `verify-s3-assets-*` wrappers from
+`live-update S3_BUCKET=$OLD_BUCKET` to `stack-upload` / `stack-verify`. Not
+merely dropping the override: `S3_BUCKET` has a default, but a default still
+yields to a stale `S3_BUCKET=` typed on the command line, and the stack
+targets force the stack's bucket as a sub-make assignment. Then prove the
+new path once (Phase 4: `live-update-slideruleearth`):
 
 ```bash
 make live-update-testsliderule
