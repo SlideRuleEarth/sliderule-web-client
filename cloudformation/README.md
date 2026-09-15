@@ -374,10 +374,11 @@ cd ..
 merely dropping the override: `S3_BUCKET` has a default, but a default still
 yields to a stale `S3_BUCKET=` typed on the command line, and the stack
 targets force the stack's bucket as a sub-make assignment. Then prove the
-new path once (Phase 4: `live-update-slideruleearth`):
+new path once — the wrapper is named after the apex's first label,
+`live-update-testsliderule` or `live-update-slideruleearth`:
 
 ```bash
-make live-update-testsliderule
+make "live-update-${APEX%%.*}"
 ```
 
 ### When a stack operation fails (condensed §7.3)
