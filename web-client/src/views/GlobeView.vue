@@ -8,7 +8,7 @@ const route = useRoute()
 const mapOptions: Record<string, { src: string; label: string }> = {
   atl18: {
     src: 'https://docs.slideruleearth.io/_static/ATL18_reprojected.png',
-    label: 'ICESat-2 global terrian heights'
+    label: 'ICESat-2 global terrain heights'
   },
   usage: {
     src: 'https://docs.slideruleearth.io/_static/sliderule_usage_grid.png',
