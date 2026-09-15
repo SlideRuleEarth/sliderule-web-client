@@ -707,6 +707,7 @@ applies to all of them:
 | `stack-abort-create` | the only escape from a hung create, and the reason no hand-typed `delete-stack` appears anywhere in this plan: `check-derived` (the stack name is **derived**, never typed) → `check-account` → the status must be exactly `CREATE_IN_PROGRESS`, every other status refused → print the newest stack event (timestamp, resource, status, reason) beside the current UTC time, so "stuck" is judged against evidence, and refuse if the events cannot be read → `CONFIRM_DESTROY` equals `$(DOMAIN)` → `delete-stack` → `wait stack-delete-complete`. Touches no bucket. Conditions for using it at all: §7.3 | owner |
 | `stack-prestage` | `check-derived` → `check-account`, then **one `$(MAKE)` per recipe line, in this order**: `build`; `upload-assets`; `upload-static`; `upload-robots`; `upload-index`; `verify-s3-assets` — each with `S3_BUCKET=$(STACK_BUCKET)`. Recipe lines are sequential whatever `-j` or an inherited `MAKEFLAGS` says; passing them as several goals to a single `$(MAKE)` would not be, and uploads could then race the build or `index.html` could land before the assets it names. Fills the permanent bucket before a window (§7.2 step 9) and proves it landed **while there is still time to fix it** — without this the first verification would be `stack-activate`, minutes after the old stack was destroyed and with the new one already serving. Deliberately **not** `live-update`: pre-cutover there is no new distribution to invalidate, and `check-vars` would resolve `DISTRIBUTION_ID` to the *old* distribution Terraform still owns, so this target needs no `DISTRIBUTION_ID` and does not invalidate | owner |
 | `stack-activate` | the post-create step **when the bucket was pre-staged**: `check-derived` → `check-account` → `$(MAKE) verify-s3-assets S3_BUCKET=$(STACK_BUCKET)` → a precautionary `create-invalidation`. It does **not** build and does **not** upload, which is the entire point — see the note below on why `stack-upload` cannot be used here. It is self-checking: `verify-s3-assets` reads the asset names out of the local `web-client/dist/index.html` and fails unless exactly those objects are in the bucket, so a `dist/` that was rebuilt (or never pre-staged) is caught immediately rather than serving a half-updated site | owner |
+| `stack-verify` | `check-derived` → `$(MAKE) verify-s3-assets S3_BUCKET=$(STACK_BUCKET)`: the read-only check forced to the stack's bucket; what the post-cutover `verify-s3-assets-<env>` wrapper calls | owner |
 | `stack-upload` | the post-create step **when the bucket was not pre-staged**, and the normal path outside a cutover: `check-derived` → `check-account` → `$(MAKE) live-update S3_BUCKET=$(STACK_BUCKET)`. The full path — build, upload, invalidate, `verify-s3-assets` — forced to the stack's own bucket. The forcing is the point: passing `S3_BUCKET` as a **sub-make command-line assignment** overrides the environment and any stale outer value, which plain `live-update` cannot do | owner |
 | `stack-outputs` | `describe-stacks --query Stacks[0].Outputs` | owner |
 | `stack-events` | `describe-stack-events` (watching a create, debugging a failed update) | owner |
@@ -714,7 +715,7 @@ applies to all of them:
 | `deploy` / `destroy` | aliases of `stack-deploy` / `stack-destroy` from Phase 1 on | owner |
 | `deploy-client-to-<env>` | `stack-deploy` then **`stack-upload`**, `DOMAIN_APEX` only. Not plain `live-update`: that reads `S3_BUCKET`, which the environment or a stale command line can still set, so a create could be followed by an upload to the *old* bucket — and `verify-s3-assets` would verify that bucket and report success while the new distribution served an empty one | owner |
 | `destroy-client-<env>` | `stack-destroy`, `DOMAIN_APEX` only (plus `CONFIRM_DESTROY` from the caller) | owner |
-| `live-update-<env>`, `release-live-update-to-<env>` | `live-update`, `DOMAIN_APEX` plus `S3_BUCKET=<Terraform-era name>` until the cutover; `DOMAIN_APEX` only after | owner |
+| `live-update-<env>`, `release-live-update-to-<env>`, `verify-s3-assets-<env>` | `live-update` with `DOMAIN_APEX` plus `S3_BUCKET=<Terraform-era name>` until the cutover; **`stack-upload` / `stack-verify` with `DOMAIN_APEX` only** after it — not the bare default, which a stale command-line `S3_BUCKET=` would still override | owner |
 
 **Why pre-staging needs `stack-activate` rather than `stack-upload`.** Every
 `make build` injects a fresh `VITE_APP_BUILD_DATE`
@@ -1141,10 +1142,17 @@ Phase 6  follow-ups     DISTRIBUTION_ID from stack outputs (D6); anything D1 def
     the step-2 archive is not a convenience — it is the only surviving record
     of what the workspace managed, and it must already exist before this
     command runs. Nothing in Phase 5 can archive it afterwards.
-16. Remove the `S3_BUCKET=<old>` override from this environment's
-    `live-update-*` and `release-live-update-to-*` wrappers (D8), and run
-    `make live-update-<env>` once to prove the default path
-    (`S3_BUCKET ?= $(STACK_BUCKET)`). **Open this PR before the window** and
+16. Switch this environment's `live-update-*`, `release-live-update-to-*`
+    and `verify-s3-assets-*` wrappers from `live-update S3_BUCKET=<old>` to
+    **`stack-upload` / `stack-verify`**, and run `make live-update-<env>`
+    once to prove the new path. Not merely dropping the override: the
+    `S3_BUCKET ?= $(STACK_BUCKET)` default is *overridable by design* (§5.4),
+    so a wrapper that relied on it would still upload to the old bucket if a
+    stale `S3_BUCKET=<old>` were typed on the command line — the old bucket
+    survives until Phase 5, so that upload would succeed while the live site
+    stayed unchanged (R16). `stack-upload` forces the bucket as a sub-make
+    assignment, which beats both the environment and the outer command
+    line, and adds `check-account`. **Open this PR before the window** and
     leave it ready to merge the moment step 13 passes: it is a repo change,
     not a command, and for as long as it is unmerged a routine
     `make live-update-<env>` uploads to the *old* bucket while the new

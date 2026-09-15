@@ -246,11 +246,11 @@ verify-s3-assets: ## Check that all index-*.js and index-*.css files referenced 
 	@echo ""
 	@echo "📅 Verified: $$(date +"%Y-%m-%d %T") (scroll up for exact Build Date/Time)"
 
-verify-s3-assets-testsliderule: ## verify-s3-assets against the testsliderule.org bucket
-	$(MAKE) verify-s3-assets S3_BUCKET=testsliderule-webclient
+verify-s3-assets-testsliderule: ## verify-s3-assets against the testsliderule.org stack bucket
+	$(MAKE) stack-verify DOMAIN_APEX=testsliderule.org
 
 live-update-testsliderule: ## Update the web client at testsliderule.org with new build
-	$(MAKE) live-update DOMAIN_APEX=testsliderule.org S3_BUCKET=testsliderule-webclient
+	$(MAKE) stack-upload DOMAIN_APEX=testsliderule.org
 
 live-update-slideruleearth: ## Update the web client at slideruleearth.io with new build
 	$(MAKE) live-update DOMAIN_APEX=slideruleearth.io S3_BUCKET=slideruleearth-webclient
@@ -556,6 +556,9 @@ stack-activate: check-derived check-account ## Verify the pre-staged bucket agai
 stack-upload: check-derived check-account ## Build, upload to STACK_BUCKET, invalidate and verify (live-update forced to the stack's bucket)
 	$(MAKE) live-update DOMAIN_APEX=$(DOMAIN_APEX) S3_BUCKET=$(STACK_BUCKET)
 
+stack-verify: check-derived ## verify-s3-assets forced to STACK_BUCKET (read-only)
+	$(MAKE) verify-s3-assets DOMAIN_APEX=$(DOMAIN_APEX) S3_BUCKET=$(STACK_BUCKET)
+
 deploy: stack-deploy ## Alias of stack-deploy
 
 destroy: stack-destroy ## Alias of stack-destroy (NEEDS CONFIRM_DESTROY=<client host>)
@@ -576,7 +579,11 @@ terraform-destroy: check-terraform-vars ## Destroy the Terraform-managed infrast
 # Environment wrappers. deploy-* / destroy-* are CloudFormation-only from here on and
 # refuse an environment that is still on Terraform (the alias check in stack-deploy).
 # live-update-* / release-* keep S3_BUCKET pinned to the Terraform-era bucket until that
-# environment's cutover; plan §7.2 step 16 removes the override.
+# environment's cutover; plan §7.2 step 16 then switches them to stack-upload / stack-verify,
+# which FORCE the stack's bucket as a sub-make assignment -- the S3_BUCKET default alone would
+# still yield to a stale S3_BUCKET= on the command line. testsliderule.org cut over on
+# 2026-09-15 and uses the stack targets; slideruleearth.io has not, and its wrappers still
+# name slideruleearth-webclient.
 deploy-client-to-testsliderule: ## Create/update the testsliderule.org stack, then build and upload to its bucket
 	$(MAKE) stack-deploy DOMAIN_APEX=testsliderule.org
 	$(MAKE) stack-upload DOMAIN_APEX=testsliderule.org
@@ -585,7 +592,7 @@ destroy-client-testsliderule: ## Destroy the testsliderule.org stack and empty i
 	$(MAKE) stack-destroy DOMAIN_APEX=testsliderule.org CONFIRM_DESTROY=$(CONFIRM_DESTROY)
 
 release-live-update-to-testsliderule: src-tag-and-push ## Release the web client to the live environment NEEDS VERSION
-	$(MAKE) live-update DOMAIN_APEX=testsliderule.org S3_BUCKET=testsliderule-webclient
+	$(MAKE) stack-upload DOMAIN_APEX=testsliderule.org
 
 release-live-update-to-slideruleearth: src-tag-and-push ## Release the web client to the live environment NEEDS VERSION
 	$(MAKE) live-update DOMAIN_APEX=slideruleearth.io S3_BUCKET=slideruleearth-webclient
@@ -597,7 +604,7 @@ deploy-client-to-slideruleearth: ## Create/update the slideruleearth.io stack, t
 destroy-client-slideruleearth: ## Destroy the slideruleearth.io stack and empty its bucket (NEEDS CONFIRM_DESTROY=client.slideruleearth.io)
 	$(MAKE) stack-destroy DOMAIN_APEX=slideruleearth.io CONFIRM_DESTROY=$(CONFIRM_DESTROY)
 
-.PHONY: check-lockfiles typecheck-tests upload-robots install-deps reinstall-deps rebuild-all regen-lockfiles verify-lockfiles audit-deps audit-fix-deps doctor check-derived check-terraform-vars check-vars check-account check-stack-vars check-destroy-vars bucket-create bucket-configure stack-status stack-outputs stack-events stack-deploy stack-destroy stack-protect stack-unprotect stack-delete-failed stack-abort-create stack-prestage stack-activate stack-upload deploy destroy terraform-destroy typecheck lint lint-fix lint-cfn validate-cfn lint-staged pre-commit-check test-unit test-unit-watch coverage-unit test-e2e test-all ci-check keycloak-up keycloak-down keycloak-run
+.PHONY: check-lockfiles typecheck-tests upload-robots install-deps reinstall-deps rebuild-all regen-lockfiles verify-lockfiles audit-deps audit-fix-deps doctor check-derived check-terraform-vars check-vars check-account check-stack-vars check-destroy-vars bucket-create bucket-configure stack-status stack-outputs stack-events stack-deploy stack-destroy stack-protect stack-unprotect stack-delete-failed stack-abort-create stack-prestage stack-activate stack-upload stack-verify deploy destroy terraform-destroy typecheck lint lint-fix lint-cfn validate-cfn lint-staged pre-commit-check test-unit test-unit-watch coverage-unit test-e2e test-all ci-check keycloak-up keycloak-down keycloak-run
 # =========================
 # Testing / Quality targets
 # =========================
