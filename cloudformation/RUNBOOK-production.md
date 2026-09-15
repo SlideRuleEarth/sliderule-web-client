@@ -45,7 +45,7 @@ Do not open the window until every line is true.
 - [ ] Part A done: V1 and V7 for `slideruleearth.io` recorded in the plan (§10)
 - [ ] Announcement agreed with the other developer — method: ______ lead time: ______
 - [ ] Announcement sent, window: date ______ start (local) ______ length **60 min**
-- [ ] In-app banner deployed on ______ (step 8b); **no `make live-update-slideruleearth` since**, or the banner is gone
+- [ ] In-app banner deployed on ______ (step 8b); **no content deploy without `BANNER_TEXT` since** — that includes `release-live-update-to-slideruleearth` and `deploy-client-to-slideruleearth` — and the banner seen in the browser immediately before step 9
 - [ ] `main` is clean and pulled; `make lint-cfn` and `make validate-cfn` pass
 - [ ] The post-cutover wrappers PR for `slideruleearth.io` is open and **not merged** (Part D, step 16)
 - [ ] Part B steps 0–9 done, in this order, on the day (or the evening before, for 1–8)
@@ -158,17 +158,20 @@ Expect: `client=E… apex=E…` (one id each), one `ETag` line from
 non-zero. **STOP** if an id is empty or doubled, or a file is missing.
 
 **Step 3 — certificate check, repeated on the day.** Same as A1; the answer
-must not have changed.
+must not have changed. The block also **saves the certificate ARN to the
+archive**, because step 8 needs it and, if the branch below is taken, the
+state address it came from will be gone.
 
 ```bash
-CERT_ARN=$(terraform state show module.cloudfront.aws_acm_certificate.mysite | awk '$1=="arn"{gsub(/"/,"",$3); print $3}')
-echo "$CERT_ARN"
-aws acm describe-certificate --region us-east-1 --certificate-arn "$CERT_ARN" --query 'Certificate.InUseBy'
+terraform state show module.cloudfront.aws_acm_certificate.mysite | awk '$1=="arn"{gsub(/"/,"",$3); print $3}' > "$HOME/sliderule-tf-archive/slideruleearth.io-terraform-cert-arn.txt"
+cat "$HOME/sliderule-tf-archive/slideruleearth.io-terraform-cert-arn.txt"
+aws acm describe-certificate --region us-east-1 --certificate-arn "$(cat "$HOME/sliderule-tf-archive/slideruleearth.io-terraform-cert-arn.txt")" --query 'Certificate.InUseBy'
 ```
 
-Expect: exactly the two ids step 2 printed. **Only if a third entry
-appears**, run this so the destroy leaves the certificate in place — the
-stack issues its own regardless:
+Expect: one ARN, then exactly the two ids step 2 printed. **Only if a third
+entry appears**, run this so the destroy leaves the certificate in place —
+the stack issues its own regardless. Taking this branch changes two later
+numbers: step 6 lists **10** (not 12) and step 11 destroys **7** (not 9).
 
 ```bash
 terraform state rm module.cloudfront.aws_acm_certificate.mysite module.cloudfront.aws_acm_certificate_validation.cert
@@ -204,17 +207,18 @@ cd ..
 ```
 
 Expect: **12** lines — 9 resources plus the 3 `data.` sources — with no
-`cert_validation_*` and no `aws_s3_bucket*` among them (and no
-`aws_acm_certificate*` if step 3 took its branch). Test showed 12 destroyed
-from 14 managed; production destroys 9.
+`cert_validation_*` and no `aws_s3_bucket*` among them. **If step 3 took its
+branch: 10 lines**, 7 resources, and no `aws_acm_certificate*` either. (Test
+listed 14 managed and destroyed 12; production destroys 9, or 7.)
 
 **Step 7 — V2.** Done for both environments on 2026-09-14; nothing to run.
 
 **Step 8 — everything is ready and nothing exists yet.** The last block
 proves the validation CNAME in the zone is what ACM expects, so the
-certificate will validate without the template touching the record. The two
-lines it prints must match exactly (the first is the zone, the second is
-ACM's expectation from the Terraform-era certificate).
+certificate will validate without the template touching the record: it reads
+the expected record name and value from the Terraform-era certificate (the
+ARN step 3 saved — same account, same domain, so the new certificate expects
+the same record), then looks up **exactly that name** in the zone.
 
 ```bash
 make lint-cfn
@@ -229,18 +233,21 @@ client-slideruleearth-io-web-client in us-east-1`, and
 
 ```bash
 ZONE_ID=$(aws route53 list-hosted-zones-by-name --dns-name slideruleearth.io --query "HostedZones[?Name=='slideruleearth.io.' && Config.PrivateZone==\`false\`].Id" --output text | sed 's|/hostedzone/||')
+CERT_ARN=$(cat "$HOME/sliderule-tf-archive/slideruleearth.io-terraform-cert-arn.txt")
+EXPECTED=$(aws acm describe-certificate --region us-east-1 --certificate-arn "$CERT_ARN" --query 'Certificate.DomainValidationOptions[0].ResourceRecord.[Name,Value]' --output text)
+read -r EXPECTED_NAME EXPECTED_VALUE <<< "$EXPECTED"
+IN_ZONE=$(aws route53 list-resource-record-sets --hosted-zone-id "$ZONE_ID" --query "ResourceRecordSets[?Name=='$EXPECTED_NAME' && Type=='CNAME'].ResourceRecords[0].Value" --output text)
 echo "zone=$ZONE_ID"
-aws route53 list-resource-record-sets --hosted-zone-id "$ZONE_ID" --query "ResourceRecordSets[?Type=='CNAME' && ends_with(Name,'.slideruleearth.io.') && starts_with(Name,'_')].[Name,ResourceRecords[0].Value]" --output text | grep -v '\.client\.\|\.docs\.\|\.sliderule\.'
-CERT_ARN=$(cd terraform && terraform state show module.cloudfront.aws_acm_certificate.mysite | awk '$1=="arn"{gsub(/"/,"",$3); print $3}')
-aws acm describe-certificate --region us-east-1 --certificate-arn "$CERT_ARN" --query 'Certificate.DomainValidationOptions[0].ResourceRecord.[Name,Value]' --output text
+echo "ACM expects  $EXPECTED_NAME -> $EXPECTED_VALUE"
+echo "zone has     $EXPECTED_NAME -> $IN_ZONE"
+test "$IN_ZONE" = "$EXPECTED_VALUE" && echo VALIDATION-CNAME-OK || echo VALIDATION-CNAME-MISMATCH
 ```
 
-Expect: `zone=Z…` (one id), then a `_….slideruleearth.io.` name and an
-`_….acm-validations.aws.` value from the zone, then the **same** name and
-value from ACM. **STOP** if they differ or the zone line is empty: the new
-certificate would hang in `CREATE_IN_PROGRESS`. (If step 3 took its branch,
-the `CERT_ARN` line fails because the address is gone — use the ARN you noted
-in A1 instead.)
+Expect: `zone=Z…` (one id), two lines showing the same `_….slideruleearth.io.`
+name and the same `_….acm-validations.aws.` value, and
+**`VALIDATION-CNAME-OK`**. **STOP** on `VALIDATION-CNAME-MISMATCH` (or an
+empty `zone has` value): the new certificate would hang in
+`CREATE_IN_PROGRESS`. Tell Claude Code before doing anything to the zone.
 
 **Step 8b — the in-app banner, days ahead.** The client already supports a
 banner: `BANNER_TEXT` is inlined at build time and `SrAppBar.vue` shows it
@@ -259,9 +266,12 @@ usual uploads to `s3://slideruleearth-webclient/…`, an invalidation, and
 `✅ Found:` lines. Reload `https://client.slideruleearth.io/` — the banner is
 in the app bar.
 
-**After this, do not run `make live-update-slideruleearth` again without
-`BANNER_TEXT`**: a deploy with it empty removes the banner. To change the
-wording, run the same command with the new text. The banner comes off by
+**After this, no content deploy without `BANNER_TEXT`**: any build with it
+empty removes the banner, and that is every wrapper that builds —
+`live-update-slideruleearth`, `release-live-update-to-slideruleearth`,
+`deploy-client-to-slideruleearth`. To change the wording, run the same
+command with the new text. Look at the site immediately before step 9 and
+confirm the banner is still there. The banner comes off by
 itself at the cutover: step 9 builds with `BANNER_TEXT` empty, so the
 pre-staged site that goes live at step 12 has none.
 
@@ -276,9 +286,17 @@ make check-stack-vars DOMAIN_APEX=slideruleearth.io
 Expect: `✅ created bucket client-slideruleearth-io-web-client in us-east-1`,
 `✅ … public access blocked, tagged` twice, then the stack inputs with
 `HOSTED_ZONE_ID = Z… (lookup)` matching step 8's zone.
-**STOP** if `bucket-create` refuses: the name is taken. Do not pick another
-name by hand — that is a committed Makefile edit (`BUCKET_client-slideruleearth-io-web-client`),
-see the plan's §5.4.
+If `bucket-create` refuses, read which message it printed:
+
+- `❌ bucket … already exists: refusing. To reassert its settings run make bucket-configure`
+  — **this account already has the bucket** (step 9 was run before, or a
+  previous attempt got as far as `create-bucket`). That is fine: the next
+  command, `bucket-configure`, finishes the job; continue.
+- `❌ head-bucket on … failed for a reason other than 'not found'` with a
+  `403` — the name is taken **by another account**. **STOP.** Do not pick
+  another name by hand: that is a committed Makefile edit
+  (`BUCKET_client-slideruleearth-io-web-client`, plan §5.4), reviewed, before
+  the window.
 
 ```bash
 make stack-prestage DOMAIN_APEX=slideruleearth.io
@@ -291,8 +309,10 @@ Expect (several minutes): a full build echoing **`VITE_BANNER_TEXT=`**
 robots.noindex.txt"), `✅ Found:` for each `index-*.js/css`, and
 `✅ pre-staged into s3://client-slideruleearth-io-web-client. Do NOT run make build …`.
 
-**From here until step 12 has run: no `make build`, and leave
-`web-client/dist/` alone.**
+**From here until step 13 has passed: no `make build`, and leave
+`web-client/dist/` alone.** Step 12's `stack-activate` checks the bucket
+against it, and step 13 picks the asset it fetches from it — a rebuild in
+between would make verification look for an object that was never uploaded.
 
 **Step 10 — announce the window.** As agreed (go/no-go line 2). Size: **60
 minutes**; test took 28 including a 15-minute template fault that is fixed.
@@ -312,8 +332,8 @@ make terraform-destroy DOMAIN_APEX=slideruleearth.io S3_BUCKET=slideruleearth-we
 ```
 
 Expect: the ARN with `Project-Power-User`; Terraform plans **9 to destroy**
-(not 12 — the bucket trio stays), asks for `yes`; then
-`Destroy complete! Resources: 9 destroyed.` The site is down from the first
+(not 12 — the bucket trio stays; **7** if step 3 took its branch), asks for
+`yes`; then `Destroy complete! Resources: 9 destroyed.` (or `7`). The site is down from the first
 distribution's disable.
 **If it stops with `AccessDenied`** part-way: `export AWS_PROFILE=sliderule-admin`,
 `aws sso login`, verify, and run the same `make terraform-destroy …` line again — it
