@@ -1402,9 +1402,11 @@ conditions, carrying every Phase 3 finding. Its go/no-go list is the gate.
       drift, the bucket name free, the zone unique and the validation CNAME
       matching ACM); recorded in §10. Re-run Part A if the window is weeks
       away
-- [ ] Announcement method and lead time agreed with the other developer
-      (§11's open question); window announced, sized from §7.3 (60 min)
-- [ ] In-app banner deployed days ahead with
+- [x] Announcement method and lead time agreed with the other developer
+      (§11's open question, closed 2026-09-15): the in-app banner only,
+      three days ahead. **Window: Friday 2026-09-18, 08:00–09:00 Eastern
+      (12:00–13:00 UTC)**, 60 min
+- [x] In-app banner deployed 2026-09-15 with
       `make live-update-slideruleearth BANNER_TEXT='…'` (runbook step 8b —
       a content deploy, permitted under the freeze); no content deploy after
       it until the pre-stage, which drops the banner
@@ -1502,7 +1504,9 @@ conditions, carrying every Phase 3 finding. Its go/no-go list is the gate.
 The decision questions that stood here (D1, D2, D4, D9) were settled on
 2026-09-14 — see the [Decision log](#decision-log). One remains:
 
-1. Who needs to hear about the production window, and how far ahead?
+1. ~~Who needs to hear about the production window, and how far ahead?~~
+   Closed 2026-09-15: the in-app banner, three days ahead, is the
+   announcement; no other channel. Window Friday 2026-09-18 08:00 Eastern.
 
 ---
 

@@ -25,7 +25,7 @@ decide.
 | Terraform-era bucket (retained) | `slideruleearth-webclient` |
 | Stack name | `client-slideruleearth-io-web-client` |
 | Stack bucket (new, permanent) | `client-slideruleearth-io-web-client` |
-| Terraform-era distributions | client `E36AZ5X3OLE9QQ`, apex `EP6A1RAAHWFW0` |
+| Terraform-era distributions | client `EP6A1RAAHWFW0`, apex `E36AZ5X3OLE9QQ` (the client id is what `live-update-slideruleearth` invalidates — seen 2026-09-15) |
 | Terraform-era certificate | `arn:aws:acm:us-east-1:742127912612:certificate/c0b7a6c8-de01-4673-b6a8-cff62d04d96d` |
 | Hosted zone | `Z0526045IQLILBFI9THF` (public, the only one) |
 | Region | `us-east-1` |
@@ -85,9 +85,9 @@ reaches them:
 Do not open the window until every line is true.
 
 - [x] Part A done 2026-09-15: V1 clean (certificate used only by its two distributions), V7 recorded, bucket name free, zone unique, validation CNAME matches ACM. Re-run Part A if more than a few weeks pass before the window
-- [ ] Announcement agreed with the other developer — method: ______ lead time: ______
-- [ ] Announcement sent, window: date ______ start (local) ______ length **60 min**
-- [ ] In-app banner deployed on ______ (step 8b); **no content deploy without `BANNER_TEXT` since** — that includes `release-live-update-to-slideruleearth` and `deploy-client-to-slideruleearth` — and the banner seen in the browser immediately before step 9
+- [x] Announcement agreed with the other developer (2026-09-15): the in-app banner only, three days ahead
+- [x] Window: **Friday 2026-09-18, 08:00–09:00 Eastern (12:00–13:00 UTC)**, length 60 min
+- [x] In-app banner deployed 2026-09-15 14:04 ET (step 8b); **no content deploy without `BANNER_TEXT` since** — that includes `release-live-update-to-slideruleearth` and `deploy-client-to-slideruleearth` — and the banner seen in the browser immediately before step 9
 - [ ] `main` is clean and pulled; `make lint-cfn` and `make validate-cfn` pass
 - [ ] The post-cutover wrappers PR for `slideruleearth.io` is open and **not merged** (Part D, step 16)
 - [ ] Part B steps 0–9 done, in this order, on the day (or the evening before, for 1–8)
@@ -194,7 +194,7 @@ wc -l "$HOME/sliderule-tf-archive/slideruleearth.io-zone-pre-cutover.txt"
 ls -l "$HOME/sliderule-tf-archive"
 ```
 
-Expect: `client=E36AZ5X3OLE9QQ apex=EP6A1RAAHWFW0`, one `ETag` line from
+Expect: `client=EP6A1RAAHWFW0 apex=E36AZ5X3OLE9QQ`, one `ETag` line from
 `get-function`, a record count for the zone (dozens, not zero), and `ls`
 showing the seven `slideruleearth.io-*` files, all non-zero. **STOP** if the
 ids differ, the count is zero, or a file is missing.
