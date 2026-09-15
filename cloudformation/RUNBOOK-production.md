@@ -68,20 +68,17 @@ distributions?** This decides whether step 3 takes its branch.
 cd terraform
 terraform workspace select client.slideruleearth.io-web-client
 terraform workspace show
-terraform state show module.cloudfront.aws_acm_certificate.mysite | awk '$1=="arn"{gsub(/"/,"",$3); print $3}'
+CERT_ARN=$(terraform state show module.cloudfront.aws_acm_certificate.mysite | awk '$1=="arn"{gsub(/"/,"",$3); print $3}')
 cd ..
+echo "$CERT_ARN"
+aws acm describe-certificate --region us-east-1 --certificate-arn "$CERT_ARN" --query 'Certificate.[InUseBy,DomainValidationOptions[].ResourceRecord.[Name,Value]]'
 ```
 
-Expect: `client.slideruleearth.io-web-client`, then one ARN
-`arn:aws:acm:us-east-1:742127912612:certificate/…`. Then, pasting that ARN
-into the placeholder:
-
-```bash
-aws acm describe-certificate --region us-east-1 --certificate-arn PASTE-THE-ARN-HERE --query 'Certificate.[InUseBy,DomainValidationOptions[].ResourceRecord.[Name,Value]]'
-```
-
-Expect: `InUseBy` is **exactly two** `arn:aws:cloudfront::742127912612:distribution/…`
-entries, and the validation record name/value (note it — step 8 uses it).
+Expect: `client.slideruleearth.io-web-client`, one ARN
+`arn:aws:acm:us-east-1:742127912612:certificate/…`, then `InUseBy` with
+**exactly two** `arn:aws:cloudfront::742127912612:distribution/…` entries
+and the validation record name/value. (Step 3 repeats this on the day and
+saves the ARN; step 8 uses the saved copy.)
 **STOP** if `InUseBy` has a third entry: something else uses this
 certificate, and step 3 must take its branch. Tell Claude Code; the plan's V1
 row is updated with the answer either way.
@@ -240,14 +237,17 @@ IN_ZONE=$(aws route53 list-resource-record-sets --hosted-zone-id "$ZONE_ID" --qu
 echo "zone=$ZONE_ID"
 echo "ACM expects  $EXPECTED_NAME -> $EXPECTED_VALUE"
 echo "zone has     $EXPECTED_NAME -> $IN_ZONE"
-test "$IN_ZONE" = "$EXPECTED_VALUE" && echo VALIDATION-CNAME-OK || echo VALIDATION-CNAME-MISMATCH
+case "$EXPECTED_VALUE" in _*.acm-validations.aws.) test "$IN_ZONE" = "$EXPECTED_VALUE" && echo VALIDATION-CNAME-OK || echo VALIDATION-CNAME-MISMATCH;; *) echo VALIDATION-CNAME-LOOKUP-FAILED;; esac
 ```
 
 Expect: `zone=Z…` (one id), two lines showing the same `_….slideruleearth.io.`
 name and the same `_….acm-validations.aws.` value, and
-**`VALIDATION-CNAME-OK`**. **STOP** on `VALIDATION-CNAME-MISMATCH` (or an
-empty `zone has` value): the new certificate would hang in
-`CREATE_IN_PROGRESS`. Tell Claude Code before doing anything to the zone.
+**`VALIDATION-CNAME-OK`**. The verdict is only `OK` when ACM returned a real
+`_….acm-validations.aws.` value *and* the zone holds exactly it; two empty
+strings are `LOOKUP-FAILED`, not `OK`. **STOP** on `MISMATCH` (the new
+certificate would hang in `CREATE_IN_PROGRESS`) or `LOOKUP-FAILED` (the ARN
+file, the session or the zone id is wrong). Tell Claude Code before doing
+anything to the zone.
 
 **Step 8b — the in-app banner, days ahead.** The client already supports a
 banner: `BANNER_TEXT` is inlined at build time and `SrAppBar.vue` shows it
@@ -293,10 +293,17 @@ If `bucket-create` refuses, read which message it printed:
   previous attempt got as far as `create-bucket`). That is fine: the next
   command, `bucket-configure`, finishes the job; continue.
 - `❌ head-bucket on … failed for a reason other than 'not found'` with a
-  `403` — the name is taken **by another account**. **STOP.** Do not pick
-  another name by hand: that is a committed Makefile edit
+  `403` — **STOP**, but a 403 is not yet proof that another account owns the
+  name: S3 answers 403 for a session or permission problem too. Diagnose in
+  this order: the session (`aws sts get-caller-identity` — still
+  `Project-Power-User`?); then ownership
+  (`aws s3api list-buckets --query "Buckets[?Name=='client-slideruleearth-io-web-client'].Name"`
+  — lists it only if this account owns it, in which case run
+  `make bucket-configure DOMAIN_APEX=slideruleearth.io` and continue). Only
+  if the session is right and the bucket is not ours is the name genuinely
+  taken — and then the fix is a committed Makefile edit
   (`BUCKET_client-slideruleearth-io-web-client`, plan §5.4), reviewed, before
-  the window.
+  the window. Never pick a name by hand.
 
 ```bash
 make stack-prestage DOMAIN_APEX=slideruleearth.io
@@ -422,13 +429,15 @@ directly (private, D1a).
 ```bash
 curl -sI https://client.slideruleearth.io/ | grep -i '^content-security-policy' | sed 's/^[^:]*: //' | tr -d '\r' > /tmp/csp-live.txt
 python3 -c "import json;print(json.load(open('$HOME/sliderule-tf-archive/slideruleearth.io-headers-policy.json'))['ResponseHeadersPolicy']['ResponseHeadersPolicyConfig']['SecurityHeadersConfig']['ContentSecurityPolicy']['ContentSecurityPolicy'])" > /tmp/csp-old.txt
-diff /tmp/csp-live.txt /tmp/csp-old.txt && echo CSP-IDENTICAL
+test -s /tmp/csp-live.txt && test -s /tmp/csp-old.txt && diff /tmp/csp-live.txt /tmp/csp-old.txt && echo CSP-IDENTICAL || echo CSP-CHECK-FAILED
 curl -sI https://client.slideruleearth.io/ | grep -i -E 'strict-transport|x-frame|x-content-type|referrer-policy|x-xss'
 ```
 
-Expect: `CSP-IDENTICAL`, then the five other headers. **STOP and read** if
-`diff` prints anything: the CSP is the header most likely to break workers
-and WASM in the client.
+Expect: `CSP-IDENTICAL`, then the five other headers. `CSP-CHECK-FAILED`
+means either a difference (the `diff` lines above it say what) or one side
+was empty — the header missing from the live response, or the archive file
+from step 2 unreadable. **STOP and read** either way: the CSP is the header
+most likely to break workers and WASM in the client.
 
 ```bash
 openssl s_client -connect client.slideruleearth.io:443 -servername client.slideruleearth.io -tls1_1 </dev/null 2>&1 | grep -i -E 'alert|error|no protocols' | head -2
