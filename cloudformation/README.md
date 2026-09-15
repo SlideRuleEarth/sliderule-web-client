@@ -189,9 +189,13 @@ this shell.
 
 ```bash
 export AWS_PROFILE=sliderule-power
+export AWS_PAGER=
 aws sso login
 aws sts get-caller-identity --query '[Account,Arn]' --output text
 ```
+
+`AWS_PAGER=` keeps the raw `aws` commands in this runbook from opening `less`
+on long output (the `make` targets already disable it).
 
 If one specific command is refused for a permission the power-user set lacks,
 run that command alone under `sliderule-admin` (`AWS_PROFILE=sliderule-admin

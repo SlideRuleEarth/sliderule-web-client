@@ -2,13 +2,13 @@
 
 | | |
 |---|---|
-| **Status** | ACCEPTED — merged via [PR #1105](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1105) on 2026-09-14 with all ten decisions settled ([Decision log](#decision-log)). Phases 0 and 1 complete ([#1106](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1106), [#1107](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1107), [#1109](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1109), [#1110](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1110)). **Next: Phase 3, the `testsliderule.org` cutover** (§7.2), owner-run |
+| **Status** | ACCEPTED — merged via [PR #1105](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1105) on 2026-09-14 with all ten decisions settled ([Decision log](#decision-log)). Phases 0 and 1 complete ([#1106](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1106), [#1107](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1107), [#1109](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1109), [#1110](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1110)). **Phase 3 done 2026-09-15: `testsliderule.org` is on CloudFormation** (28 min outage; one template fix, V6). Next: Phase 4, gated on V1/V7 for production and on the explicit production runbook |
 | **Branch** | merged; Phase 1 work is on `issue-1108-cloudformation-template` and `issue-1108-cloudformation-makefile` |
 | **Tracking issue** | [#1108](https://github.com/SlideRuleEarth/sliderule-web-client/issues/1108) (opened 2026-09-14) |
 | **Owner** | Carlos E. Ugarte |
 | **Authored by** | Claude Code (Fable 5.1), 2026-09-03, from the repo contents and the local Terraform state |
 | **Review** | Reviewed before commit; rounds from the plan PR onward are logged in the [Review log](#review-log) |
-| **Last updated** | 2026-09-14 |
+| **Last updated** | 2026-09-15 |
 
 This document is the single source of truth for the migration. It is meant to
 be handed off: anyone (or any agent) picking it up should be able to see what
@@ -359,7 +359,7 @@ cloudformation/
 | `DomainName` | `$(DOMAIN)`, derived as `client.$(DOMAIN_APEX)` (G4) | `var.domainName`. Kept as a parameter so the template states the client host once instead of repeating `!Sub "client.${DomainApex}"` in every alias, record, output and the function body; the Makefile derives it, so the two cannot disagree. |
 | `DomainApex` | `$(DOMAIN_APEX)` | `var.domainApex` |
 | `S3BucketName` | `$(STACK_BUCKET)` (locked; defaults to `$(STACK_NAME)`, §5.4): the environment's permanent bucket, created once by `make bucket-create` before the first stack create and never deleted (D8) | `var.s3_bucket_name`. A parameter, not a resource — exactly as in the org's docs-site template. |
-| `HostedZoneId` | `$(HOSTED_ZONE_ID)`: `aws route53 list-hosted-zones-by-name --dns-name $(DOMAIN_APEX)` filtered to the exact name **and `Config.PrivateZone == false`**, and rejected unless exactly one ID comes back (Terraform's lookup had `private_zone = false`; a private zone of the same name would otherwise win a name-only filter). Overridable only as the escape hatch when the lookup does not return exactly one zone (§5.4). | `data.aws_route53_zone.public` — CloudFormation has no data sources. `AWS::Route53::RecordSet` could take `HostedZoneName`, but `AWS::CertificateManager::Certificate` DNS auto-validation needs the **ID**, so pass the ID once and use it everywhere. |
+| `HostedZoneId` | `$(HOSTED_ZONE_ID)`: `aws route53 list-hosted-zones-by-name --dns-name $(DOMAIN_APEX)` filtered to the exact name **and `Config.PrivateZone == false`**, and rejected unless exactly one ID comes back (Terraform's lookup had `private_zone = false`; a private zone of the same name would otherwise win a name-only filter). Overridable only as the escape hatch when the lookup does not return exactly one zone (§5.4). | `data.aws_route53_zone.public` — CloudFormation has no data sources. `AWS::Route53::RecordSet` could take `HostedZoneName`; the ID is passed once and used by the four alias records. (It is deliberately **not** handed to the certificate — §4.5.) |
 
 No slug parameter: Terraform used `replace(var.domainName, ".", "-")` to name
 resources, and CloudFormation has no string-replace intrinsic, but fresh
@@ -406,7 +406,7 @@ safe default.
 | `aws_cloudfront_distribution.my_cloudfront` | `ClientDistribution` — `AWS::CloudFront::Distribution` | Origin `Id: s3-client`, `DomainName: !Sub "${S3BucketName}.s3.${AWS::Region}.amazonaws.com"`, `OriginAccessControlId: !GetAtt OriginAccessControl.Id`, `S3OriginConfig: {OriginAccessIdentity: ""}` (AWS requires the empty string when an OAC is used). `DefaultCacheBehavior`: `TargetOriginId: s3-client` (**required**), `ViewerProtocolPolicy: redirect-to-https` (**required**), `CachePolicyId: !Ref CachePolicy`, `ResponseHeadersPolicyId`, `Compress: true` (**D1b**), `AllowedMethods: [GET, HEAD, OPTIONS]` (**D1d**), `CachedMethods: [GET, HEAD]`. `Enabled: true`, `HttpVersion: http2`, `PriceClass_200`, `IPV6Enabled: true`, `DefaultRootObject: index.html`, `Aliases: [DomainName]`, two `CustomErrorResponses` (403 and 404 → 200 `/index.html`, `ErrorCachingMinTTL: 0`), `ViewerCertificate` sni-only `TLSv1.2_2021`. |
 | `aws_cloudfront_function.apex_redirect[0]` | `ApexRedirectFunction` — `AWS::CloudFront::Function` | `Name: ${AWS::StackName}-apex-redirect`, `Runtime: cloudfront-js-2.0`, `AutoPublish: true`, `FunctionConfig.Comment` (required) set, `FunctionCode: !Sub` of the exact JS in `cloudfront.tf`. Only `${var.domainApex}` and `${var.domainName}` are substituted; there are no JS template literals, so no `${!…}` escaping is needed today — add a comment warning future editors. |
 | `aws_cloudfront_distribution.apex_redirect[0]` | `ApexDistribution` — `AWS::CloudFront::Distribution` | Origin `Id: s3-apex-dummy` pointing at the same bucket with the same OAC. `DefaultCacheBehavior`: `TargetOriginId: s3-apex-dummy` (**required**), `ViewerProtocolPolicy: redirect-to-https` (**required**, and what Terraform sets today — without it the apex would answer plain HTTP), `CachePolicyId: !Ref CachePolicy`, GET/HEAD only, `FunctionAssociations: [{EventType: viewer-request, FunctionARN: !GetAtt ApexRedirectFunction.FunctionARN}]`, `Enabled: true`, `HttpVersion: http2`, `PriceClass_100`, `IPV6Enabled: true` (**D1c** — off today), `Aliases: [DomainApex]`, same `ViewerCertificate`. The cache policy is shared with the client distribution but never exercised: a viewer-request function that returns a response short-circuits before the cache lookup, so nothing here is fetched or cached. |
-| `aws_acm_certificate.mysite` + `aws_acm_certificate_validation.cert` | `Certificate` — `AWS::CertificateManager::Certificate` | `DomainName: !Ref DomainApex`, `SubjectAlternativeNames: ['*.${DomainApex}']`, `ValidationMethod: DNS`, `DomainValidationOptions` for both names with `HostedZoneId`. CloudFormation waits for `ISSUED` itself. The validation CNAME is **retained from the Terraform era** (§7.2 step 4), so validation of the new certificate is immediate rather than a fresh DNS round-trip (V6). (D2) |
+| `aws_acm_certificate.mysite` + `aws_acm_certificate_validation.cert` | `Certificate` — `AWS::CertificateManager::Certificate` | `DomainName: !Ref DomainApex`, `SubjectAlternativeNames: ['*.${DomainApex}']`, `ValidationMethod: DNS`, and **no `DomainValidationOptions`**. CloudFormation waits for `ISSUED` itself; ACM validates against the CNAME **retained from the Terraform era** (§7.2 step 4), which stays unmanaged. The first draft passed `HostedZoneId` in `DomainValidationOptions`, as the docs-site template does — but that makes CloudFormation *create* the record, and Route 53 refuses because it exists: the first test create failed on it (V6, 2026-09-15). Without the block, validation took minutes. (D2, amended) |
 | `aws_route53_record.cert_validation_root` / `_wildcard` | *not modelled* | The one CNAME they both describe is removed from Terraform state before the destroy and left in the zone. ACM validation CNAMEs are stable per account and domain and are shared by every certificate for that domain in the account, so deleting it could break the renewal of a certificate this plan knows nothing about (V7). |
 | `aws_route53_record.web` | `ClientAliasA` — `AWS::Route53::RecordSet` | `Type: A`, `AliasTarget: {DNSName: !GetAtt ClientDistribution.DomainName, HostedZoneId: Z2FDTNDATAQYW2}` (CloudFront's fixed zone), `EvaluateTargetHealth: false`. |
 | *(new)* | `ClientAliasAAAA` — `AWS::Route53::RecordSet` | **D1c:** same target, `Type: AAAA`. IPv6 is already enabled on the distribution; only the record was missing. |
@@ -430,8 +430,9 @@ The main `sliderule` repo already does exactly this pattern for the docs site
 - resource names built from `${AWS::StackName}`
 - the site bucket passed in as a parameter, never created by the stack
 - `PriceClass_200`, `TLSv1.2_2021`, `Z2FDTNDATAQYW2` alias target
-- ACM certificate created **inside** the stack with `DomainValidationOptions`
-  + `HostedZoneId`
+- ACM certificate created **inside** the stack (the docs stack also passes
+  `DomainValidationOptions` + `HostedZoneId`, which works there because its
+  record did not pre-exist; ours must not, see §4.5)
 - `HOSTED_ZONE_ID` resolved in the Makefile with
   `aws route53 list-hosted-zones-by-name`
 - stack outputs read back with `aws cloudformation describe-stacks --query`
@@ -1128,7 +1129,10 @@ Phase 6  follow-ups     DISTRIBUTION_ID from stack outputs (D6); anything D1 def
     `dist/` and invalidates; it is seconds, not minutes. If step 9's
     pre-staging was skipped, `make stack-upload DOMAIN_APEX=<apex>` is the
     fallback and the window absorbs the build.
-    If the create fails, §7.3 says what to do for each stack state.
+    If the create fails, §7.3 says what to do for each stack state. (Phase
+    3 did fail once, at the certificate, for the V6 reason — fixed with a
+    template edit, `stack-delete-failed`, `stack-deploy` again; 15 minutes
+    lost. With the fixed template this should not recur.)
 13. §7.4 verification. Note the wall-clock time from step 11 to here.
 14. Production only: `make stack-protect DOMAIN_APEX=slideruleearth.io`.
 
@@ -1164,11 +1168,11 @@ Phase 6  follow-ups     DISTRIBUTION_ID from stack outputs (D6); anything D1 def
 
 | Step | Expected | Measured (Phase 3) |
 |---|---|---|
-| `terraform destroy` | 10–20 min | — / |
-| stack create (cert + 2 distributions) | 10–25 min (cert is fast with the CNAME retained) | / |
-| build + upload + invalidation (`stack-upload`) | 3–5 min | / |
-| verify + invalidate only (`stack-activate`, when pre-staged) | seconds — no build, no upload | / |
-| **total outage** | **~30–50 min** | — / |
+| `terraform destroy` | 10–20 min | **5 min** (2026-09-15, 12 resources) / |
+| stack create (cert + 2 distributions) | 10–25 min (cert is fast with the CNAME retained) | **~21 min including one failed attempt** — first create failed at the certificate after ~3 min (V6), `stack-delete-failed` + fixed template + second create ≈ 15 min / |
+| build + upload + invalidation (`stack-upload`) | 3–5 min | (not used in the window; step 16 ran it afterwards) / |
+| verify + invalidate only (`stack-activate`, when pre-staged) | seconds — no build, no upload | **~5 s** / |
+| **total outage** | **~30–50 min** | **28 min** (13:53 → 14:21 UTC, verification included) / |
 | resolver negative-cache tail (some users) | up to the zone's SOA minimum TTL, 15 min on a default Route 53 zone | n/a |
 
 **What to do when a stack operation fails.** `stack-deploy` runs only when
@@ -1357,28 +1361,31 @@ This is the first time the template creates anything (D9 rejected, G8). Expect
 to iterate: a template fault here costs test downtime while it is fixed with a
 template edit and `stack-deploy`, and that is the accepted trade.
 
-- [ ] §7.2 steps 1–10 (state clean, snapshot, certificate check, validation
+- [x] §7.2 steps 1–10 (state clean, snapshot, certificate check, validation
       CNAME retained, permanent bucket created and pre-staged; **no `make build`
       after step 9**). `bucket-configure` re-run once after `bucket-create` to
-      prove it is idempotent. Step 1 done 2026-09-15: `plan` with the vars is
-      "No changes" (a bare `plan` first showed the client-at-apex conversion —
-      inputs, not drift; runbook fixed)
-- [ ] Steps 11–13: `terraform-destroy` → `stack-deploy` → `stack-activate` →
-      verify. **Record the outage duration in §7.3**, and note separately how
-      long `stack-activate` took — that number is what justifies pre-staging
-      production. **Record the certificate issuance time** against the
-      retained CNAME (the create-side half of V6, and D2's trigger for
-      switching to a pre-issued certificate)
-- [ ] Steps 15–16: workspace retired (state archived first); `S3_BUCKET`
-      override removed from the testsliderule wrappers; a normal
-      `make live-update-testsliderule` works via the derived default
+      prove it is idempotent. Done 2026-09-15. Three runbook defects found
+      and fixed on the way: a bare `plan` shows the client-at-apex
+      conversion (vars required); `#` in paste blocks breaks zsh; the
+      default AWS profile is read-only (step 0 added)
+- [x] Steps 11–13: `terraform-destroy` → `stack-deploy` → `stack-activate` →
+      verify. Done 2026-09-15, **28 min outage** (§7.3), `stack-activate`
+      ~5 s. The first create failed at the certificate (V6: CloudFormation
+      does not upsert the retained CNAME); `DomainValidationOptions`
+      removed, second create clean. Certificate issuance against the
+      retained record: minutes — D2 stays as amended, no pre-issuing needed
+- [x] Steps 15–16: workspace retired (state archived first); the
+      testsliderule wrappers switched to `stack-upload` / `stack-verify`
+      (PR #1111); `make live-update-testsliderule` run once against the new
+      stack: new bundle hash landed in the stack bucket, verified
 - [ ] `make deploy-client-to-testsliderule` run once end to end, so
       `stack-upload` — the cutover fallback and the normal post-migration
       deploy — is exercised before production depends on it (this was the
       rehearsal's job)
-- [ ] Memory `apex-404-testsliderule-deploy.md` updated: the function is
+- [x] Memory `apex-404-testsliderule-deploy.md` updated: the function is
       republished by `make deploy-client-to-testsliderule` via CloudFormation
-- [ ] Findings folded back into the template; Review log row
+- [x] Findings folded back into the template (`1600a4c3`) and the runbook
+      (`3063417f`, `bcf3c3d8`); [Review log](#review-log) row 6
 
 ### Phase 4 — Production cutover **[owner]**
 
@@ -1469,7 +1476,7 @@ template edit and `stack-deploy`, and that is the accepted trade.
 | V3 | Does the client ever send a non-GET request to its own origin? | **[agent]** grep of `web-client/src`, re-run 2026-09-04: all eleven `method: 'POST'` sites resolve to an absolute cross-origin URL — `https://<api host>/<path>` (`sliderule/core.ts`, `utils/fetchUtils.ts`), the OAuth `registration_endpoint` / `token_endpoint`, `https://provisioner.<base domain>`, or `tile.googleapis.com`. No relative `fetch('/…')` exists anywhere, and every `location.origin` use is an OAuth **redirect URI** (`/auth/github/callback`), i.e. a browser navigation, not a request method the distribution sees | **closed — no** |
 | V4 | With an OAC, is `S3OriginConfig: {OriginAccessIdentity: ""}` the required form? | AWS CloudFormation reference for `S3OriginConfig`: yes — the property must be present and empty when an OAC is used | **closed — yes** |
 | V5 | Is production in the same AWS account as test (`742127912612`)? The `AWS_ACCOUNT_ID` guard assumes one account. | **[owner]** `aws sts get-caller-identity` under the production profile | **closed — yes**, one account, `742127912612` (owner, 2026-09-14) |
-| V6 | When `AWS::CertificateManager::Certificate` creates with DNS validation and the validation CNAME already exists with the same value, does it proceed (upsert / no-op) rather than fail? And does deleting the stack delete that CNAME? Both matter for a record shared with other certificates. | **[owner]** the create-side half is observed in Phase 3, where the retained Terraform-era CNAME is exactly the pre-existing record in question; the delete-side half is only observed if the test stack is ever destroyed, and until then the retained CNAME is assumed to survive a stack delete (it is not a stack resource); AWS docs for the certificate resource; if the delete-side answer is "yes", note it in `cloudformation/README.md` next to `stack-destroy` | open |
+| V6 | When `AWS::CertificateManager::Certificate` creates with DNS validation and the validation CNAME already exists with the same value, does it proceed (upsert / no-op) rather than fail? And does deleting the stack delete that CNAME? Both matter for a record shared with other certificates. | **[owner]** the create-side half is observed in Phase 3, where the retained Terraform-era CNAME is exactly the pre-existing record in question; the delete-side half is only observed if the test stack is ever destroyed, and until then the retained CNAME is assumed to survive a stack delete (it is not a stack resource); AWS docs for the certificate resource; if the delete-side answer is "yes", note it in `cloudformation/README.md` next to `stack-destroy` | **create-side: closed — NO, and it fails rather than no-ops** (2026-09-15, Phase 3): with `HostedZoneId` in `DomainValidationOptions` CloudFormation issued a `CREATE` for `_e359ba1d….testsliderule.org CNAME` and Route 53 answered "invalid set of changes" because the retained record exists; the certificate went `CREATE_FAILED`, the stack `ROLLBACK_COMPLETE`. Fix: no `DomainValidationOptions` at all (`1600a4c3`); the second create validated against the existing record in minutes. **Delete-side: moot** — the record is no longer a stack resource in any sense, so a stack delete cannot touch it |
 | V7 | Which other certificates in the account validate through the same CNAME? A validation CNAME is per account and domain and is shared by every certificate for those names, in any region, whether the apex is the primary name or a SAN. Informs only whether the retained CNAME must stay forever; nothing in the runbook depends on the answer. | **[owner]** in every region the account uses (at least `us-east-1`, `us-west-2`): `aws acm list-certificates --includes keyTypes=RSA_1024,RSA_2048,RSA_3072,RSA_4096,EC_prime256v1,EC_secp384r1,EC_secp521r1` (the default lists only RSA 1024/2048), filtered on `DomainName` **and** `SubjectAlternativeNameSummaries`; then `describe-certificate … DomainValidationOptions[].ResourceRecord.Name` | **test: closed — yes, four others** (2026-09-14): besides ours (`2cf02d11…`, in use), `us-east-1` holds `98b657ec…` and `620d2378…` (ISSUED, unused) and `us-west-2` holds `5f52cfa5…` (ISSUED, unused) and `68dd8e45…` (EXPIRED). All share the validation CNAME by construction, so it stays in the zone indefinitely; none is in use, so the runbook is unchanged. Cleanup candidate noted in Phase 6. **Production: open** — same loop with `slideruleearth.io`, before Phase 4 |
 | V8 | What `aws` CLI version is in use, and does it support `delete-stack --deletion-mode FORCE_DELETE_STACK`? Only affects the last-resort branch of the `DELETE_FAILED` row (§7.3); everything else in the plan uses long-standing commands. | `aws-cli/2.36.39` (Homebrew, upgraded 2026-09-04 from a 2024-vintage 2.18.8). Its bundled CloudFormation service model declares both `DeletionMode` and `FORCE_DELETE_STACK`, checked in `…/awscli/2.36.39/libexec/.../botocore/data/cloudformation/2010-05-15/service-2.json` | **closed — supported** |
 | V9 | What `terraform` version is in use? The cutover depends on `state pull`, `state rm`, `destroy` and `workspace delete` behaving as §7.2 describes — in particular that `workspace delete` removes the remote state object (§7.2 step 15). | `1.14.9` (Homebrew, linked 2026-04-20), well past every command the runbook uses | **closed — 1.14.9** |
@@ -1500,6 +1507,7 @@ coherent plan rather than a history of itself.
 | 3 | 2026-09-14 | Codex (PR #1109, `a9f5aa55` — the template) | No actionable findings. Confirmed independently: `make lint-cfn` passes; CSP and apex function code match Terraform exactly for both environments; 24 local checks of the redirect function's behaviour pass; both CI jobs green. Noted as still unverified, and already tracked here: live stack create/delete and the retained validation CNAME's behaviour (V6, Phase 3). |
 | 4 | 2026-09-14 | Codex (design review of six PR B implementation calls, before code) | Agreed with all six; two adjustments taken. (1) `check-terraform-vars` stays until Phase 5 but must not inherit the new `S3_BUCKET` default — now requires the Terraform-era bucket on the command line. (4) `HOSTED_ZONE_ID ?= $(shell …)` would re-run the lookup at every reference, so the deploy could pass a different zone than the one validated (Codex reproduced it); the lookup is now a shell fragment resolved once inside the recipe, with the explicit override preserved. Also: `RETAIN`/`FORCE_DELETE` mutual exclusion documented as a Makefile restriction; `stack-abort-create` shows resource/status/reason and refuses if events cannot be read; the status helper matches only this stack's "does not exist" and rejects malformed output; a failed alias query blocks a first create. Asked for full-target stub testing including failures between steps — done, see Phase 1. §5.4 updated in the same change. |
 | 5 | 2026-09-14 | Codex (PR B draft, before commit) | Two findings, both fixed with regression scenarios. (1) `bucket-create` treated any `head-bucket` failure as "does not exist" and went on to `create-bucket` after a 403 or 500 — it now proceeds only on a confirmed 404. (2) `FORCE_DELETE` was tested for non-emptiness, so `FORCE_DELETE=0` enabled forced deletion — it now must be exactly `1`, anything else is refused before the delete. Confirmed independently: `lint-cfn`, upload ordering, and that a failed delete waiter prevents bucket cleanup. |
+| 6 | 2026-09-15 | Phase 3 execution (C. Ugarte running, Claude Code reading) | Not a review round but logged as one, per Phase 3's checklist. Test cutover completed; 28 min outage. Findings, all fixed on `main` the same day: bare `terraform plan` proposes the client-at-apex conversion because `variables.tf` defaults `domainName` to the apex — the runbook now passes the four `-var`s (`3063417f`); `#` comments inside paste blocks are executed by interactive zsh — blocks are now comment-free (`3063417f`); the owner's default AWS profile is read-only and `check-account` cannot tell — step 0 added (`bcf3c3d8`); **CloudFormation does not upsert an existing ACM validation CNAME** — `DomainValidationOptions` removed from the template (`1600a4c3`, V6, D2 amended); the AWS CLI pager trapped the operator twice — `AWS_PAGER` disabled in the Makefile. `Project-Power-User` sufficed for every step. |
 
 ## Decision log
 
@@ -1508,6 +1516,7 @@ Status changes to §6 items, recorded through the plan PR's review and after.
 | Date | Decision | By |
 |---|---|---|
 | 2026-09-14 | **D1–D8, D10: `proposed` → `accepted`**, each as written. D1 with all four sub-items (a–d) taken at creation. | C. Ugarte, JP Swinski (PR #1105 review) |
+| 2026-09-15 | **D2 amended in mechanism, not in substance.** The certificate stays in the stack and the validation CNAME stays retained — but the template must **not** pass `DomainValidationOptions`/`HostedZoneId`, because CloudFormation then creates the record rather than adopting it and Route 53 refuses (V6). Found on the first test create; fixed in `1600a4c3`; the second create validated in minutes, so the D2 alternative (pre-issued certificate) is not needed. | C. Ugarte (Phase 3), Claude Code |
 | 2026-09-14 | **D9: `proposed` → `rejected`; alternative adopted.** No scratch-hostname rehearsal: the test cutover is the first real create from the template, and an extended `testsliderule.org` outage is acceptable while any template fault is fixed (new given G8). Phase 2 is skipped; its measurements and the V6 observation move to Phase 3. | C. Ugarte, JP Swinski (PR #1105 review) |
 
 ---

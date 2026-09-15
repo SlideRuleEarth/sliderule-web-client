@@ -7,6 +7,11 @@
 SHELL := /bin/bash
 ROOT = $(shell pwd)
 
+# No target here should ever drop the operator into `less`: the AWS CLI pages any
+# output taller than the terminal (create-invalidation, describe-stack-events), and
+# during the first cutover that trapped the operator twice mid-runbook.
+export AWS_PAGER :=
+
 # A bare `make` runs the first target, which used to be clean-all — i.e. it
 # deleted node_modules and dist/. Show help instead.
 .DEFAULT_GOAL := help
@@ -20,8 +25,9 @@ ROOT = $(shell pwd)
 # client.<apex>, so DOMAIN is derived. Plain `=`, not `?=`: a DOMAIN sitting
 # in the environment (some shells export DOMAIN=localhost) must not win over
 # the derivation, but an explicit `DOMAIN=...` on the command line still
-# does — and check-vars then refuses it if it disagrees with DOMAIN_APEX, so
-# a stale invocation fails loudly rather than deploying somewhere unexpected.
+# does — and check-derived (which every deploy, destroy and live-update path
+# runs first) refuses it if it disagrees with DOMAIN_APEX, so a stale
+# invocation fails loudly rather than deploying somewhere unexpected.
 DOMAIN_APEX ?=
 DOMAIN = client.$(DOMAIN_APEX)
 DOMAIN_ROOT = $(firstword $(subst ., ,$(DOMAIN)))
@@ -52,14 +58,16 @@ override BUCKET_client-testsliderule-org-web-client =
 override BUCKET_client-slideruleearth-io-web-client =
 override STACK_BUCKET = $(or $(BUCKET_$(STACK_NAME)),$(STACK_NAME))
 # The bucket UPLOADS go to. Overridable on purpose: until an environment's cutover
-# its live-update-*/release-* wrappers point this at the Terraform-era bucket.
-# No stack operation reads it.
+# its live-update-*/release-* wrappers point this at the Terraform-era bucket. After
+# the cutover those wrappers call stack-upload, which forces STACK_BUCKET and ignores
+# this variable entirely. No stack operation reads it.
 S3_BUCKET ?= $(STACK_BUCKET)
 # Escape hatch only: leave empty and the stack targets look the zone up (public
 # zones only, exactly one match, resolved ONCE per invocation and the resolved value
 # is the one used). Set it by hand only when that lookup cannot decide.
 HOSTED_ZONE_ID ?=
-# Typed by the operator, equal to the client host, on every target that deletes a stack.
+# Typed by the operator, equal to the client host, on every target that deletes a stack
+# or turns its termination protection off.
 CONFIRM_DESTROY ?=
 # Tags (plan D10). The three values live here once and are rendered twice, because
 # `cloudformation deploy --tags` wants Key=Value and `s3api put-bucket-tagging` wants a TagSet.
@@ -552,7 +560,8 @@ stack-activate: check-derived check-account ## Verify the pre-staged bucket agai
 
 # Post-create when the bucket was NOT pre-staged, and the normal deploy path afterwards:
 # the full live-update, forced to the stack's own bucket by a sub-make command-line
-# assignment, which beats any stale S3_BUCKET in the environment.
+# assignment, which beats a stale S3_BUCKET in the environment AND one typed on the
+# outer command line.
 stack-upload: check-derived check-account ## Build, upload to STACK_BUCKET, invalidate and verify (live-update forced to the stack's bucket)
 	$(MAKE) live-update DOMAIN_APEX=$(DOMAIN_APEX) S3_BUCKET=$(STACK_BUCKET)
 
