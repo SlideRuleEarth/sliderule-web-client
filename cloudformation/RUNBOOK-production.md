@@ -49,11 +49,12 @@ reaches them:
   creates A and AAAA for the same two names, and both names are derived from
   the template's parameters, so no other host can be named. The zone itself
   is a parameter, never managed. Route 53 applies each change batch on its
-  own; a cluster record created mid-window is unaffected. Cluster records
-  belong to the clusters' own CloudFormation stacks
-  (`sliderule/applications/provisioner/cluster.yml`) and are **ephemeral by
-  design** — clusters auto-delete on a schedule — so records appearing and
-  disappearing between the snapshot and the check is normal. Step 2
+  own; a cluster record created mid-window is unaffected. The service's
+  durable record `sliderule.slideruleearth.io` belongs to the provisioner's
+  `dns` stack (`sliderule/applications/provisioner/dns.yml`); per-user
+  cluster records belong to each cluster's own stack (`cluster.yml`) and are
+  **ephemeral by design** — clusters auto-delete on a schedule — so those
+  appearing and disappearing between the snapshot and the check is normal. Step 2
   snapshots the zone and step 13 checks that the records this migration must
   not touch are still there, and lists every other change for judgement.
 - **Certificates.** The destroy deletes `c0b7a6c8…` (us-east-1), whose only
@@ -475,23 +476,28 @@ Expect: a TLS failure line (1.1 refused — `TLSv1.2_2021`), then four
 non-empty answer sets — the AAAA ones are new (D1c).
 
 Then the zone, against step 2's snapshot. Two records are **protected** —
-`sliderule.slideruleearth.io` (the service) and the ACM validation CNAME —
-and must still be there. Our own two names are excluded (replaced and
-extended, as intended). Every other change is listed for judgement, not
-failed: clusters are ephemeral, so a `<name>.slideruleearth.io` record that
+`sliderule.slideruleearth.io` (the service; it belongs to the provisioner's
+durable `dns` stack) and the ACM validation CNAME — and their complete rows
+(name, type, target, value) must be identical before and after; a protected
+name missing from the snapshot is itself a failure. Our own two names are
+excluded (replaced and extended, as intended). Every other change is listed
+for judgement, not failed: per-user cluster records belong to the clusters'
+own stacks and are ephemeral, so a `<name>.slideruleearth.io` record that
 expired or appeared between step 2 and now is normal.
 
 ```bash
 aws route53 list-resource-record-sets --hosted-zone-id Z0526045IQLILBFI9THF --query 'ResourceRecordSets[].[Name,Type,AliasTarget.DNSName,ResourceRecords[0].Value]' --output text | sort > /tmp/zone-after.txt
-if test -s "$HOME/sliderule-tf-archive/slideruleearth.io-zone-pre-cutover.txt" && test -s /tmp/zone-after.txt; then for n in sliderule.slideruleearth.io. _548ec33251d498d2f155a699039125cb.slideruleearth.io.; do if grep -q "^$n" "$HOME/sliderule-tf-archive/slideruleearth.io-zone-pre-cutover.txt" && ! grep -q "^$n" /tmp/zone-after.txt; then echo "PROTECTED RECORD MISSING: $n"; fi; done > /tmp/zone-protected.txt; diff "$HOME/sliderule-tf-archive/slideruleearth.io-zone-pre-cutover.txt" /tmp/zone-after.txt | grep '^[<>]' | grep -v -E '^[<>] (client\.)?slideruleearth\.io\.[[:space:]]+(A|AAAA)[[:space:]]' > /tmp/zone-other.txt; echo "--- other records removed during the interval (expired clusters are normal; anything else, investigate):"; grep '^<' /tmp/zone-other.txt; echo "--- records that appeared during the interval:"; grep '^>' /tmp/zone-other.txt; cat /tmp/zone-protected.txt; test -s /tmp/zone-protected.txt && echo ZONE-PROTECTED-RECORD-REMOVED || echo ZONE-OK; else echo ZONE-CHECK-FAILED; fi
+if test -s "$HOME/sliderule-tf-archive/slideruleearth.io-zone-pre-cutover.txt" && test -s /tmp/zone-after.txt; then for n in sliderule.slideruleearth.io. _548ec33251d498d2f155a699039125cb.slideruleearth.io.; do b=$(grep "^$n" "$HOME/sliderule-tf-archive/slideruleearth.io-zone-pre-cutover.txt"); a=$(grep "^$n" /tmp/zone-after.txt); if [ -z "$b" ]; then echo "PROTECTED RECORD NOT IN SNAPSHOT: $n"; elif [ "$b" != "$a" ]; then echo "PROTECTED RECORD CHANGED: $n"; echo "   before: $b"; echo "   after:  $a"; fi; done > /tmp/zone-protected.txt; diff "$HOME/sliderule-tf-archive/slideruleearth.io-zone-pre-cutover.txt" /tmp/zone-after.txt | grep '^[<>]' | grep -v -E '^[<>] (client\.)?slideruleearth\.io\.[[:space:]]+(A|AAAA)[[:space:]]' > /tmp/zone-other.txt; echo "--- other records removed during the interval (expired clusters are normal; anything else, investigate):"; grep '^<' /tmp/zone-other.txt; echo "--- records that appeared during the interval:"; grep '^>' /tmp/zone-other.txt; cat /tmp/zone-protected.txt; test -s /tmp/zone-protected.txt && echo ZONE-PROTECTED-RECORD-CHANGED || echo ZONE-OK; else echo ZONE-CHECK-FAILED; fi
 ```
 
 Expect: **`ZONE-OK`**. Under "removed", `<name>.slideruleearth.io` lines
 are expired clusters — normal; anything that is not a cluster name needs an
 explanation before the all-clear. Under "appeared", new clusters — normal.
-**`ZONE-PROTECTED-RECORD-REMOVED`** names a record this migration must not
-have touched and cannot have: **STOP** and investigate before the all-clear.
-`ZONE-CHECK-FAILED` means a listing is empty; re-run before trusting anything.
+**`ZONE-PROTECTED-RECORD-CHANGED`** prints the before and after rows of a
+record this migration must not have touched and cannot have — removed,
+re-pointed, or absent from the snapshot: **STOP** and investigate before the
+all-clear. `ZONE-CHECK-FAILED` means a listing is empty; re-run before
+trusting anything.
 
 Browser: `https://client.slideruleearth.io/` — landing page, a new request,
 the elevation plot, and **open a record that existed before the cutover**
