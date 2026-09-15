@@ -1061,7 +1061,9 @@ Phase 6  follow-ups     DISTRIBUTION_ID from stack outputs (D6); anything D1 def
    added. `state pull`, `state rm`, `state show` and `workspace` commands do
    not read variables. The cut-and-paste form of every command in this
    runbook, driven by four shell variables, is in
-   [`cloudformation/README.md`](../cloudformation/README.md).
+   [`cloudformation/README.md`](../cloudformation/README.md); the production
+   cutover has its own fully literal version,
+   [`cloudformation/RUNBOOK-production.md`](../cloudformation/RUNBOOK-production.md).
 2. **Snapshot, before anything below touches the state:**
    `terraform state pull > $ARCHIVE/<env>-pre-cutover.tfstate.json`, where
    `$ARCHIVE` is a directory **outside the checkout** (Phase 5 removes the
@@ -1389,11 +1391,18 @@ template edit and `stack-deploy`, and that is the accepted trade.
 
 ### Phase 4 — Production cutover **[owner]**
 
+The procedure is [`cloudformation/RUNBOOK-production.md`](../cloudformation/RUNBOOK-production.md):
+§7.2 expanded to literal, paste-whole blocks with expected output and stop
+conditions, carrying every Phase 3 finding. Its go/no-go list is the gate.
+
+- [ ] `cloudformation/RUNBOOK-production.md` reviewed by the owner and the
+      other developer **[agent drafts, owner reviews]**
 - [ ] V1 and V7 re-run for `slideruleearth.io` **before scheduling**: the
       production certificate's `InUseBy` (decides whether §7.2 step 3 takes
       the `state rm` branch) and the account-wide certificate inventory for
       the apex; record both in §10
-- [ ] Window announced, sized from §7.3
+- [ ] Announcement method and lead time agreed with the other developer
+      (§11's open question); window announced, sized from §7.3 (60 min)
 - [ ] §7.2 steps 1–14 on `slideruleearth.io` / `client.slideruleearth.io`,
       with step 5 (retain the old bucket) taken
 - [ ] `stack-protect` run; `make stack-status` shows protection on

@@ -146,6 +146,11 @@ command line and is not the stack's bucket.
 
 ### Cutover runbook (§7.2 of the plan, made cut-and-paste)
 
+This is the generic form, and it is what the test cutover ran on 2026-09-15.
+**Production uses [`RUNBOOK-production.md`](RUNBOOK-production.md)** — the
+same procedure with every value literal, expected output after every block,
+and the production-only steps made mandatory.
+
 Every fenced block below is meant to be pasted whole, with the copy button.
 **The blocks contain commands only — no comments** — because an interactive
 zsh does not treat `#` as a comment and would run it. Everything you need to
