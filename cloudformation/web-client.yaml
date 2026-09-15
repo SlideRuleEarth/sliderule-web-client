@@ -50,8 +50,16 @@ Parameters:
 Resources:
   # --- Certificate (plan D2) -------------------------------------------------
   # Covers the apex and *.<apex>. CloudFormation waits for ISSUED before it
-  # creates the distributions; with the validation CNAME retained that is
-  # minutes, not a DNS round-trip.
+  # creates the distributions.
+  #
+  # Deliberately NO DomainValidationOptions / HostedZoneId here. The ACM
+  # validation CNAME for these names already exists in the zone (retained from
+  # the Terraform era, shared with every other certificate for the domain in
+  # this account) and stays unmanaged. With HostedZoneId set, CloudFormation
+  # tries to CREATE the record rather than upsert it, and Route 53 refuses
+  # because it exists -- which is exactly how the first test create failed on
+  # 2026-09-15 (plan V6). Without it, ACM validates against the existing
+  # record within minutes, and deleting the stack never touches the record.
   Certificate:
     Type: AWS::CertificateManager::Certificate
     Properties:
@@ -59,11 +67,6 @@ Resources:
       SubjectAlternativeNames:
         - !Sub "*.${DomainApex}"
       ValidationMethod: DNS
-      DomainValidationOptions:
-        - DomainName: !Ref DomainApex
-          HostedZoneId: !Ref HostedZoneId
-        - DomainName: !Sub "*.${DomainApex}"
-          HostedZoneId: !Ref HostedZoneId
 
   # --- Origin access (plan D1a) ----------------------------------------------
   # OAC replaces the Terraform-era OAI. Both distributions use it; the bucket
