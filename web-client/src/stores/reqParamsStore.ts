@@ -880,8 +880,17 @@ const createReqParamsStore = (id: string) =>
           parms: this.getAtlReqParams(req_id)
         }
 
+        // The x-series endpoints (atl03x, atl06x, atl24x, ...) hand only rqst.parms to
+        // dataframe.proxy, which reads the granule list from parms.resources; a top-level
+        // resources key is silently ignored and the server falls back to a CMR search.
+        // The legacy *p endpoints read the top-level key. Mirror the Python client, which
+        // sends each shape to the endpoints that read it.
         if (this.resources.length > 0) {
-          baseParams.resources = this.resources
+          if (this.getFunc().includes('x')) {
+            baseParams.parms.resources = this.resources
+          } else {
+            baseParams.resources = this.resources
+          }
         }
 
         // Apply forced additions

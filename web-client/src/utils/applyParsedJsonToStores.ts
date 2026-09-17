@@ -272,6 +272,11 @@ export function applyParsedJsonToStores(
     store.atl08AncillaryFields = data.anc_fields
   }
 
+  // x-series requests carry the granule list inside parms; keep it on a round trip
+  if (Array.isArray(data.resources)) {
+    store.resources = data.resources.filter((r: unknown): r is string => typeof r === 'string')
+  }
+
   // Handle max_resources
   if (data.max_resources !== undefined) {
     store.setUseMaxResources(true)

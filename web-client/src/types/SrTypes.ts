@@ -213,6 +213,7 @@ export interface AtlReqParams {
   output?: OutputFormat
   atl08_class?: string[]
   max_resources?: number
+  resources?: string[] // x-series endpoints read the granule list from here
   [key: string]: any // Other dynamic keys
 }
 

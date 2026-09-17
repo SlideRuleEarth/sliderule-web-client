@@ -724,6 +724,29 @@ describe('applyParsedJsonToStores - Round-trip Tests', () => {
       const output = reqParamsStore.getAtlxxReqParams(0)
 
       expect(output.resources).toEqual(input.resources)
+      expect(output.parms.resources).toBeUndefined()
+    })
+
+    // Issue #1116: the x-series endpoints read the granule list from parms.resources and
+    // ignore a top-level key, so the ATL24 photon-cloud overlay never reached its
+    // derived ATL03 granule and fell back to a CMR search for a retired release.
+    it('should send resources inside parms for x-series endpoints', () => {
+      const resources = ['ATL03_20240411085321_03622307_006_01.h5']
+      reqParamsStore.resources = resources
+      reqParamsStore.setMissionValue('ICESat-2')
+      reqParamsStore.setIceSat2API('atl03x')
+
+      const output = reqParamsStore.getAtlxxReqParams(0)
+
+      expect(output.parms.resources).toEqual(resources)
+      expect(output.resources).toBeUndefined()
+    })
+
+    it('should round-trip resources found inside parms', () => {
+      const resources = ['ATL03_20240411085321_03622307_006_01.h5']
+      applyParsedJsonToStores({ resources }, reqParamsStore, rasterParamsStore, addError)
+
+      expect(reqParamsStore.resources).toEqual(resources)
     })
   })
 

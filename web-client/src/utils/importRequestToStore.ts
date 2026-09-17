@@ -63,6 +63,7 @@ const KNOWN_PARMS_KEYS = new Set([
   'res',
   'pass_invalid',
   'max_resources',
+  'resources',
   // Timeout parameters
   'timeout',
   'rqst-timeout',

@@ -93,6 +93,7 @@ const Atl13Schema = z
 
 export const ICESat2ParamsSchema = z.object({
   asset: z.string().optional(),
+  resources: z.array(z.string()).optional(),
   poly: z.array(Coordinate).optional(),
   rgt: z.array(z.number()).optional(),
   cycle: z.array(z.number()).optional(),
