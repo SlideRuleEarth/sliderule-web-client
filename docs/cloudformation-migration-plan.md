@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | **DONE** — both environments on CloudFormation and `terraform/` removed (Phase 5 PR, 2026-09-18); the two remaining Phase 5 items are owner-side AWS deletions. Originally ACCEPTED — merged via [PR #1105](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1105) on 2026-09-14 with all ten decisions settled ([Decision log](#decision-log)). Phases 0 and 1 complete ([#1106](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1106), [#1107](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1107), [#1109](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1109), [#1110](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1110)). **Phase 3 done 2026-09-15: `testsliderule.org` is on CloudFormation** (28 min outage; one template fix, V6). **Phase 4 done 2026-09-18: `slideruleearth.io` is on CloudFormation** (≈11 min outage, create on the first attempt, [`cloudformation/RUNBOOK-production.md`](../cloudformation/RUNBOOK-production.md) run as written). Phase 5: repo side done 2026-09-18 |
+| **Status** | **DONE** — both environments on CloudFormation, `terraform/` removed, the Terraform backend objects and the old content buckets deleted (all 2026-09-18). Only the owner's local `Bash(terraform:*)` deny rule is left, and it is harmless. Originally ACCEPTED — merged via [PR #1105](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1105) on 2026-09-14 with all ten decisions settled ([Decision log](#decision-log)). Phases 0 and 1 complete ([#1106](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1106), [#1107](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1107), [#1109](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1109), [#1110](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1110)). **Phase 3 done 2026-09-15: `testsliderule.org` is on CloudFormation** (28 min outage; one template fix, V6). **Phase 4 done 2026-09-18: `slideruleearth.io` is on CloudFormation** (≈11 min outage, create on the first attempt, [`cloudformation/RUNBOOK-production.md`](../cloudformation/RUNBOOK-production.md) run as written). Phase 5: repo side done 2026-09-18 |
 | **Branch** | merged; the last was `issue-1108-phase-5-decommission-terraform` |
 | **Tracking issue** | [#1108](https://github.com/SlideRuleEarth/sliderule-web-client/issues/1108) (opened 2026-09-14) |
 | **Owner** | Carlos E. Ugarte |
@@ -1448,9 +1448,13 @@ conditions, carrying every Phase 3 finding. Its go/no-go list is the gate.
       test stack showed `termination protection: false` in the production
       runbook's step 8; run 2026-09-18 after the cutover, both stacks now
       report `true`
-- [ ] **[owner]** Delete the retained old production bucket
+- [x] **[owner]** Delete the retained old production bucket
       (`slideruleearth-webclient`) once the new stack has served a full release
-      cycle, and the test one if it was retained
+      cycle, and the test one if it was retained — done 2026-09-18 after
+      v4.8.0 went out through the new stack: `s3 rm --recursive` then
+      `delete-bucket`, `head-bucket` 404. `testsliderule-webclient` was not
+      retained (the test `terraform destroy` took the bucket trio with it on
+      2026-09-15) and was already gone
 - [x] `git rm -r terraform/` (including `.terraform.lock.hcl`); remove
       `terraform-destroy`, `check-terraform-vars` and `DOMAIN_ROOT` from the
       Makefile; Terraform wording in the stack comments rewritten **[agent]**
