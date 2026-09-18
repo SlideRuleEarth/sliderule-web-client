@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | **DONE** — both environments on CloudFormation, `terraform/` removed, the Terraform backend objects and the old content buckets deleted (all 2026-09-18). Only the owner's local `Bash(terraform:*)` deny rule is left, and it is harmless. Originally ACCEPTED — merged via [PR #1105](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1105) on 2026-09-14 with all ten decisions settled ([Decision log](#decision-log)). Phases 0 and 1 complete ([#1106](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1106), [#1107](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1107), [#1109](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1109), [#1110](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1110)). **Phase 3 done 2026-09-15: `testsliderule.org` is on CloudFormation** (28 min outage; one template fix, V6). **Phase 4 done 2026-09-18: `slideruleearth.io` is on CloudFormation** (≈11 min outage, create on the first attempt, [`cloudformation/RUNBOOK-production.md`](../cloudformation/RUNBOOK-production.md) run as written). Phase 5: repo side done 2026-09-18 |
+| **Status** | **DONE** — both environments on CloudFormation, `terraform/` removed, the Terraform backend objects and the old content buckets deleted (all 2026-09-18). The owner keeps the local `Bash(terraform:*)` deny rule as policy. Nothing is left to do. Originally ACCEPTED — merged via [PR #1105](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1105) on 2026-09-14 with all ten decisions settled ([Decision log](#decision-log)). Phases 0 and 1 complete ([#1106](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1106), [#1107](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1107), [#1109](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1109), [#1110](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1110)). **Phase 3 done 2026-09-15: `testsliderule.org` is on CloudFormation** (28 min outage; one template fix, V6). **Phase 4 done 2026-09-18: `slideruleearth.io` is on CloudFormation** (≈11 min outage, create on the first attempt, [`cloudformation/RUNBOOK-production.md`](../cloudformation/RUNBOOK-production.md) run as written). Phase 5: repo side done 2026-09-18 |
 | **Branch** | merged; the last was `issue-1108-phase-5-decommission-terraform` |
 | **Tracking issue** | [#1108](https://github.com/SlideRuleEarth/sliderule-web-client/issues/1108) (opened 2026-09-14) |
 | **Owner** | Carlos E. Ugarte |
@@ -1471,8 +1471,8 @@ conditions, carrying every Phase 3 finding. Its go/no-go list is the gate.
 - [x] Claude memory: `aws-credentials-denied.md`, `agent-discovery-files.md`
       references updated; this plan's memory entry marked done **[agent]**
       — 2026-09-18
-- [ ] Owner's `~/.claude/settings.json`: `Bash(terraform:*)` deny rule can
-      go (`Bash(aws:*)` already covers `aws cloudformation`) **[owner]**
+- [x] Owner's `~/.claude/settings.json`: `Bash(terraform:*)` deny rule —
+      **kept deliberately as policy** (decided 2026-09-18); nothing to remove
 - [x] Final PR; this document's Status → DONE — 2026-09-18
 
 ### Phase 6 — Follow-ups (each its own PR)
