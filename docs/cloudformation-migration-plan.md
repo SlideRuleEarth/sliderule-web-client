@@ -1438,9 +1438,10 @@ conditions, carrying every Phase 3 finding. Its go/no-go list is the gate.
       (or local), then delete the original. Sweep `tf-workspaces/` for anything
       a skipped `workspace delete` left behind. Do not delete the `sliderule`
       bucket — other repos use it
-- [ ] **[owner]** `make stack-protect DOMAIN_APEX=testsliderule.org` — the
-      test stack still shows `termination protection: false` (seen in the
-      production runbook's step 8, 2026-09-18); production's is on
+- [x] **[owner]** `make stack-protect DOMAIN_APEX=testsliderule.org` — the
+      test stack showed `termination protection: false` in the production
+      runbook's step 8; run 2026-09-18 after the cutover, both stacks now
+      report `true`
 - [ ] **[owner]** Delete the retained old production bucket
       (`slideruleearth-webclient`) once the new stack has served a full release
       cycle, and the test one if it was retained
