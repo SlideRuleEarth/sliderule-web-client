@@ -1429,15 +1429,21 @@ conditions, carrying every Phase 3 finding. Its go/no-go list is the gate.
 
 ### Phase 5 — Decommission Terraform
 
-- [ ] **[owner]** Archive and remove what is left in the backend bucket. The
-      two workspace state objects under `s3://sliderule/tf-workspaces/…` are
-      **already gone** — `terraform workspace delete` removed them in §7.2
-      step 15, and the step-2 `terraform state pull` archives are the record.
-      What remains is `tf-states/web-client.tfstate`, the *default* workspace's
-      object, which no workspace delete touches: copy it to an archive prefix
-      (or local), then delete the original. Sweep `tf-workspaces/` for anything
-      a skipped `workspace delete` left behind. Do not delete the `sliderule`
-      bucket — other repos use it
+- [x] **[owner]** Archive and remove what is left in the backend bucket —
+      done 2026-09-18. The two cutover workspaces' objects were already gone
+      (`terraform workspace delete`, §7.2 step 15; the step-2 `state pull`
+      archives are the record). The *default* workspace's
+      `tf-states/web-client.tfstate` **did not exist** — this repo never
+      applied in `default`, so Terraform never wrote it; the plan's
+      assumption was wrong and there was nothing to archive. The sweep of
+      `tf-workspaces/` found six abandoned prefixes, each holding a
+      `resources 0` state shell from a `destroy` never followed by
+      `workspace delete`: `slideruleearth.io-web-client` and
+      `testsliderule.org-web-client` (the retired client-at-apex workspaces,
+      emptied 2026-02-25), `ai.testsliderule.org-web-client`, and three from
+      the abandoned schema-server / search-server experiments. All six read
+      before deletion, all empty, all removed; `tf-workspaces/` no longer
+      exists. The `sliderule` bucket itself is untouched — other repos use it
 - [x] **[owner]** `make stack-protect DOMAIN_APEX=testsliderule.org` — the
       test stack showed `termination protection: false` in the production
       runbook's step 8; run 2026-09-18 after the cutover, both stacks now
