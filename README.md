@@ -73,9 +73,14 @@ This project uses a variety of open source libraries to enhance functionality. B
   
 ## Deployment
 
-This project is designed to be deployed as a secure static site using Amazon CloudFront and AWS S3. Refer to the [Amazon CloudFront Secure Static Site](https://github.com/aws-samples/amazon-cloudfront-secure-static-site) repository for detailed instructions on setting up a similar architecture.
-
-We use [HashiCorp Terraform](https://www.terraform.io/) to deploy this website.
+This project is deployed as a secure static site: a private S3 bucket behind
+Amazon CloudFront, with an ACM certificate and Route 53 aliases. The
+infrastructure is one CloudFormation stack per environment, defined in
+[`cloudformation/web-client.yaml`](cloudformation/web-client.yaml) and driven
+from the Makefile (`make stack-deploy DOMAIN_APEX=<apex>`); see
+[`cloudformation/README.md`](cloudformation/README.md) for the template, the
+`stack-*` / `bucket-*` targets and how an environment is created or destroyed.
+Content deploys (`make live-update-<env>`) never touch the stack.
 
 ### Releasing
 

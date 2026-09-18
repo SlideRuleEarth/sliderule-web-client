@@ -1,16 +1,18 @@
 # CloudFormation deployment of the web client
 
-One template, one stack per environment, always in `us-east-1`. This directory
-replaces [`terraform/`](../terraform/) — see
+One template, one stack per environment, always in `us-east-1`. This replaced
+the Terraform deployment in September 2026 — see
 [`docs/cloudformation-migration-plan.md`](../docs/cloudformation-migration-plan.md)
-for the design, the decisions behind it and the cutover runbook. This file is
-the short version for someone operating it.
+for the design and the decisions behind it, and
+[`RUNBOOK-production.md`](RUNBOOK-production.md) for the record of the
+production cutover. This file is the short version for someone operating it.
 
 ```
 cloudformation/
 ├── web-client.yaml          the template
 ├── requirements-lint.in     what we ask for: cfn-lint==<version>
-└── requirements-lint.txt    the resolved lock uv actually installs (generated, committed)
+├── requirements-lint.txt    the resolved lock uv actually installs (generated, committed)
+└── RUNBOOK-production.md    the production cutover of 2026-09-18, as run (historical)
 ```
 
 ## What the stack is
@@ -21,7 +23,7 @@ cloudformation/
 | Client host | `client.testsliderule.org` | `client.slideruleearth.io` |
 | Apex | `testsliderule.org` | `slideruleearth.io` |
 
-The stack name mirrors the old Terraform workspace name with the dots replaced.
+The stack name is `client-<apex with dots replaced by dashes>-web-client`.
 The Makefile derives it from `DOMAIN_APEX`, the one per-environment input; it is
 never typed.
 
@@ -84,9 +86,8 @@ Commit both files.
 
 ## Editing the template
 
-Two strings must stay byte-identical to what the Terraform module served,
-because the client's workers and WASM load only if the response headers are the
-same:
+Two strings are load-bearing, because the client's workers and WASM load only
+if the response headers are exactly right:
 
 - the `ContentSecurityPolicy` value in `SecurityHeadersPolicy` — one long line,
   copied verbatim, including its repeated hosts and doubled spaces;
@@ -96,10 +97,9 @@ Both sit inside `!Sub`, so every `${…}` in them is a substitution. Today those
 are only `${DomainApex}` and `${DomainName}`; if you ever need a literal `${`
 (a JS template literal, say), write `${!`.
 
-Every CloudFront property whose Terraform default differed from the
-CloudFormation default is set explicitly (`HttpVersion`, `IPV6Enabled`,
-`Restrictions`). Treat anything the template does not state as a question, not
-as a safe default.
+Every CloudFront property whose CloudFormation default is not what we want is
+set explicitly (`HttpVersion`, `IPV6Enabled`, `Restrictions`). Treat anything
+the template does not state as a question, not as a safe default.
 
 ## Operating it
 
@@ -124,11 +124,10 @@ the AWS account (`check-account`). Every target that deletes a stack also demand
 | `make stack-destroy … CONFIRM_DESTROY=…` | delete the stack, then empty the bucket; never deletes the bucket |
 | `make stack-delete-failed … CONFIRM_DESTROY=…` | the way out of a failed state; refuses a healthy or in-progress stack |
 | `make stack-abort-create … CONFIRM_DESTROY=…` | the way out of a hung `CREATE_IN_PROGRESS`; shows the evidence first |
-| `make terraform-destroy … S3_BUCKET=<old bucket>` | the Terraform-era destroy, once, at the cutover |
 
 `deploy` / `destroy` are aliases of `stack-deploy` / `stack-destroy`.
 `deploy-client-to-<env>` is `stack-deploy` then `stack-upload`;
-`destroy-client-<env>` is `stack-destroy`. There is no `terraform-deploy`.
+`destroy-client-<env>` is `stack-destroy`.
 
 **What cannot be overridden:** `STACK_NAME`, `STACK_BUCKET`, `STACK_REGION`
 (`us-east-1`) and `EXPECTED_AWS_ACCOUNT_ID` are locked in the Makefile. A stray
@@ -136,250 +135,39 @@ the AWS account (`check-account`). Every target that deletes a stack also demand
 can be given but is refused if it is not `client.<DOMAIN_APEX>`.
 
 **Two bucket variables.** `STACK_BUCKET` is the bucket the stack is built
-against and the only one `stack-destroy` empties. `S3_BUCKET` is where uploads
-go; it defaults to `STACK_BUCKET`, and until an environment's cutover its
-`live-update-<env>` wrapper pins it to the Terraform-era bucket. After the
-cutover the wrappers call `stack-upload` / `stack-verify`, which force the
-stack's bucket and ignore any `S3_BUCKET` on the command line. No stack
-operation reads `S3_BUCKET`; `terraform-destroy` insists it is typed on the
-command line and is not the stack's bucket.
+against and the only one `stack-destroy` empties. `S3_BUCKET` is where the
+low-level `upload-*` targets write; it defaults to `STACK_BUCKET`, and the
+`live-update-<env>` / `release-*` wrappers go through `stack-upload` /
+`stack-verify`, which force the stack's bucket and ignore any `S3_BUCKET` on
+the command line. No stack operation reads `S3_BUCKET`.
 
-### Cutover runbook (§7.2 of the plan, made cut-and-paste)
+### Creating an environment from nothing
 
-This is the generic form, and it is what the test cutover ran on 2026-09-15.
-**Production uses [`RUNBOOK-production.md`](RUNBOOK-production.md)** — the
-same procedure with every value literal, expected output after every block,
-and the production-only steps made mandatory.
-
-Every fenced block below is meant to be pasted whole, with the copy button.
-**The blocks contain commands only — no comments** — because an interactive
-zsh does not treat `#` as a comment and would run it. Everything you need to
-know is in the prose above each block.
-
-Set these once, in the shell you will use for the whole procedure. Phase 4
-uses `slideruleearth.io` and `slideruleearth-webclient`. `ARCHIVE` is any
-directory outside the checkout.
+Both environments exist and have termination protection on; this is for a
+new one, or for rebuilding one after `stack-destroy`. Everything runs from a
+shell with `AWS_PROFILE=sliderule-power` exported and logged in
+(`aws sso login`; `aws sts get-caller-identity` must show `Project-Power-User`).
 
 ```bash
-export APEX=testsliderule.org
-export OLD_BUCKET=testsliderule-webclient
-export ARCHIVE=$HOME/sliderule-tf-archive
-export CLIENT=client.$APEX
-export WS=$CLIENT-web-client
-mkdir -p "$ARCHIVE"
+make bucket-create DOMAIN_APEX=<apex>
+make check-stack-vars DOMAIN_APEX=<apex>
+make stack-deploy DOMAIN_APEX=<apex>
+make stack-upload DOMAIN_APEX=<apex>
+make stack-protect DOMAIN_APEX=<apex>
 ```
 
-**Terraform `plan` and `apply` need the four `-var`s.** The root
-`variables.tf` defaults `domainName` to the apex itself — the retired
-client-at-apex mode — so a bare `terraform plan` proposes destroying the apex
-distribution and re-aliasing the client to the apex. The block below carries
-the same values the Makefile passes. `state pull`, `state rm`, `state show`
-and `workspace` commands do not read variables and are safe bare.
+`stack-deploy` needs the apex's public hosted zone to exist and, if a
+certificate for the domain has been issued in this account before, its ACM
+validation CNAME to still be in the zone (the template does not create that
+record — see "Not in the stack"). A first create takes ~6 minutes; a new
+certificate on a zone with no validation record will sit in
+`CREATE_IN_PROGRESS` until the record is added by hand from the ACM console.
 
-#### Before the window
-
-The site stays up and no clock is running.
-
-**Step 0 — the right AWS profile, logged in, verified.** The `default`
-profile is `Project-Read-Only`. It can run every lookup in this runbook and
-then fails at the first write (`state rm` on 2026-09-15: "The state was not
-saved"), and `check-account` will not catch it — it compares the account
-number, not the role. Use `sliderule-power` (`Project-Power-User`, least
-privilege that can do all of this); its session lasts 8 hours, so one login
-covers the whole procedure. `AWS_PROFILE` must be exported **in the same
-shell as the variables above** — `make`, `aws` and `terraform` all read it.
-The last line must print `742127912612` and an ARN containing
-`Project-Power-User`; if it says `Read-Only`, the export did not happen in
-this shell.
-
-```bash
-export AWS_PROFILE=sliderule-power
-export AWS_PAGER=
-aws sso login
-aws sts get-caller-identity --query '[Account,Arn]' --output text
-```
-
-`AWS_PAGER=` keeps the raw `aws` commands in this runbook from opening `less`
-on long output (the `make` targets already disable it).
-
-If one specific command is refused for a permission the power-user set lacks,
-run that command alone under `sliderule-admin` (`AWS_PROFILE=sliderule-admin
-<command>`), then return to `sliderule-power`.
-
-Verify again before step 11 — it is one command and it is what the whole
-window depends on:
-
-```bash
-aws sts get-caller-identity --query '[Account,Arn]' --output text
-```
-
-**Step 1 — select the workspace, prove it, prove there is no drift.** The
-plan must end with `No changes.` Anything else means the freeze was broken;
-stop and explain it before going on.
-
-```bash
-cd terraform
-terraform workspace select "$WS"
-terraform workspace show
-terraform plan -var="domainName=$CLIENT" -var="domainApex=$APEX" -var="domain_root=client" -var="s3_bucket_name=$OLD_BUCKET"
-```
-
-**Step 2 — snapshot, before any `state rm`.** Five files land in `$ARCHIVE`;
-the `echo` must print one `E…` id for each distribution.
-
-```bash
-terraform state pull > "$ARCHIVE/$APEX-pre-cutover.tfstate.json"
-CLIENT_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?Aliases.Items[0]=='$CLIENT'].Id" --output text)
-APEX_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?Aliases.Items[0]=='$APEX'].Id" --output text)
-echo "client=$CLIENT_ID apex=$APEX_ID"
-aws cloudfront get-distribution-config --id "$CLIENT_ID" > "$ARCHIVE/$APEX-client-distribution.json"
-aws cloudfront get-distribution-config --id "$APEX_ID" > "$ARCHIVE/$APEX-apex-distribution.json"
-POLICY_ID=$(terraform state show module.cloudfront.aws_cloudfront_response_headers_policy.security_headers_policy | awk '$1=="id"{gsub(/"/,"",$3); print $3}')
-aws cloudfront get-response-headers-policy --id "$POLICY_ID" > "$ARCHIVE/$APEX-headers-policy.json"
-aws cloudfront get-function --name "$(echo "$CLIENT" | tr . -)-apex-redirect" --stage LIVE "$ARCHIVE/$APEX-apex-function.js"
-ls -l "$ARCHIVE"
-```
-
-**Step 3 — certificate check (V1).** `InUseBy` must list exactly
-`$CLIENT_ID` and `$APEX_ID`.
-
-```bash
-CERT_ARN=$(terraform state show module.cloudfront.aws_acm_certificate.mysite | awk '$1=="arn"{gsub(/"/,"",$3); print $3}')
-aws acm describe-certificate --region us-east-1 --certificate-arn "$CERT_ARN" --query Certificate.InUseBy
-```
-
-Only if it lists anything else, also run this, so the destroy leaves the
-certificate in place:
-
-```bash
-terraform state rm module.cloudfront.aws_acm_certificate.mysite module.cloudfront.aws_acm_certificate_validation.cert
-```
-
-**Step 4 — retain the validation CNAME.** Terraform stops managing the
-record; the record itself stays in the zone.
-
-```bash
-terraform state rm module.cloudfront.aws_route53_record.cert_validation_root module.cloudfront.aws_route53_record.cert_validation_wildcard
-```
-
-**Step 5 — production only, recommended.** Keeps the old bucket and its
-content as a fallback copy; delete it by hand in Phase 5. Skip for test.
-
-```bash
-terraform state rm module.cloudfront.aws_s3_bucket.this_site_bucket module.cloudfront.aws_s3_bucket_policy.web module.cloudfront.aws_s3_bucket_public_access_block.web_client_site_access_block
-```
-
-**Step 6 — optional: record exactly what the destroy is about to remove, and
-leave `terraform/`.**
-
-```bash
-terraform state pull > "$ARCHIVE/$APEX-pre-destroy.tfstate.json"
-cd ..
-```
-
-**Step 7 — V2.** Done for both environments on 2026-09-14; nothing to run.
-
-**Step 8 — the template and the account are ready; there is no stack yet.**
-`stack-status` must say `no stack named …`.
-
-```bash
-make lint-cfn
-make validate-cfn
-make stack-status DOMAIN_APEX=$APEX
-```
-
-**Step 9 — the permanent bucket, then pre-stage the site into it.** After
-this block, **do not run `make build`** until step 12 has run, and leave
-`web-client/dist/` alone: a rebuild changes the hashed bundle and
-`upload-assets` deletes what was staged.
-
-```bash
-make bucket-create DOMAIN_APEX=$APEX
-make check-stack-vars DOMAIN_APEX=$APEX
-make stack-prestage DOMAIN_APEX=$APEX
-```
-
-**Step 10 — production only:** announce the window, sized at twice what
-Phase 3 measured.
-
-#### In the window
-
-The outage runs from step 11 to step 13. Note the time at 11 and at 13.
-
-**Step 11 — Terraform destroy, 10–20 minutes.** Verify the session first
-(step 0's last command). Answer Terraform's prompt.
-
-```bash
-make terraform-destroy DOMAIN_APEX=$APEX S3_BUCKET=$OLD_BUCKET
-```
-
-**Step 12 — create the stack (10–25 minutes), then activate the pre-staged
-bucket (seconds).** In a second terminal, `make stack-events DOMAIN_APEX=$APEX`
-shows progress. **Not** `deploy-client-to-<env>` and **not** `stack-upload`:
-both rebuild and discard the pre-staged set. If the create fails, see the
-table below.
-
-```bash
-make stack-deploy DOMAIN_APEX=$APEX
-make stack-activate DOMAIN_APEX=$APEX
-```
-
-Only if step 9's pre-staging was skipped, use this instead of
-`stack-activate`; the window absorbs the build:
-
-```bash
-make stack-upload DOMAIN_APEX=$APEX
-```
-
-**Step 13 — verify** (§7.4 of the plan). Expected, in order: the apex `/`
-is a 301 whose `location` is `https://$CLIENT/landing`; the apex
-`robots.txt` is a 404 `text/plain` naming `$CLIENT` and
-`docs.slideruleearth.io`; the client `/` is a 200 carrying the security
-headers; the client `robots.txt` is a 200 `text/plain`; all four `dig`
-queries answer.
-
-```bash
-curl -sI "https://$APEX/" | head -5
-curl -si "https://$APEX/robots.txt" | head -12
-curl -sI "https://$CLIENT/" | head -20
-curl -sI "https://$CLIENT/robots.txt" | head -5
-dig +short "$APEX" A
-dig +short "$APEX" AAAA
-dig +short "$CLIENT" A
-dig +short "$CLIENT" AAAA
-```
-
-**Step 14 — production only.**
-
-```bash
-make stack-protect DOMAIN_APEX=$APEX
-make stack-status DOMAIN_APEX=$APEX
-```
-
-#### After the window
-
-**Step 15 — retire the workspace.** Verify the session first. This
-**deletes its state object**; step 2's archive is the only record.
-
-```bash
-cd terraform
-terraform workspace select default
-terraform workspace delete "$WS"
-cd ..
-```
-
-**Step 16 — merge the prepared PR** that switches this environment's
-`live-update-*`, `release-*` and `verify-s3-assets-*` wrappers from
-`live-update S3_BUCKET=$OLD_BUCKET` to `stack-upload` / `stack-verify`. Not
-merely dropping the override: `S3_BUCKET` has a default, but a default still
-yields to a stale `S3_BUCKET=` typed on the command line, and the stack
-targets force the stack's bucket as a sub-make assignment. Then prove the
-new path once — the wrapper is named after the apex's first label,
-`live-update-testsliderule` or `live-update-slideruleearth`:
-
-```bash
-make "live-update-${APEX%%.*}"
-```
+The two cutovers that created today's stacks (test 2026-09-15, production
+2026-09-18) followed the plan's §7.2 with the Terraform-era resources destroyed
+first; [`RUNBOOK-production.md`](RUNBOOK-production.md) is the production one
+as run, kept for the record. The Terraform deployment and its `make` targets
+were removed afterwards (Phase 5), so those runbooks are no longer executable.
 
 ### When a stack operation fails (condensed §7.3)
 
@@ -397,5 +185,5 @@ make "live-update-${APEX%%.*}"
 | `UPDATE_IN_PROGRESS`, genuinely stuck | `aws cloudformation cancel-update-stack --region us-east-1 --stack-name <name>` → `UPDATE_ROLLBACK_COMPLETE` |
 | `CREATE_IN_PROGRESS` past ~30 min | suspect the certificate: is the validation CNAME resolving? Only once **no event for 15+ minutes**, the certificate is not merely waiting on DNS, and the budget is blown: `make stack-abort-create … CONFIRM_DESTROY=…` |
 
-Rollback of the migration is fix-forward: a template edit and a stack update.
-Nothing in this table touches the bucket.
+Recovery is fix-forward: a template edit and a stack update. Nothing in this
+table touches the bucket.

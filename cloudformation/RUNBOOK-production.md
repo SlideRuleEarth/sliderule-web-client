@@ -10,7 +10,9 @@ the test cutover of 2026-09-15 and carrying everything it taught.
 `stack-activate` 08:27:43), stack created on the first attempt, every step
 as written. Kept as the record of what was run and as the pattern for any
 future cutover; the two step-13 expectations corrected afterwards are marked
-*(corrected 2026-09-18)*.
+*(corrected 2026-09-18)*. **Historical:** `terraform/` and the
+`terraform-destroy` target were removed in Phase 5 the same day, so the
+Terraform steps here (1–6, 11, 15) can no longer be run from this repo.
 
 **How to read this.** Every fenced block is pasted whole, with the copy
 button, into one shell. Blocks contain commands only — never a `#` comment,

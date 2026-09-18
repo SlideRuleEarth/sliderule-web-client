@@ -2,13 +2,13 @@
 
 | | |
 |---|---|
-| **Status** | ACCEPTED — merged via [PR #1105](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1105) on 2026-09-14 with all ten decisions settled ([Decision log](#decision-log)). Phases 0 and 1 complete ([#1106](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1106), [#1107](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1107), [#1109](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1109), [#1110](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1110)). **Phase 3 done 2026-09-15: `testsliderule.org` is on CloudFormation** (28 min outage; one template fix, V6). **Phase 4 done 2026-09-18: `slideruleearth.io` is on CloudFormation** (≈11 min outage, create on the first attempt, [`cloudformation/RUNBOOK-production.md`](../cloudformation/RUNBOOK-production.md) run as written). Next: Phase 5, decommission Terraform |
-| **Branch** | merged; Phase 1 work is on `issue-1108-cloudformation-template` and `issue-1108-cloudformation-makefile` |
+| **Status** | **DONE** — both environments on CloudFormation and `terraform/` removed (Phase 5 PR, 2026-09-18); the two remaining Phase 5 items are owner-side AWS deletions. Originally ACCEPTED — merged via [PR #1105](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1105) on 2026-09-14 with all ten decisions settled ([Decision log](#decision-log)). Phases 0 and 1 complete ([#1106](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1106), [#1107](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1107), [#1109](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1109), [#1110](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1110)). **Phase 3 done 2026-09-15: `testsliderule.org` is on CloudFormation** (28 min outage; one template fix, V6). **Phase 4 done 2026-09-18: `slideruleearth.io` is on CloudFormation** (≈11 min outage, create on the first attempt, [`cloudformation/RUNBOOK-production.md`](../cloudformation/RUNBOOK-production.md) run as written). Phase 5: repo side done 2026-09-18 |
+| **Branch** | merged; the last was `issue-1108-phase-5-decommission-terraform` |
 | **Tracking issue** | [#1108](https://github.com/SlideRuleEarth/sliderule-web-client/issues/1108) (opened 2026-09-14) |
 | **Owner** | Carlos E. Ugarte |
 | **Authored by** | Claude Code (Fable 5.1), 2026-09-03, from the repo contents and the local Terraform state |
 | **Review** | Reviewed before commit; rounds from the plan PR onward are logged in the [Review log](#review-log) |
-| **Last updated** | 2026-09-18 |
+| **Last updated** | 2026-09-18 (Phase 5) |
 
 This document is the single source of truth for the migration. It is meant to
 be handed off: anyone (or any agent) picking it up should be able to see what
@@ -1445,18 +1445,25 @@ conditions, carrying every Phase 3 finding. Its go/no-go list is the gate.
 - [ ] **[owner]** Delete the retained old production bucket
       (`slideruleearth-webclient`) once the new stack has served a full release
       cycle, and the test one if it was retained
-- [ ] `git rm -r terraform/` (including `.terraform.lock.hcl`); remove
-      `terraform-destroy` and `DOMAIN_ROOT` from the
-      Makefile **[agent]**
-- [ ] `.gitignore`: drop the Terraform block **[agent]**
-- [ ] `README.md` Deployment section: CloudFormation, link to
-      `cloudformation/README.md` **[agent]**
-- [ ] `CLAUDE.md`: repo layout, apex section, Build/deploy section **[agent]**
-- [ ] Claude memory: `aws-credentials-denied.md`, `agent-discovery-files.md`
+- [x] `git rm -r terraform/` (including `.terraform.lock.hcl`); remove
+      `terraform-destroy`, `check-terraform-vars` and `DOMAIN_ROOT` from the
+      Makefile; Terraform wording in the stack comments rewritten **[agent]**
+      — 2026-09-18
+- [x] `.gitignore`: drop the Terraform block **[agent]** — 2026-09-18
+- [x] `README.md` Deployment section: CloudFormation, link to
+      `cloudformation/README.md` **[agent]** — 2026-09-18
+- [x] `CLAUDE.md`: repo layout, apex section, Build/deploy section **[agent]**
+      — 2026-09-18
+- [x] `cloudformation/README.md`: the generic §7.2 runbook (no longer
+      executable without the Terraform targets) replaced by a "creating an
+      environment from nothing" recipe; `RUNBOOK-production.md` kept as the
+      historical record **[agent]** — 2026-09-18
+- [x] Claude memory: `aws-credentials-denied.md`, `agent-discovery-files.md`
       references updated; this plan's memory entry marked done **[agent]**
+      — 2026-09-18
 - [ ] Owner's `~/.claude/settings.json`: `Bash(terraform:*)` deny rule can
       go (`Bash(aws:*)` already covers `aws cloudformation`) **[owner]**
-- [ ] Final PR; this document's Status → DONE
+- [x] Final PR; this document's Status → DONE — 2026-09-18
 
 ### Phase 6 — Follow-ups (each its own PR)
 
