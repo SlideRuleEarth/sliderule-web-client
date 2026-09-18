@@ -366,7 +366,7 @@ async function fetchAndProcessResult(
         // Format: RATE_LIMITED:retryAfter:serverMessage:userMessage
         const error = new Error(
           `RATE_LIMITED:${retryAfter}:${serverMessage}:` +
-            `Your request has been rate limited, please reach out to support@mail.slideruleearth.io for possible use of a private cluster.`
+            `Your request has been rate limited, please reach out to support@slideruleearth.io for possible use of a private cluster.`
         )
         error.name = 'RateLimitError'
         throw error
