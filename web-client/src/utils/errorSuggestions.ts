@@ -29,7 +29,7 @@ export const ERROR_SUGGESTIONS: Record<ErrorCode, ErrorSuggestion> = {
     suggestions: [
       'Wait for the retry period to expire',
       'Consider using a private cluster for higher limits',
-      'Contact support@mail.slideruleearth.io for assistance'
+      'Contact support@slideruleearth.io for assistance'
     ]
   },
   HTTP_ERROR: {

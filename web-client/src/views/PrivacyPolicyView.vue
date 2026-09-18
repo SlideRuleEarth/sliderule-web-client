@@ -213,9 +213,7 @@ import AccordionContent from 'primevue/accordioncontent'
                     If you have questions about this privacy policy or your data, contact us at:
                   </p>
                   <p>
-                    <a href="mailto:support@mail.slideruleearth.io"
-                      >support@mail.slideruleearth.io</a
-                    >
+                    <a href="mailto:support@slideruleearth.io">support@slideruleearth.io</a>
                   </p>
                   <p>
                     You can also open an issue on our
