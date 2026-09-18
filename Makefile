@@ -257,11 +257,14 @@ verify-s3-assets: ## Check that all index-*.js and index-*.css files referenced 
 verify-s3-assets-testsliderule: ## verify-s3-assets against the testsliderule.org stack bucket
 	$(MAKE) stack-verify DOMAIN_APEX=testsliderule.org
 
+verify-s3-assets-slideruleearth: ## verify-s3-assets against the slideruleearth.io stack bucket
+	$(MAKE) stack-verify DOMAIN_APEX=slideruleearth.io
+
 live-update-testsliderule: ## Update the web client at testsliderule.org with new build
 	$(MAKE) stack-upload DOMAIN_APEX=testsliderule.org
 
 live-update-slideruleearth: ## Update the web client at slideruleearth.io with new build
-	$(MAKE) live-update DOMAIN_APEX=slideruleearth.io S3_BUCKET=slideruleearth-webclient
+	$(MAKE) stack-upload DOMAIN_APEX=slideruleearth.io
 
 convert-icons: ## Convert Maki SVG icons in src/assets/maki-svg to PNGs in public/icons
 	@echo "🔄 Converting Maki SVG icons to PNGs..."
@@ -590,9 +593,8 @@ terraform-destroy: check-terraform-vars ## Destroy the Terraform-managed infrast
 # live-update-* / release-* keep S3_BUCKET pinned to the Terraform-era bucket until that
 # environment's cutover; plan §7.2 step 16 then switches them to stack-upload / stack-verify,
 # which FORCE the stack's bucket as a sub-make assignment -- the S3_BUCKET default alone would
-# still yield to a stale S3_BUCKET= on the command line. testsliderule.org cut over on
-# 2026-09-15 and uses the stack targets; slideruleearth.io has not, and its wrappers still
-# name slideruleearth-webclient.
+# still yield to a stale S3_BUCKET= on the command line. Both environments have cut over
+# (testsliderule.org 2026-09-15, slideruleearth.io 2026-09-18) and use the stack targets.
 deploy-client-to-testsliderule: ## Create/update the testsliderule.org stack, then build and upload to its bucket
 	$(MAKE) stack-deploy DOMAIN_APEX=testsliderule.org
 	$(MAKE) stack-upload DOMAIN_APEX=testsliderule.org
@@ -604,7 +606,7 @@ release-live-update-to-testsliderule: src-tag-and-push ## Release the web client
 	$(MAKE) stack-upload DOMAIN_APEX=testsliderule.org
 
 release-live-update-to-slideruleearth: src-tag-and-push ## Release the web client to the live environment NEEDS VERSION
-	$(MAKE) live-update DOMAIN_APEX=slideruleearth.io S3_BUCKET=slideruleearth-webclient
+	$(MAKE) stack-upload DOMAIN_APEX=slideruleearth.io
 
 deploy-client-to-slideruleearth: ## Create/update the slideruleearth.io stack, then build and upload to its bucket
 	$(MAKE) stack-deploy DOMAIN_APEX=slideruleearth.io
