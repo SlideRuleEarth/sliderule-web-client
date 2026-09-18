@@ -6,6 +6,12 @@ Phase 4 of [`docs/cloudformation-migration-plan.md`](../docs/cloudformation-migr
 (§7.2 is the procedure this expands, §7.3 the recovery table), written after
 the test cutover of 2026-09-15 and carrying everything it taught.
 
+**Executed 2026-09-18, 08:04–08:44 ET.** Outage ≈11 min (destroy 08:16,
+`stack-activate` 08:27:43), stack created on the first attempt, every step
+as written. Kept as the record of what was run and as the pattern for any
+future cutover; the two step-13 expectations corrected afterwards are marked
+*(corrected 2026-09-18)*.
+
 **How to read this.** Every fenced block is pasted whole, with the copy
 button, into one shell. Blocks contain commands only — never a `#` comment,
 because an interactive zsh runs `#` lines. Every value is literal: nothing to
@@ -88,13 +94,13 @@ Do not open the window until every line is true.
 - [x] Announcement agreed with the other developer (2026-09-15): the in-app banner only, three days ahead
 - [x] Window: **Friday 2026-09-18, 08:00–09:00 Eastern (12:00–13:00 UTC)**, length 60 min
 - [x] In-app banner deployed 2026-09-15 14:04 ET (step 8b); **no content deploy without `BANNER_TEXT` since** — that includes `release-live-update-to-slideruleearth` and `deploy-client-to-slideruleearth` — and the banner seen in the browser immediately before step 9
-- [ ] `main` is clean and pulled; `make lint-cfn` and `make validate-cfn` pass
-- [ ] The post-cutover wrappers PR for `slideruleearth.io` is open and **not merged** (Part D, step 16)
-- [ ] Part B steps 0–9 done, in this order, on the day (or the evening before, for 1–8)
-- [ ] `make stack-status DOMAIN_APEX=slideruleearth.io` says `no stack`
-- [ ] `make stack-status DOMAIN_APEX=testsliderule.org` says `CREATE_COMPLETE` (test is healthy; nothing regressed)
-- [ ] Nobody has run `make build` since step 9's pre-stage, and `web-client/dist/` is untouched
-- [ ] Claude Code session open, ready to read `stack-events` if the create fails
+- [x] `main` is clean and pulled; `make lint-cfn` and `make validate-cfn` pass (2026-09-18)
+- [x] The post-cutover wrappers PR for `slideruleearth.io` (#1114) is open and **not merged** (Part D, step 16)
+- [x] Part B steps 0–9 done, in this order, on the day (or the evening before, for 1–8) — all on the morning, 08:04–08:16
+- [x] `make stack-status DOMAIN_APEX=slideruleearth.io` says `no stack`
+- [x] `make stack-status DOMAIN_APEX=testsliderule.org` says `CREATE_COMPLETE` (test is healthy; nothing regressed)
+- [x] Nobody has run `make build` since step 9's pre-stage, and `web-client/dist/` is untouched
+- [x] Claude Code session open, ready to read `stack-events` if the create fails
 
 ---
 
@@ -140,6 +146,16 @@ results listed above and tell Claude Code.
 
 Step 8b (the banner) is days ahead. Steps 1–8 can be done the evening before.
 Step 9 too, as long as nobody runs `make build` afterwards.
+
+**Re-running Part B.** Steps 0, 3, 6, 8, 8b and 9 are reads or
+self-overwriting and can be repeated at any point (step 6 from inside
+`terraform/`; `bucket-create` refuses the second time and the text under
+step 9 says to continue). Steps 4 and 5 re-run harmlessly with "No matching
+objects found". Two things are one-way after step 4: step 1's `terraform
+plan` no longer says `No changes.` (it proposes re-creating the five removed
+resources — expected, and never to be applied), and step 2's first line
+would overwrite the pre-cutover snapshot with a state that lacks them. The
+other six commands of step 2 are safe to repeat.
 
 **Step 0 — the right profile, logged in, verified.** Everything from here
 writes. `sliderule-power` (`Project-Power-User`) was sufficient for every
@@ -437,19 +453,26 @@ Expect: `301` with `location: https://client.slideruleearth.io/landing`;
 ASSET=$(grep -oE 'assets/index-[a-zA-Z0-9_-]+\.js' web-client/dist/index.html | head -1)
 echo "$ASSET"
 curl -sI "https://client.slideruleearth.io/$ASSET" | grep -i -E '^HTTP|cache-control'
-curl -sI -H 'Accept-Encoding: br, gzip' "https://client.slideruleearth.io/$ASSET" | grep -i -E '^HTTP|content-encoding'
+curl -s -o /dev/null -D - -H 'Accept-Encoding: br, gzip' "https://client.slideruleearth.io/$ASSET" | grep -i -E '^HTTP|content-encoding'
 curl -s https://client.slideruleearth.io/robots.txt | head -3
 curl -sI http://client.slideruleearth.io/ | head -3
 curl -sI https://client.slideruleearth.io/no/such/route | head -1
-curl -sI -X POST https://client.slideruleearth.io/ | head -1
+curl -si -X POST https://client.slideruleearth.io/ | grep -i -E '^HTTP|^x-cache|^content-length'
 curl -sI https://client-slideruleearth-io-web-client.s3.us-east-1.amazonaws.com/index.html | head -1
 ```
 
-Expect: `200` with `max-age=31536000, immutable`; `200` with a
-`content-encoding:` line (compression, D1b — new); the **real** robots.txt
-(`User-agent:` lines, not `Disallow: /`); `301` to https; `200` (SPA
-fallback); `403` or `405` for POST (D1d — new); `403` from the bucket
-directly (private, D1a).
+Expect: `200` with `max-age=31536000, immutable`; `200` with
+`content-encoding: br` (compression, D1b — new; *corrected 2026-09-18:* the
+request is a GET, because CloudFront compresses as it caches and the first
+request after an invalidation can come back uncompressed — if the line is
+missing, run that one command again); the **real** robots.txt (`User-agent:`
+lines, not `Disallow: /`); `301` to https; `200` (SPA fallback); for POST,
+`200` with **`x-cache: Error from cloudfront`** and `content-length: 385`
+(D1d — new; *corrected 2026-09-18:* CloudFront refuses the method with its
+own 403, and the template's 403→200 `index.html` error response rewrites it
+to the empty shell — nothing reaches the bucket; a `403` or `405` would also
+be fine, a `200` **without** `Error from cloudfront` would not); `403` from
+the bucket directly (private, D1a).
 
 ```bash
 curl -sI https://client.slideruleearth.io/ | grep -i '^content-security-policy' | sed 's/^[^:]*: //' | tr -d '\r' > /tmp/csp-live.txt

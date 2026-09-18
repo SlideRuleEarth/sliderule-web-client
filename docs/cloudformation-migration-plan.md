@@ -2,13 +2,13 @@
 
 | | |
 |---|---|
-| **Status** | ACCEPTED — merged via [PR #1105](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1105) on 2026-09-14 with all ten decisions settled ([Decision log](#decision-log)). Phases 0 and 1 complete ([#1106](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1106), [#1107](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1107), [#1109](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1109), [#1110](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1110)). **Phase 3 done 2026-09-15: `testsliderule.org` is on CloudFormation** (28 min outage; one template fix, V6). Phase 4 prerequisites done: V1/V7 for production closed, [`cloudformation/RUNBOOK-production.md`](../cloudformation/RUNBOOK-production.md) reviewed. Next: agree the announcement, set the date, run the runbook |
+| **Status** | ACCEPTED — merged via [PR #1105](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1105) on 2026-09-14 with all ten decisions settled ([Decision log](#decision-log)). Phases 0 and 1 complete ([#1106](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1106), [#1107](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1107), [#1109](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1109), [#1110](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1110)). **Phase 3 done 2026-09-15: `testsliderule.org` is on CloudFormation** (28 min outage; one template fix, V6). **Phase 4 done 2026-09-18: `slideruleearth.io` is on CloudFormation** (≈11 min outage, create on the first attempt, [`cloudformation/RUNBOOK-production.md`](../cloudformation/RUNBOOK-production.md) run as written). Next: Phase 5, decommission Terraform |
 | **Branch** | merged; Phase 1 work is on `issue-1108-cloudformation-template` and `issue-1108-cloudformation-makefile` |
 | **Tracking issue** | [#1108](https://github.com/SlideRuleEarth/sliderule-web-client/issues/1108) (opened 2026-09-14) |
 | **Owner** | Carlos E. Ugarte |
 | **Authored by** | Claude Code (Fable 5.1), 2026-09-03, from the repo contents and the local Terraform state |
 | **Review** | Reviewed before commit; rounds from the plan PR onward are logged in the [Review log](#review-log) |
-| **Last updated** | 2026-09-15 |
+| **Last updated** | 2026-09-18 |
 
 This document is the single source of truth for the migration. It is meant to
 be handed off: anyone (or any agent) picking it up should be able to see what
@@ -1168,13 +1168,13 @@ Phase 6  follow-ups     DISTRIBUTION_ID from stack outputs (D6); anything D1 def
 
 ### 7.3 Outage budget, failed-state recovery, rollback
 
-| Step | Expected | Measured (Phase 3) |
+| Step | Expected | Measured (Phase 3 / Phase 4) |
 |---|---|---|
-| `terraform destroy` | 10–20 min | **5 min** (2026-09-15, 12 resources) / |
-| stack create (cert + 2 distributions) | 10–25 min (cert is fast with the CNAME retained) | **~21 min including one failed attempt** — first create failed at the certificate after ~3 min (V6), `stack-delete-failed` + fixed template + second create ≈ 15 min / |
-| build + upload + invalidation (`stack-upload`) | 3–5 min | (not used in the window; step 16 ran it afterwards) / |
-| verify + invalidate only (`stack-activate`, when pre-staged) | seconds — no build, no upload | **~5 s** / |
-| **total outage** | **~30–50 min** | **28 min** (13:53 → 14:21 UTC, verification included) / |
+| `terraform destroy` | 10–20 min | **5 min** (2026-09-15, 12 resources) / **≈5 min** (2026-09-18, 9 resources) |
+| stack create (cert + 2 distributions) | 10–25 min (cert is fast with the CNAME retained) | **~21 min including one failed attempt** — first create failed at the certificate after ~3 min (V6), `stack-delete-failed` + fixed template + second create ≈ 15 min / **≈6 min, first attempt** (2026-09-18; the certificate validated against the retained CNAME with no template involvement) |
+| build + upload + invalidation (`stack-upload`) | 3–5 min | (not used in the window; step 16 ran it afterwards) / same — step 16 at 08:44 ET, new bundle hash verified |
+| verify + invalidate only (`stack-activate`, when pre-staged) | seconds — no build, no upload | **~5 s** / **~5 s** |
+| **total outage** | **~30–50 min** | **28 min** (13:53 → 14:21 UTC, verification included) / **≈11 min** (12:16 → 12:27:43 UTC destroy to activate; §7.4 curls green at 12:28:44) |
 | resolver negative-cache tail (some users) | up to the zone's SOA minimum TTL, 15 min on a default Route 53 zone | n/a |
 
 **What to do when a stack operation fails.** `stack-deploy` runs only when
@@ -1231,13 +1231,13 @@ curl -sI  https://<client>/               # 200, text/html, no-cache headers
 curl -s -o /dev/null -w '%{http_version}\n' https://<client>/   # 2 — HttpVersion: http2, not CloudFormation's default
 curl -s -o /dev/null -w '%{http_version}\n' https://<apex>/     # 2
 curl -sI  https://<client>/assets/<an index-*.js from dist>   # 200, immutable, max-age=31536000
-curl -sI -H 'Accept-Encoding: br, gzip' https://<client>/assets/<index-*.js>  # content-encoding present (D1b)
+curl -s -o /dev/null -D - -H 'Accept-Encoding: br, gzip' https://<client>/assets/<index-*.js>  # content-encoding present (D1b); a GET, and once more if the first request came back uncompressed — CloudFront compresses as it caches
 curl -s   https://<client>/robots.txt     # production: the real file; anything else: "Disallow: /"
 curl -sI  https://<client>/ | grep -i -E 'content-security-policy|strict-transport|x-frame|x-content-type|referrer-policy'
                                           # diff against the pre-cutover snapshot: identical
 curl -sI  http://<client>/                # 301 to https
 curl -sI  https://<client>/no/such/route  # 200 with index.html (SPA fallback)
-curl -sI  -X POST https://<client>/       # 403/405 from CloudFront, not a cached 200 (D1d)
+curl -si -X POST https://<client>/ | grep -i -E '^HTTP|^x-cache'  # 200 with 'x-cache: Error from cloudfront' — CloudFront's own 403 for the method, rewritten by the 403→200 error response; nothing reaches the bucket (D1d)
 curl -sI  https://<stack bucket>.s3.us-east-1.amazonaws.com/index.html   # 403: bucket is private (D1a)
 openssl s_client -connect <client>:443 -servername <client> -tls1_1 </dev/null   # must fail (TLSv1.2_2021); -servername sends SNI so the failure is the policy, not a missing host
 dig +short <client> A ; dig +short <client> AAAA   # both non-empty (D1c)
@@ -1395,8 +1395,9 @@ The procedure is [`cloudformation/RUNBOOK-production.md`](../cloudformation/RUNB
 §7.2 expanded to literal, paste-whole blocks with expected output and stop
 conditions, carrying every Phase 3 finding. Its go/no-go list is the gate.
 
-- [ ] `cloudformation/RUNBOOK-production.md` reviewed by the owner and the
-      other developer **[agent drafts, owner reviews]**
+- [x] `cloudformation/RUNBOOK-production.md` reviewed by the owner and by
+      Codex (five rounds, PR #1112); the other developer agreed the window
+      and the announcement
 - [x] V1 and V7 re-run for `slideruleearth.io` **before scheduling** —
       done 2026-09-15 with the runbook's Part A (which also confirmed no
       drift, the bucket name free, the zone unique and the validation CNAME
@@ -1410,12 +1411,21 @@ conditions, carrying every Phase 3 finding. Its go/no-go list is the gate.
       `make live-update-slideruleearth BANNER_TEXT='…'` (runbook step 8b —
       a content deploy, permitted under the freeze); no content deploy after
       it until the pre-stage, which drops the banner
-- [ ] §7.2 steps 1–14 on `slideruleearth.io` / `client.slideruleearth.io`,
-      with step 5 (retain the old bucket) taken
-- [ ] `stack-protect` run; `make stack-status` shows protection on
-- [ ] §7.4 verification passes; browser smoke test done
-- [ ] Steps 15–16: workspace retired (state archived first); `S3_BUCKET`
-      override removed from the slideruleearth wrappers
+- [x] §7.2 steps 1–14 on `slideruleearth.io` / `client.slideruleearth.io`,
+      with step 5 (retain the old bucket) taken. Done 2026-09-18, Part B
+      08:04–08:16 ET (all of it on the morning, not the evening before),
+      destroy at 08:16, `CREATE_COMPLETE` on the first attempt, activate at
+      08:27:43. Every expectation in the runbook matched except two step-13
+      lines, both explained and neither a fault — see [Review log](#review-log)
+      row 7
+- [x] `stack-protect` run after step 13 (≈08:30 ET); termination protection on
+- [x] §7.4 verification passes (`CSP-IDENTICAL`, `ZONE-OK`, IPv6 on both
+      hosts, real `robots.txt`, S3 direct 403); browser smoke test done
+- [x] Steps 15–16: workspace `client.slideruleearth.io-web-client` deleted
+      (seven archive files in `~/sliderule-tf-archive/` first); PR #1114
+      merged (`9fe47d24`); `make live-update-slideruleearth` deployed
+      `index-rOZpxwK6.js` through `stack-upload` to the stack bucket and
+      invalidated `E1IGE7GGGIRDN4`
 
 ### Phase 5 — Decommission Terraform
 
@@ -1428,6 +1438,10 @@ conditions, carrying every Phase 3 finding. Its go/no-go list is the gate.
       (or local), then delete the original. Sweep `tf-workspaces/` for anything
       a skipped `workspace delete` left behind. Do not delete the `sliderule`
       bucket — other repos use it
+- [x] **[owner]** `make stack-protect DOMAIN_APEX=testsliderule.org` — the
+      test stack showed `termination protection: false` in the production
+      runbook's step 8; run 2026-09-18 after the cutover, both stacks now
+      report `true`
 - [ ] **[owner]** Delete the retained old production bucket
       (`slideruleearth-webclient`) once the new stack has served a full release
       cycle, and the test one if it was retained
@@ -1526,6 +1540,7 @@ coherent plan rather than a history of itself.
 | 4 | 2026-09-14 | Codex (design review of six PR B implementation calls, before code) | Agreed with all six; two adjustments taken. (1) `check-terraform-vars` stays until Phase 5 but must not inherit the new `S3_BUCKET` default — now requires the Terraform-era bucket on the command line. (4) `HOSTED_ZONE_ID ?= $(shell …)` would re-run the lookup at every reference, so the deploy could pass a different zone than the one validated (Codex reproduced it); the lookup is now a shell fragment resolved once inside the recipe, with the explicit override preserved. Also: `RETAIN`/`FORCE_DELETE` mutual exclusion documented as a Makefile restriction; `stack-abort-create` shows resource/status/reason and refuses if events cannot be read; the status helper matches only this stack's "does not exist" and rejects malformed output; a failed alias query blocks a first create. Asked for full-target stub testing including failures between steps — done, see Phase 1. §5.4 updated in the same change. |
 | 5 | 2026-09-14 | Codex (PR B draft, before commit) | Two findings, both fixed with regression scenarios. (1) `bucket-create` treated any `head-bucket` failure as "does not exist" and went on to `create-bucket` after a 403 or 500 — it now proceeds only on a confirmed 404. (2) `FORCE_DELETE` was tested for non-emptiness, so `FORCE_DELETE=0` enabled forced deletion — it now must be exactly `1`, anything else is refused before the delete. Confirmed independently: `lint-cfn`, upload ordering, and that a failed delete waiter prevents bucket cleanup. |
 | 6 | 2026-09-15 | Phase 3 execution (C. Ugarte running, Claude Code reading) | Not a review round but logged as one, per Phase 3's checklist. Test cutover completed; 28 min outage. Findings, all fixed on `main` the same day: bare `terraform plan` proposes the client-at-apex conversion because `variables.tf` defaults `domainName` to the apex — the runbook now passes the four `-var`s (`3063417f`); `#` comments inside paste blocks are executed by interactive zsh — blocks are now comment-free (`3063417f`); the owner's default AWS profile is read-only and `check-account` cannot tell — step 0 added (`bcf3c3d8`); **CloudFormation does not upsert an existing ACM validation CNAME** — `DomainValidationOptions` removed from the template (`1600a4c3`, V6, D2 amended); the AWS CLI pager trapped the operator twice — `AWS_PAGER` disabled in the Makefile. `Project-Power-User` sufficed for every step. |
+| 7 | 2026-09-18 | Phase 4 execution (C. Ugarte running, Claude Code reading) | Logged like row 6. Production cutover completed as written; ≈11 min outage, create on the first attempt, `Project-Power-User` sufficient throughout. Two step-13 expectations were wrong in the runbook, not in the stack: (1) `POST /` returns **200**, not 403/405 — CloudFront does refuse the method with its own 403, but the template's 403→200 `index.html` error response rewrites it; `x-cache: Error from cloudfront` with the 385-byte shell proves nothing reached the bucket (D1d holds). (2) The first `HEAD` of a fresh asset with `Accept-Encoding` showed no `content-encoding` — CloudFront had not cached it yet; a `GET` moments later returned `br` (D1b holds). Both expectations corrected in the runbook and §7.4; the runbook also gained a "re-running Part B" note (steps 1 and 2's `state pull` are one-way after step 4). |
 
 ## Decision log
 
