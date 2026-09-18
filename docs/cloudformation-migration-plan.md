@@ -8,7 +8,7 @@
 | **Owner** | Carlos E. Ugarte |
 | **Authored by** | Claude Code (Fable 5.1), 2026-09-03, from the repo contents and the local Terraform state |
 | **Review** | Reviewed before commit; rounds from the plan PR onward are logged in the [Review log](#review-log) |
-| **Last updated** | 2026-09-18 (Phase 5) |
+| **Last updated** | 2026-09-18 (Phases 0–5 complete; only the optional Phase 6 follow-ups are open) |
 
 This document is the single source of truth for the migration. It is meant to
 be handed off: anyone (or any agent) picking it up should be able to see what
@@ -1380,10 +1380,12 @@ template edit and `stack-deploy`, and that is the accepted trade.
       testsliderule wrappers switched to `stack-upload` / `stack-verify`
       (PR #1111); `make live-update-testsliderule` run once against the new
       stack: new bundle hash landed in the stack bucket, verified
-- [ ] `make deploy-client-to-testsliderule` run once end to end, so
-      `stack-upload` — the cutover fallback and the normal post-migration
-      deploy — is exercised before production depends on it (this was the
-      rehearsal's job)
+- [x] `make deploy-client-to-testsliderule` run once end to end — 2026-09-18,
+      after Phase 5: `stack-deploy` took the update path (`▶ updating … 
+      (CREATE_COMPLETE)`, lint, zone lookup, changeset) and reported
+      `No changes to deploy` for the unchanged template without failing, then
+      `stack-upload` built and verified `index-CE3juARQ.js`. A real template
+      change will follow the same path with a non-empty changeset
 - [x] Memory `apex-404-testsliderule-deploy.md` updated: the function is
       republished by `make deploy-client-to-testsliderule` via CloudFormation
 - [x] Findings folded back into the template (`1600a4c3`) and the runbook
