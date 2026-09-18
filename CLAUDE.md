@@ -18,7 +18,7 @@ sliderule-web-client/                  ← git root, outer wrapper
 │   ├── src/                           ← all app source
 │   ├── tests/                         ← Vitest unit + Playwright E2E
 │   └── playwright.config.mts
-├── terraform/                         ← infra (CloudFront + S3)
+├── cloudformation/                    ← infra: one stack per environment (CloudFront + ACM + Route 53)
 ├── keycloak/                          ← local OAuth dev harness
 └── docs/
 ```
@@ -83,12 +83,13 @@ Three hosts, with different jobs:
 
 | Host | Serves | Repo |
 |---|---|---|
-| `slideruleearth.io` | nothing — 301s `/` to the client, 404s everything else | this one (`terraform/`) |
+| `slideruleearth.io` | nothing — 301s `/` to the client, 404s everything else | this one (`cloudformation/`) |
 | `client.slideruleearth.io` | the Vue SPA | this one |
 | `docs.slideruleearth.io` | the documentation | a different one |
 
-**The apex hosts nothing.** A viewer-request CloudFront function in
-[`terraform/modules/cloudfront.tf`](terraform/modules/cloudfront.tf) answers
+**The apex hosts nothing.** A viewer-request CloudFront function — the
+`ApexRedirectFunction` resource in
+[`cloudformation/web-client.yaml`](cloudformation/web-client.yaml) — answers
 every request at the edge: `/` gets a 301 to `<domainName>/landing`, and every
 other path gets a plain-text 404. The distribution's S3 origin exists only
 because CloudFront requires one; it is never reached.
@@ -174,18 +175,17 @@ not reintroduce it without asking first.
 
 - `make build` produces `web-client/dist/`
 - Content deploys are `make live-update-<env>` (build, upload, invalidate,
-  verify). These are the everyday path and are unchanged by the migration.
-- Infrastructure is mid-migration from Terraform to CloudFormation
-  ([`docs/cloudformation-migration-plan.md`](docs/cloudformation-migration-plan.md),
-  [`cloudformation/README.md`](cloudformation/README.md), issue #1108). The
-  `stack-*` / `bucket-*` targets and `deploy-client-to-<env>` /
-  `destroy-client-<env>` are **CloudFormation-only** and refuse an environment
-  that is still on Terraform. Until an environment's cutover its
-  infrastructure is **frozen**: nothing under `terraform/` changes, and the
-  one exception — an emergency change such as republishing the apex function
-  — is run by hand from `terraform/` with the workspace selected, never
-  through `make`. Check the plan's Phase 3/4 checkboxes to see which
-  environments have cut over.
+  verify). These are the everyday path; they never touch the stack.
+- Infrastructure is one CloudFormation stack per environment, always in
+  `us-east-1`, from [`cloudformation/web-client.yaml`](cloudformation/web-client.yaml);
+  the S3 bucket lives outside the stack. `make stack-deploy DOMAIN_APEX=<apex>`
+  (or `deploy-client-to-<env>`) creates or updates it — that is also how the
+  apex function is republished, since it is a stack resource. `stack-destroy`
+  needs `CONFIRM_DESTROY=<client host>` and both stacks have termination
+  protection on. [`cloudformation/README.md`](cloudformation/README.md) is the
+  operating guide; [`docs/cloudformation-migration-plan.md`](docs/cloudformation-migration-plan.md)
+  is the record of the Terraform → CloudFormation migration (done 2026-09-18,
+  issue #1108) and holds the failed-state recovery table (§7.3).
 - `make keycloak-up`/`keycloak-down` spin up a local OAuth server for auth dev
 
 ## Lint config quirk

@@ -2,13 +2,13 @@
 
 | | |
 |---|---|
-| **Status** | ACCEPTED — merged via [PR #1105](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1105) on 2026-09-14 with all ten decisions settled ([Decision log](#decision-log)). Phases 0 and 1 complete ([#1106](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1106), [#1107](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1107), [#1109](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1109), [#1110](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1110)). **Phase 3 done 2026-09-15: `testsliderule.org` is on CloudFormation** (28 min outage; one template fix, V6). **Phase 4 done 2026-09-18: `slideruleearth.io` is on CloudFormation** (≈11 min outage, create on the first attempt, [`cloudformation/RUNBOOK-production.md`](../cloudformation/RUNBOOK-production.md) run as written). Next: Phase 5, decommission Terraform |
-| **Branch** | merged; Phase 1 work is on `issue-1108-cloudformation-template` and `issue-1108-cloudformation-makefile` |
+| **Status** | **DONE** — both environments on CloudFormation, `terraform/` removed, the Terraform backend objects and the old content buckets deleted (all 2026-09-18). The owner keeps the local `Bash(terraform:*)` deny rule as policy. Nothing is left to do. Originally ACCEPTED — merged via [PR #1105](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1105) on 2026-09-14 with all ten decisions settled ([Decision log](#decision-log)). Phases 0 and 1 complete ([#1106](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1106), [#1107](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1107), [#1109](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1109), [#1110](https://github.com/SlideRuleEarth/sliderule-web-client/pull/1110)). **Phase 3 done 2026-09-15: `testsliderule.org` is on CloudFormation** (28 min outage; one template fix, V6). **Phase 4 done 2026-09-18: `slideruleearth.io` is on CloudFormation** (≈11 min outage, create on the first attempt, [`cloudformation/RUNBOOK-production.md`](../cloudformation/RUNBOOK-production.md) run as written). Phase 5: repo side done 2026-09-18 |
+| **Branch** | merged; the last was `issue-1108-phase-5-decommission-terraform` |
 | **Tracking issue** | [#1108](https://github.com/SlideRuleEarth/sliderule-web-client/issues/1108) (opened 2026-09-14) |
 | **Owner** | Carlos E. Ugarte |
 | **Authored by** | Claude Code (Fable 5.1), 2026-09-03, from the repo contents and the local Terraform state |
 | **Review** | Reviewed before commit; rounds from the plan PR onward are logged in the [Review log](#review-log) |
-| **Last updated** | 2026-09-18 |
+| **Last updated** | 2026-09-18 (Phase 5) |
 
 This document is the single source of truth for the migration. It is meant to
 be handed off: anyone (or any agent) picking it up should be able to see what
@@ -1429,34 +1429,51 @@ conditions, carrying every Phase 3 finding. Its go/no-go list is the gate.
 
 ### Phase 5 — Decommission Terraform
 
-- [ ] **[owner]** Archive and remove what is left in the backend bucket. The
-      two workspace state objects under `s3://sliderule/tf-workspaces/…` are
-      **already gone** — `terraform workspace delete` removed them in §7.2
-      step 15, and the step-2 `terraform state pull` archives are the record.
-      What remains is `tf-states/web-client.tfstate`, the *default* workspace's
-      object, which no workspace delete touches: copy it to an archive prefix
-      (or local), then delete the original. Sweep `tf-workspaces/` for anything
-      a skipped `workspace delete` left behind. Do not delete the `sliderule`
-      bucket — other repos use it
+- [x] **[owner]** Archive and remove what is left in the backend bucket —
+      done 2026-09-18. The two cutover workspaces' objects were already gone
+      (`terraform workspace delete`, §7.2 step 15; the step-2 `state pull`
+      archives are the record). The *default* workspace's
+      `tf-states/web-client.tfstate` **did not exist** — this repo never
+      applied in `default`, so Terraform never wrote it; the plan's
+      assumption was wrong and there was nothing to archive. The sweep of
+      `tf-workspaces/` found six abandoned prefixes, each holding a
+      `resources 0` state shell from a `destroy` never followed by
+      `workspace delete`: `slideruleearth.io-web-client` and
+      `testsliderule.org-web-client` (the retired client-at-apex workspaces,
+      emptied 2026-02-25), `ai.testsliderule.org-web-client`, and three from
+      the abandoned schema-server / search-server experiments. All six read
+      before deletion, all empty, all removed; `tf-workspaces/` no longer
+      exists. The `sliderule` bucket itself is untouched — other repos use it
 - [x] **[owner]** `make stack-protect DOMAIN_APEX=testsliderule.org` — the
       test stack showed `termination protection: false` in the production
       runbook's step 8; run 2026-09-18 after the cutover, both stacks now
       report `true`
-- [ ] **[owner]** Delete the retained old production bucket
+- [x] **[owner]** Delete the retained old production bucket
       (`slideruleearth-webclient`) once the new stack has served a full release
-      cycle, and the test one if it was retained
-- [ ] `git rm -r terraform/` (including `.terraform.lock.hcl`); remove
-      `terraform-destroy` and `DOMAIN_ROOT` from the
-      Makefile **[agent]**
-- [ ] `.gitignore`: drop the Terraform block **[agent]**
-- [ ] `README.md` Deployment section: CloudFormation, link to
-      `cloudformation/README.md` **[agent]**
-- [ ] `CLAUDE.md`: repo layout, apex section, Build/deploy section **[agent]**
-- [ ] Claude memory: `aws-credentials-denied.md`, `agent-discovery-files.md`
+      cycle, and the test one if it was retained — done 2026-09-18 after
+      v4.8.0 went out through the new stack: `s3 rm --recursive` then
+      `delete-bucket`, `head-bucket` 404. `testsliderule-webclient` was not
+      retained (the test `terraform destroy` took the bucket trio with it on
+      2026-09-15) and was already gone
+- [x] `git rm -r terraform/` (including `.terraform.lock.hcl`); remove
+      `terraform-destroy`, `check-terraform-vars` and `DOMAIN_ROOT` from the
+      Makefile; Terraform wording in the stack comments rewritten **[agent]**
+      — 2026-09-18
+- [x] `.gitignore`: drop the Terraform block **[agent]** — 2026-09-18
+- [x] `README.md` Deployment section: CloudFormation, link to
+      `cloudformation/README.md` **[agent]** — 2026-09-18
+- [x] `CLAUDE.md`: repo layout, apex section, Build/deploy section **[agent]**
+      — 2026-09-18
+- [x] `cloudformation/README.md`: the generic §7.2 runbook (no longer
+      executable without the Terraform targets) replaced by a "creating an
+      environment from nothing" recipe; `RUNBOOK-production.md` kept as the
+      historical record **[agent]** — 2026-09-18
+- [x] Claude memory: `aws-credentials-denied.md`, `agent-discovery-files.md`
       references updated; this plan's memory entry marked done **[agent]**
-- [ ] Owner's `~/.claude/settings.json`: `Bash(terraform:*)` deny rule can
-      go (`Bash(aws:*)` already covers `aws cloudformation`) **[owner]**
-- [ ] Final PR; this document's Status → DONE
+      — 2026-09-18
+- [x] Owner's `~/.claude/settings.json`: `Bash(terraform:*)` deny rule —
+      **kept deliberately as policy** (decided 2026-09-18); nothing to remove
+- [x] Final PR; this document's Status → DONE — 2026-09-18
 
 ### Phase 6 — Follow-ups (each its own PR)
 

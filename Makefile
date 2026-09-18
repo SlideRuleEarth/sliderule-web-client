@@ -30,7 +30,6 @@ export AWS_PAGER :=
 # invocation fails loudly rather than deploying somewhere unexpected.
 DOMAIN_APEX ?=
 DOMAIN = client.$(DOMAIN_APEX)
-DOMAIN_ROOT = $(firstword $(subst ., ,$(DOMAIN)))
 DISTRIBUTION_ID = $(shell aws cloudfront list-distributions --query "DistributionList.Items[?Aliases.Items[0]=='$(DOMAIN)'].Id" --output text)
 BUILD_ENV = $(shell git --git-dir .git --work-tree . describe --abbrev --dirty --always --tags --long)
 # The CloudFormation template and its lint toolchain (docs/cloudformation-migration-plan.md §5.5).
@@ -57,10 +56,10 @@ override EXPECTED_AWS_ACCOUNT_ID := 742127912612
 override BUCKET_client-testsliderule-org-web-client =
 override BUCKET_client-slideruleearth-io-web-client =
 override STACK_BUCKET = $(or $(BUCKET_$(STACK_NAME)),$(STACK_NAME))
-# The bucket UPLOADS go to. Overridable on purpose: until an environment's cutover
-# its live-update-*/release-* wrappers point this at the Terraform-era bucket. After
-# the cutover those wrappers call stack-upload, which forces STACK_BUCKET and ignores
-# this variable entirely. No stack operation reads it.
+# The bucket UPLOADS go to. Every documented path reaches the upload-* targets through
+# stack-upload / stack-prestage, which pass STACK_BUCKET explicitly as a sub-make
+# assignment; this default only matters when an upload-* target is run by hand.
+# No stack operation reads it.
 S3_BUCKET ?= $(STACK_BUCKET)
 # Escape hatch only: leave empty and the stack targets look the zone up (public
 # zones only, exactly one match, resolved ONCE per invocation and the resolved value
@@ -322,11 +321,9 @@ preview: build ## Preview the web client production build locally for developmen
 # =========================
 # CloudFormation stack targets (docs/cloudformation-migration-plan.md §5.4, §7.2, §7.3)
 # =========================
-# From here on `deploy`/`destroy` mean the stack. The only Terraform target left is
-# terraform-destroy, used once per environment at its cutover. There is deliberately
-# no terraform-deploy: until an environment's cutover its infrastructure is frozen;
-# an emergency Terraform change is run by hand from terraform/ with the workspace
-# selected, never through make.
+# `deploy`/`destroy` mean the stack. Both environments are CloudFormation stacks
+# (testsliderule.org since 2026-09-15, slideruleearth.io since 2026-09-18); the
+# Terraform deployment they replaced was removed in the migration's Phase 5.
 
 # Shell fragment: sets $status (NONE when there is no stack) and $protected. Only the
 # specific "does not exist" error for THIS stack means "no stack"; any other failure --
@@ -449,8 +446,9 @@ stack-events: check-derived ## Print the stack's events, newest first (watch a c
 	  --query 'StackEvents[].[Timestamp,LogicalResourceId,ResourceStatus,ResourceStatusReason]' --output table
 
 # Create or update. Refuses every status outside the healthy set, and on a FIRST create
-# refuses if any distribution already carries either hostname (Terraform still owns the
-# environment). The hosted zone is resolved once, here, and that value is what is passed.
+# refuses if any distribution already carries either hostname (something outside this
+# stack still serves the environment, and CloudFront would reject the duplicate alias).
+# The hosted zone is resolved once, here, and that value is what is passed.
 stack-deploy: check-derived check-account lint-cfn ## Create or update the stack from the template (gated; plan §5.4)
 	@set -eu; \
 	aws s3api head-bucket --bucket "$(STACK_BUCKET)" >/dev/null 2>&1 \
@@ -464,7 +462,7 @@ stack-deploy: check-derived check-account lint-cfn ## Create or update the stack
 	    --query "DistributionList.Items[?contains(not_null(Aliases.Items, \`[]\`), '$(DOMAIN)') || contains(not_null(Aliases.Items, \`[]\`), '$(DOMAIN_APEX)')].Id" \
 	    --output text) || { echo "❌ alias check failed (list-distributions): refusing to create"; exit 1; }; \
 	  if [ -n "$$taken" ] && [ "$$taken" != None ]; then \
-	    echo "❌ distribution(s) $$taken already carry $(DOMAIN) or $(DOMAIN_APEX): this environment is still on Terraform (plan §7.2 step 11)"; exit 1; \
+	    echo "❌ distribution(s) $$taken already carry $(DOMAIN) or $(DOMAIN_APEX): something outside this stack still serves this environment; remove it first (plan §7.2 step 11)"; exit 1; \
 	  fi; \
 	  echo "▶ first create of $(STACK_NAME)"; \
 	else echo "▶ updating $(STACK_NAME) ($$status)"; fi; \
@@ -541,7 +539,7 @@ stack-abort-create: check-derived check-account ## Delete a stack stuck in CREAT
 
 # Fill the permanent bucket BEFORE a window and prove it landed. One $(MAKE) per line:
 # recipe lines are sequential whatever -j says. No invalidation and no DISTRIBUTION_ID:
-# pre-cutover the alias still resolves to the distribution Terraform owns.
+# this runs before the stack's first create, when the alias resolves to nothing of ours.
 stack-prestage: check-derived check-account ## Build and upload to STACK_BUCKET, then verify; no invalidation (plan §7.2 step 9)
 	$(MAKE) build DOMAIN_APEX=$(DOMAIN_APEX)
 	$(MAKE) upload-assets DOMAIN_APEX=$(DOMAIN_APEX) S3_BUCKET=$(STACK_BUCKET)
@@ -575,26 +573,9 @@ deploy: stack-deploy ## Alias of stack-deploy
 
 destroy: stack-destroy ## Alias of stack-destroy (NEEDS CONFIRM_DESTROY=<client host>)
 
-# The Terraform-era destroy, run once per environment at its cutover (plan §7.2 step 11).
-# Terraform's own plan-and-confirm prompt is the gate. Deleted in Phase 5.
-terraform-destroy: check-terraform-vars ## Destroy the Terraform-managed infrastructure (NEEDS DOMAIN_APEX and the Terraform-era S3_BUCKET on the command line)
-	cd terraform && \
-	terraform init && \
-	terraform workspace select "$(DOMAIN)-web-client" && \
-	terraform validate && \
-	terraform destroy \
-		-var="domainName=$(DOMAIN)" \
-		-var="domainApex=$(DOMAIN_APEX)" \
-		-var="domain_root=$(DOMAIN_ROOT)" \
-		-var="s3_bucket_name=$(S3_BUCKET)"
-
-# Environment wrappers. deploy-* / destroy-* are CloudFormation-only from here on and
-# refuse an environment that is still on Terraform (the alias check in stack-deploy).
-# live-update-* / release-* keep S3_BUCKET pinned to the Terraform-era bucket until that
-# environment's cutover; plan §7.2 step 16 then switches them to stack-upload / stack-verify,
-# which FORCE the stack's bucket as a sub-make assignment -- the S3_BUCKET default alone would
-# still yield to a stale S3_BUCKET= on the command line. Both environments have cut over
-# (testsliderule.org 2026-09-15, slideruleearth.io 2026-09-18) and use the stack targets.
+# Environment wrappers. live-update-* / release-* go through stack-upload / stack-verify,
+# which FORCE the stack's bucket as a sub-make assignment -- the S3_BUCKET default alone
+# would still yield to a stale S3_BUCKET= on the command line.
 deploy-client-to-testsliderule: ## Create/update the testsliderule.org stack, then build and upload to its bucket
 	$(MAKE) stack-deploy DOMAIN_APEX=testsliderule.org
 	$(MAKE) stack-upload DOMAIN_APEX=testsliderule.org
@@ -615,7 +596,7 @@ deploy-client-to-slideruleearth: ## Create/update the slideruleearth.io stack, t
 destroy-client-slideruleearth: ## Destroy the slideruleearth.io stack and empty its bucket (NEEDS CONFIRM_DESTROY=client.slideruleearth.io)
 	$(MAKE) stack-destroy DOMAIN_APEX=slideruleearth.io CONFIRM_DESTROY=$(CONFIRM_DESTROY)
 
-.PHONY: check-lockfiles typecheck-tests upload-robots install-deps reinstall-deps rebuild-all regen-lockfiles verify-lockfiles audit-deps audit-fix-deps doctor check-derived check-terraform-vars check-vars check-account check-stack-vars check-destroy-vars bucket-create bucket-configure stack-status stack-outputs stack-events stack-deploy stack-destroy stack-protect stack-unprotect stack-delete-failed stack-abort-create stack-prestage stack-activate stack-upload stack-verify deploy destroy terraform-destroy typecheck lint lint-fix lint-cfn validate-cfn lint-staged pre-commit-check test-unit test-unit-watch coverage-unit test-e2e test-all ci-check keycloak-up keycloak-down keycloak-run
+.PHONY: check-lockfiles typecheck-tests upload-robots install-deps reinstall-deps rebuild-all regen-lockfiles verify-lockfiles audit-deps audit-fix-deps doctor check-derived check-vars check-account check-stack-vars check-destroy-vars bucket-create bucket-configure stack-status stack-outputs stack-events stack-deploy stack-destroy stack-protect stack-unprotect stack-delete-failed stack-abort-create stack-prestage stack-activate stack-upload stack-verify deploy destroy typecheck lint lint-fix lint-cfn validate-cfn lint-staged pre-commit-check test-unit test-unit-watch coverage-unit test-e2e test-all ci-check keycloak-up keycloak-down keycloak-run
 # =========================
 # Testing / Quality targets
 # =========================
@@ -684,17 +665,6 @@ check-derived: ## Assert DOMAIN_APEX is set, DOMAIN is client.<apex> and STACK_N
 	@test "$(DOMAIN)" = "client.$(DOMAIN_APEX)" || (echo "❌ DOMAIN=$(DOMAIN) does not match DOMAIN_APEX=$(DOMAIN_APEX): the client host is always client.<apex>, so pass DOMAIN_APEX only"; exit 1)
 	@test "$(STACK_NAME)" = "$(subst .,-,$(DOMAIN))-web-client" || (echo "❌ STACK_NAME=$(STACK_NAME) is not derived from DOMAIN=$(DOMAIN)"; exit 1)
 
-# The Terraform-era bucket must be TYPED on the command line: S3_BUCKET now defaults to
-# the stack's bucket, and terraform-destroy must never inherit that.
-check-terraform-vars: check-derived ## Check the Terraform inputs (terraform-destroy runs this first)
-	@test "$(origin S3_BUCKET)" = "command line" || (echo "❌ S3_BUCKET must be given on the command line: the Terraform-era bucket, e.g. S3_BUCKET=testsliderule-webclient"; exit 1)
-	@test -n "$(S3_BUCKET)" || (echo "❌ S3_BUCKET is empty"; exit 1)
-	@test "$(S3_BUCKET)" != "$(STACK_BUCKET)" || (echo "❌ S3_BUCKET=$(S3_BUCKET) is the stack's bucket, not a Terraform-era one: refusing"; exit 1)
-	@echo "✅ Terraform inputs:"
-	@echo "   DOMAIN          = $(DOMAIN)"
-	@echo "   DOMAIN_APEX     = $(DOMAIN_APEX)"
-	@echo "   S3_BUCKET       = $(S3_BUCKET)"
-
 check-vars: check-derived ## Check that DOMAIN_APEX, DOMAIN, S3_BUCKET and DISTRIBUTION_ID resolve (live-update runs this first)
 	@test -n "$(S3_BUCKET)" || (echo "❌ S3_BUCKET is not set"; exit 1)
 	@test -n "$(DISTRIBUTION_ID)" || (echo "❌ DISTRIBUTION_ID could not be resolved for DOMAIN=$(DOMAIN)"; exit 1)
@@ -713,7 +683,6 @@ help: ## That's me!
 	@grep -E '^[a-zA-Z_-].+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 	@echo BUILD_ENV: $(BUILD_ENV)
 	@echo DOMAIN: $(DOMAIN)	
-	@echo DOMAIN_ROOT: $(DOMAIN_ROOT)
 	@echo DOMAIN_APEX: $(DOMAIN_APEX)
 	@echo S3_BUCKET: $(S3_BUCKET)
 	@echo STACK_NAME: $(STACK_NAME)
