@@ -507,7 +507,7 @@ async function handleLongTourButtonClick() {
     intro: `
             <span class="intro-nowrap"><b>Enjoy using SlideRule Earth!</b></span><br><br>
             Please contact us if you have any questions or suggestions.<br><br>
-            You can reach us directly at <a href="mailto:support@mail.slideruleearth.io">support@mail.slideruleearth.io</a>.<br><br>
+            You can reach us directly at <a href="mailto:support@slideruleearth.io">support@slideruleearth.io</a>.<br><br>
             We are completely open source and we welcome contributions.<br><br>
             You can find the source code for all SlideRule code at <a href="https://github.com/SlideRuleEarth" target="_blank">https://github.com/SlideRuleEarth</a>.<br><br>
             Feel free to open an issue if you find a bug or have a suggestion for improvement.<br><br>

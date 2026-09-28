@@ -560,10 +560,10 @@ onMounted(async () => {
 const feedbackMenu = ref<InstanceType<typeof Menu> | null>(null)
 const feedbackMenuItems = [
   {
-    label: 'support@mail.slideruleearth.io',
+    label: 'support@slideruleearth.io',
     icon: 'pi pi-envelope',
     command: () => {
-      window.location.href = 'mailto:support@mail.slideruleearth.io'
+      window.location.href = 'mailto:support@slideruleearth.io'
     }
   },
   {
