@@ -320,6 +320,36 @@ export function getApiFromFilename(filename: string): { func: string } {
   throw new Error(`Unable to extract API function from filename: ${filename}`)
 }
 
+/**
+ * Reads what an imported x-series file holds from its "meta" metadata: the endpoint and,
+ * for atl03x, whether the output is a surface fit or PhoREAL. Returns an empty object when
+ * there is no "meta" (legacy files), leaving the caller to use the "sliderule" metadata.
+ *
+ * The request stored in "meta" is the primary source. Servers from v5.6.1 store {} in place
+ * of a request over 1 MiB (#1118), so for those files the variant comes from the Z column
+ * named in "recordinfo" instead: h_mean for a surface fit, h_canopy for PhoREAL.
+ */
+export function getXSeriesImportInfo(
+  metaObj: Record<string, any> | null | undefined,
+  recordInfoJson?: string
+): { endpoint?: string; hasFit?: boolean; hasPhoReal?: boolean } {
+  if (!metaObj || typeof metaObj !== 'object') return {}
+  const endpoint = typeof metaObj.endpoint === 'string' ? metaObj.endpoint : undefined
+  const request = metaObj.request
+  if (request && typeof request === 'object' && Object.keys(request).length > 0) {
+    return { endpoint, hasFit: Boolean(request.fit), hasPhoReal: Boolean(request.phoreal) }
+  }
+  let zColumn: unknown
+  if (endpoint === 'atl03x' && recordInfoJson) {
+    try {
+      zColumn = JSON.parse(recordInfoJson)?.z
+    } catch {
+      logger.warn('getXSeriesImportInfo: could not parse recordinfo', { recordInfoJson })
+    }
+  }
+  return { endpoint, hasFit: zColumn === 'h_mean', hasPhoReal: zColumn === 'h_canopy' }
+}
+
 export const nukeSlideRuleFolder = async () => {
   const folderName = 'SlideRule'
   let opfsRoot: FileSystemDirectoryHandle
@@ -396,13 +426,20 @@ export async function updateReqParmsFromMeta(req_id: number): Promise<void> {
         await duckDbClient.insertOpfsParquet(fileName)
 
         const parsed = (await duckDbClient.getJsonMetaDataForKey('meta', fileName)).parsedMetadata
-        if (parsed && parsed.request && typeof parsed.request === 'object') {
+        const request = parsed?.request
+        if (request && typeof request === 'object' && Object.keys(request).length > 0) {
           logger.debug('updateReqParmsFromMeta', {
             req_id,
             currentRcvdParms,
-            metadataRequest: parsed.request
+            metadataRequest: request
           })
-          await db.updateRequestRecord({ req_id: req_id, rcvd_parms: parsed.request })
+          await db.updateRequestRecord({ req_id: req_id, rcvd_parms: request })
+        } else if (request && typeof request === 'object') {
+          // Servers from v5.6.1 store {} in place of a request over 1 MiB (#1118). Leave
+          // rcvd_parms unset so readers fall back to the parameters that were sent.
+          logger.info('updateReqParmsFromMeta: server left the request out of the metadata', {
+            req_id
+          })
         } else {
           logger.debug(
             'updateReqParmsFromMeta: Missing meta field or invalid request field in metadata',

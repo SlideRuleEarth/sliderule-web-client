@@ -88,13 +88,18 @@ async function loadParametersFromRequest(reqId: number) {
     if (request?.rcvd_parms) {
       try {
         // rcvd_parms might be a JSON string or already an object
-        parameters =
+        const rcvdParms =
           typeof request.rcvd_parms === 'string'
             ? JSON.parse(request.rcvd_parms)
             : request.rcvd_parms
-        logger.debug('Using rcvd_parms as parameters', {
-          paramCount: Object.keys(parameters).length
-        })
+        // Servers from v5.6.1 store {} in place of a request over 1 MiB (#1118); leave
+        // parameters unset in that case so the fallback below uses what was sent
+        if (rcvdParms && Object.keys(rcvdParms).length > 0) {
+          parameters = rcvdParms
+          logger.debug('Using rcvd_parms as parameters', {
+            paramCount: Object.keys(parameters).length
+          })
+        }
       } catch (error) {
         logger.error('Failed to parse rcvd_parms', {
           error: error instanceof Error ? error.message : String(error),
