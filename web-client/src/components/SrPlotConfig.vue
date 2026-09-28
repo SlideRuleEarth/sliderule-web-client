@@ -20,7 +20,6 @@ import { useRecTreeStore } from '@/stores/recTreeStore'
 import { useGlobalChartStore } from '@/stores/globalChartStore'
 import { useRequestsStore } from '@/stores/requestsStore'
 import { useFieldNameStore } from '@/stores/fieldNameStore'
-import { useToast } from 'primevue'
 import { useActiveTabStore } from '@/stores/activeTabStore'
 import { useDeck3DConfigStore } from '@/stores/deck3DConfigStore'
 import { useAtlChartFilterStore } from '@/stores/atlChartFilterStore'
@@ -33,7 +32,6 @@ const logger = createLogger('SrPlotConfig')
 const globalChartStore = useGlobalChartStore()
 const requestsStore = useRequestsStore()
 const recTreeStore = useRecTreeStore()
-const toast = useToast()
 const chartStore = useChartStore()
 const fieldNameStore = useFieldNameStore()
 const deck3DConfigStore = useDeck3DConfigStore()
@@ -171,14 +169,7 @@ async function enableLocationFinder(): Promise<void> {
     })
   }
 
-  if (await requestsStore.needAdvice()) {
-    toast.add({
-      severity: 'info',
-      summary: 'Link to Plot',
-      detail: 'Click on a plot point to see where on the map it is.',
-      life: 3000
-    })
-  }
+  requestsStore.showTip('Link to Plot', 'Click on a plot point to see where on the map it is.')
 }
 
 onMounted(() => {

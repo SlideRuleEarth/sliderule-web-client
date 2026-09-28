@@ -47,7 +47,8 @@ onMounted(() => {
   requestsStore.setSvrMsgCnt(0)
   if (props.includeAdvToggle) {
     // this means it is the Request Run button
-    void requestsStore.displayHelpfulMapAdvice(
+    requestsStore.showTip(
+      'Tip',
       "1) Zoom in\n 2) Select a geographic region of about several square Km.    Then:\n 3) Click 'Run SlideRule' to start the process"
     )
     void requestsStore.setConsoleMsg(
@@ -56,7 +57,7 @@ onMounted(() => {
   } else {
     // this means it is the Overlay Photon Cloud button
     const msg = `Click 'Show Atl03 Photon Cloud' to fetch highlighted track Photon Cloud data and overlay on plot`
-    void requestsStore.displayHelpfulMapAdvice(msg)
+    requestsStore.showTip('Tip', msg)
     void requestsStore.setConsoleMsg(msg)
   }
   //console.log(`SrRunControl for ${props.buttonLabel} mounted show button:`,enableRunButton.value);

@@ -669,9 +669,7 @@ onMounted(async () => {
     return false
   }
 
-  void requestsStore.displayHelpfulPlotAdvice(
-    'Click on a track in the map to display the elevation scatter plot'
-  )
+  requestsStore.showTip('Tip', 'Click on a track in the map to display the elevation scatter plot')
   logger.debug('SrAnalysisMap onMounted done')
 })
 

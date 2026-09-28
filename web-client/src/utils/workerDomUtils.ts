@@ -480,11 +480,7 @@ export async function processRunSlideRuleClicked(rc: SrRunContext | null = null)
           if (rc === null) {
             useSrToastStore().error(
               'Error',
-              'You must define a geographic region or a resource or use advanced filters'
-            )
-            useSrToastStore().info(
-              'Helpful Advice',
-              'To start: Try zooming in and selecting a geographic region about 10x10 km or smaller'
+              'You must define a geographic region or a resource or use advanced filters. To start: try zooming in and selecting a geographic region about 10x10 km or smaller'
             )
             requestsStore.setConsoleMsg(
               'You need to supply a geographic region or a resource or advanced filters...'

@@ -1,4 +1,4 @@
-import { test } from '../fixtures/skipIntroTour'
+import { test } from '../fixtures/appPage'
 import { expect } from '@playwright/test'
 
 // skip for WebKit as it does not support workers
@@ -10,8 +10,8 @@ test.skip(
 // Skip if running in local dev mode
 test.skip(Boolean(process.env.LOCAL_DEV), 'Skipping in local dev environment')
 
-test('map controls are visible', async ({ pageAfterTour }) => {
-  const page = pageAfterTour
+test('map controls are visible', async ({ appPage }) => {
+  const page = appPage
 
   // Wait for the map to load
   await page.waitForSelector('canvas', { timeout: 10000 })
@@ -45,8 +45,8 @@ test('map controls are visible', async ({ pageAfterTour }) => {
 // test, not a unit/UI gate, and has been timing out on the GitHub runner.
 // Re-enable (and remove this skip) once the test either mocks the backend
 // or moves to a separate integration-test workflow.
-test.skip('draw rectangle and run SlideRule', async ({ pageAfterTour }) => {
-  const page = pageAfterTour
+test.skip('draw rectangle and run SlideRule', async ({ appPage }) => {
+  const page = appPage
 
   await page.getByRole('button', { name: '🔍' }).click()
   await page.getByRole('textbox', { name: 'Search for' }).fill('Goddard Space Flight Center')

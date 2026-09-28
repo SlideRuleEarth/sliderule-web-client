@@ -19,7 +19,6 @@ import { useGoogleApiKeyStore } from '@/stores/googleApiKeyStore'
 import SrServerInfoDialog from '@/components/SrServerInfoDialog.vue'
 import SrGoogleApiKeyInput from '@/components/SrGoogleApiKeyInput.vue'
 import introJs from 'intro.js'
-import { useTourStore } from '@/stores/tourStore.js'
 import { useViewportHeight } from '@/composables/useViewportHeight'
 import { useSlideruleDefaults } from '@/stores/defaultsStore'
 import { createLogger } from '@/utils/logger'
@@ -40,7 +39,6 @@ const srToastStore = useSrToastStore()
 const recTreeStore = useRecTreeStore()
 const toast = useToast()
 const deviceStore = useDeviceStore()
-const tourStore = useTourStore()
 const googleApiKeyStore = useGoogleApiKeyStore()
 const privacyConsentStore = usePrivacyConsentStore()
 const route = useRoute()
@@ -211,13 +209,8 @@ onMounted(async () => {
   // });
 
   checkUnsupported()
-  tourStore.checkSeen()
   privacyConsentStore.initializeOnStartup()
   await nextTick()
-
-  if (!tourStore.hasSeenIntro) {
-    void handleQuickTourButtonClick()
-  }
 
   // Mark as mounted
   isMounted.value = true
@@ -353,16 +346,6 @@ async function handleQuickTourButtonClick() {
     scrollToElement: true,
     scrollTo: 'element',
     steps: steps
-  })
-
-  // 👉 Run the tour and listen for completion
-  tour.onComplete(() => {
-    tourStore.markSeen()
-  })
-
-  // 👉 Optional: also mark seen if user exits early
-  tour.onExit(() => {
-    tourStore.markSeen()
   })
 
   void tour.start()
@@ -519,16 +502,6 @@ async function handleLongTourButtonClick() {
     scrollToElement: true,
     scrollTo: 'element',
     steps: steps
-  })
-
-  // 👉 Run the tour and listen for completion
-  tour.onComplete(() => {
-    tourStore.markSeen()
-  })
-
-  // 👉 Optional: also mark seen if user exits early
-  tour.onExit(() => {
-    tourStore.markSeen()
   })
 
   void tour.start()
