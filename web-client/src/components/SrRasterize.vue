@@ -17,6 +17,7 @@ import { ref, computed, watch } from 'vue'
 import { useReqParamsStore } from '@/stores/reqParamsStore'
 import { useGeoJsonStore } from '@/stores/geoJsonStore'
 import { isClockwise } from '@/composables/SrTurfUtils'
+import { fitRasterizeCellSizeToRegionMask } from '@/utils/rasterizeCellSize'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('SrRasterize')
@@ -126,6 +127,7 @@ function handleRasterizeChange() {
       }
 
       geoJsonStore.setReqGeoJsonData(geoJson)
+      fitRasterizeCellSizeToRegionMask()
       logger.debug('Stored RAW polygon (counter-clockwise) as GeoJSON for rasterization', {
         pointCount: coordinates.length,
         wasReversed: isClockwise(poly)
