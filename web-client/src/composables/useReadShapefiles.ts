@@ -11,6 +11,7 @@ import { useGeoJsonStore } from '@/stores/geoJsonStore'
 import { useMapStore } from '@/stores/mapStore'
 import type OLMap from 'ol/Map.js'
 import { handleGeoJsonLoad, zoomOutToFullMap } from '@/utils/SrMapUtils'
+import { fitRasterizeCellSizeToRegionMask } from '@/utils/rasterizeCellSize'
 import { prjToSupportedEpsg } from '@/utils/prjToEpsg'
 import { createLogger } from '@/utils/logger'
 
@@ -144,8 +145,10 @@ export async function loadShapefileToMap(
   let drawExtent: number[] | undefined
   const { geojson, warning, detectedProjection } = await parseShapefileToGeoJSON(input)
   logger.debug('Shapefile parsed', { geojson, warning, detectedProjection })
-  if (loadReqPoly) geoJsonStore.setReqGeoJsonData(geojson)
-  else geoJsonStore.setFeaturesGeoJsonData(geojson)
+  if (loadReqPoly) {
+    geoJsonStore.setReqGeoJsonData(geojson)
+    fitRasterizeCellSizeToRegionMask()
+  } else geoJsonStore.setFeaturesGeoJsonData(geojson)
   if (map) {
     drawExtent = await handleGeoJsonLoad(map as OLMap, geojson, { loadReqPoly })
 

@@ -34,13 +34,15 @@ const STATE: {
   mapObj: any
   reqPoly: any
   featGeoJSON: any
+  fitCellSizeCalls: number
 } = {
   zipFiles: {},
   registeredEPSG: ['EPSG:4326', 'EPSG:3857'],
   mapExtent: [0, 0, 10, 10],
   mapObj: null,
   reqPoly: null,
-  featGeoJSON: null
+  featGeoJSON: null,
+  fitCellSizeCalls: 0
 }
 
 // ======= STORE MOCKS (top-level) =======
@@ -144,6 +146,12 @@ vi.mock('@/utils/SrMapUtils', () => ({
   zoomOutToFullMap: vi.fn()
 }))
 
+vi.mock('@/utils/rasterizeCellSize', () => ({
+  fitRasterizeCellSizeToRegionMask: () => {
+    STATE.fitCellSizeCalls++
+  }
+}))
+
 vi.mock('@/utils/prjToEpsg', () => ({
   prjToSupportedEpsg: (txt: string | null | undefined): string | null =>
     !txt ? null : txt.toLowerCase().includes('wgs_1984') ? 'EPSG:4326' : 'EPSG:3857'
@@ -203,6 +211,7 @@ async function loadSUT(options?: {
   STATE.mapObj = null
   STATE.reqPoly = null
   STATE.featGeoJSON = null
+  STATE.fitCellSizeCalls = 0
 
   vi.resetModules() // re-import SUT with updated STATE
   const mod = await import('@/composables/useReadShapefiles')
@@ -322,6 +331,8 @@ describe('useReadShapefiles (Vitest)', () => {
     expect(toasts.length).toBeGreaterThan(0)
     expect(toasts[0].summary).toBe('Shapefile Loaded')
     expect(res.drawExtent).toEqual([0, 0, 100, 50])
+    // loading the request region fits the rasterize cell size to it (#1125)
+    expect(STATE.fitCellSizeCalls).toBe(1)
   })
 
   test('loadShapefileToMap: no map available logs error but returns', async () => {
@@ -337,6 +348,8 @@ describe('useReadShapefiles (Vitest)', () => {
     const res = await mod.loadShapefileToMap(zipFile)
 
     expect(res.drawExtent).toBeUndefined()
+    // features-only uploads aren't the request region, so the cell size is left alone
+    expect(STATE.fitCellSizeCalls).toBe(0)
   })
 
   test('readShapefileToOlFeatures: sourceCRS via prjToSupportedEpsg, reprojects when available', async () => {

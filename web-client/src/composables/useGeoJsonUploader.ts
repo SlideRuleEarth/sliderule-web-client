@@ -8,6 +8,7 @@ import type OLMap from 'ol/Map.js'
 import type { FileUploadUploaderEvent } from 'primevue/fileupload'
 import { useMapStore } from '@/stores/mapStore'
 import { handleGeoJsonLoad, zoomOutToFullMap, getMaxZoomForExtent } from '@/utils/SrMapUtils'
+import { fitRasterizeCellSizeToRegionMask } from '@/utils/rasterizeCellSize'
 
 export function useGeoJsonUploader(
   props: any,
@@ -57,6 +58,7 @@ export function useGeoJsonUploader(
         })
         if (props.loadReqPoly) {
           geoJsonStore.setReqGeoJsonData(geoJsonData)
+          fitRasterizeCellSizeToRegionMask()
         } else {
           geoJsonStore.setFeaturesGeoJsonData(geoJsonData)
         }

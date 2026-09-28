@@ -1,5 +1,6 @@
 import type { SrRequestRecord, SrRunContext } from '@/db/SlideRuleDb'
 import { checkAreaOfConvexHullError } from './SrMapUtils'
+import { checkRasterizeCellSizeError } from './rasterizeCellSize'
 import { useSysConfigStore } from '@/stores/sysConfigStore'
 import { type TimeoutHandle } from '@/stores/mapStore'
 import { useCurReqSumStore } from '@/stores/curReqSumStore'
@@ -435,6 +436,11 @@ export async function processRunSlideRuleClicked(rc: SrRunContext | null = null)
       useSrToastStore().error('Error', rsp.msg ?? 'The area of the convex hull is too large.')
       return
     }
+  }
+  const cellSizeRsp = checkRasterizeCellSizeError()
+  if (!cellSizeRsp.ok) {
+    useSrToastStore().error('Error', cellSizeRsp.msg ?? 'The rasterize cell size is too large.')
+    return
   }
   //mapStore.setIsLoading(true);
   serverStateStore.isAborting = false
