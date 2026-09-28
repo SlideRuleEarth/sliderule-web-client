@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useCatalogStore } from '@/stores/catalogStore'
+import { useRasterParamsStore } from '@/stores/rasterParamsStore'
 import FileUpload from 'primevue/fileupload'
 import ProgressBar from 'primevue/progressbar'
 import Button from 'primevue/button'
@@ -10,7 +10,7 @@ import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('SrCatalogFileUpload')
 const toast = useToast()
-const catalogStore = useCatalogStore()
+const rasterParamsStore = useRasterParamsStore()
 
 ////////////// upload toast items
 const upload_progress_visible = ref(false)
@@ -38,8 +38,10 @@ const customUploader = (event: any) => {
           //console.log(`e.target.result: ${e.target.result}`);
           logger.debug('e.target.result type', { type: typeof e.target.result })
           if (typeof e.target.result === 'string') {
-            const data = JSON.parse(e.target.result)
-            catalogStore.setCatalogData(data)
+            JSON.parse(e.target.result) // reject files that aren't JSON
+            // Fill the Catalog box, the same as pasting into it;
+            // "Add New Raster Params" copies it into the sampler row
+            rasterParamsStore.catalog = e.target.result
             toast.add({
               severity: 'info',
               summary: 'File Load',
@@ -137,7 +139,7 @@ const onClear = () => {
       mode="basic"
       name="SrCatalog"
       :auto="true"
-      accept=".smp,.smpr"
+      accept=".geojson,.json"
       :maxFileSize="10000000000"
       customUpload
       :disabled="props.disabled"
