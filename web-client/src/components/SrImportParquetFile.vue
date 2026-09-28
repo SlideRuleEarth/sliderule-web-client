@@ -18,7 +18,11 @@ import { createDuckDbClient } from '@/utils/SrDuckDb'
 import type { SrRegion } from '@/types/SrTypes'
 import type { ImportWorkerRequest, ImportWorkerResponse } from '@/types/SrImportWorkerTypes'
 import SrImportWorker from '@/workers/SrImportWorker?worker'
-import { addTimestampToFilename, getApiFromFilename } from '@/utils/SrParquetUtils'
+import {
+  addTimestampToFilename,
+  getApiFromFilename,
+  getXSeriesImportInfo
+} from '@/utils/SrParquetUtils'
 import {
   updateNumGranulesInRecord,
   updateAreaInRecord,
@@ -310,24 +314,7 @@ const customUploader = async (event: any) => {
     const svrParmsObj = typeof svrParmsRaw === 'string' ? JSON.parse(svrParmsRaw) : svrParmsRaw // will use this for legacy files
     const metaRaw = metadata.meta
     const metaObj = typeof metaRaw === 'string' ? JSON.parse(metaRaw) : metaRaw // will use this for "x" api files
-    let hasFit
-    let hasPhoReal
-    let endpoint
-    if (metaObj) {
-      if ('request' in metaObj && 'fit' in metaObj.request) {
-        hasFit = metaObj.request.fit
-      } else {
-        hasFit = false
-      }
-      if ('request' in metaObj && 'phoreal' in metaObj.request) {
-        hasPhoReal = metaObj.request.phoreal
-      } else {
-        hasPhoReal = false
-      }
-      if ('endpoint' in metaObj) {
-        endpoint = metaObj.endpoint
-      }
-    }
+    let { endpoint, hasFit, hasPhoReal } = getXSeriesImportInfo(metaObj, metadata.recordinfo)
     const hasLegacySvrParms =
       svrParmsObj &&
       'server' in svrParmsObj &&

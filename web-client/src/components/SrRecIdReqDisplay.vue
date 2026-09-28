@@ -60,8 +60,11 @@ async function loadReqParams(reqId: number) {
     curAPI.value = await db.getFunc(reqId)
     // Get the full request record to access rcvd_parms
     const request = await db.table('requests').get(reqId)
-    // Use rcvd_parms (what server used) if available, fall back to parameters (what was sent)
-    const p = request?.rcvd_parms || request?.parameters || {}
+    // Use rcvd_parms (what server used) if available, fall back to parameters (what was sent).
+    // Servers from v5.6.1 store {} in place of a request over 1 MiB (#1118), so an empty
+    // rcvd_parms counts as missing.
+    const rcvdParms = request?.rcvd_parms
+    const p = rcvdParms && Object.keys(rcvdParms).length > 0 ? rcvdParms : request?.parameters || {}
     reqParms.value = JSON.stringify(p, null, 2)
   } else {
     logger.debug('loadReqParams: no reqId')
