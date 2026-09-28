@@ -12,6 +12,7 @@ import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 import { useStackStatusStore } from '@/stores/stackStatusStore'
 import { useClusterSelectionStore } from '@/stores/clusterSelectionStore'
 import { useDeployConfigStore } from '@/stores/deployConfigStore'
+import { useHelpStore } from '@/stores/helpStore'
 import { useRoute, useRouter } from 'vue-router'
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue'
 import SrUserUtilsDialog from '@/components/SrUserUtilsDialog.vue'
@@ -28,6 +29,7 @@ const githubAuthStore = useGitHubAuthStore()
 const stackStatusStore = useStackStatusStore()
 const clusterSelectionStore = useClusterSelectionStore()
 const deployConfigStore = useDeployConfigStore()
+const helpStore = useHelpStore()
 const route = useRoute()
 const router = useRouter()
 const tooltipRef = ref()
@@ -56,16 +58,18 @@ function handleGitHubLogin() {
   void githubAuthStore.initiateLogin()
 }
 
-const displayTour = computed(() => {
+// The tours walk through the map controls, so they only work on the map views
+const canTour = computed(() => {
   return route.name === 'home' || route.name === 'request'
 })
 
-const tourMenu = ref<InstanceType<typeof Menu> | null>(null)
+const helpMenu = ref<InstanceType<typeof Menu> | null>(null)
 
-const tourMenuItems = [
+const helpMenuItems = computed<MenuItem[]>(() => [
   {
     label: 'Quick Tour',
     icon: 'pi pi-bolt',
+    disabled: !canTour.value,
     command: () => {
       emit('quick-tour-button-click')
     }
@@ -73,14 +77,24 @@ const tourMenuItems = [
   {
     label: 'Long Tour',
     icon: 'pi pi-compass',
+    disabled: !canTour.value,
     command: () => {
       emit('long-tour-button-click')
     }
+  },
+  { separator: true },
+  {
+    label: 'Show tips',
+    icon: helpStore.showTips ? 'pi pi-check-square' : 'pi pi-stop',
+    command: () => {
+      helpStore.setShowTips(!helpStore.showTips)
+    }
   }
-]
+])
 
-const toggleTourMenu = (event: Event) => {
-  tourMenu.value?.toggle(event)
+const toggleHelpMenu = (event: Event) => {
+  helpStore.markHelpOpened()
+  helpMenu.value?.toggle(event)
 }
 
 const openDocs = () => {
@@ -714,15 +728,15 @@ function hideTooltip() {
     </div>
     <div class="middle-content">
       <Button
-        icon="pi pi-map"
-        id="sr-tour-button"
-        v-if="displayTour"
-        label="Tour"
+        icon="pi pi-question-circle"
+        id="sr-help-button"
+        label="Help"
         class="p-button-rounded p-button-text desktop-only"
-        @click="toggleTourMenu"
+        :class="{ 'sr-help-pulse': !helpStore.helpOpened }"
+        @click="toggleHelpMenu"
       >
       </Button>
-      <Menu :model="tourMenuItems" popup ref="tourMenu" />
+      <Menu :model="helpMenuItems" popup ref="helpMenu" />
       <span v-if="showBanner" class="sr-banner-text">{{ bannerText }}</span>
       <div class="sr-tooltip-style" id="tooltip">
         <SrCustomTooltip ref="tooltipRef" id="appBarTooltip" />
@@ -815,6 +829,28 @@ function hideTooltip() {
 </template>
 
 <style scoped>
+/* Draws a first-time visitor to the Help menu without covering anything */
+.sr-help-pulse {
+  animation: sr-help-pulse 2s ease-in-out infinite;
+}
+
+@keyframes sr-help-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+  50% {
+    box-shadow: 0 0 0.6rem 0.2rem var(--p-primary-color);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sr-help-pulse {
+    animation: none;
+    box-shadow: 0 0 0.4rem 0.15rem var(--p-primary-color);
+  }
+}
+
 .sr-org-menu-button {
   margin-left: 0.5rem;
   font-size: 0.75rem;

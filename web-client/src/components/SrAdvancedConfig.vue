@@ -95,24 +95,11 @@
                 v-model="selectedNumOfElevationShadesOption"
                 tooltipText="Number of shades for elevation plot"
         /> -->
-      <label for="ThresholdForHelpfulAdvice">Threshold for Helpful Advice</label>
-      <InputNumber
-        v-model="requestsStore.helpfulReqAdviceCnt"
-        inputId="ThresholdForHelpfulAdvice"
-        size="small"
-        :step="1"
-        :min="1"
-        :max="1000"
-        showButtons
-        :defaultValue="4"
-        :decimalPlaces="0"
-      />
-      <br />
       <Button
         icon="pi pi-refresh"
-        label="Reset Quick Tour"
+        label="Reset Help & Tips"
         class="sr-glow-button"
-        @click="tourStore.resetTour()"
+        @click="helpStore.resetHelp()"
         variant="text"
         rounded
       ></Button>
@@ -207,12 +194,11 @@ import { useReqParamsStore } from '@/stores/reqParamsStore'
 import { useSrParquetCfgStore, DEFAULT_MAX_NUM_PNTS_TO_DISPLAY } from '@/stores/srParquetCfgStore'
 import { useDebugStore } from '@/stores/debugStore'
 import { useDeckStore } from '@/stores/deckStore'
-import { useRequestsStore } from '@/stores/requestsStore'
 import SrCheckbox from './SrCheckbox.vue'
 import InputNumber from 'primevue/inputnumber'
 import InputText from 'primevue/inputtext'
 import { useGlobalChartStore } from '@/stores/globalChartStore'
-import { useTourStore } from '@/stores/tourStore'
+import { useHelpStore } from '@/stores/helpStore'
 import { useMobileWarningStore } from '@/stores/mobileWarningStore'
 import Button from 'primevue/button'
 import {
@@ -229,9 +215,8 @@ const mobileWarningStore = useMobileWarningStore()
 const srParquetCfgStore = useSrParquetCfgStore()
 const reqParamsStore = useReqParamsStore()
 const deckStore = useDeckStore()
-const requestsStore = useRequestsStore()
 const globalChartStore = useGlobalChartStore()
-const tourStore = useTourStore()
+const helpStore = useHelpStore()
 
 const deckPointSize = computed({
   get: () => deckStore.getPointSize(),

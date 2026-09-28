@@ -108,13 +108,13 @@ export const usePrivacyConsentStore = defineStore('privacyConsent', {
       const { useGitHubAuthStore } = await import('@/stores/githubAuthStore')
       const { useGoogleApiKeyStore } = await import('@/stores/googleApiKeyStore')
       const { useSysConfigStore } = await import('@/stores/sysConfigStore')
-      const { useTourStore } = await import('@/stores/tourStore')
+      const { useHelpStore } = await import('@/stores/helpStore')
 
       // Clear individual stores
       const githubAuthStore = useGitHubAuthStore()
       const googleApiKeyStore = useGoogleApiKeyStore()
       const sysConfigStore = useSysConfigStore()
-      const tourStore = useTourStore()
+      const helpStore = useHelpStore()
 
       // Logout/clear auth stores
       if (githubAuthStore.logout) {
@@ -124,7 +124,7 @@ export const usePrivacyConsentStore = defineStore('privacyConsent', {
         googleApiKeyStore.clearApiKey()
       }
       sysConfigStore.$reset()
-      tourStore.resetTour()
+      helpStore.resetHelp()
 
       // Clear all browser storage
       localStorage.clear()

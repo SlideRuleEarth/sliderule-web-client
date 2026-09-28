@@ -661,18 +661,14 @@ const clearDrawingLayer = () => {
   return cleared
 }
 
-const handlePickedChanged = async (newPickedValue: string) => {
+const handlePickedChanged = (newPickedValue: string) => {
   //console.log(`handlePickedChanged: ${newPickedValue}`);
 
   if (newPickedValue === 'Box') {
-    if ((await useRequestsStore().getNumReqs()) < useRequestsStore().helpfulReqAdviceCnt + 2) {
-      toast.add({
-        severity: 'info',
-        summary: 'Draw instructions',
-        detail: 'Draw a rectangle by clicking and dragging on the map',
-        life: 5000
-      })
-    }
+    useRequestsStore().showTip(
+      'Draw instructions',
+      'Draw a rectangle by clicking and dragging on the map'
+    )
     disableDragBox()
     disableDrawPolygon()
     // Don't clear existing polygons - let user draw new box which will replace it
@@ -682,14 +678,10 @@ const handlePickedChanged = async (newPickedValue: string) => {
     disableDrawPolygon()
     // Don't clear existing polygons - let user draw new polygon which will replace it
     enableDrawPolygon()
-    if ((await useRequestsStore().getNumReqs()) < useRequestsStore().helpfulReqAdviceCnt + 2) {
-      toast.add({
-        severity: 'info',
-        summary: 'Draw instructions',
-        detail: 'Draw a polygon by clicking for each point and returning to the first point',
-        life: 5000
-      })
-    }
+    useRequestsStore().showTip(
+      'Draw instructions',
+      'Draw a polygon by clicking for each point and returning to the first point'
+    )
   } else if (newPickedValue === 'TrashCan') {
     disableDragBox()
     disableDrawPolygon()

@@ -931,7 +931,7 @@ onMounted(async () => {
 
     await initPlot()
     //enableTouchDragging(); // this is experimental
-    void requestsStore.displayHelpfulMapAdvice('Legends are draggable to any location')
+    requestsStore.showTip('Tip', 'Plot Legends are draggable to any location')
   } catch (error) {
     logger.error('Error during onMounted initialization', {
       error: error instanceof Error ? error.message : String(error)

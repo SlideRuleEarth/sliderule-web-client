@@ -221,11 +221,9 @@ let duckDbClient: DuckDBClient | null = null
 onMounted(async () => {
   try {
     duckDbClient = await createDuckDbClient()
-    void requestsStore.displayHelpfulPlotAdvice(
-      'click Run to generate a table of the selected track data'
-    )
-    void requestsStore.displayHelpfulPlotAdvice(
-      'You can query the table with any valid SQL statement'
+    requestsStore.showTip(
+      'Tip',
+      'Click Run to generate a table of the selected track data. You can query the table with any valid SQL statement'
     )
     logger.debug('onMounted: DuckDB client initialized')
     info.value = 'Enter a SQL query and click "Run Sql Query"'

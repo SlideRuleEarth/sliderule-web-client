@@ -4,6 +4,7 @@ import { liveQuery } from 'dexie'
 import type { SrMenuNumberItem } from '@/types/SrTypes'
 import { findParam } from '@/utils/parmUtils'
 import { useSrToastStore } from './srToastStore'
+import { useHelpStore } from './helpStore'
 import type { TreeNode } from 'primevue/treenode'
 import {
   updateNumGranulesInRecord,
@@ -11,8 +12,21 @@ import {
   updateReqParmsFromMeta
 } from '@/utils/SrParquetUtils'
 import { createLogger } from '@/utils/logger'
+import { formatTips, type Tip } from '@/utils/tipUtils'
 
 const logger = createLogger('RequestsStore')
+
+// Tips requested within this window (one view mounting) share one toast
+const TIP_BATCH_MS = 300
+let pendingTips: Tip[] = []
+let tipTimer: ReturnType<typeof setTimeout> | null = null
+
+function flushTips() {
+  const { summary, detail, life } = formatTips(pendingTips)
+  pendingTips = []
+  tipTimer = null
+  useSrToastStore().info(summary, detail, life)
+}
 
 export const useRequestsStore = defineStore('requests', {
   state: () => ({
@@ -25,7 +39,6 @@ export const useRequestsStore = defineStore('requests', {
     consoleMsg: 'ready',
     autoFetchError: false,
     autoFetchErrorMsg: '',
-    helpfulReqAdviceCnt: 2,
     tableRefreshTrigger: 0
   }),
   getters: {
@@ -269,21 +282,14 @@ export const useRequestsStore = defineStore('requests', {
         this.liveRequestsQuerySubscription.unsubscribe()
       }
     },
-    async displayHelpfulMapAdvice(msg: string): Promise<void> {
-      if ((await this.getNumReqs()) < this.helpfulReqAdviceCnt) {
-        useSrToastStore().info('Helpful Advice', msg)
-      }
-    },
-    async displayHelpfulPlotAdvice(msg: string): Promise<void> {
-      if ((await this.getNumReqs()) < this.helpfulReqAdviceCnt) {
-        useSrToastStore().info('Helpful Advice', msg)
-      }
-    },
-    async needAdvice(): Promise<boolean> {
-      if ((await useRequestsStore().getNumReqs()) < useRequestsStore().helpfulReqAdviceCnt + 2) {
-        return true
-      }
-      return false
+    /**
+     * Show an advice toast, only if the user turned tips on in the Help menu.
+     * Tips requested together are combined into one toast.
+     */
+    showTip(summary: string, msg: string): void {
+      if (!useHelpStore().showTips) return
+      pendingTips.push({ summary, msg })
+      tipTimer ??= setTimeout(flushTips, TIP_BATCH_MS)
     },
 
     async getTreeTableNodes(onlySuccessful: boolean = true): Promise<TreeNode[]> {
