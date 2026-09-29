@@ -24,6 +24,7 @@ const logger = createLogger('SrAppBar')
 
 const build_env = import.meta.env.VITE_BUILD_ENV
 const banner_text = import.meta.env.VITE_BANNER_TEXT
+const banner_color = import.meta.env.VITE_BANNER_COLOR
 const sysConfigStore = useSysConfigStore()
 const githubAuthStore = useGitHubAuthStore()
 const stackStatusStore = useStackStatusStore()
@@ -273,6 +274,13 @@ const showBanner = computed(() => {
 
 const bannerText = computed(() => {
   return banner_text || ''
+})
+
+// Optional override; otherwise the banner uses the app bar text color (see .sr-banner-text)
+const bannerStyle = computed(() => {
+  return typeof banner_color === 'string' && banner_color.trim() !== ''
+    ? { color: banner_color.trim() }
+    : {}
 })
 
 const computedServerVersionLabel = computed(() => {
@@ -737,7 +745,7 @@ function hideTooltip() {
       >
       </Button>
       <Menu :model="helpMenuItems" popup ref="helpMenu" />
-      <span v-if="showBanner" class="sr-banner-text">{{ bannerText }}</span>
+      <span v-if="showBanner" class="sr-banner-text" :style="bannerStyle">{{ bannerText }}</span>
       <div class="sr-tooltip-style" id="tooltip">
         <SrCustomTooltip ref="tooltipRef" id="appBarTooltip" />
       </div>
@@ -954,7 +962,7 @@ function hideTooltip() {
 }
 .sr-banner-text {
   font-size: smaller;
-  color: red;
+  color: var(--p-button-text-primary-color);
   margin-left: 0.5rem;
   max-width: 20rem;
   word-wrap: break-word;

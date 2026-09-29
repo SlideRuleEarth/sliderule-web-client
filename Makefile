@@ -79,6 +79,7 @@ STACK_HEALTHY_STATUSES = CREATE_COMPLETE UPDATE_COMPLETE UPDATE_ROLLBACK_COMPLET
 STACK_FAILED_STATUSES = ROLLBACK_COMPLETE ROLLBACK_FAILED CREATE_FAILED DELETE_FAILED REVIEW_IN_PROGRESS
 VERSION ?= latest
 BANNER_TEXT ?=
+BANNER_COLOR ?=
 
 
 clean-all: ## Remove node_modules and build artifacts (preserves package-lock.json files)
@@ -274,11 +275,13 @@ build: convert-icons ## Build the web client and update the dist folder
 	export VITE_APP_BUILD_DATE=$$(date +"%Y-%m-%d %T"); \
 	export VITE_APP_VERSION=$$(git describe --tags --abbrev=0); \
 	export VITE_BANNER_TEXT='$(BANNER_TEXT)'; \
+	export VITE_BANNER_COLOR='$(BANNER_COLOR)'; \
 	cd web-client && \
 	echo "VITE_APP_BUILD_DATE=$$VITE_APP_BUILD_DATE" && \
 	echo "VITE_APP_VERSION=$$VITE_APP_VERSION" && \
 	echo "VITE_BUILD_ENV=$$VITE_BUILD_ENV" && \
 	echo "VITE_BANNER_TEXT=$$VITE_BANNER_TEXT" && \
+	echo "VITE_BANNER_COLOR=$$VITE_BANNER_COLOR" && \
 	npm run build
 
 keycloak-up: ## Start local Keycloak OAuth2.1 test server
@@ -298,6 +301,7 @@ keycloak-run: keycloak-up ## Build and preview web client against local Keycloak
 	export VITE_APP_BUILD_DATE=$$(date +"%Y-%m-%d %T"); \
 	export VITE_APP_VERSION=$$(git describe --tags --abbrev=0); \
 	export VITE_BANNER_TEXT='$(BANNER_TEXT)'; \
+	export VITE_BANNER_COLOR='$(BANNER_COLOR)'; \
 	cd web-client && \
 	echo "VITE_LOGIN_BASE_URL=$$VITE_LOGIN_BASE_URL" && \
 	npm run build && \
@@ -308,11 +312,13 @@ run: ## Run the web client locally for development
 	export VITE_RUN_DEV_DATE=$$(date +"%Y-%m-%d %T"); \
 	export VITE_APP_VERSION=$$(git describe --tags --abbrev=0); \
 	export VITE_BANNER_TEXT='$(BANNER_TEXT)'; \
+	export VITE_BANNER_COLOR='$(BANNER_COLOR)'; \
 	cd web-client && \
 	echo "VITE_RUN_DEV_DATE=$$VITE_RUN_DEV_DATE" && \
 	echo "VITE_APP_VERSION=$$VITE_APP_VERSION" && \
 	echo "VITE_BUILD_ENV=$$VITE_BUILD_ENV" && \
 	echo "VITE_BANNER_TEXT=$$VITE_BANNER_TEXT" && \
+	echo "VITE_BANNER_COLOR=$$VITE_BANNER_COLOR" && \
 	npm run dev
 
 preview: build ## Preview the web client production build locally for development 
