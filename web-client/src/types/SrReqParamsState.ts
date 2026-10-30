@@ -98,16 +98,8 @@ export interface SrReqParamsState {
   atl24_class_ph: string[]
   useAtl24ConfidenceThreshold: boolean
   atl24ConfidenceThreshold: number
-  useAtl24InvalidKD: boolean
-  atl24InvalidKD: string[]
-  useAtl24InvalidWindspeed: boolean
-  atl24InvalidWindspeed: string[]
-  useAtl24LowConfidence: boolean
-  atl24LowConfidence: string[]
   useAtl24Night: boolean
   atl24Night: string[]
-  useAtl24SensorDepthExceeded: boolean
-  atl24SensorDepthExceeded: string[]
 
   // ─── YAPC Parameters ───
   enableYAPC: boolean

@@ -865,6 +865,52 @@ describe('applyParsedJsonToStores - Round-trip Tests', () => {
       expect(getNonPolygonErrors(importErrors)).toHaveLength(0)
     })
 
+    it('should convert new ATL24 numeric classes (1, 2) to i_dont_know and ground', () => {
+      const input = { atl24: { class_ph: [0, 1, 2, 40, 41] } }
+
+      applyParsedJsonToStores(input, reqParamsStore, rasterParamsStore, addError)
+      reqParamsStore.setMissionValue('ICESat-2')
+      reqParamsStore.setIceSat2API('atl24x')
+
+      const output = reqParamsStore.getAtlxxReqParams(0)
+      expect(output.parms.atl24.class_ph).toEqual([
+        'unclassified',
+        'i_dont_know',
+        'ground',
+        'bathymetry',
+        'sea_surface'
+      ])
+    })
+
+    it('should skip removed ATL24 parameters and not export them', () => {
+      const input = {
+        atl24: {
+          invalid_kd: ['on'],
+          invalid_wind_speed: ['on'],
+          low_confidence: ['on'],
+          sensor_depth_exceeded: ['on']
+        }
+      }
+
+      applyParsedJsonToStores(input, reqParamsStore, rasterParamsStore, addError)
+      reqParamsStore.setMissionValue('ICESat-2')
+      reqParamsStore.setIceSat2API('atl24x')
+
+      const output = reqParamsStore.getAtlxxReqParams(0)
+      for (const removed of [
+        'invalid_kd',
+        'invalid_wind_speed',
+        'low_confidence',
+        'sensor_depth_exceeded'
+      ]) {
+        expect(output.parms.atl24[removed]).toBeUndefined()
+        expect(importErrors).toContainEqual({
+          section: `atl24.${removed}`,
+          message: 'No longer supported by the server - skipped'
+        })
+      }
+    })
+
     it('should handle all core request fields for atl13x API', () => {
       const input = {
         poly: [

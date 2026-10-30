@@ -9,6 +9,10 @@ const Coordinate = z.object({
 const atl24ClassificationMap: Record<string, number> = {
   unclassified: 0,
   atl24_unclassified: 0,
+  i_dont_know: 1,
+  atl24_i_dont_know: 1,
+  ground: 2,
+  atl24_ground: 2,
   bathymetry: 40,
   atl24_bathymetry: 40,
   sea_surface: 41,
@@ -67,11 +71,12 @@ const Atl24Schema = z
     confidence_threshold: z.number().optional(),
     // These fields can be either boolean or array of strings ["off", "on"]
     // The UI uses multi-select with On/Off options, server returns lowercase
-    invalid_kd: z.union([z.boolean(), z.array(z.string())]).optional(),
-    invalid_wind_speed: z.union([z.boolean(), z.array(z.string())]).optional(),
-    low_confidence: z.union([z.boolean(), z.array(z.string())]).optional(),
     night: z.union([z.boolean(), z.array(z.string())]).optional(),
-    sensor_depth_exceeded: z.union([z.boolean(), z.array(z.string())]).optional(),
+    // Removed from the server; accepted only so older requests import with a "skipped" notice
+    invalid_kd: z.unknown().optional(),
+    invalid_wind_speed: z.unknown().optional(),
+    low_confidence: z.unknown().optional(),
+    sensor_depth_exceeded: z.unknown().optional(),
     anc_fields: z.array(z.string()).optional()
   })
   .optional()

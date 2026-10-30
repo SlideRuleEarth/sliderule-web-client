@@ -101,8 +101,16 @@ export const awsRegionOptions = [
 export const atl24ClassOptions = [
   { name: 'bathymetry', value: 40 },
   { name: 'sea_surface', value: 41 },
+  { name: 'ground', value: 2 },
+  { name: 'i_dont_know', value: 1 },
   { name: 'unclassified', value: 0 }
 ] as SrMultiSelectNumberItem[]
 export const YAPCVersionOptions = ['0', '1', '2', '3'] as string[]
-export const atl24_class_ph_Options = ['unclassified', 'bathymetry', 'sea_surface'] as string[]
+export const atl24_class_ph_Options = [
+  'unclassified',
+  'i_dont_know',
+  'ground',
+  'bathymetry',
+  'sea_surface'
+] as string[]
 export const OnOffOptions = ['On', 'Off'] as string[]

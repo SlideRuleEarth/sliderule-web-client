@@ -12,10 +12,12 @@ import { createLogger } from '@/utils/logger'
 const logger = createLogger('ApplyParsedJsonToStores')
 
 // ATL24 class_ph value to name mapping (for converting numeric values to strings)
-// API uses class_ph with values: 0=unclassified, 40=bathymetry, 41=sea_surface
+// API uses class_ph with values: 0=unclassified, 1=i_dont_know, 2=ground, 40=bathymetry, 41=sea_surface
 // Legacy "classification" field is also supported for backward compatibility
 const atl24ClassificationValueToName: Record<number, string> = {
   0: 'unclassified',
+  1: 'i_dont_know',
+  2: 'ground',
   40: 'bathymetry',
   41: 'sea_surface'
 }
@@ -411,18 +413,18 @@ export function applyParsedJsonToStores(
     if (data.atl24.confidence_threshold !== undefined)
       (store.useAtl24ConfidenceThreshold = true),
         (store.atl24ConfidenceThreshold = data.atl24.confidence_threshold)
-    if (data.atl24.invalid_kd !== undefined)
-      (store.useAtl24InvalidKD = true), (store.atl24InvalidKD = data.atl24.invalid_kd)
-    if (data.atl24.invalid_wind_speed !== undefined)
-      (store.useAtl24InvalidWindspeed = true),
-        (store.atl24InvalidWindspeed = data.atl24.invalid_wind_speed)
-    if (data.atl24.low_confidence !== undefined)
-      (store.useAtl24LowConfidence = true), (store.atl24LowConfidence = data.atl24.low_confidence)
     if (data.atl24.night !== undefined)
       (store.useAtl24Night = true), (store.atl24Night = data.atl24.night)
-    if (data.atl24.sensor_depth_exceeded !== undefined)
-      (store.useAtl24SensorDepthExceeded = true),
-        (store.atl24SensorDepthExceeded = data.atl24.sensor_depth_exceeded)
+    for (const removed of [
+      'invalid_kd',
+      'invalid_wind_speed',
+      'low_confidence',
+      'sensor_depth_exceeded'
+    ]) {
+      if (data.atl24[removed] !== undefined) {
+        _addError(`atl24.${removed}`, 'No longer supported by the server - skipped')
+      }
+    }
     if (data.atl24.anc_fields) store.atl24AncillaryFields = data.atl24.anc_fields
     // Only warn if current API won't export atl24 parameters
     if (store.iceSat2SelectedAPI !== 'atl24x') {

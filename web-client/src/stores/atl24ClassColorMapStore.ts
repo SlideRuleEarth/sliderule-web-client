@@ -19,6 +19,8 @@ export function useAtl24ClassColorMapStore(reqIdStr: string) {
 
     const atl24ClassOptions = [
       { label: 'atl24_unclassified', value: 0 },
+      { label: 'atl24_i_dont_know', value: 1 },
+      { label: 'atl24_ground', value: 2 },
       { label: 'atl24_bathymetry', value: 40 },
       { label: 'atl24_sea_surface', value: 41 }
     ] as { label: string; value: number }[]
@@ -73,8 +75,7 @@ export function useAtl24ClassColorMapStore(reqIdStr: string) {
     }
 
     function setColorForAtl24ClassValue(value: number, namedColorValue: string) {
-      // Validate value - only 0, 40, 41 are valid
-      if (value !== 0 && value !== 40 && value !== 41) {
+      if (!atl24ClassOptions.some((opt) => opt.value === value)) {
         logger.error('setColorForAtl24ClassValue invalid value', { value })
         return
       }

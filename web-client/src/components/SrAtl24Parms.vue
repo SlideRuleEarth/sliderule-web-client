@@ -55,45 +55,6 @@
       </div>
       <div class="sr-parm-row">
         <div style="display: flex; align-items: center; gap: 0.5rem">
-          <Checkbox binary v-model="reqParamsStore.useAtl24InvalidKD" size="small" />
-          <label style="font-size: small">Invalid KD</label>
-        </div>
-        <SelectButton
-          v-model="reqParamsStore.atl24InvalidKD"
-          :options="OnOffOptions"
-          multiple
-          size="small"
-          :disabled="!reqParamsStore.useAtl24InvalidKD"
-        />
-      </div>
-      <div class="sr-parm-row">
-        <div style="display: flex; align-items: center; gap: 0.5rem">
-          <Checkbox v-model="reqParamsStore.useAtl24InvalidWindspeed" binary size="small" />
-          <label style="font-size: small">Invalid Windspeed</label>
-        </div>
-        <SelectButton
-          v-model="reqParamsStore.atl24InvalidWindspeed"
-          :options="OnOffOptions"
-          multiple
-          size="small"
-          :disabled="!reqParamsStore.useAtl24InvalidWindspeed"
-        />
-      </div>
-      <div class="sr-parm-row">
-        <div style="display: flex; align-items: center; gap: 0.5rem">
-          <Checkbox binary v-model="reqParamsStore.useAtl24LowConfidence" size="small" />
-          <label style="font-size: small">Low Confidence</label>
-        </div>
-        <SelectButton
-          v-model="reqParamsStore.atl24LowConfidence"
-          :options="OnOffOptions"
-          multiple
-          size="small"
-          :disabled="!reqParamsStore.useAtl24LowConfidence"
-        />
-      </div>
-      <div class="sr-parm-row">
-        <div style="display: flex; align-items: center; gap: 0.5rem">
           <Checkbox binary v-model="reqParamsStore.useAtl24Night" size="small" />
           <label style="font-size: small">Atl24 Nighttime</label>
         </div>
@@ -103,19 +64,6 @@
           multiple
           size="small"
           :disabled="!reqParamsStore.useAtl24Night"
-        />
-      </div>
-      <div class="sr-parm-row">
-        <div style="display: flex; align-items: center; gap: 0.5rem">
-          <Checkbox binary v-model="reqParamsStore.useAtl24SensorDepthExceeded" size="small" />
-          <label style="font-size: small">Atl24 Sensor Depth Exceeded</label>
-        </div>
-        <SelectButton
-          v-model="reqParamsStore.atl24SensorDepthExceeded"
-          :options="OnOffOptions"
-          multiple
-          size="small"
-          :disabled="!reqParamsStore.useAtl24SensorDepthExceeded"
         />
       </div>
       <div class="sr-atl24-ancillary-fields">

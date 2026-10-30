@@ -24,13 +24,23 @@ const DEFAULT_ATL08_CLASS_COLORS: string[] = [
   'slategray' // 4: atl08_unclassified
 ]
 
-// Default colors for ATL24 class values (stored as array index 0-2)
-// Values: 0=unclassified, 40=bathymetry, 41=sea_surface
+// Default colors for ATL24 class values, indexed via ATL24_CLASS_VALUE_TO_NDX.
+// New classes are appended so previously persisted color arrays keep their meaning.
 const DEFAULT_ATL24_CLASS_COLORS: string[] = [
-  'purple', // 0: atl24_unclassified
+  'purple', // 0: atl24_unclassified (value 0)
   'greenyellow', // 1: atl24_bathymetry (value 40)
-  'lightblue' // 2: atl24_sea_surface (value 41)
+  'lightblue', // 2: atl24_sea_surface (value 41)
+  'gray', // 3: atl24_i_dont_know (value 1)
+  'orange' // 4: atl24_ground (value 2)
 ]
+
+const ATL24_CLASS_VALUE_TO_NDX: Record<number, number> = {
+  0: 0,
+  40: 1,
+  41: 2,
+  1: 3,
+  2: 4
+}
 
 export const useClassificationColorsStore = defineStore(
   'classificationColorsStore',
@@ -98,14 +108,8 @@ export const useClassificationColorsStore = defineStore(
     }
 
     function setAtl24ClassColor(value: number, color: string): void {
-      let ndx: number
-      if (value === 0) {
-        ndx = 0 // unclassified
-      } else if (value === 40) {
-        ndx = 1 // bathymetry
-      } else if (value === 41) {
-        ndx = 2 // sea_surface
-      } else {
+      const ndx = ATL24_CLASS_VALUE_TO_NDX[value]
+      if (ndx === undefined) {
         logger.error('setAtl24ClassColor invalid value', { value })
         return
       }
@@ -113,14 +117,12 @@ export const useClassificationColorsStore = defineStore(
     }
 
     function getAtl24ClassColor(value: number): string {
-      if (value === 0) {
-        return atl24ClassColors.value[0]
-      } else if (value === 40) {
-        return atl24ClassColors.value[1]
-      } else if (value === 41) {
-        return atl24ClassColors.value[2]
+      const ndx = ATL24_CLASS_VALUE_TO_NDX[value]
+      if (ndx === undefined) {
+        return 'white'
       }
-      return 'white'
+      // Persisted arrays from older versions may be shorter than the defaults
+      return atl24ClassColors.value[ndx] ?? DEFAULT_ATL24_CLASS_COLORS[ndx]
     }
 
     function restoreDefaultAtl24ClassColors(): void {

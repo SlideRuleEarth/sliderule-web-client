@@ -131,16 +131,8 @@ export function getDefaultReqParamsState(): SrReqParamsState {
     atl24_class_ph: ['bathymetry'] as string[],
     useAtl24ConfidenceThreshold: false,
     atl24ConfidenceThreshold: 0.6,
-    useAtl24InvalidKD: false,
-    atl24InvalidKD: OnOffOptions,
-    useAtl24InvalidWindspeed: false,
-    atl24InvalidWindspeed: OnOffOptions,
-    useAtl24LowConfidence: false,
-    atl24LowConfidence: OnOffOptions,
     useAtl24Night: false,
     atl24Night: OnOffOptions,
-    useAtl24SensorDepthExceeded: false,
-    atl24SensorDepthExceeded: OnOffOptions,
 
     // ─── YAPC Parameters ───
     enableYAPC: false,
@@ -552,20 +544,8 @@ const createReqParamsStore = (id: string) =>
           if (this.useAtl24ConfidenceThreshold) {
             req.atl24.confidence_threshold = this.atl24ConfidenceThreshold
           }
-          if (this.useAtl24InvalidKD) {
-            req.atl24.invalid_kd = this.atl24InvalidKD
-          }
-          if (this.useAtl24InvalidWindspeed) {
-            req.atl24.invalid_wind_speed = this.atl24InvalidWindspeed
-          }
-          if (this.useAtl24LowConfidence) {
-            req.atl24.low_confidence = this.atl24LowConfidence
-          }
           if (this.useAtl24Night) {
             req.atl24.night = this.atl24Night
-          }
-          if (this.useAtl24SensorDepthExceeded) {
-            req.atl24.sensor_depth_exceeded = this.atl24SensorDepthExceeded
           }
           if (this.atl24AncillaryFields.length > 0) {
             req.atl24.anc_fields = this.atl24AncillaryFields

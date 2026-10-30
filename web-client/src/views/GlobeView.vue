@@ -10,6 +10,10 @@ const mapOptions: Record<string, { src: string; label: string }> = {
     src: 'https://docs.slideruleearth.io/_static/ATL18_reprojected.png',
     label: 'ICESat-2 global terrain heights'
   },
+  atl24: {
+    src: 'https://docs.slideruleearth.io/_static/sliderule_atl24_grid.png',
+    label: 'ICESat-2 near-shore bathymetry'
+  },
   usage: {
     src: 'https://docs.slideruleearth.io/_static/sliderule_usage_grid.png',
     label: 'Source location of requests'

@@ -87,13 +87,9 @@ export interface BathyConfigFit {
 export interface BathyConfigAtl24 {
   class_ph: string[]
   compact: boolean
-  invalid_kd: string[]
   confidence_threshold: number
-  sensor_depth_exceeded: string[]
   night: string[]
-  low_confidence: string[]
   anc_fields: any[]
-  invalid_wind_speed: string[]
 }
 
 export interface BathyConfigSurface {
@@ -389,13 +385,9 @@ export interface Icesat2ConfigRaster {
 export interface Icesat2ConfigAtl24 {
   class_ph: string[]
   compact: boolean
-  invalid_kd: string[]
   confidence_threshold: number
-  sensor_depth_exceeded: string[]
   night: string[]
-  low_confidence: string[]
   anc_fields: any[]
-  invalid_wind_speed: string[]
 }
 
 export interface Icesat2ConfigGranule {
