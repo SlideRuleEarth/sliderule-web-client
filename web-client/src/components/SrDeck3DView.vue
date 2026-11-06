@@ -88,6 +88,7 @@ import SrGradientLegend from '@/components/SrGradientLegend.vue'
 import { useSrToastStore } from '@/stores/srToastStore'
 import { useElevationColorMapStore } from '@/stores/elevationColorMapStore'
 import { useRecTreeStore } from '@/stores/recTreeStore'
+import { useRequestsStore } from '@/stores/requestsStore'
 import { updateElevationMap } from '@/utils/SrMapUtils'
 import { useDeck3DConfigStore } from '@/stores/deck3DConfigStore'
 import SrDeck3DCfg from '@/components/SrDeck3DCfg.vue'
@@ -187,10 +188,9 @@ onMounted(async () => {
     logger.error('No color Gradient')
     toast.error('No color Gradient', 'Skipping point cloud due to missing gradient.')
   }
-  toast.info(
+  useRequestsStore().showTip(
     '3D view',
-    'Drag to rotate, scroll to zoom. Hold the shift key and drag to pan.',
-    30000
+    'Drag to rotate, scroll to zoom. Hold the shift key and drag to pan.'
   )
 })
 
