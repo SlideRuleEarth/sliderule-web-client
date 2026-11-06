@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue'
 import type OLMap from 'ol/Map.js'
-import { useToast } from 'primevue/usetoast'
+import { useRequestsStore } from '@/stores/requestsStore'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('SrHelperMap')
@@ -78,7 +78,7 @@ const srDrawControlRef = ref<SrHelperDrawControlMethods | null>(null)
 const mapRef = ref<{ map: OLMap }>()
 const helperStore = useHelperMapStore()
 const geoCoderStore = useGeoCoderStore()
-const toast = useToast()
+const requestsStore = useRequestsStore()
 const tooltipRef = ref()
 const isDrawing = ref(false)
 const drawnPolygonFeature = ref<Feature | null>(null)
@@ -528,12 +528,10 @@ const clearDrawingLayer = () => {
 
 const handlePickedChanged = (newPickedValue: string) => {
   if (newPickedValue === 'Box') {
-    toast.add({
-      severity: 'info',
-      summary: 'Draw instructions',
-      detail: 'Draw a rectangle by clicking and dragging on the map',
-      life: 5000
-    })
+    requestsStore.showTip(
+      'Draw instructions',
+      'Draw a rectangle by clicking and dragging on the map'
+    )
     disableDragBox()
     disableDrawPolygon()
     enableDragBox()
@@ -541,12 +539,10 @@ const handlePickedChanged = (newPickedValue: string) => {
     disableDragBox()
     disableDrawPolygon()
     enableDrawPolygon()
-    toast.add({
-      severity: 'info',
-      summary: 'Draw instructions',
-      detail: 'Draw a polygon by clicking for each point and returning to the first point',
-      life: 5000
-    })
+    requestsStore.showTip(
+      'Draw instructions',
+      'Draw a polygon by clicking for each point and returning to the first point'
+    )
   } else if (newPickedValue === 'TrashCan') {
     disableDragBox()
     disableDrawPolygon()

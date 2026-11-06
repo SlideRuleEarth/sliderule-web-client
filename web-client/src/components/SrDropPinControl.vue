@@ -36,13 +36,13 @@ import { Control } from 'ol/control'
 import { useMapStore } from '@/stores/mapStore'
 import Button from 'primevue/button'
 import SrCustomTooltip from '@/components/SrCustomTooltip.vue'
-import { useToast } from 'primevue'
 import { useRecTreeStore } from '@/stores/recTreeStore'
+import { useRequestsStore } from '@/stores/requestsStore'
 import { useReqParamsStore } from '@/stores/reqParamsStore'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('SrDropPinControl')
-const toast = useToast()
+const requestsStore = useRequestsStore()
 const recTreeStore = useRecTreeStore()
 const reqParamsStore = useReqParamsStore()
 
@@ -68,13 +68,10 @@ onMounted(() => {
   const apiCounts = recTreeStore.countRequestsByApi()
   logger.debug('API Counts', { apiCounts })
   if (!apiCounts.atl13x || apiCounts.atl13x < 3) {
-    toast.add({
-      severity: 'info',
-      summary: 'Atl13x Enter Coordinates for Inland Water',
-      detail:
-        'Click on the map Drop Pin button to toggle drop pin mode. Then click on an inland body of water to add it to the request.',
-      life: 5000
-    })
+    requestsStore.showTip(
+      'Atl13x Enter Coordinates for Inland Water',
+      'Click on the map Drop Pin button to toggle drop pin mode. Then click on an inland body of water to add it to the request.'
+    )
   }
 })
 const showTooltip = (event: MouseEvent) => {

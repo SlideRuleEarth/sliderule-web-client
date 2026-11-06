@@ -733,8 +733,6 @@ function hideTooltip() {
           </template>
         </Menu>
       </div>
-    </div>
-    <div class="middle-content">
       <Button
         icon="pi pi-question-circle"
         id="sr-help-button"
@@ -745,6 +743,8 @@ function hideTooltip() {
       >
       </Button>
       <Menu :model="helpMenuItems" popup ref="helpMenu" />
+    </div>
+    <div class="middle-content">
       <span v-if="showBanner" class="sr-banner-text" :style="bannerStyle">{{ bannerText }}</span>
       <div class="sr-tooltip-style" id="tooltip">
         <SrCustomTooltip ref="tooltipRef" id="appBarTooltip" />
