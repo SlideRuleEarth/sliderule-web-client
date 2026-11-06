@@ -1,43 +1,45 @@
 <script setup lang="ts">
-import SrAdvOptSidebar from './SrAdvOptSidebar.vue';
-import SrGenUserSidebar from './SrGenUserSidebar.vue';
-import SrRunControl from './SrRunControl.vue';
-import { useAdvancedModeStore } from '@/stores/advancedModeStore.js';
-
+import SrAdvOptSidebar from './SrAdvOptSidebar.vue'
+import SrGenUserSidebar from './SrGenUserSidebar.vue'
+import SrRunControl from './SrRunControl.vue'
+import { useAdvancedModeStore } from '@/stores/advancedModeStore.js'
 </script>
 
 <template>
-    <div class="sr-sidebar">
-      <div class="sr-sidebar-header">
-        <SrRunControl :includeAdvToggle="true"/>
-      </div>
-      <div class="sr-sidebar-body">
-        <SrAdvOptSidebar v-if="useAdvancedModeStore().getAdvanced()"/>
-        <SrGenUserSidebar v-if="!useAdvancedModeStore().getAdvanced()"/>
-      </div>
+  <div class="sr-sidebar">
+    <div class="sr-sidebar-header">
+      <SrRunControl :includeAdvToggle="true" />
     </div>
-  </template>
-  
-  <style scoped>
-  .sr-sidebar {
-    display: flex;
-    flex-direction: column;
-    height: 95vh; /* Ensure the sidebar takes up the full viewport height */
-    width: 23rem; /* Initial width of the sidebar */
-    overflow-y: auto; /* Enables vertical scrolling if content exceeds available space */
-    overflow-x: auto; /* Enables horizontal scrolling if content exceeds available space */
-  }
-  
-  .sr-sidebar-header {
-    border: transparent;
-    flex-shrink: 0; /* Prevents shrinking of the header */
-  }
-  
-  .sr-sidebar-body {
-    border: transparent;
-    flex-grow: 1; /* Allows the body to take up remaining space */
-    width: 100%;
-    overflow-y: auto; /* Enables vertical scrolling if content exceeds available space */
-  }
-  </style>
-  
+    <div class="sr-sidebar-body">
+      <SrAdvOptSidebar v-if="useAdvancedModeStore().getAdvanced()" />
+      <SrGenUserSidebar v-if="!useAdvancedModeStore().getAdvanced()" />
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.sr-sidebar {
+  display: flex;
+  flex-direction: column;
+  height: 95vh; /* Ensure the sidebar takes up the full viewport height */
+  width: 23rem; /* Initial width of the sidebar */
+  overflow-y: auto; /* Enables vertical scrolling if content exceeds available space */
+  overflow-x: auto; /* Enables horizontal scrolling if content exceeds available space */
+}
+
+.sr-sidebar-header {
+  border: transparent;
+  /* Subtle divider between the run controls/message log and the panel below */
+  border-bottom: 1px solid color-mix(in srgb, var(--p-primary-color) 40%, transparent);
+  padding-bottom: 0.25rem;
+  margin-bottom: 0.5rem;
+  flex-shrink: 0; /* Prevents shrinking of the header */
+}
+
+.sr-sidebar-body {
+  border: transparent;
+  flex-grow: 1; /* Allows the body to take up remaining space */
+  width: 100%;
+  overflow-y: auto; /* Enables vertical scrolling if content exceeds available space */
+}
+</style>
