@@ -23,10 +23,10 @@ const syncSelectedBoxFromStore = () => {
   if (mission === 'ICESat-2') {
     switch (api) {
       case 'atl03x-surface':
-        selectedBox.value = 1 // ICESat-2 Surface Elevations
+        selectedBox.value = 1 // ICESat-2 Surface Fitter
         break
       case 'atl06sp':
-        selectedBox.value = 2 // ICESat-2 Land Ice Sheet
+        selectedBox.value = 2 // ICESat-2 Land and Ice
         break
       case 'atl03x-phoreal':
         selectedBox.value = 3 // ICESat-2 Canopy Heights
@@ -49,7 +49,7 @@ const syncSelectedBoxFromStore = () => {
         selectedBox.value = 7 // GEDI Biomass Density
         break
       case 'gedi02ap':
-        selectedBox.value = 8 // GEDI Elevations w/Canopy
+        selectedBox.value = 8 // GEDI Elevations and Canopies
         break
       case 'gedi01bp':
         selectedBox.value = 9 // GEDI Geolocated Waveforms
@@ -67,56 +67,56 @@ const syncSelectedBoxFromStore = () => {
 const boxes = computed(() => [
   {
     id: 1,
-    name: 'ICESat-2 Surface Elevations',
-    description: 'For all surface types',
+    name: 'ICESat-2 Surface Fitter',
+    description: 'Fit surface to ATL03 photon cloud',
     image: '/SrGround.webp'
   },
   {
     id: 2,
-    name: 'ICESat-2 Land Ice Sheet',
-    description: 'For ice sheets and glaciers',
+    name: 'ICESat-2 Land and Ice',
+    description: 'Subset ATL06 product',
     image: '/SrSeaIce.webp'
   },
   {
     id: 3,
     name: 'ICESat-2 Canopy Heights',
-    description: 'For land regions with vegetation',
+    description: 'PhoREAL metrics on ATL03 photon cloud',
     image: '/SrCanopy.webp'
   },
   {
     id: 4,
     name: 'ICESat-2 Coastal Bathymetry',
-    description: 'For shallow water coastal regions',
+    description: 'Subset ATL24 product',
     image: '/SrOcean.webp'
   },
   {
     id: 5,
     name: 'ICESat-2 Geolocated Photons',
-    description: 'For raw photon cloud',
+    description: 'Subset ATL03 photon cloud',
     image: '/SrNoise.webp'
   },
   {
     id: 6,
     name: 'ICESat-2 Inland Bodies of Water',
-    description: 'For inland bodies of water',
+    description: 'Subset ATL13 product',
     image: '/SrInlandWater.webp'
   },
   {
     id: 7,
     name: 'GEDI Biomass Density',
-    description: 'For land regions with vegetation',
+    description: 'Subset L4A product',
     image: '/SrCanopy.webp'
   },
   {
     id: 8,
-    name: 'GEDI Elevations w/Canopy',
-    description: 'For elevation w/Canopy heights',
+    name: 'GEDI Elevations and Canopies',
+    description: 'Subset L2A product',
     image: '/SrCanopy.webp'
   },
   {
     id: 9,
     name: 'GEDI Geolocated Waveforms',
-    description: 'For raw waveform returns',
+    description: 'Subset L1B product',
     image: '/SrNoise.webp'
   }
 ])
@@ -138,12 +138,12 @@ const selectBox = (boxId: number) => {
   if (selectedBoxInfo?.name) {
     logger.debug('Box selected', { name: selectedBoxInfo.name })
     switch (selectedBoxInfo.name) {
-      case 'ICESat-2 Surface Elevations':
+      case 'ICESat-2 Surface Fitter':
         reqParameterStore.setMissionValue('ICESat-2')
         reqParameterStore.setIceSat2API('atl03x-surface')
         reqParameterStore.setUseSurfaceFitAlgorithm(true)
         break
-      case 'ICESat-2 Land Ice Sheet':
+      case 'ICESat-2 Land and Ice':
         reqParameterStore.setMissionValue('ICESat-2')
         reqParameterStore.setIceSat2API('atl06sp')
         break
@@ -170,7 +170,7 @@ const selectBox = (boxId: number) => {
         reqParameterStore.setMissionValue('GEDI')
         reqParameterStore.setGediAPI('gedi04ap')
         break
-      case 'GEDI Elevations w/Canopy':
+      case 'GEDI Elevations and Canopies':
         reqParameterStore.setMissionValue('GEDI')
         reqParameterStore.setGediAPI('gedi02ap')
         break
