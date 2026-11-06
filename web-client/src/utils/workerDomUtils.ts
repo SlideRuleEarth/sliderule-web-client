@@ -11,6 +11,7 @@ import { useSrToastStore } from '@/stores/srToastStore'
 import { db } from '@/db/SlideRuleDb'
 import type { WorkerMessage, WorkerSummary, WebWorkerCmd } from '@/workers/workerUtils'
 import { useSrSvrConsoleStore } from '@/stores/SrSvrConsoleStore'
+import { useReqMsgLogStore } from '@/stores/reqMsgLogStore'
 import {
   duckDbLoadOpfsParquetFile,
   prepareDbForReqId,
@@ -52,6 +53,9 @@ const serverStateStore = useServerStateStore()
 let worker: Worker | null = null
 let workerTimeoutHandle: TimeoutHandle | null = null // Handle for the timeout to clear it when necessary
 let percentComplete: number | null = null
+
+// Progress messages that only count notifications received; kept out of the message log
+const COUNT_ONLY_PROGRESS_MSG = /^(RTE_TIMEOUT )?Received \d+\/\S* notifications\.$/
 
 async function getReqParamStore(
   reqId: number
@@ -136,6 +140,7 @@ const handleWorkerMsg = async (workerMsg: WorkerMessage) => {
       //logger.warn('handleWorkerMsg server_msg:',workerMsg.msg);
       if (workerMsg.msg) {
         consoleStore.addLine(workerMsg.msg)
+        useReqMsgLogStore().add('server', `Server (req ${workerMsg.req_id})`, workerMsg.msg)
       }
       if (workerMsg.msg) {
         requestsStore.setSvrMsg(workerMsg.msg)
@@ -158,12 +163,9 @@ const handleWorkerMsg = async (workerMsg: WorkerMessage) => {
 
         if (workerMsg.msg) {
           requestsStore.setSvrMsg(workerMsg.msg)
-          const targetMsg = workerMsg.progress.target_numSvrExceptions
-            ? `/${workerMsg.progress.target_numSvrExceptions}`
-            : ''
-          requestsStore.setConsoleMsg(
-            `Received ${workerMsg.progress.numSvrExceptions} ${targetMsg} notifications`
-          )
+          if (!COUNT_ONLY_PROGRESS_MSG.test(workerMsg.msg)) {
+            useReqMsgLogStore().add('server', `Progress (req ${workerMsg.req_id})`, workerMsg.msg)
+          }
         }
       }
       break

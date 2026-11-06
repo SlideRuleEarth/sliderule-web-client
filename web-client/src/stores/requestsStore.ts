@@ -3,7 +3,7 @@ import { db, type SrRequestRecord } from '@/db/SlideRuleDb'
 import { liveQuery } from 'dexie'
 import type { SrMenuNumberItem } from '@/types/SrTypes'
 import { findParam } from '@/utils/parmUtils'
-import { useSrToastStore } from './srToastStore'
+import { showPopupToast } from '@/utils/toastRouting'
 import { useHelpStore } from './helpStore'
 import type { TreeNode } from 'primevue/treenode'
 import {
@@ -25,7 +25,8 @@ function flushTips() {
   const { summary, detail, life } = formatTips(pendingTips)
   pendingTips = []
   tipTimer = null
-  useSrToastStore().info(summary, detail, life)
+  // Tips are advice, so they pop up even on pages whose feedback goes to the message log
+  showPopupToast({ severity: 'info', summary, detail, life })
 }
 
 export const useRequestsStore = defineStore('requests', {

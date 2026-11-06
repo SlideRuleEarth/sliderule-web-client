@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import SrReqDisplay from './SrReqDisplay.vue'
 import { useMapStore } from '@/stores/mapStore'
 import { onMounted, defineAsyncComponent } from 'vue'
 import { useSlideruleDefaults } from '@/stores/defaultsStore'
@@ -14,9 +13,6 @@ onMounted(() => {
 
 <template>
   <div class="sr-gen-user-sidebar-container">
-    <div class="sr-gen-user-wrapper">
-      <SrReqDisplay />
-    </div>
     <SrGenUserPresets v-if="useSlideruleDefaults().fetched" />
   </div>
 </template>
@@ -27,8 +23,5 @@ onMounted(() => {
   flex-direction: column;
   gap: 1rem;
   height: 100vh;
-}
-.sr-gen-user-wrapper {
-  margin-top: 0.25rem;
 }
 </style>

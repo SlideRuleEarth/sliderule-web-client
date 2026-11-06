@@ -7,6 +7,7 @@ import { useCurReqSumStore } from '@/stores/curReqSumStore'
 import { processRunSlideRuleClicked, processAbortClicked } from '@/utils/workerDomUtils'
 import SrModeSelect from './SrModeSelect.vue'
 import SrCustomTooltip from './SrCustomTooltip.vue'
+import SrReqMsgLog from './SrReqMsgLog.vue'
 import { useSrToastStore } from '@/stores/srToastStore'
 import { useServerStateStore } from '@/stores/serverStateStore'
 import { createLogger } from '@/utils/logger'
@@ -120,7 +121,8 @@ async function toggleRunAbort() {
         </Button>
       </div>
     </div>
-    <div class="sr-msg-panel">
+    <SrReqMsgLog v-if="props.includeAdvToggle" />
+    <div v-else class="sr-msg-panel">
       <span class="sr-console-msg">{{ requestsStore.getConsoleMsg() }}</span>
       <span class="sr-svr-msg">{{ requestsStore.getSvrMsg() }}</span>
     </div>

@@ -362,6 +362,7 @@ async function handleLongTourButtonClick() {
 
   const srRadioBoxContainerGenEl = document.querySelector('#sr-radio-box-container-gen')
   const srReqDisplayBtn = document.querySelector('#sr-req-display-btn')
+  const srMsgLogEl = document.querySelector('#sr-msg-log')
   const srAppBarRightContentEl = document.querySelector('#sr-appbar-right-content')
   const srRequestButtonEl = document.querySelector('#sr-request-button')
   const srRecordsButtonEl = document.querySelector('#sr-records-button')
@@ -475,6 +476,17 @@ async function handleLongTourButtonClick() {
     })
   } else {
     logger.warn('Tour element not found', { element: 'srReqDisplayBtn' })
+  }
+  if (srMsgLogEl instanceof HTMLElement) {
+    steps.push({
+      element: srMsgLogEl,
+      intro: `This is the <b>message log</b>.<br>
+            Feedback about your requests and messages from the SlideRule server are written here.<br>
+            The newest messages are at the top; scroll down to see earlier ones.<br>
+            `
+    })
+  } else {
+    logger.warn('Tour element not found', { element: 'srMsgLogEl' })
   }
   if (srRadioBoxContainerGenEl instanceof HTMLElement) {
     steps.push({

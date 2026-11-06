@@ -19,6 +19,7 @@ import Toast from 'primevue/toast'
 import Ripple from 'primevue/ripple'
 import App from './App.vue'
 import router from './router'
+import { installToastRouting } from './utils/toastRouting'
 import 'echarts/lib/chart/scatter'
 import 'echarts-gl'
 import StyleClass from 'primevue/styleclass'
@@ -122,6 +123,7 @@ app.use(ToastService)
 app.component('SrToast', Toast)
 
 app.use(router)
+installToastRouting(app, router)
 app.component('menu-bar', Menubar)
 //
 // adjust vh for mobile devices
