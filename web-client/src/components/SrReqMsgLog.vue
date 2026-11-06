@@ -35,15 +35,15 @@ const sanitize = (detail: string): string => DOMPurify.sanitize(detail)
 .sr-msg-log {
   --sr-msg-line-height: 1.35;
   width: 100%;
-  /* Room for three lines of text; drag the corner to enlarge */
-  height: calc(3 * var(--sr-msg-line-height) * 1em + 1rem);
-  min-height: calc(2 * var(--sr-msg-line-height) * 1em + 1rem);
+  /* Starts with room for three lines of text; drag the corner to resize */
+  height: calc(3 * var(--sr-msg-line-height) * 1em + 0.5rem);
+  min-height: calc(2 * var(--sr-msg-line-height) * 1em + 0.5rem);
   resize: vertical;
   overflow-x: hidden;
   overflow-y: auto;
   background-color: #2c2c2c;
   border-radius: 0.5rem;
-  padding: 0.5rem;
+  padding: 0.25rem 0.5rem;
   margin-bottom: 0.25rem;
   font-size: 0.7rem;
   line-height: var(--sr-msg-line-height);

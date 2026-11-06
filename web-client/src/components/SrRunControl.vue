@@ -3,6 +3,7 @@ import Button from 'primevue/button'
 import { onMounted, onBeforeUnmount, ref, computed } from 'vue'
 import ProgressSpinner from 'primevue/progressspinner'
 import { useRequestsStore } from '@/stores/requestsStore'
+import { useReqMsgLogStore } from '@/stores/reqMsgLogStore'
 import { useCurReqSumStore } from '@/stores/curReqSumStore'
 import { processRunSlideRuleClicked, processAbortClicked } from '@/utils/workerDomUtils'
 import SrModeSelect from './SrModeSelect.vue'
@@ -27,6 +28,7 @@ const props = defineProps({
 
 const srToastStore = useSrToastStore()
 const requestsStore = useRequestsStore()
+const msgLogStore = useReqMsgLogStore()
 const serverStateStore = useServerStateStore()
 const tooltipRef = ref()
 const enableRunButton = computed(() => {
@@ -48,6 +50,13 @@ onMounted(() => {
   requestsStore.setSvrMsgCnt(0)
   if (props.includeAdvToggle) {
     // this means it is the Request Run button
+    if (msgLogStore.entries.length === 0) {
+      msgLogStore.add(
+        'info',
+        '',
+        "Choose a product, zoom in and select a geographic region (~150 km^2), then click 'Run SlideRule'."
+      )
+    }
     requestsStore.showTip(
       'Tip',
       "1) Zoom in\n 2) Select a geographic region of about several square Km.    Then:\n 3) Click 'Run SlideRule' to start the process"
