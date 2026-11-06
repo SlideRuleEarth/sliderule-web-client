@@ -102,15 +102,32 @@ const openDocs = () => {
   window.open('https://docs.slideruleearth.io/', '_blank')
 }
 
+const openApiSpecs = [
+  { label: 'Cluster OpenAPI Specification', page: 'sliderule' },
+  { label: 'AMS OpenAPI Specification', page: 'ams' },
+  { label: 'ILB OpenAPI Specification', page: 'ilb' },
+  { label: 'Authenticator OpenAPI Specification', page: 'authenticator' },
+  { label: 'Provisioner OpenAPI Specification', page: 'provisioner' },
+  { label: 'Runner OpenAPI Specification', page: 'runner' }
+]
+
 const docsMenu = ref<InstanceType<typeof Menu> | null>(null)
-const docsMenuItems = [
+const docsMenuItems: MenuItem[] = [
   {
     label: 'SlideRule Earth Documentation',
     icon: 'pi pi-book',
     command: () => {
       window.open('https://docs.slideruleearth.io/', '_blank')
     }
-  }
+  },
+  { separator: true },
+  ...openApiSpecs.map(({ label, page }) => ({
+    label,
+    icon: 'pi pi-code',
+    command: () => {
+      window.open(`https://docs.slideruleearth.io/openapi/${page}.html`, '_blank')
+    }
+  }))
 ]
 const toggleDocsMenu = (event: Event) => {
   docsMenu.value?.toggle(event)
