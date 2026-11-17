@@ -51,6 +51,10 @@ import SrViewControl from './SrViewControl.vue'
 import SrBaseLayerControl from './SrBaseLayerControl.vue'
 import SrGraticuleControl from './SrGraticuleControl.vue'
 import SrHistoricalRequestsControl from './SrHistoricalRequestsControl.vue'
+import SrS2CellsControl from './SrS2CellsControl.vue'
+import { computeS2GridLines } from '@/utils/s2CellGrid'
+import MultiLineString from 'ol/geom/MultiLineString.js'
+import type { EventsKey } from 'ol/events.js'
 import SrDrawControl from '@/components/SrDrawControl.vue'
 import { usePolarOverlay } from '@/composables/usePolarOverlay'
 import SrRasterizeControl from '@/components/SrRasterizeControl.vue'
@@ -106,6 +110,13 @@ const showBathymetryFeatures = computed(() => {
   )
 })
 const defaultBathymetryFeaturesLoaded = ref(false)
+const showS2CellsControl = computed(() => {
+  return (
+    reqParamsStore.missionValue === 'ICESat-2' && reqParamsStore.iceSat2SelectedAPI === 'atl06sp'
+  )
+})
+const showS2Cells = computed(() => showS2CellsControl.value && mapStore.s2CellsVisible)
+let s2MoveEndKey: EventsKey | null = null
 const featureMenuOverlayRef = ref()
 const tooltipRef = ref()
 
@@ -207,6 +218,39 @@ const bathymetryFeaturesVectorLayer = new VectorLayer({
   source: bathymetryFeaturesVectorSource,
   zIndex: 10
 })
+
+const s2CellsVectorSource = new VectorSource()
+const s2CellsLayer = new VectorLayer({
+  source: s2CellsVectorSource,
+  zIndex: 40,
+  visible: false,
+  style: new Style({
+    stroke: new Stroke({ color: 'rgba(211, 211, 211, 0.9)', width: 1 })
+  })
+})
+
+function refreshS2Cells() {
+  s2CellsVectorSource.clear()
+  s2CellsLayer.setVisible(showS2Cells.value)
+  const map = mapRef.value?.map
+  const size = map?.getSize()
+  if (!showS2Cells.value || !map || !size) return
+  const view = map.getView()
+  try {
+    const { level, lines } = computeS2GridLines(
+      view.calculateExtent(size),
+      view.getProjection(),
+      mapStore.getSrViewObj().projectionName,
+      (view.getZoom() ?? 0) - view.getMinZoom()
+    )
+    s2CellsVectorSource.addFeature(new Feature(new MultiLineString(lines)))
+    logger.debug('S2 cells refreshed', { level, lineCount: lines.length })
+  } catch (error) {
+    logger.error('refreshS2Cells failed', {
+      error: error instanceof Error ? error.message : String(error)
+    })
+  }
+}
 
 // Set a custom property, like 'name'
 const drawPolygon = new Draw({
@@ -817,6 +861,8 @@ onMounted(async () => {
   uploadedFeaturesVectorLayer.set('title', 'Uploaded Features')
   bathymetryFeaturesVectorLayer.set('name', 'Bathymetry Features')
   bathymetryFeaturesVectorLayer.set('title', 'Bathymetry Features')
+  s2CellsLayer.set('name', 'S2 Cells')
+  s2CellsLayer.set('displayInLayerSwitcher', false)
   Object.values(srProjections.value).forEach((projection) => {
     //console.log(`Title: ${projection.title}, Name: ${projection.name} def:${projection.proj4def}`);
     proj4.defs(projection.name, projection.proj4def)
@@ -909,6 +955,8 @@ onMounted(async () => {
         opacity: graticule.getOpacity()
       })
 
+      s2MoveEndKey = map.on('moveend', refreshS2Cells)
+
       map.getView().on('change:resolution', () => {
         //const zoom = map.getView().getZoom();
         //console.log('Current zoom level:', zoom);  // logs the zoom level
@@ -984,6 +1032,10 @@ onMounted(async () => {
 
 // Call saveMapZoomState only when leaving the page
 onBeforeUnmount(() => {
+  if (s2MoveEndKey) {
+    unByKey(s2MoveEndKey)
+    s2MoveEndKey = null
+  }
   logger.debug('Saving map zoom state before unmount')
   if (mapRef.value?.map) {
     saveMapZoomState(mapRef.value.map)
@@ -1089,6 +1141,15 @@ function handleHistoricalRequestsControlCreated(control: any) {
     map.addControl(control)
   } else {
     logger.error('Map is null in handleHistoricalRequestsControlCreated')
+  }
+}
+
+function handleS2CellsControlCreated(control: any) {
+  const map = mapRef.value?.map
+  if (map) {
+    map.addControl(control)
+  } else {
+    logger.error('Map is null in handleS2CellsControlCreated')
   }
 }
 
@@ -1399,6 +1460,8 @@ const updateReqMapView = async (reason: string, restoreView: boolean = false) =>
         map.addLayer(recordsLayer)
         map.addLayer(uploadedFeaturesVectorLayer)
         map.addLayer(bathymetryFeaturesVectorLayer)
+        map.addLayer(s2CellsLayer)
+        refreshS2Cells()
         addLayersForCurrentView(map, srViewObj.projectionName)
 
         // Add polar overlay for polar projections
@@ -1599,6 +1662,7 @@ watch(
   },
   { immediate: true }
 )
+watch(showS2Cells, refreshS2Cells)
 watch(
   () => reqParamsStore.atl13.coord,
   (newValue, oldValue) => {
@@ -1677,6 +1741,10 @@ watch(
         <SrBaseLayerControl
           @baselayer-control-created="handleBaseLayerControlCreated"
           @update-baselayer="handleUpdateBaseLayer"
+        />
+        <SrS2CellsControl
+          v-if="showS2CellsControl"
+          @s2-cells-control-created="handleS2CellsControlCreated"
         />
         <SrGraticuleControl @graticule-control-created="handleGraticuleControlCreated" />
         <SrHistoricalRequestsControl
@@ -1942,6 +2010,14 @@ watch(
   background-color: transparent;
   border-radius: var(--p-border-radius);
   max-width: 30rem;
+}
+
+:deep(.ol-control.sr-s2-cells-control) {
+  top: auto;
+  bottom: 6rem;
+  right: auto;
+  left: 0.5rem;
+  border-radius: var(--p-border-radius);
 }
 
 :deep(.ol-control.sr-graticule-control) {
