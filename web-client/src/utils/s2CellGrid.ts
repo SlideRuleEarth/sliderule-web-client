@@ -74,6 +74,82 @@ export function xyzToLonLat([x, y, z]: Vec3): [number, number] {
   return [Math.atan2(y, x) * DEG, Math.atan2(z, Math.hypot(x, y)) * DEG]
 }
 
+// S2 Hilbert curve tables (kSwapMask = 1, kInvertMask = 2), indexed [orientation * 4 + pos|ij]
+const POS_TO_IJ = [0, 1, 3, 2, 0, 2, 3, 1, 3, 2, 0, 1, 3, 1, 0, 2]
+const IJ_TO_POS = [0, 1, 3, 2, 0, 3, 1, 2, 2, 3, 1, 0, 2, 1, 3, 0]
+const POS_TO_ORIENTATION = [1, 0, 0, 3]
+
+/**
+ * Face and (i, j) at `level` of an S2 cell id given as its high and low 32-bit words;
+ * `out` receives [face, i, j]. The id must be at `level` or finer.
+ */
+export function cellIdToFaceIJ(hi: number, lo: number, level: number, out: Int32Array): void {
+  const face = hi >>> 29
+  let orientation = face & 1
+  let i = 0
+  let j = 0
+  for (let k = 1; k <= level; k++) {
+    // level k uses bits 62-2k and 61-2k; at k = 15 they straddle the two words
+    const p = 61 - 2 * k
+    const pos =
+      p >= 32 ? (hi >>> (p - 32)) & 3 : p === 31 ? ((hi & 1) << 1) | (lo >>> 31) : (lo >>> p) & 3
+    const ij = POS_TO_IJ[orientation * 4 + pos]
+    i = (i << 1) | (ij >> 1)
+    j = (j << 1) | (ij & 1)
+    orientation ^= POS_TO_ORIENTATION[pos]
+  }
+  out[0] = face
+  out[1] = i
+  out[2] = j
+}
+
+/** 16 digit uppercase hex S2 cell id of the cell (face, i, j) at `level`. */
+export function faceIJToCellIdHex(face: number, i: number, j: number, level: number): string {
+  let orientation = face & 1
+  let id = BigInt(face) << 61n
+  for (let k = 1; k <= level; k++) {
+    const shift = level - k
+    const ij = (((i >> shift) & 1) << 1) | ((j >> shift) & 1)
+    const pos = IJ_TO_POS[orientation * 4 + ij]
+    id |= BigInt(pos) << BigInt(61 - 2 * k)
+    orientation ^= POS_TO_ORIENTATION[pos]
+  }
+  id |= 1n << BigInt(60 - 2 * level)
+  return id.toString(16).toUpperCase().padStart(16, '0')
+}
+
+/** Allocation-free lon/lat (degrees) to S2 face and (s, t); `out` receives [s, t]. */
+export function lonLatToFaceST(lon: number, lat: number, out: Float64Array): number {
+  const phi = lat / DEG
+  const theta = lon / DEG
+  const c = Math.cos(phi)
+  const x = c * Math.cos(theta)
+  const y = c * Math.sin(theta)
+  const z = Math.sin(phi)
+  const ax = Math.abs(x)
+  const ay = Math.abs(y)
+  const az = Math.abs(z)
+  let face: number
+  let u: number
+  let v: number
+  if (ax >= ay && ax >= az) {
+    face = x >= 0 ? 0 : 3
+    u = x >= 0 ? y / x : z / x
+    v = x >= 0 ? z / x : y / x
+  } else if (ay >= az) {
+    face = y >= 0 ? 1 : 4
+    u = y >= 0 ? -x / y : z / y
+    v = y >= 0 ? z / y : -x / y
+  } else {
+    face = z >= 0 ? 2 : 5
+    u = z >= 0 ? -x / z : -y / z
+    v = z >= 0 ? -y / z : -x / z
+  }
+  out[0] = uvToST(u)
+  out[1] = uvToST(v)
+  return face
+}
+
 /**
  * Level 0 at the view's minimum zoom, then one level per zoom step until roughly
  * TARGET_VISIBLE_CELLS cells cover the visible area.

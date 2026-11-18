@@ -1,14 +1,37 @@
 import { describe, it, expect } from 'vitest'
 import {
+  cellIdToFaceIJ,
   chooseS2Level,
   computeS2GridLines,
+  faceIJToCellIdHex,
   faceUVToXYZ,
+  lonLatToFaceST,
   lonLatToXYZ,
   stToUV,
   uvToST,
   xyzToFaceUV,
   xyzToLonLat
 } from '@/utils/s2CellGrid'
+
+// [stat cell id, lon_mean, lat_mean] from atl06tv4/stats files at file levels 0, 7 and 3
+const STAT_CELLS: [string, number, number][] = [
+  ['4ED2C00000000000', -30.378755, 64.799592],
+  ['4EFA400000000000', -46.709463, 72.171972],
+  ['4DD7C00000000000', -71.376968, 65.873781],
+  ['452AD49900000000', 89.873739, 80.017107],
+  ['452AD4A100000000', 89.917209, 80.01264],
+  ['452AD58F00000000', 89.730898, 80.090788],
+  ['4C32A30000000000', -68.235214, 62.490257],
+  ['4C2C790000000000', -65.670833, 63.755075],
+  ['4C2C530000000000', -66.323515, 63.16728]
+]
+
+function levelOf(hex: string): number {
+  const id = BigInt('0x' + hex)
+  let lsb = 0
+  while (((id >> BigInt(lsb)) & 1n) === 0n) lsb++
+  return 30 - lsb / 2
+}
 
 describe('s2CellGrid', () => {
   it('round-trips ST <-> UV', () => {
@@ -57,6 +80,30 @@ describe('s2CellGrid', () => {
     const visible = 6 * 4 ** level * frac
     expect(visible).toBeGreaterThan(100)
     expect(visible).toBeLessThan(1000)
+  })
+
+  it('decodes stat cell ids to the cell containing their mean position', () => {
+    const faceIJ = new Int32Array(3)
+    const st = new Float64Array(2)
+    for (const [hex, lon, lat] of STAT_CELLS) {
+      const level = levelOf(hex)
+      const id = BigInt('0x' + hex)
+      cellIdToFaceIJ(Number(id >> 32n), Number(id & 0xffffffffn), level, faceIJ)
+      const face = lonLatToFaceST(lon, lat, st)
+      const n = 2 ** level
+      expect([faceIJ[0], faceIJ[1], faceIJ[2]]).toEqual([
+        face,
+        Math.floor(st[0] * n),
+        Math.floor(st[1] * n)
+      ])
+      expect(faceIJToCellIdHex(faceIJ[0], faceIJ[1], faceIJ[2], level)).toBe(hex)
+    }
+  })
+
+  it('encodes level-0 face cells', () => {
+    expect(faceIJToCellIdHex(0, 0, 0, 0)).toBe('1000000000000000')
+    expect(faceIJToCellIdHex(2, 0, 0, 0)).toBe('5000000000000000')
+    expect(faceIJToCellIdHex(5, 0, 0, 0)).toBe('B000000000000000')
   })
 
   it('computes level-0 edges for a whole-world mercator view', () => {

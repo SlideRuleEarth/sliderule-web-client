@@ -53,6 +53,9 @@ import SrGraticuleControl from './SrGraticuleControl.vue'
 import SrHistoricalRequestsControl from './SrHistoricalRequestsControl.vue'
 import SrS2CellsControl from './SrS2CellsControl.vue'
 import { computeS2GridLines } from '@/utils/s2CellGrid'
+import { useAtl06StatsOverlay } from '@/composables/useAtl06StatsOverlay'
+import { resetStatsCredentials } from '@/utils/atl06StatsReader'
+import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 import MultiLineString from 'ol/geom/MultiLineString.js'
 import type { EventsKey } from 'ol/events.js'
 import SrDrawControl from '@/components/SrDrawControl.vue'
@@ -228,13 +231,18 @@ const s2CellsLayer = new VectorLayer({
     stroke: new Stroke({ color: 'rgba(211, 211, 211, 0.9)', width: 1 })
   })
 })
+const statsOverlay = useAtl06StatsOverlay()
+const githubAuthStore = useGitHubAuthStore()
 
 function refreshS2Cells() {
   s2CellsVectorSource.clear()
   s2CellsLayer.setVisible(showS2Cells.value)
   const map = mapRef.value?.map
   const size = map?.getSize()
-  if (!showS2Cells.value || !map || !size) return
+  if (!showS2Cells.value || !map || !size) {
+    statsOverlay.clear()
+    return
+  }
   const view = map.getView()
   try {
     const { level, lines } = computeS2GridLines(
@@ -245,6 +253,7 @@ function refreshS2Cells() {
     )
     s2CellsVectorSource.addFeature(new Feature(new MultiLineString(lines)))
     logger.debug('S2 cells refreshed', { level, lineCount: lines.length })
+    void statsOverlay.update(map, level, true, githubAuthStore.authToken !== null)
   } catch (error) {
     logger.error('refreshS2Cells failed', {
       error: error instanceof Error ? error.message : String(error)
@@ -1461,6 +1470,7 @@ const updateReqMapView = async (reason: string, restoreView: boolean = false) =>
         map.addLayer(uploadedFeaturesVectorLayer)
         map.addLayer(bathymetryFeaturesVectorLayer)
         map.addLayer(s2CellsLayer)
+        map.addLayer(statsOverlay.layer)
         refreshS2Cells()
         addLayersForCurrentView(map, srViewObj.projectionName)
 
@@ -1664,6 +1674,13 @@ watch(
 )
 watch(showS2Cells, refreshS2Cells)
 watch(
+  () => githubAuthStore.authToken,
+  (token) => {
+    if (!token) resetStatsCredentials()
+    refreshS2Cells()
+  }
+)
+watch(
   () => reqParamsStore.atl13.coord,
   (newValue, oldValue) => {
     logger.debug('ATL13 coord changed', { oldValue, newValue })
@@ -1744,6 +1761,8 @@ watch(
         />
         <SrS2CellsControl
           v-if="showS2CellsControl"
+          :legend="statsOverlay.legend.value"
+          :status="statsOverlay.status.value"
           @s2-cells-control-created="handleS2CellsControlCreated"
         />
         <SrGraticuleControl @graticule-control-created="handleGraticuleControlCreated" />

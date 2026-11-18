@@ -443,6 +443,29 @@ export async function extendCluster(cluster: string, ttl: number): Promise<Exten
 }
 
 /**
+ * Temporary read credentials for the project's public bucket, from the provisioner's /s3access.
+ */
+export interface S3AccessCredentials {
+  access_key_id: string
+  secret_access_key: string
+  session_token: string
+  expiration: string // ISO 8601
+}
+
+/**
+ * Get temporary S3 read credentials (requires login as an org member or affiliate).
+ */
+export async function fetchS3AccessCredentials(): Promise<
+  ProvisionerFetchResult<S3AccessCredentials>
+> {
+  return await provisionerFetch<S3AccessCredentials>({
+    url: `${getProvisionerBaseUrl()}/s3access`,
+    body: {},
+    context: 'fetching s3 access credentials'
+  })
+}
+
+/**
  * CloudFormation stack event from the events API.
  */
 export interface StackEvent {

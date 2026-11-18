@@ -2,6 +2,12 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { Control } from 'ol/control'
 import { useMapStore } from '@/stores/mapStore'
+import { VIRIDIS_CSS_GRADIENT, type StatsLegend } from '@/composables/useAtl06StatsOverlay'
+
+const props = defineProps<{
+  legend?: StatsLegend | null
+  status?: string
+}>()
 
 const mapStore = useMapStore()
 const controlElement = ref<HTMLElement | null>(null)
@@ -36,6 +42,14 @@ onUnmounted(() => {
       <input id="s2-cells-toggle" v-model="isChecked" type="checkbox" class="sr-custom-checkbox" />
       <label for="s2-cells-toggle" class="control-label">S2 Cells</label>
     </div>
+    <template v-if="isChecked">
+      <div v-if="props.legend" class="legend" title="h_li_mean (m), 2nd to 98th percentile in view">
+        <span class="control-label">{{ props.legend.min.toFixed(0) }}</span>
+        <span class="legend-bar" :style="{ background: VIRIDIS_CSS_GRADIENT }" />
+        <span class="control-label">{{ props.legend.max.toFixed(0) }} m</span>
+      </div>
+      <span v-if="props.status" class="control-label status">{{ props.status }}</span>
+    </template>
   </div>
 </template>
 
@@ -48,6 +62,24 @@ onUnmounted(() => {
   height: 1.4rem;
   display: flex;
   align-items: center;
+  gap: 0.5rem;
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.legend-bar {
+  display: inline-block;
+  width: 5rem;
+  height: 0.6rem;
+  border-radius: 2px;
+}
+
+.status {
+  font-style: italic;
 }
 
 .sr-s2-cells-control:hover {
