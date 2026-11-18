@@ -11,6 +11,7 @@ import SrDefaults from '@/components/SrDefaults.vue'
 import SrPlotCfgEdit from '@/components/SrPlotCfgEdit.vue'
 import SrColorPalette from '@/components/SrColorPalette.vue'
 import SrGoogleApiKeyInput from '@/components/SrGoogleApiKeyInput.vue'
+import SrS3CredentialsInput from '@/components/SrS3CredentialsInput.vue'
 import SrPrivacySettings from '@/components/SrPrivacySettings.vue'
 import Card from 'primevue/card'
 import buzzSlideRuleImg from '@/assets/BuzzSlideRule.jpg'
@@ -35,6 +36,13 @@ import buzzSlideRuleImg from '@/assets/BuzzSlideRule.jpg'
                 <AccordionHeader>Map Provider API Keys</AccordionHeader>
                 <AccordionContent>
                   <SrGoogleApiKeyInput />
+                </AccordionContent>
+              </AccordionPanel>
+
+              <AccordionPanel value="s3">
+                <AccordionHeader>S3 Credentials</AccordionHeader>
+                <AccordionContent>
+                  <SrS3CredentialsInput />
                 </AccordionContent>
               </AccordionPanel>
 

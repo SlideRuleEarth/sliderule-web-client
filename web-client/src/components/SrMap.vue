@@ -54,8 +54,9 @@ import SrHistoricalRequestsControl from './SrHistoricalRequestsControl.vue'
 import SrS2CellsControl from './SrS2CellsControl.vue'
 import { computeS2GridLines } from '@/utils/s2CellGrid'
 import { useAtl06StatsOverlay } from '@/composables/useAtl06StatsOverlay'
-import { resetStatsCredentials } from '@/utils/atl06StatsReader'
+import { hasStatsCredentials } from '@/utils/atl06StatsReader'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
+import { useS3CredentialsStore } from '@/stores/s3CredentialsStore'
 import MultiLineString from 'ol/geom/MultiLineString.js'
 import type { EventsKey } from 'ol/events.js'
 import SrDrawControl from '@/components/SrDrawControl.vue'
@@ -233,6 +234,7 @@ const s2CellsLayer = new VectorLayer({
 })
 const statsOverlay = useAtl06StatsOverlay()
 const githubAuthStore = useGitHubAuthStore()
+const s3CredentialsStore = useS3CredentialsStore()
 
 function refreshS2Cells() {
   s2CellsVectorSource.clear()
@@ -253,7 +255,7 @@ function refreshS2Cells() {
     )
     s2CellsVectorSource.addFeature(new Feature(new MultiLineString(lines)))
     logger.debug('S2 cells refreshed', { level, lineCount: lines.length })
-    void statsOverlay.update(map, level, true, githubAuthStore.authToken !== null)
+    void statsOverlay.update(map, level, true, hasStatsCredentials())
   } catch (error) {
     logger.error('refreshS2Cells failed', {
       error: error instanceof Error ? error.message : String(error)
@@ -1674,9 +1676,14 @@ watch(
 )
 watch(showS2Cells, refreshS2Cells)
 watch(
-  () => githubAuthStore.authToken,
-  (token) => {
-    if (!token) resetStatsCredentials()
+  () => [
+    githubAuthStore.authToken,
+    s3CredentialsStore.accessKeyId,
+    s3CredentialsStore.secretAccessKey,
+    s3CredentialsStore.sessionToken
+  ],
+  () => {
+    statsOverlay.resetCache()
     refreshS2Cells()
   }
 )

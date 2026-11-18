@@ -84,6 +84,12 @@ export function useAtl06StatsOverlay() {
     legend.value = null
     layer.setSource(null)
   }
+
+  // forget files that failed or were missing under the previous credentials
+  function resetCache() {
+    clear()
+    tiles.clear()
+  }
   function buildRaster(map: OLMap, fileLevel: number): Raster | null {
     const size = map.getSize()
     const view = map.getView()
@@ -258,12 +264,12 @@ export function useAtl06StatsOverlay() {
   }
 
   /** Rebuild the raster for the map's current view; `gridLevel` is the level the S2 lines are drawn at. */
-  async function update(map: OLMap, gridLevel: number, enabled: boolean, loggedIn: boolean) {
+  async function update(map: OLMap, gridLevel: number, enabled: boolean, hasCredentials: boolean) {
     layer.setVisible(enabled)
     status.value = ''
-    if (!enabled || !loggedIn) {
+    if (!enabled || !hasCredentials) {
       clear()
-      if (enabled) status.value = 'Log in to show h_li_mean'
+      if (enabled) status.value = 'Log in or add S3 credentials in Settings to show h_li_mean'
       return
     }
     generation++
@@ -299,5 +305,5 @@ export function useAtl06StatsOverlay() {
     pump()
   }
 
-  return { layer, status, legend, update, clear }
+  return { layer, status, legend, update, clear, resetCache }
 }

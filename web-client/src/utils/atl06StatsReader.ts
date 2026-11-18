@@ -1,6 +1,8 @@
 import { AwsClient } from 'aws4fetch'
 import { parquetMetadataAsync, parquetRead, type AsyncBuffer, type DecodedArray } from 'hyparquet'
 import { fetchS3AccessCredentials } from '@/utils/fetchUtils'
+import { useGitHubAuthStore } from '@/stores/githubAuthStore'
+import { useS3CredentialsStore } from '@/stores/s3CredentialsStore'
 import { cellIdToFaceIJ } from '@/utils/s2CellGrid'
 import { createLogger } from '@/utils/logger'
 
@@ -31,24 +33,41 @@ export interface StatTile {
   values: Float32Array
 }
 
-let aws: { client: AwsClient; expires: number } | null = null
+let aws: { client: AwsClient; expires: number; source: string } | null = null
 let awsPromise: Promise<AwsClient> | null = null
 let listingPromise: Promise<Map<string, number> | null> | null = null
 
-export function resetStatsCredentials(): void {
-  aws = null
-  awsPromise = null
-  listingPromise = null
+/** True when there is a way to get S3 credentials: logged in, or credentials pasted in Settings. */
+export function hasStatsCredentials(): boolean {
+  return useGitHubAuthStore().authToken !== null || useS3CredentialsStore().hasCredentials
 }
 
-async function getAwsClient(): Promise<AwsClient> {
-  if (aws && Date.now() < aws.expires - CREDENTIAL_MARGIN_MS) return aws.client
-  if (!awsPromise) {
-    awsPromise = (async () => {
-      const result = await fetchS3AccessCredentials()
-      if (!result.success || !result.data) {
-        throw new StatsAccessError(result.error ?? 'Unable to get S3 credentials')
-      }
+// identifies the credentials in effect so a login, logout, or new paste replaces the cached client
+function credentialSource(): string {
+  const token = useGitHubAuthStore().authToken
+  if (token) return `login:${token}`
+  const pasted = useS3CredentialsStore()
+  return pasted.hasCredentials ? `pasted:${pasted.accessKeyId}:${pasted.sessionToken}` : 'none'
+}
+
+function pastedClient(): AwsClient | null {
+  const pasted = useS3CredentialsStore()
+  if (!pasted.hasCredentials) return null
+  return new AwsClient({
+    accessKeyId: pasted.accessKeyId,
+    secretAccessKey: pasted.secretAccessKey,
+    sessionToken: pasted.sessionToken || undefined,
+    service: 's3',
+    region: REGION,
+    retries: 1
+  })
+}
+
+async function createAwsClient(source: string): Promise<AwsClient> {
+  let error = 'Log in or enter S3 credentials in Settings'
+  if (useGitHubAuthStore().authToken) {
+    const result = await fetchS3AccessCredentials()
+    if (result.success && result.data) {
       const c = result.data
       const client = new AwsClient({
         accessKeyId: c.access_key_id,
@@ -58,9 +77,29 @@ async function getAwsClient(): Promise<AwsClient> {
         region: REGION,
         retries: 1
       })
-      aws = { client, expires: Date.parse(c.expiration) }
+      aws = { client, expires: Date.parse(c.expiration), source }
       return client
-    })().finally(() => {
+    }
+    error = result.error ?? 'Unable to get S3 credentials'
+  }
+  // pasted credentials carry no expiration; S3 rejects them once they expire
+  const client = pastedClient()
+  if (!client) throw new StatsAccessError(error)
+  aws = { client, expires: Infinity, source }
+  return client
+}
+
+async function getAwsClient(): Promise<AwsClient> {
+  const source = credentialSource()
+  if (aws && aws.source === source && Date.now() < aws.expires - CREDENTIAL_MARGIN_MS) {
+    return aws.client
+  }
+  if (aws && aws.source !== source) {
+    aws = null
+    listingPromise = null
+  }
+  if (!awsPromise) {
+    awsPromise = createAwsClient(source).finally(() => {
       awsPromise = null
     })
   }
@@ -83,6 +122,7 @@ async function getRange(url: string, range: string): Promise<Response> {
  * cannot list the bucket (affiliates get GetObject only).
  */
 export async function listStatFiles(): Promise<Map<string, number> | null> {
+  await getAwsClient() // drops a listing made with replaced credentials
   if (!listingPromise) {
     listingPromise = fetchListing().catch((error) => {
       listingPromise = null
@@ -99,7 +139,12 @@ async function fetchListing(): Promise<Map<string, number> | null> {
     let url = `${BUCKET_URL}/?list-type=2&prefix=${encodeURIComponent(PREFIX)}`
     if (token) url += `&continuation-token=${encodeURIComponent(token)}`
     const response = await fetch(await presign(url))
-    if (response.status === 403) return null
+    if (response.status === 400 || response.status === 403) {
+      const code = /<Code>([^<]+)<\/Code>/.exec(await response.text())?.[1]
+      // AccessDenied: valid credentials without s3:ListBucket
+      if (code === 'AccessDenied') return null
+      throw new StatsAccessError(`S3 rejected the credentials (${code ?? response.status})`)
+    }
     if (!response.ok) throw new Error(`HTTP ${response.status} listing ${PREFIX}`)
     const xml = new DOMParser().parseFromString(await response.text(), 'application/xml')
     for (const contents of Array.from(xml.getElementsByTagName('Contents'))) {
@@ -134,6 +179,9 @@ export async function readStatTile(
 
   const first = await getRange(url, range)
   if (first.status === 404 || (first.status === 403 && size === undefined)) return null
+  if (first.status === 400 || first.status === 403) {
+    throw new StatsAccessError('S3 credentials expired or were rejected')
+  }
   if (!first.ok) throw new Error(`HTTP ${first.status} reading ${url}`)
   const tail = await first.arrayBuffer()
   const total = Number(first.headers.get('Content-Range')?.split('/')[1])
