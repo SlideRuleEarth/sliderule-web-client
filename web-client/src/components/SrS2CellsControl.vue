@@ -2,7 +2,11 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { Control } from 'ol/control'
 import { useMapStore } from '@/stores/mapStore'
-import { VIRIDIS_CSS_GRADIENT, type StatsLegend } from '@/composables/useAtl06StatsOverlay'
+import {
+  VIRIDIS_CSS_GRADIENT,
+  statColumnLabel,
+  type StatsLegend
+} from '@/composables/useAtl06StatsOverlay'
 
 const props = defineProps<{
   legend?: StatsLegend | null
@@ -10,6 +14,14 @@ const props = defineProps<{
 }>()
 
 const mapStore = useMapStore()
+const legendTitle = computed(
+  () => `${statColumnLabel(mapStore.s2StatsColumn)} mean, 2nd to 98th percentile in view`
+)
+
+function formatLegendValue(value: number): string {
+  if (props.legend?.isTime) return new Date(value).toISOString().slice(0, 10)
+  return Math.abs(value) >= 1000 ? value.toFixed(0) : String(Number(value.toPrecision(3)))
+}
 const controlElement = ref<HTMLElement | null>(null)
 const emit = defineEmits<{
   (_e: 's2-cells-control-created', _control: Control): void
@@ -43,10 +55,10 @@ onUnmounted(() => {
       <label for="s2-cells-toggle" class="control-label">S2 Cells</label>
     </div>
     <template v-if="isChecked">
-      <div v-if="props.legend" class="legend" title="h_li_mean (m), 2nd to 98th percentile in view">
-        <span class="control-label">{{ props.legend.min.toFixed(0) }}</span>
+      <div v-if="props.legend" class="legend" :title="legendTitle">
+        <span class="control-label">{{ formatLegendValue(props.legend.min) }}</span>
         <span class="legend-bar" :style="{ background: VIRIDIS_CSS_GRADIENT }" />
-        <span class="control-label">{{ props.legend.max.toFixed(0) }} m</span>
+        <span class="control-label">{{ formatLegendValue(props.legend.max) }}</span>
       </div>
       <span v-if="props.status" class="control-label status">{{ props.status }}</span>
     </template>

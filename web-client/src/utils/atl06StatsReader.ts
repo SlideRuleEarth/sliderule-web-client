@@ -22,15 +22,21 @@ export const TILE_SIDE = 1 << STAT_LEVEL_DELTA
 // suffix read usually covers both; h_li_mean then costs one more ranged read.
 const SUFFIX_BYTES = 256 * 1024
 const WHOLE_FILE_BYTES = 384 * 1024
-// Means that absorbed ATL06 fill values (3.4e38) are not heights
-const MAX_VALID_HEIGHT = 1e5
+// Means that absorbed ATL06 fill values (3.4e38) are not data
+const MAX_VALID_VALUE = 1e30
 const CREDENTIAL_MARGIN_MS = 5 * 60 * 1000
 
 export class StatsAccessError extends Error {}
 
-/** h_li_mean of the TILE_SIDE x TILE_SIDE stat cells of one file, indexed (i & mask) * TILE_SIDE + (j & mask); NaN where no data. */
+export interface StatColumn {
+  name: string
+  isTime: boolean // values are milliseconds since the epoch
+}
+
+/** One column of the TILE_SIDE x TILE_SIDE stat cells of one file, indexed (i & mask) * TILE_SIDE + (j & mask); NaN where no data. */
 export interface StatTile {
   values: Float32Array
+  meanColumns: StatColumn[] // the file's *_mean columns
 }
 
 let aws: { client: AwsClient; expires: number; source: string } | null = null
@@ -163,13 +169,14 @@ async function fetchListing(): Promise<Map<string, number> | null> {
 }
 
 /**
- * Read h_li_mean for the file of the level `fileLevel` cell `cellHex`. Returns null if the file
+ * Read `column` for the file of the level `fileLevel` cell `cellHex`. Returns null if the file
  * does not exist. `size` comes from the listing; without it a 403 is treated as a missing file.
  */
 export async function readStatTile(
   cellHex: string,
   fileLevel: number,
-  size: number | undefined
+  size: number | undefined,
+  column: string
 ): Promise<StatTile | null> {
   const url = `${BUCKET_URL}/${PREFIX}ATL06S_S${cellHex}.parquet`
   let range: string
@@ -203,22 +210,35 @@ export async function readStatTile(
     initialFetchSize: tail.byteLength,
     geoparquet: false
   })
+  const meanColumns: StatColumn[] = metadata.schema
+    .filter((element) => element.name.endsWith('_mean'))
+    .map((element) => ({
+      name: element.name,
+      isTime:
+        element.logical_type?.type === 'TIMESTAMP' ||
+        (element.converted_type?.startsWith('TIMESTAMP') ?? false)
+    }))
+  const tile: StatTile = {
+    values: new Float32Array(TILE_SIDE * TILE_SIDE).fill(NaN),
+    meanColumns
+  }
+  if (!meanColumns.some((c) => c.name === column)) return tile
+
   const ids = new Map<number, DecodedArray>()
-  const heights = new Map<number, DecodedArray>()
+  const values = new Map<number, DecodedArray>()
   await parquetRead({
     file,
     metadata,
-    columns: ['cell_id', 'h_li_mean'],
+    columns: ['cell_id', column],
     geoparquet: false,
     onChunk: ({ columnName, columnData, rowStart }) => {
-      ;(columnName === 'cell_id' ? ids : heights).set(rowStart, columnData)
+      ;(columnName === 'cell_id' ? ids : values).set(rowStart, columnData)
     }
   })
 
-  const tile: StatTile = { values: new Float32Array(TILE_SIDE * TILE_SIDE).fill(NaN) }
   for (const [rowStart, idChunk] of ids) {
-    const heightChunk = heights.get(rowStart)
-    if (heightChunk) fillTile(tile, idChunk, heightChunk, fileLevel + STAT_LEVEL_DELTA)
+    const valueChunk = values.get(rowStart)
+    if (valueChunk) fillTile(tile, idChunk, valueChunk, fileLevel + STAT_LEVEL_DELTA)
   }
   return tile
 }
@@ -226,7 +246,7 @@ export async function readStatTile(
 export function fillTile(
   tile: StatTile,
   ids: DecodedArray,
-  heights: DecodedArray,
+  values: DecodedArray,
   statLevel: number
 ): void {
   const mask = TILE_SIDE - 1
@@ -236,12 +256,12 @@ export function fillTile(
     ids instanceof BigUint64Array || ids instanceof BigInt64Array
       ? new Uint32Array(ids.buffer, ids.byteOffset, ids.length * 2)
       : null
-  const n = Math.min(ids.length, heights.length)
+  const n = Math.min(ids.length, values.length)
   for (let r = 0; r < n; r++) {
-    const raw = heights[r]
+    const raw = values[r]
     if (raw === null || raw === undefined) continue
-    const h = Number(raw)
-    if (!(Math.abs(h) < MAX_VALID_HEIGHT)) continue
+    const v = Number(raw) // Date (timestamp columns) becomes epoch milliseconds
+    if (!(Math.abs(v) < MAX_VALID_VALUE)) continue
     let hi: number
     let lo: number
     if (words) {
@@ -254,6 +274,6 @@ export function fillTile(
       lo = Number(id & 0xffffffffn)
     }
     cellIdToFaceIJ(hi, lo, statLevel, faceIJ)
-    tile.values[(faceIJ[1] & mask) * TILE_SIDE + (faceIJ[2] & mask)] = h
+    tile.values[(faceIJ[1] & mask) * TILE_SIDE + (faceIJ[2] & mask)] = v
   }
 }

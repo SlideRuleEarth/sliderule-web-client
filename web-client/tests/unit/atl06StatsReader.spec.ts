@@ -9,7 +9,7 @@ describe('atl06StatsReader.fillTile', () => {
   it('places valid means at their local cell and drops fill-value means', () => {
     const ids = new BigUint64Array([0x452ad49900000000n, 0x452ad4a100000000n, 0x452ad58f00000000n])
     const heights = new Float64Array([1.25, 3.0934758785320806e38, NaN])
-    const tile = { values: new Float32Array(TILE_SIDE * TILE_SIDE).fill(NaN) }
+    const tile = { values: new Float32Array(TILE_SIDE * TILE_SIDE).fill(NaN), meanColumns: [] }
     fillTile(tile, ids, heights, 14)
 
     const faceIJ = new Int32Array(3)

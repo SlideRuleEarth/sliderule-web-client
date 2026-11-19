@@ -13,8 +13,10 @@ import {
   MAX_FILE_LEVEL,
   STAT_LEVEL_DELTA,
   TILE_SIDE,
+  type StatColumn,
   type StatTile
 } from '@/utils/atl06StatsReader'
+import { useReqMsgLogStore } from '@/stores/reqMsgLogStore'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('Atl06StatsOverlay')
@@ -47,31 +49,52 @@ interface Raster {
 export interface StatsLegend {
   min: number
   max: number
+  isTime: boolean
+}
+
+/** Display name of a stats column: the column without its _mean suffix. */
+export function statColumnLabel(column: string): string {
+  return column.replace(/_mean$/, '')
 }
 
 /**
- * Raster of ATL06 h_li_mean stat cells (atl06tv4/stats) for the S2 level the grid is drawn at.
+ * Raster of one ATL06 stat column (atl06tv4/stats) for the S2 level the grid is drawn at.
  */
 export function useAtl06StatsOverlay() {
   const layer = new ImageLayer<ImageSource>({ zIndex: 30, opacity: 0.85, visible: false })
-  layer.set('name', 'ATL06 h_li_mean')
+  layer.set('name', 'ATL06 stats')
   layer.set('displayInLayerSwitcher', false)
 
   const status = ref('')
   const legend = ref<StatsLegend | null>(null)
+  const meanColumns = ref<StatColumn[]>([])
 
-  const tiles = new Map<string, StatTile | null>() // insertion ordered for LRU eviction
+  const tiles = new Map<string, StatTile | null>() // keyed column:hex, insertion ordered for LRU eviction
   const inflight = new Set<string>()
-  let queue: { hex: string; level: number }[] = []
+  let queue: { key: string; hex: string; level: number }[] = []
   let sizes: Map<string, number> | null = null
   let raster: Raster | null = null
+  let column = 'h_li_mean'
   let generation = 0
   let paintScheduled = false
+  let lastNotice = ''
   const canvas = document.createElement('canvas')
 
-  function cacheTile(hex: string, tile: StatTile | null) {
-    tiles.delete(hex)
-    tiles.set(hex, tile)
+  // the same problem is logged once, not on every pan or zoom
+  function notify(message: string) {
+    if (message === lastNotice) return
+    lastNotice = message
+    useReqMsgLogStore().add('warn', 'S2 Cells', message)
+  }
+
+  function tileKey(hex: string): string {
+    return `${column}:${hex}`
+  }
+
+  function cacheTile(key: string, tile: StatTile | null) {
+    tiles.delete(key)
+    tiles.set(key, tile)
+    if (tile && meanColumns.value.length === 0) meanColumns.value = tile.meanColumns
     while (tiles.size > MAX_CACHED_TILES) {
       tiles.delete(tiles.keys().next().value as string)
     }
@@ -160,7 +183,7 @@ export function useAtl06StatsOverlay() {
   function paint() {
     const r = raster
     if (!r) return
-    const tileValues = r.tileHexes.map((hex) => tiles.get(hex)?.values ?? null)
+    const tileValues = r.tileHexes.map((hex) => tiles.get(tileKey(hex))?.values ?? null)
     const n = r.width * r.height
     const values = new Float32Array(n).fill(NaN)
     let found = 0
@@ -193,7 +216,11 @@ export function useAtl06StatsOverlay() {
     const min = samples[Math.floor(samples.length * 0.02)]
     let max = samples[Math.min(samples.length - 1, Math.floor(samples.length * 0.98))]
     if (max <= min) max = min + 1
-    legend.value = { min, max }
+    legend.value = {
+      min,
+      max,
+      isTime: meanColumns.value.find((c) => c.name === column)?.isTime ?? false
+    }
 
     canvas.width = r.width
     canvas.height = r.height
@@ -225,37 +252,39 @@ export function useAtl06StatsOverlay() {
     const r = raster
     if (!r) return
     const pending = queue.length + inflight.size
+    const label = statColumnLabel(column)
     if (pending > 0) {
-      status.value = `Loading h_li_mean (${pending} files)`
+      status.value = `Loading ${label} (${pending} files)`
     } else {
-      status.value = legend.value ? '' : 'No h_li_mean data in view'
+      status.value = legend.value ? '' : `No ${label} data in view`
     }
   }
 
   function pump() {
     while (inflight.size < MAX_CONCURRENT_READS && queue.length) {
-      const { hex, level } = queue.shift()!
-      if (tiles.has(hex) || inflight.has(hex)) continue
-      inflight.add(hex)
-      readStatTile(hex, level, sizes?.get(hex))
+      const { key, hex, level } = queue.shift()!
+      if (tiles.has(key) || inflight.has(key)) continue
+      inflight.add(key)
+      readStatTile(hex, level, sizes?.get(hex), key.slice(0, key.lastIndexOf(':')))
         .then((tile) => {
-          cacheTile(hex, tile)
+          lastNotice = ''
+          cacheTile(key, tile)
           schedulePaint()
         })
         .catch((error) => {
           if (error instanceof StatsAccessError) {
-            status.value = error.message
+            notify(error.message)
             clear()
             return
           }
           logger.warn('Failed to read stat file', {
-            hex,
+            key,
             error: error instanceof Error ? error.message : String(error)
           })
-          cacheTile(hex, null)
+          cacheTile(key, null)
         })
         .finally(() => {
-          inflight.delete(hex)
+          inflight.delete(key)
           updateStatus()
           if (queue.length + inflight.size === 0) schedulePaint()
           pump()
@@ -263,14 +292,28 @@ export function useAtl06StatsOverlay() {
     }
   }
 
-  /** Rebuild the raster for the map's current view; `gridLevel` is the level the S2 lines are drawn at. */
-  async function update(map: OLMap, gridLevel: number, enabled: boolean, hasCredentials: boolean) {
+  /**
+   * Rebuild the raster of `statsColumn` for the map's current view; `gridLevel` is the level the
+   * S2 lines are drawn at.
+   */
+  async function update(
+    map: OLMap,
+    gridLevel: number,
+    enabled: boolean,
+    hasCredentials: boolean,
+    statsColumn: string
+  ) {
     layer.setVisible(enabled)
     status.value = ''
     if (!enabled || !hasCredentials) {
       clear()
-      if (enabled) status.value = 'Log in or add S3 credentials in Settings to show h_li_mean'
+      if (enabled) notify('Log in or add S3 credentials in Settings to show ATL06 stats')
       return
+    }
+    if (statsColumn !== column) {
+      column = statsColumn
+      legend.value = null
+      layer.setSource(null)
     }
     generation++
     queue = []
@@ -289,8 +332,9 @@ export function useAtl06StatsOverlay() {
       sizes = await listStatFiles()
     } catch (error) {
       if (gen !== generation) return
-      status.value =
-        error instanceof StatsAccessError ? error.message : 'Unable to read h_li_mean from S3'
+      notify(
+        error instanceof StatsAccessError ? error.message : 'Unable to read ATL06 stats from S3'
+      )
       logger.error('Stat file listing failed', {
         error: error instanceof Error ? error.message : String(error)
       })
@@ -298,12 +342,12 @@ export function useAtl06StatsOverlay() {
     }
     if (gen !== generation || !raster) return
     queue = raster.tileHexes
-      .filter((hex) => !tiles.has(hex) && (sizes === null || sizes.has(hex)))
-      .map((hex) => ({ hex, level: fileLevel }))
+      .map((hex) => ({ key: tileKey(hex), hex, level: fileLevel }))
+      .filter(({ key, hex }) => !tiles.has(key) && (sizes === null || sizes.has(hex)))
     paint()
     updateStatus()
     pump()
   }
 
-  return { layer, status, legend, update, clear, resetCache }
+  return { layer, status, legend, meanColumns, update, clear, resetCache }
 }

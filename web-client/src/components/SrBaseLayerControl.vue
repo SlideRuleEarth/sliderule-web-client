@@ -88,12 +88,15 @@ watch(
       class="sr-baselayer-select"
       size="small"
     />
+    <slot />
   </div>
 </template>
 
 <style scoped>
 .sr-baselayer-control {
   background-color: transparent;
+  display: flex;
+  gap: 0.25rem;
 }
 
 .sr-baselayer-select {

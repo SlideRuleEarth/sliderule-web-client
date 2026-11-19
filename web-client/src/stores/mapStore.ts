@@ -84,6 +84,7 @@ export const useMapStore = defineStore('map', {
     // Restore historical request polygon visibility from localStorage, default to true
     historicalPolysVisible: localStorage.getItem('historicalPolysVisible') !== 'false',
     s2CellsVisible: localStorage.getItem('s2CellsVisible') === 'true',
+    s2StatsColumn: localStorage.getItem('s2StatsColumn') ?? 'h_li_mean',
     // Store graticule instances per map (request map and analysis map need separate instances)
     graticules: new Map<OLMap, Graticule>(),
     polygonSource: 'Draw on Map' as string,
@@ -198,6 +199,10 @@ export const useMapStore = defineStore('map', {
     setS2CellsVisible(state: boolean) {
       this.s2CellsVisible = state
       localStorage.setItem('s2CellsVisible', String(state))
+    },
+    setS2StatsColumn(column: string) {
+      this.s2StatsColumn = column
+      localStorage.setItem('s2StatsColumn', column)
     },
     getOrCreateGraticule(map: OLMap): Graticule {
       // Get existing graticule for this map, or create a new one

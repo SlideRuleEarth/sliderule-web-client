@@ -52,6 +52,7 @@ import SrBaseLayerControl from './SrBaseLayerControl.vue'
 import SrGraticuleControl from './SrGraticuleControl.vue'
 import SrHistoricalRequestsControl from './SrHistoricalRequestsControl.vue'
 import SrS2CellsControl from './SrS2CellsControl.vue'
+import SrStatsColumnSelect from './SrStatsColumnSelect.vue'
 import { computeS2GridLines } from '@/utils/s2CellGrid'
 import { useAtl06StatsOverlay } from '@/composables/useAtl06StatsOverlay'
 import { hasStatsCredentials } from '@/utils/atl06StatsReader'
@@ -255,7 +256,7 @@ function refreshS2Cells() {
     )
     s2CellsVectorSource.addFeature(new Feature(new MultiLineString(lines)))
     logger.debug('S2 cells refreshed', { level, lineCount: lines.length })
-    void statsOverlay.update(map, level, true, hasStatsCredentials())
+    void statsOverlay.update(map, level, true, hasStatsCredentials(), mapStore.s2StatsColumn)
   } catch (error) {
     logger.error('refreshS2Cells failed', {
       error: error instanceof Error ? error.message : String(error)
@@ -1675,6 +1676,7 @@ watch(
   { immediate: true }
 )
 watch(showS2Cells, refreshS2Cells)
+watch(() => mapStore.s2StatsColumn, refreshS2Cells)
 watch(
   () => [
     githubAuthStore.authToken,
@@ -1765,7 +1767,9 @@ watch(
         <SrBaseLayerControl
           @baselayer-control-created="handleBaseLayerControlCreated"
           @update-baselayer="handleUpdateBaseLayer"
-        />
+        >
+          <SrStatsColumnSelect v-if="showS2Cells" :columns="statsOverlay.meanColumns.value" />
+        </SrBaseLayerControl>
         <SrS2CellsControl
           v-if="showS2CellsControl"
           :legend="statsOverlay.legend.value"
