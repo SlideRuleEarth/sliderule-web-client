@@ -425,6 +425,15 @@ watch(selectedTab, (tab) => {
   text-decoration: underline;
 }
 
+/* MyST external-link icons are sized by the docs site's stylesheet, which we don't load. */
+.sr-landing-panel-content :deep(svg.link-icon) {
+  display: inline-block;
+  width: 0.8em;
+  height: 0.8em;
+  margin-left: 0.15em;
+  vertical-align: baseline;
+}
+
 .sr-system-overview {
   margin-top: 2rem;
   text-align: center;
