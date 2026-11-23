@@ -5,8 +5,6 @@ import SrToast from 'primevue/toast'
 import Image from 'primevue/image'
 import buzzImg from '@/assets/BuzzSlideRule.jpg'
 import SrAppBar from '@/components/SrAppBar.vue'
-import SrBuildDate from '@/components/SrBuildDate.vue'
-import SrUserAgent from '@/components/SrUserAgent.vue'
 import Dialog from 'primevue/dialog'
 import router from './router/index.js'
 import { useSrToastStore } from '@/stores/srToastStore'
@@ -14,7 +12,6 @@ import { useDeviceStore } from '@/stores/deviceStore'
 import { initChartStore } from '@/utils/plotUtils'
 import { useRecTreeStore } from '@/stores/recTreeStore'
 import { useRoute } from 'vue-router'
-import SrClearCache from '@/components/SrClearCache.vue'
 import { useGoogleApiKeyStore } from '@/stores/googleApiKeyStore'
 import SrServerInfoDialog from '@/components/SrServerInfoDialog.vue'
 import SrGoogleApiKeyInput from '@/components/SrGoogleApiKeyInput.vue'
@@ -44,7 +41,6 @@ const privacyConsentStore = usePrivacyConsentStore()
 const route = useRoute()
 
 const showServerVersionDialog = ref(false)
-const showClientVersionDialog = ref(false)
 const showUnsupportedDialog = ref(false)
 const showBuzzDialog = ref(false)
 const isMounted = ref(false)
@@ -169,7 +165,7 @@ async function getCommonSteps(
       {
         intro: `
                     <span class="intro-nowrap"><b>Welcome to SlideRule Earth!</b></span><br><br>
-                    This app requires a large screen. 
+                    This app requires a large screen.
                     It is not meant to be used on small mobile devices<br><br>
                     The process has <b>four simple steps</b>:<br>
                     <ol>
@@ -321,21 +317,15 @@ const settingsButtonClick = () => {
 }
 
 const aboutButtonClick = () => {
-  showClientVersionDialog.value = true // Show the dialog
+  showServerVersionDialog.value = true
 }
 
 const slideruleBuzzButtonClick = () => {
   showBuzzDialog.value = true
 }
 
-// Function to handle the server version button click and show the dialog
-const handleServerVersionButtonClick = () => {
+const handleSlideruleButtonClick = () => {
   showServerVersionDialog.value = true
-}
-
-// Function to handle the client version button click and show the dialog
-const handleClientVersionButtonClick = () => {
-  showClientVersionDialog.value = true // Show the dialog
 }
 
 async function handleQuickTourButtonClick() {
@@ -545,8 +535,7 @@ async function handleLongTourButtonClick() {
         @about-button-click="aboutButtonClick"
         @sliderule-buzz-button-click="slideruleBuzzButtonClick"
         @settings-button-click="settingsButtonClick"
-        @server-version-button-click="handleServerVersionButtonClick"
-        @client-version-button-click="handleClientVersionButtonClick"
+        @sliderule-button-click="handleSlideruleButtonClick"
         @quick-tour-button-click="handleQuickTourButtonClick"
         @long-tour-button-click="handleLongTourButtonClick"
       />
@@ -557,23 +546,6 @@ async function handleLongTourButtonClick() {
     <SrConsentBanner />
     <SrMobileWarning />
 
-    <!-- Dialog for displaying version information -->
-    <Dialog
-      v-model:visible="showClientVersionDialog"
-      :modal="true"
-      :closable="true"
-      style="width: 50vw"
-    >
-      <template #header>
-        <h2 class="dialog-header">About This Client Application</h2>
-      </template>
-
-      <div class="sr-about">
-        <SrBuildDate />
-        <SrUserAgent />
-        <SrClearCache />
-      </div>
-    </Dialog>
     <SrServerInfoDialog v-model="showServerVersionDialog" />
 
     <Dialog

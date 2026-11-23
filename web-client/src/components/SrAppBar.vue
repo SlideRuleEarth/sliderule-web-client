@@ -185,8 +185,7 @@ function navigateToServer() {
 }
 
 const emit = defineEmits([
-  'server-version-button-click',
-  'client-version-button-click',
+  'sliderule-button-click',
   'home-button-click',
   'request-button-click',
   'record-button-click',
@@ -198,20 +197,6 @@ const emit = defineEmits([
   'quick-tour-button-click',
   'long-tour-button-click'
 ])
-
-const nodeBadgeSeverity = computed(() => {
-  const canGetVersion = sysConfigStore.canConnectVersion
-  const canGetNodes = sysConfigStore.canConnectNodes
-
-  //console.log('nodeBadgeSeverity canGetNodes:', canGetNodes, 'canGetVersion:', canGetVersion, 'current_nodes:', sysConfigStore.current_nodes);
-  if (sysConfigStore.current_nodes <= 0) return 'warning' // no nodes available
-  if (canGetNodes !== 'yes' && canGetVersion !== 'yes') return 'danger' // both failed
-  if (canGetNodes === 'no' || canGetVersion === 'no') return 'danger' // one failed
-  if (canGetNodes === 'unknown' || canGetVersion === 'unknown') return 'warning' // one or both unknown
-  return 'info' // both yes and >0
-})
-
-const badgeLabel = computed(() => 'server')
 
 const handleHomeButtonClick = () => {
   emit('home-button-click')
@@ -228,21 +213,19 @@ const handleAnalysisButtonClick = () => {
 const handleSettingsButtonClick = () => {
   emit('settings-button-click')
 }
-const handleServerVersionButtonClick = () => {
-  emit('server-version-button-click')
-}
-const handleClientVersionButtonClick = () => {
-  emit('client-version-button-click')
+const handleSlideruleButtonClick = () => {
+  emit('sliderule-button-click')
 }
 
-function getClientVersionString(input: string): string {
-  // Find the index of the first "-"
-  const dashIndex = input.indexOf('-')
+const FULL_NODE_COUNT = 7
 
-  // If a dash is found, return the substring up to that point
-  // If no dash is found, return the full input
-  return dashIndex !== -1 ? input.substring(0, dashIndex) : input
-}
+const slideruleNodesClass = computed(() => {
+  if (sysConfigStore.canConnectNodes === 'unknown') return ''
+  const nodes = sysConfigStore.current_nodes
+  if (sysConfigStore.canConnectNodes === 'no' || nodes <= 0) return 'sr-nodes-none'
+  if (nodes < FULL_NODE_COUNT) return 'sr-nodes-low'
+  return ''
+})
 
 function isThisClean(input: string): boolean {
   // Split the string by dashes
@@ -266,19 +249,6 @@ function isThisClean(input: string): boolean {
   return !input.endsWith('dirty')
 }
 
-const formattedClientVersion = computed(() => {
-  logger.debug('build_env', { build_env })
-  //console.log('typeof build_env:', (typeof build_env));
-  if (typeof build_env === 'string') {
-    const version = getClientVersionString(build_env)
-    const formattedVersion = isThisClean(build_env) ? version : `${version}*`
-    logger.debug('formattedVersion', { formattedVersion })
-    return formattedVersion
-  } else {
-    return 'v?.?.?'
-  }
-})
-
 const testVersionWarning = computed(() => {
   //const tvw = isThisClean(build_env) ? '' : (deviceStore.isMobile? `TEST `:`WebClient Test Version`);
   const tvw = isThisClean(build_env) ? '' : `WebClient Test Version`
@@ -298,10 +268,6 @@ const bannerStyle = computed(() => {
   return typeof banner_color === 'string' && banner_color.trim() !== ''
     ? { color: banner_color.trim() }
     : {}
-})
-
-const computedServerVersionLabel = computed(() => {
-  return sysConfigStore.version || 'v?.?.?'
 })
 
 const showSubDomainBadge = computed(() => {
@@ -674,8 +640,19 @@ function hideTooltip() {
       </Button>
       <Menu :model="mobileMenuItems" popup ref="mobileMenu" />
       <img src="/IceSat-2_SlideRule_logo.png" alt="SlideRule logo" class="logo" />
-      <span class="sr-title-wrapper">
-        <span class="sr-title">SlideRule</span>
+      <span
+        class="sr-title-wrapper"
+        @mouseover="showServerTooltip($event)"
+        @mouseleave="hideTooltip()"
+      >
+        <Button
+          type="button"
+          label="SlideRule"
+          id="sr-sliderule-button"
+          class="p-button-rounded p-button-text sr-title"
+          :class="slideruleNodesClass"
+          @click="handleSlideruleButtonClick"
+        />
         <span v-if="testVersionWarning" class="sr-title-badge">{{ testVersionWarning }}</span>
       </span>
       <Button
@@ -688,30 +665,6 @@ function hideTooltip() {
         @click="toggleSubDomainMenu"
       />
       <Menu :model="subDomainMenuItems" popup ref="subDomainMenu" />
-      <div
-        class="sr-show-server-version"
-        @mouseover="showServerTooltip($event)"
-        @mouseleave="hideTooltip()"
-      >
-        <Button
-          type="button"
-          :label="computedServerVersionLabel"
-          :class="['p-button-text', 'desktop-only', 'sr-server-version', nodeBadgeSeverity]"
-          id="sr-server-version-button"
-          :badge="badgeLabel"
-          @click="handleServerVersionButtonClick"
-        >
-        </Button>
-      </div>
-      <Button
-        type="button"
-        :label="formattedClientVersion"
-        class="p-button-text desktop-only sr-client-version"
-        id="sr-client-version-button"
-        badge="web_client"
-        @click="handleClientVersionButtonClick"
-      >
-      </Button>
       <Button
         icon="pi pi-home"
         id="sr-home-button"
@@ -755,7 +708,6 @@ function hideTooltip() {
         id="sr-help-button"
         label="Help"
         class="p-button-rounded p-button-text desktop-only"
-        :class="{ 'sr-help-pulse': !helpStore.helpOpened }"
         @click="toggleHelpMenu"
       >
       </Button>
@@ -827,6 +779,7 @@ function hideTooltip() {
         label="Login"
         title="Login with GitHub to access member features"
         class="p-button-rounded p-button-text desktop-only"
+        :class="{ 'sr-login-pulse': !isGitHubAuthenticating }"
         :loading="isGitHubAuthenticating"
         :disabled="isGitHubAuthenticating"
         @click="handleGitHubLogin"
@@ -854,12 +807,12 @@ function hideTooltip() {
 </template>
 
 <style scoped>
-/* Draws a first-time visitor to the Help menu without covering anything */
-.sr-help-pulse {
-  animation: sr-help-pulse 2s ease-in-out infinite;
+/* Draws attention to Login until the user signs in */
+.sr-login-pulse {
+  animation: sr-login-pulse 2s ease-in-out infinite;
 }
 
-@keyframes sr-help-pulse {
+@keyframes sr-login-pulse {
   0%,
   100% {
     box-shadow: 0 0 0 0 transparent;
@@ -870,7 +823,7 @@ function hideTooltip() {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sr-help-pulse {
+  .sr-login-pulse {
     animation: none;
     box-shadow: 0 0 0.4rem 0.15rem var(--p-primary-color);
   }
@@ -898,13 +851,19 @@ function hideTooltip() {
 .sr-title-wrapper {
   position: relative;
   display: inline-block;
-  margin-left: 0.5rem;
 }
 
-.sr-title {
+:deep(.p-button.sr-title) {
   font-size: 1.5rem;
   font-weight: 600;
-  color: var(--p-button-text-primary-color);
+}
+
+:deep(.p-button.sr-title.sr-nodes-low) {
+  color: var(--p-yellow-400);
+}
+
+:deep(.p-button.sr-title.sr-nodes-none) {
+  color: var(--p-red-400);
 }
 
 .sr-title-badge {
@@ -1054,60 +1013,6 @@ function hideTooltip() {
     0 0 12px var(--p-button-primary-border-color),
     0 0 20px var(--p-button-primary-border-color);
   transition: box-shadow 0.3s ease;
-}
-
-:deep(.p-button.sr-server-version) {
-  position: relative;
-  padding-top: 0.5rem;
-  padding-bottom: 0.0625rem;
-  padding-left: 0.25rem;
-  padding-right: 0.5rem;
-  font-size: 0.9rem;
-  border-radius: 0;
-}
-
-:deep(.p-button.sr-client-version) {
-  position: relative;
-  padding-top: 0.5rem;
-  padding-bottom: 0.0625rem;
-  padding-left: 0.25rem;
-  padding-right: 0.5rem;
-  font-size: 0.9rem;
-  border-radius: 0;
-}
-
-:deep(.p-button.sr-server-version .p-badge) {
-  position: absolute;
-  top: -0.2rem; /* Adjust vertical placement */
-  left: 50%; /* Center horizontally */
-  transform: translateX(-50%); /* Perfect centering */
-  font-size: 0.6rem;
-  padding: 0.25rem 0.4rem;
-  color: var(--p-primary-300);
-  background-color: transparent;
-}
-
-:deep(.p-button.sr-client-version .p-badge) {
-  position: absolute;
-  top: -0.2rem; /* Adjust vertical placement */
-  left: 50%; /* Center horizontally */
-  transform: translateX(-50%); /* Perfect centering */
-  font-size: 0.6rem;
-  padding: 0.25rem 0.4rem;
-  color: var(--p-primary-300);
-  background-color: transparent;
-}
-:deep(.p-button.sr-server-version.info .p-badge) {
-  color: var(--p-primary-300);
-  white-space: nowrap;
-}
-:deep(.p-button.sr-server-version.warning .p-badge) {
-  color: var(--p-yellow-300);
-  white-space: nowrap;
-}
-:deep(.p-button.sr-server-version.danger .p-badge) {
-  white-space: nowrap;
-  color: var(--p-red-300);
 }
 
 /* User button with role badge */

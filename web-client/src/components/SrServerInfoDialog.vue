@@ -12,6 +12,9 @@ import hljs from 'highlight.js/lib/core'
 import json from 'highlight.js/lib/languages/json'
 import 'highlight.js/styles/atom-one-dark.css'
 import DOMPurify from 'dompurify'
+import SrBuildDate from '@/components/SrBuildDate.vue'
+import SrUserAgent from '@/components/SrUserAgent.vue'
+import SrClearCache from '@/components/SrClearCache.vue'
 import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 import { useSysConfigStore } from '@/stores/sysConfigStore'
 import {
@@ -375,16 +378,18 @@ function refreshCurrentTab() {
           label="Copy to clipboard"
           size="small"
           icon="pi pi-copy"
+          :disabled="activeTab === 'webclient'"
           @click="copyToClipboard"
           class="copy-btn"
         />
-        <div class="dialog-title">About the SlideRule Server</div>
+        <div class="dialog-title">About SlideRule</div>
         <Button
           icon="pi pi-refresh"
           size="small"
           severity="secondary"
           text
           rounded
+          :disabled="activeTab === 'webclient'"
           @click="refreshCurrentTab"
           class="refresh-btn"
         />
@@ -397,6 +402,7 @@ function refreshCurrentTab() {
         <Tab value="discovery">Discovery</Tab>
         <Tab v-if="canAccessMemberFeatures" value="provisioner">Provisioner</Tab>
         <Tab v-if="canAccessMemberFeatures" value="tests">Tests</Tab>
+        <Tab value="webclient">Web Client</Tab>
       </TabList>
 
       <TabPanels>
@@ -533,6 +539,12 @@ function refreshCurrentTab() {
             </div>
             <pre v-html="formatJson(testReportData)"></pre>
           </template>
+        </TabPanel>
+
+        <TabPanel value="webclient">
+          <SrBuildDate />
+          <SrUserAgent />
+          <SrClearCache />
         </TabPanel>
       </TabPanels>
     </Tabs>
