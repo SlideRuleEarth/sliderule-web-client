@@ -1,5 +1,18 @@
 <script setup lang="ts">
-const CHANNELS = [
+interface LinkedReason {
+  text: string
+  linkText: string
+  href: string
+  after: string
+}
+
+const CHANNELS: {
+  icon: string
+  title: string
+  reasons: (string | LinkedReason)[]
+  cta: string
+  href: string
+}[] = [
   {
     icon: 'pi pi-envelope',
     title: 'Email us directly',
@@ -38,14 +51,18 @@ const CHANNELS = [
     title: 'Open a pull request',
     reasons: [
       'Bug fixes you have already made to the code base',
-      'Features you have implemented and want in a future release'
+      'Features you have implemented and want in a future release',
+      {
+        text: 'Before opening a pull request, please read our ',
+        linkText: 'contribution guidelines',
+        href: 'https://docs.slideruleearth.io/getting-started/contributing',
+        after: '.'
+      }
     ],
     cta: 'GitHub pull requests',
     href: 'https://github.com/SlideRuleEarth/sliderule/pulls'
   }
 ]
-
-const CONTRIBUTING_URL = 'https://docs.slideruleearth.io/getting-started/contributing'
 </script>
 
 <template>
@@ -60,7 +77,14 @@ const CONTRIBUTING_URL = 'https://docs.slideruleearth.io/getting-started/contrib
         <i :class="['sr-contact-icon', c.icon]" aria-hidden="true"></i>
         <h3 class="sr-contact-title">{{ c.title }}</h3>
         <ul class="sr-contact-reasons">
-          <li v-for="r in c.reasons" :key="r">{{ r }}</li>
+          <li v-for="r in c.reasons" :key="typeof r === 'string' ? r : r.href">
+            <template v-if="typeof r === 'string'">{{ r }}</template>
+            <template v-else
+              >{{ r.text
+              }}<a :href="r.href" target="_blank" rel="noopener noreferrer">{{ r.linkText }}</a
+              >{{ r.after }}</template
+            >
+          </li>
         </ul>
         <a
           :href="c.href"
@@ -76,13 +100,6 @@ const CONTRIBUTING_URL = 'https://docs.slideruleearth.io/getting-started/contrib
         </a>
       </div>
     </div>
-
-    <p class="sr-contact-note">
-      Before opening a pull request, please read our
-      <a :href="CONTRIBUTING_URL" target="_blank" rel="noopener noreferrer"
-        >contribution guidelines</a
-      >.
-    </p>
   </div>
 </template>
 
@@ -164,13 +181,7 @@ const CONTRIBUTING_URL = 'https://docs.slideruleearth.io/getting-started/contrib
   font-size: 0.75rem;
 }
 
-.sr-contact-note {
-  margin: 2rem 0 0;
-  text-align: center;
-  color: rgba(255, 255, 255, 0.65);
-}
-
-.sr-contact-note a {
+.sr-contact-reasons a {
   color: var(--p-primary-color);
 }
 

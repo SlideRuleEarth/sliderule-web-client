@@ -137,7 +137,7 @@ async function copy(text: string, key: string) {
 
 const QUICK_STEPS = [
   'Zoom in to your area of interest',
-  'Select a draw tool',
+  'Select your desired data product',
   'Draw a region',
   'Click Run SlideRule'
 ]
@@ -146,7 +146,7 @@ const MOTIVATIONS = [
   {
     icon: 'pi pi-sliders-h',
     title: 'Broader science applications',
-    text: 'Exposing processing parameters and pipeline configurations directly to users supports unforeseen science applications at no additional cost, on the same infrastructure that serves the mission’s primary science objectives.'
+    text: 'By exposing processing parameters and pipeline configurations directly to users, SlideRule supports unforeseen science applications at no additional cost, using the same infrastructure that serves the mission’s primary science objectives.'
   },
   {
     icon: 'pi pi-share-alt',
@@ -291,8 +291,7 @@ const MOTIVATIONS = [
       <h2 class="sr-about-section-heading">What was the motivation for creating SlideRule</h2>
       <p class="sr-about-section-lead">
         SlideRule lowers the barrier to accessing and analyzing Earth science data by delivering
-        customizable, on-demand data products and data-fusion services, rather than distributing
-        large volumes of static, mission-centric standard products.
+        customizable, on-demand data products and data-fusion services.
       </p>
       <div class="sr-feature-grid">
         <div v-for="m in MOTIVATIONS" :key="m.title" class="sr-feature">
