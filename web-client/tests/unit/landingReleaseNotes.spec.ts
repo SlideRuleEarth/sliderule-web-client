@@ -43,7 +43,8 @@ let fetchMock: ReturnType<typeof vi.fn>
 
 /** Mount the landing view and switch to the Release Notes tab. */
 async function openReleaseNotes() {
-  const wrapper = mount(LandingView)
+  // The default About tab renders a RouterLink, and there is no router here
+  const wrapper = mount(LandingView, { global: { stubs: { RouterLink: true } } })
   await wrapper.find('[data-tab="Release Notes"]').trigger('click')
   await flushPromises()
   return wrapper

@@ -4,30 +4,16 @@ import DOMPurify from 'dompurify'
 import { marked } from 'marked'
 import SelectButton from 'primevue/selectbutton'
 import wallpaperUrl from '@/assets/landing_wallpaper.jpg'
-import aboutRaw from '@/assets/content/about.md?raw'
-import contactRaw from '@/assets/content/contact.md?raw'
+import SrLandingAbout from '@/components/SrLandingAbout.vue'
+import SrLandingContact from '@/components/SrLandingContact.vue'
 import { DOCS } from '@/utils/docLinks'
 
 function stripFrontmatter(md: string): string {
   return md.replace(/^---[\s\S]*?---\n*/, '')
 }
 
-const aboutHtml = DOMPurify.sanitize(marked(stripFrontmatter(aboutRaw)) as string)
-const contactHtml = DOMPurify.sanitize(marked(stripFrontmatter(contactRaw)) as string)
-
 const tabOptions = ['About', 'Contact', 'Release Notes']
 const selectedTab = ref('About')
-
-const panelHtml = computed(() => {
-  switch (selectedTab.value) {
-    case 'About':
-      return aboutHtml
-    case 'Contact':
-      return contactHtml
-    default:
-      return ''
-  }
-})
 
 // --- Release Notes ---
 
@@ -269,12 +255,8 @@ watch(selectedTab, (tab) => {
       </div>
       <!-- About / Contact -->
       <div v-if="!showReleaseNotes" ref="panelRef" class="sr-landing-panel">
-        <div v-if="panelHtml" class="sr-landing-panel-content">
-          <div v-html="panelHtml" />
-        </div>
-        <div v-else class="sr-landing-panel-content">
-          <p>Coming soon.</p>
-        </div>
+        <SrLandingAbout v-if="selectedTab === 'About'" />
+        <SrLandingContact v-else />
       </div>
 
       <!-- Release Notes (combined: server + web client) -->
