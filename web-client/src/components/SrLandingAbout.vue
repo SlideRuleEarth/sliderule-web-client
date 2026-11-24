@@ -163,9 +163,7 @@ const FACTS: { id: string; label: string; icon: string; parts: FactPart[] }[] = 
       { text: 'University of Washington', accent: true },
       { text: ' and ' },
       { text: 'NASA Goddard Space Flight Center', accent: true },
-      { text: ' with initial funding from the ' },
-      { text: 'ICESat-2', accent: true },
-      { text: ' program.' }
+      { text: ' with initial funding from the ICESat-2 program.' }
     ]
   },
   {
@@ -255,34 +253,38 @@ const MOTIVATIONS = [
         science data.
       </p>
 
-      <div class="sr-facts-tabs" role="tablist" aria-label="About SlideRule">
-        <button
-          v-for="f in FACTS"
-          :key="f.id"
-          type="button"
-          role="tab"
-          :id="`sr-facts-tab-${f.id}`"
-          :aria-selected="f.id === selectedFactId"
-          aria-controls="sr-facts-panel"
-          :class="['sr-facts-tab', { 'sr-facts-tab-active': f.id === selectedFactId }]"
-          @click="selectedFactId = f.id"
-        >
-          <i :class="f.icon" aria-hidden="true"></i>
-          <span>{{ f.label }}</span>
-        </button>
-      </div>
+      <div class="sr-facts">
+        <div class="sr-facts-tabs" role="tablist" aria-label="About SlideRule">
+          <button
+            v-for="f in FACTS"
+            :key="f.id"
+            type="button"
+            role="tab"
+            :id="`sr-facts-tab-${f.id}`"
+            :aria-selected="f.id === selectedFactId"
+            aria-controls="sr-facts-panel"
+            :class="['sr-facts-tab', { 'sr-facts-tab-active': f.id === selectedFactId }]"
+            @click="selectedFactId = f.id"
+          >
+            <i :class="f.icon" aria-hidden="true"></i>
+            <span>{{ f.label }}</span>
+          </button>
+        </div>
 
-      <div
-        id="sr-facts-panel"
-        class="sr-facts-panel"
-        role="tabpanel"
-        :aria-labelledby="`sr-facts-tab-${selectedFact.id}`"
-      >
-        <template v-for="(p, i) in selectedFact.parts" :key="i">
-          <a v-if="p.href" :href="p.href" target="_blank" rel="noopener noreferrer">{{ p.text }}</a>
-          <span v-else-if="p.accent" class="sr-accent">{{ p.text }}</span>
-          <template v-else>{{ p.text }}</template>
-        </template>
+        <div
+          id="sr-facts-panel"
+          class="sr-facts-panel"
+          role="tabpanel"
+          :aria-labelledby="`sr-facts-tab-${selectedFact.id}`"
+        >
+          <template v-for="(p, i) in selectedFact.parts" :key="i">
+            <a v-if="p.href" :href="p.href" target="_blank" rel="noopener noreferrer">{{
+              p.text
+            }}</a>
+            <span v-else-if="p.accent" class="sr-accent">{{ p.text }}</span>
+            <template v-else>{{ p.text }}</template>
+          </template>
+        </div>
       </div>
     </section>
 
@@ -412,49 +414,57 @@ const MOTIVATIONS = [
 }
 
 /* Fact selector */
+.sr-facts {
+  background: var(--sr-card-bg);
+  border: 1px solid var(--sr-card-border);
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
 .sr-facts-tabs {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0 1rem;
+  border-bottom: 1px solid var(--sr-card-border);
+  overflow-x: auto;
 }
 
 .sr-facts-tab {
-  display: flex;
-  flex-direction: column;
+  display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 1rem 0.5rem;
+  gap: 0.45rem;
+  padding: 0.8rem 1rem;
+  margin-bottom: -1px;
   background: transparent;
-  border: 1px solid var(--sr-card-border);
-  border-radius: 0.75rem;
-  color: rgba(255, 255, 255, 0.7);
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: rgba(255, 255, 255, 0.6);
   font: inherit;
+  font-size: 0.9rem;
   font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
   transition:
-    background 0.2s ease,
     color 0.2s ease,
     border-color 0.2s ease;
 }
 
 .sr-facts-tab .pi {
-  font-size: 1.3rem;
+  font-size: 0.9rem;
 }
 
 .sr-facts-tab:hover {
-  background: rgba(255, 255, 255, 0.05);
   color: #ffffff;
 }
 
 .sr-facts-tab:focus-visible {
   outline: 2px solid var(--p-primary-color);
-  outline-offset: 2px;
+  outline-offset: -2px;
 }
 
 .sr-facts-tab-active {
-  background: var(--sr-card-bg);
-  border-color: var(--sr-accent);
+  border-bottom-color: var(--sr-accent);
   color: #ffffff;
 }
 
@@ -463,9 +473,6 @@ const MOTIVATIONS = [
 }
 
 .sr-facts-panel {
-  background: var(--sr-card-bg);
-  border: 1px solid var(--sr-card-border);
-  border-radius: 1rem;
   padding: 1.75rem 2rem;
   font-size: 1.1rem;
   line-height: 1.6;
@@ -696,7 +703,7 @@ const MOTIVATIONS = [
   }
 
   .sr-facts-tabs {
-    grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
+    justify-content: flex-start;
   }
 
   .sr-start {
