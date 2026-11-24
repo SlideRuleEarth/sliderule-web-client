@@ -135,6 +135,85 @@ async function copy(text: string, key: string) {
   }
 }
 
+interface FactPart {
+  text: string
+  accent?: boolean
+  href?: string
+}
+
+const FACTS: { id: string; label: string; icon: string; parts: FactPart[] }[] = [
+  {
+    id: 'goal',
+    label: 'Goal',
+    icon: 'pi pi-flag',
+    parts: [
+      { text: 'SlideRule provides researchers and downstream data systems with ' },
+      { text: 'low-latency', accent: true },
+      {
+        text: ' access to derived data products using processing parameters supplied at the time of the request.'
+      }
+    ]
+  },
+  {
+    id: 'team',
+    label: 'Team',
+    icon: 'pi pi-users',
+    parts: [
+      { text: 'SlideRule is a collaboration between the ' },
+      { text: 'University of Washington', accent: true },
+      { text: ' and ' },
+      { text: 'NASA Goddard Space Flight Center', accent: true },
+      { text: ' with initial funding from the ' },
+      { text: 'ICESat-2', accent: true },
+      { text: ' program.' }
+    ]
+  },
+  {
+    id: 'infrastructure',
+    label: 'Infrastructure',
+    icon: 'pi pi-cloud',
+    parts: [
+      { text: 'SlideRule runs in ' },
+      { text: 'AWS us-west-2', accent: true },
+      { text: ' and is accessible through ' },
+      { text: 'REST-like APIs', accent: true },
+      { text: ' that return results directly to users.' }
+    ]
+  },
+  {
+    id: 'data',
+    label: 'Data',
+    icon: 'pi pi-database',
+    parts: [
+      {
+        text: 'SlideRule has access to a growing list of Earth science datasets, including but not limited to '
+      },
+      { text: 'ICESat-2, GEDI, HLS, ArcticDEM, REMA,', accent: true },
+      { text: ' and ' },
+      { text: 'BlueTopo', accent: true },
+      { text: '.' }
+    ]
+  },
+  {
+    id: 'source',
+    label: 'Source',
+    icon: 'pi pi-github',
+    parts: [
+      { text: 'SlideRule is open-source under the ' },
+      { text: 'BSD-3 Clause License', accent: true },
+      { text: ', and is openly developed at ' },
+      {
+        text: 'github.com/SlideRuleEarth/sliderule',
+        href: 'https://github.com/SlideRuleEarth/sliderule'
+      },
+      { text: '.' }
+    ]
+  }
+]
+
+const selectedFactId = ref(FACTS[0].id)
+const selectedFact = computed(() => FACTS.find((f) => f.id === selectedFactId.value) ?? FACTS[0])
+
 const QUICK_STEPS = [
   'Zoom in to your area of interest',
   'Select your desired data product',
@@ -168,35 +247,42 @@ const MOTIVATIONS = [
 
 <template>
   <div class="sr-about">
-    <!-- Intro: alternating heading / card rows -->
-    <section class="sr-about-row">
-      <h2 class="sr-about-row-heading">What is SlideRule</h2>
-      <div class="sr-about-card">
-        SlideRule is a <span class="sr-accent">public web service</span> that provides
-        <span class="sr-accent">just-in-time</span> cloud-based processing of Earth science data. It
-        is accessible through <span class="sr-accent">REST-like APIs</span> that return results
-        directly to users. The goal of SlideRule is to provide researchers and downstream data
-        systems with <span class="sr-accent">low-latency</span> access to derived data products
-        using processing parameters supplied at the time of the request.
-      </div>
-    </section>
+    <!-- What is SlideRule: fact selector -->
+    <section class="sr-about-section">
+      <h2 class="sr-about-section-heading">What is SlideRule</h2>
+      <p class="sr-about-section-lead">
+        SlideRule is a public web service that provides just-in-time cloud-based processing of Earth
+        science data.
+      </p>
 
-    <section class="sr-about-row sr-about-row-reverse">
-      <h2 class="sr-about-row-heading">Who develops and maintains SlideRule</h2>
-      <div class="sr-about-card">
-        SlideRule is a collaboration between the
-        <span class="sr-accent">University of Washington</span> and
-        <span class="sr-accent">NASA</span> Goddard Space Flight Center with initial funding from
-        the <span class="sr-accent">ICESat-2</span> program. SlideRule runs in AWS us-west-2 and has
-        access to a growing list of Earth science datasets, including but not limited to the
-        ICESat-2, GEDI, and HLS Earthdata Cloud archives. SlideRule is open-source under the BSD-3
-        Clause License, and is openly developed at
-        <a
-          href="https://github.com/SlideRuleEarth/sliderule"
-          target="_blank"
-          rel="noopener noreferrer"
-          >github.com/SlideRuleEarth/sliderule</a
-        >.
+      <div class="sr-facts-tabs" role="tablist" aria-label="About SlideRule">
+        <button
+          v-for="f in FACTS"
+          :key="f.id"
+          type="button"
+          role="tab"
+          :id="`sr-facts-tab-${f.id}`"
+          :aria-selected="f.id === selectedFactId"
+          aria-controls="sr-facts-panel"
+          :class="['sr-facts-tab', { 'sr-facts-tab-active': f.id === selectedFactId }]"
+          @click="selectedFactId = f.id"
+        >
+          <i :class="f.icon" aria-hidden="true"></i>
+          <span>{{ f.label }}</span>
+        </button>
+      </div>
+
+      <div
+        id="sr-facts-panel"
+        class="sr-facts-panel"
+        role="tabpanel"
+        :aria-labelledby="`sr-facts-tab-${selectedFact.id}`"
+      >
+        <template v-for="(p, i) in selectedFact.parts" :key="i">
+          <a v-if="p.href" :href="p.href" target="_blank" rel="noopener noreferrer">{{ p.text }}</a>
+          <span v-else-if="p.accent" class="sr-accent">{{ p.text }}</span>
+          <template v-else>{{ p.text }}</template>
+        </template>
       </div>
     </section>
 
@@ -325,33 +411,65 @@ const MOTIVATIONS = [
   color: var(--p-primary-color);
 }
 
-/* Alternating heading / card rows */
-.sr-about-row {
+/* Fact selector */
+.sr-facts-tabs {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.sr-facts-tab {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 4rem;
-}
-
-.sr-about-row-reverse .sr-about-row-heading {
-  order: 2;
-}
-
-.sr-about-row-heading {
-  margin: 0;
-  font-size: 1.75rem;
+  gap: 0.5rem;
+  padding: 1rem 0.5rem;
+  background: transparent;
+  border: 1px solid var(--sr-card-border);
+  border-radius: 0.75rem;
+  color: rgba(255, 255, 255, 0.7);
+  font: inherit;
   font-weight: 600;
-  color: #ffffff;
-  text-align: center;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
 }
 
-.sr-about-card {
+.sr-facts-tab .pi {
+  font-size: 1.3rem;
+}
+
+.sr-facts-tab:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+}
+
+.sr-facts-tab:focus-visible {
+  outline: 2px solid var(--p-primary-color);
+  outline-offset: 2px;
+}
+
+.sr-facts-tab-active {
+  background: var(--sr-card-bg);
+  border-color: var(--sr-accent);
+  color: #ffffff;
+}
+
+.sr-facts-tab-active .pi {
+  color: var(--sr-accent);
+}
+
+.sr-facts-panel {
   background: var(--sr-card-bg);
   border: 1px solid var(--sr-card-border);
   border-radius: 1rem;
-  padding: 1.5rem 1.75rem;
-  font-size: 1rem;
+  padding: 1.75rem 2rem;
+  font-size: 1.1rem;
   line-height: 1.6;
+  text-align: center;
 }
 
 /* Section headings */
@@ -577,17 +695,8 @@ const MOTIVATIONS = [
     gap: 3rem;
   }
 
-  .sr-about-row {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-
-  .sr-about-row-reverse .sr-about-row-heading {
-    order: 0;
-  }
-
-  .sr-about-row-heading {
-    text-align: left;
+  .sr-facts-tabs {
+    grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
   }
 
   .sr-start {
