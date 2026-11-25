@@ -18,6 +18,8 @@ import SrGoogleApiKeyInput from '@/components/SrGoogleApiKeyInput.vue'
 import introJs from 'intro.js'
 import { useViewportHeight } from '@/composables/useViewportHeight'
 import { useSlideruleDefaults } from '@/stores/defaultsStore'
+import { useGitHubAuthStore } from '@/stores/githubAuthStore'
+import { useSysConfigStore } from '@/stores/sysConfigStore'
 import { createLogger } from '@/utils/logger'
 import { usePrivacyConsentStore } from '@/stores/privacyConsentStore'
 import SrConsentBanner from '@/components/SrConsentBanner.vue'
@@ -188,6 +190,19 @@ onMounted(async () => {
   logger.debug('App component mounted')
   const startTime = performance.now()
   const defaultsStore = useSlideruleDefaults()
+
+  // The server rejects anonymous requests, so anything fetched before login completes has to be redone
+  const githubAuthStore = useGitHubAuthStore()
+  const sysConfigStore = useSysConfigStore()
+  watch(
+    () => githubAuthStore.authToken,
+    async (token) => {
+      if (token) await defaultsStore.fetchDefaults()
+      await sysConfigStore.fetchServerVersionInfo()
+      await sysConfigStore.fetchCurrentNodes()
+    }
+  )
+
   await defaultsStore.fetchDefaults()
   //logger.debug('Defaults loaded');
   const reqId = await recTreeStore.updateRecMenu('from App')
