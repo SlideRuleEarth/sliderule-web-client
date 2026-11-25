@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import Button from 'primevue/button'
+import Dialog from 'primevue/dialog'
 import { onMounted, onBeforeUnmount, ref, computed } from 'vue'
 import ProgressSpinner from 'primevue/progressspinner'
 import { useRequestsStore } from '@/stores/requestsStore'
@@ -11,6 +12,7 @@ import SrCustomTooltip from './SrCustomTooltip.vue'
 import SrReqMsgLog from './SrReqMsgLog.vue'
 import { useSrToastStore } from '@/stores/srToastStore'
 import { useServerStateStore } from '@/stores/serverStateStore'
+import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('SrRunControl')
@@ -30,6 +32,8 @@ const srToastStore = useSrToastStore()
 const requestsStore = useRequestsStore()
 const msgLogStore = useReqMsgLogStore()
 const serverStateStore = useServerStateStore()
+const githubAuthStore = useGitHubAuthStore()
+const showLoginRequired = ref(false)
 const tooltipRef = ref()
 const enableRunButton = computed(() => {
   return (
@@ -86,6 +90,10 @@ async function toggleRunAbort() {
       buttonLabel: props.buttonLabel
     })
     if (props.includeAdvToggle) {
+      if (!githubAuthStore.checkAuthValidity()) {
+        showLoginRequired.value = true
+        return
+      }
       try {
         await processRunSlideRuleClicked()
       } catch (error) {
@@ -98,6 +106,11 @@ async function toggleRunAbort() {
       logger.error('SrRunControl clicked for Overlay Photon Cloud?')
     }
   }
+}
+
+function loginFromPrompt() {
+  showLoginRequired.value = false
+  void githubAuthStore.initiateLogin()
 }
 </script>
 <template>
@@ -135,6 +148,33 @@ async function toggleRunAbort() {
       <span class="sr-console-msg">{{ requestsStore.getConsoleMsg() }}</span>
       <span class="sr-svr-msg">{{ requestsStore.getSvrMsg() }}</span>
     </div>
+    <Dialog
+      v-model:visible="showLoginRequired"
+      modal
+      header="Login Required"
+      :style="{ width: '36rem', maxWidth: '90vw' }"
+      :draggable="false"
+    >
+      <p>
+        Due to recent changes in traffic patterns on our public services, the use of SlideRule now
+        requires a
+        <a href="https://github.com" target="_blank" rel="noopener noreferrer">GitHub</a> account
+        for user identification. If you do not already have one, you can create a free account at
+        <a href="https://github.com/signup" target="_blank" rel="noopener noreferrer"
+          >https://github.com/signup</a
+        >.
+      </p>
+      <p>
+        SlideRule uses GitHub only to verify who you are; it does not need access to your
+        repositories. When you log in, the SlideRule login service
+        (<code>login.slideruleearth.io</code>) verifies your identity with GitHub and issues you a
+        SlideRule access token that is then included in your requests to SlideRule services.
+      </p>
+      <template #footer>
+        <Button label="Cancel" severity="secondary" text @click="showLoginRequired = false" />
+        <Button label="Login with GitHub" icon="pi pi-github" @click="loginFromPrompt" />
+      </template>
+    </Dialog>
   </div>
 </template>
 <style scoped>
