@@ -2,13 +2,15 @@
 import { ref, computed, watch } from 'vue'
 import { useReqParamsStore } from '@/stores/reqParamsStore'
 import { useSlideruleDefaults } from '@/stores/defaultsStore'
-import { type SrPhoreal } from '@/types/slideruleDefaultsInterfaces'
+import { useGitHubAuthStore } from '@/stores/githubAuthStore'
 import { onMounted } from 'vue'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('SrGenUserPresets')
 
 const reqParameterStore = useReqParamsStore()
+const defaultsStore = useSlideruleDefaults()
+const githubAuthStore = useGitHubAuthStore()
 const selectedBox = ref<number | null>(null)
 
 // Function to sync selectedBox with current API from store
@@ -122,6 +124,7 @@ const boxes = computed(() => [
 ])
 
 const selectBox = (boxId: number) => {
+  if (!defaultsStore.fetched) return
   selectedBox.value = boxId
   const selectedBoxInfo = boxes.value.find((box) => box.id === boxId)
   if (!selectedBoxInfo) {
@@ -201,15 +204,7 @@ const selectBox = (boxId: number) => {
   }
   //console.log("GenUserOptions selection complete. AFTER reqParameterStore.poly:", reqParameterStore.poly);
 }
-let defaultPhoreal = {} as SrPhoreal
-
 onMounted(() => {
-  defaultPhoreal = useSlideruleDefaults().getNestedMissionDefault(
-    'ICESat-2',
-    'phoreal'
-  ) as SrPhoreal
-  logger.debug('Default PhoReal', { defaultPhoreal })
-
   // Sync selectedBox with current store state on mount
   syncSelectedBoxFromStore()
 })
@@ -229,11 +224,18 @@ watch(
 
 <template>
   <div class="sr-radio-box-container" id="sr-radio-box-container-gen">
+    <p v-if="!defaultsStore.fetched" class="sr-radio-box-note">
+      <i class="pi pi-lock" aria-hidden="true"></i>
+      {{
+        githubAuthStore.authToken ? 'Loading product settings...' : 'Log in to choose a product.'
+      }}
+    </p>
     <div
       v-for="box in boxes"
       :key="box.id"
       class="sr-radio-box"
-      :class="{ selected: selectedBox === box.id }"
+      :class="{ selected: selectedBox === box.id, insensitive: !defaultsStore.fetched }"
+      :aria-disabled="!defaultsStore.fetched"
       @click="selectBox(box.id)"
     >
       <img :src="box.image" :alt="box.name" class="sr-radio-box-image" />
@@ -295,5 +297,14 @@ watch(
 .sr-radio-box.insensitive {
   opacity: 0.5;
   pointer-events: none;
+}
+
+.sr-radio-box-note {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.25rem;
+  font-size: 0.85rem;
+  color: #a0a0a0;
 }
 </style>

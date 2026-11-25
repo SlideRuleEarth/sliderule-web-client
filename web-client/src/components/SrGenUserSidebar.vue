@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { useMapStore } from '@/stores/mapStore'
 import { onMounted, defineAsyncComponent } from 'vue'
-import { useSlideruleDefaults } from '@/stores/defaultsStore'
 // eslint-disable-next-line @typescript-eslint/promise-function-async
 const SrGenUserPresets = defineAsyncComponent(() => import('./SrGenUserPresets.vue'))
 
@@ -13,7 +12,7 @@ onMounted(() => {
 
 <template>
   <div class="sr-gen-user-sidebar-container">
-    <SrGenUserPresets v-if="useSlideruleDefaults().fetched" />
+    <SrGenUserPresets />
   </div>
 </template>
 
